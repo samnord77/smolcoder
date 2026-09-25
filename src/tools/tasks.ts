@@ -22,8 +22,17 @@ const RING_SIZE = 300;
 export class TaskManager {
   private tasks = new Map<string, Task>();
   private counter = 0;
+  private static readonly MAX_KEPT = 50;
 
   constructor(private cwd: string) {}
+
+  private prune(): void {
+    if (this.tasks.size <= TaskManager.MAX_KEPT) return;
+    const done = [...this.tasks.values()].filter((t) => t.status !== "running").sort((a, b) => a.startedAt - b.startedAt);
+    for (const t of done.slice(0, this.tasks.size - TaskManager.MAX_KEPT)) {
+      this.tasks.delete(t.id);
+    }
+  }
 
   start(command: string): string {
     const shell = pickShell();
@@ -65,6 +74,7 @@ export class TaskManager {
       }
     });
     this.tasks.set(id, task);
+    this.prune();
     return id;
   }
 
@@ -94,9 +104,13 @@ export class TaskManager {
     if (!task) return this.unknownTask(taskId);
     if (task.status !== "running") return `Task ${taskId} already ${task.status}.`;
     task.status = "stopped";
-    killTree(task.proc.pid!);
-    task.proc.stdout?.destroy();
-    task.proc.stderr?.destroy();
+    try {
+      if (task.proc.pid !== undefined) killTree(task.proc.pid);
+      task.proc.stdout?.destroy();
+      task.proc.stderr?.destroy();
+    } catch {
+      /* déjà parti */
+    }
     return `Task ${taskId} stopped. (${task.command})`;
   }
 
@@ -139,7 +153,7 @@ export class TaskManager {
       if (t.status === "running") {
         t.status = "stopped";
         try {
-          killTree(t.proc.pid!);
+          if (t.proc.pid !== undefined) killTree(t.proc.pid);
           t.proc.stdout?.destroy();
           t.proc.stderr?.destroy();
         } catch {

@@ -83,3 +83,20 @@ test("tui: a long list scrolls with the selection, so rows past the tenth can be
   assert.equal(await p, 15);
   capture(() => tui.close());
 });
+
+test("tui: turn end, approval prompt and errors ring the terminal bell", async () => {
+  const tui = new Tui();
+  capture(() => tui.start());
+  const done = capture(() => tui.turnEnd("1.2s"));
+  assert.ok(done.includes("\x07"), "turn end pings");
+  let p;
+  const asked = capture(() => {
+    p = tui.confirmCommand("npm test", "outside");
+  });
+  assert.ok(asked.includes("\x07"), "approval prompt pings");
+  capture(() => keys("y\r"));
+  assert.equal(await p, "yes");
+  const err = capture(() => tui.error("boom"));
+  assert.ok(err.includes("\x07"), "errors ping");
+  capture(() => tui.close());
+});

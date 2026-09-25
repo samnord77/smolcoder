@@ -216,3 +216,22 @@ test("bypass mode never asks", async () => {
   const toolMsg = provider.seen[1].find((m) => m.role === "tool");
   assert.match(toolMsg.content, /nothing-is-read/);
 });
+
+test("delegate announces sub-agent start and done to the UI", async () => {
+  const provider = scriptedProvider([
+    { content: "", toolCalls: [{ id: "d1", name: "delegate", args: { task: "find login" } }] },
+    { content: "sub report", toolCalls: [] },
+    { content: "all done", toolCalls: [] },
+  ]);
+  const ui = fakeUi();
+  const subs = [];
+  ui.subagent = (phase, label) => subs.push([phase, label]);
+  const agent = makeAgent(provider, ui, "bypass", true);
+  await agent.runTurn("go");
+  assert.equal(agent.outcome, "completed");
+  assert.equal(subs[0][0], "start");
+  assert.match(subs[0][1], /find login/);
+  assert.equal(subs[subs.length - 1][0], "done");
+  const toolMsg = provider.seen.flat().find((m) => m.role === "tool" && /Sub-agent did/.test(m.content));
+  assert.ok(toolMsg, "delegate result carries the sub-agent report");
+});

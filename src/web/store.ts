@@ -32,6 +32,14 @@ function writeAtomic(file: string, data: string): void {
   fs.renameSync(tmp, file);
 }
 
+/** Session ids are hex strings we generate. Refuse `../../...` so a crafted
+ * id can never read or delete a file outside the sessions folder. */
+function assertValidId(id: string): void {
+  if (typeof id !== "string" || !/^[A-Za-z0-9_-]{1,64}$/.test(id)) {
+    throw new Error(`Invalid session id: ${String(id).slice(0, 40)}`);
+  }
+}
+
 async function writeAtomicAsync(file: string, data: string): Promise<void> {
   const tmp = `${file}.${process.pid}.tmp`;
   await fs.promises.writeFile(tmp, data);
@@ -47,10 +55,12 @@ export class SessionStore {
   }
 
   private metaPath(id: string): string {
+    assertValidId(id);
     return path.join(this.dir, `${id}.meta.json`);
   }
 
   private bodyPath(id: string): string {
+    assertValidId(id);
     return path.join(this.dir, `${id}.json`);
   }
 
@@ -107,7 +117,13 @@ export class SessionStore {
   }
 
   delete(id: string): void {
-    for (const p of [this.metaPath(id), this.bodyPath(id)]) {
+    let paths: string[];
+    try {
+      paths = [this.metaPath(id), this.bodyPath(id)];
+    } catch {
+      return;
+    }
+    for (const p of paths) {
       try {
         fs.unlinkSync(p);
       } catch {

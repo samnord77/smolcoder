@@ -1,29 +1,38 @@
-// Tool registry. Eight tools with flat parameters — no
+// Tool registry. Thirteen tools with flat parameters — no
 // nested objects or arrays: small models mangle them), an example call inside
 // every description (small models imitate better than they infer), and the
 // mode decides which schemas are sent. The agent rechecks mode at execution.
+// Read-only mode keeps read_file, list_files, search, plan, skill
+// (list/read only) and fetch_url; edit/bypass add write_file, edit_file,
+// run_command, task, delegate, mcp, symbols and skill save.
 
+import * as fs from "fs";
 import { Plan } from "../plan";
 import { ToolSpec } from "../providers/types";
 import { editFile, listFiles, readFile, writeFile } from "./fs-tools";
+import { fetchUrl } from "./web";
+import { querySymbols } from "../lsp";
+import { McpBridge } from "../mcp";
+import { listSkills, readSkill, saveSkill } from "../skills";
 import { syntaxCheck } from "./check";
 import { runCommand } from "./shell";
 import { TaskManager } from "./tasks";
 import { resolveInWorkspace, SandboxError } from "../sandbox";
 import { truncateMiddle } from "../util";
 import { searchFilesBounded } from "./search-worker";
+import { LoadedPlugin } from "../plugins";
 
 export type Mode = "ro" | "edit" | "bypass";
 
 export const MODE_LABELS: Record<Mode, string> = {
   ro: "read-only",
   edit: "edit",
-  bypass: "bypass permissions",
+  bypass: "YOLO bypass",
 };
 
 const TOOL_RESULT_CAP = 10000; // chars — final safety net over per-tool caps
 
-export function buildToolSpecs(mode: Mode): ToolSpec[] {
+export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): ToolSpec[] {
   const read: ToolSpec[] = [
     {
       name: "read_file",
@@ -76,6 +85,32 @@ export function buildToolSpecs(mode: Mode): ToolSpec[] {
           text: { type: "string", description: 'Step to append or working checkpoint' },
         },
         required: ["action"],
+      },
+    },
+    {
+      name: "skill",
+      description:
+        'Save and reuse know-how across sessions (auto-evolution). List: {"action":"list"}. Read: {"action":"read","name":"login-debug"}. Save a reusable checklist after a repair: {"action":"save","name":"login-debug","content":"# steps\\n1. ..."} (edit/bypass only).',
+      parameters: {
+        type: "object",
+        properties: {
+          action: { type: "string", enum: ["list", "read", "save"] },
+          name: { type: "string", description: "Skill name: letters, numbers, - or _ (for read/save)" },
+          content: { type: "string", description: "Checklist markdown (only for save)" },
+        },
+        required: ["action"],
+      },
+    },
+    {
+      name: "fetch_url",
+      description:
+        'Read a public web page as text (docs, APIs, articles). Example: {"url": "https://example.com/docs"}. No key needed. Local and private addresses are refused.',
+      parameters: {
+        type: "object",
+        properties: {
+          url: { type: "string", description: "Full https:// address of the page" },
+        },
+        required: ["url"],
       },
     },
   ];
@@ -140,7 +175,112 @@ export function buildToolSpecs(mode: Mode): ToolSpec[] {
   ];
 
   if (mode === "ro") return read;
-  return [...read, ...write, ...exec];
+  const mcp: ToolSpec[] = [
+    {
+      name: "mcp",
+      description:
+        'Use an external MCP server configured in `.smol/mcp.json` (mail, sheets, browser…). List servers: {"server": "?", "tool": ""}. Call: {"server": "files", "tool": "read_file", "args": "{\\"path\\": \\"notes.txt\\"}"} — args stays a JSON string.',
+      parameters: {
+        type: "object",
+        properties: {
+          server: { type: "string", description: 'Server name from `.smol/mcp.json`, or "?" to list' },
+          tool: { type: "string", description: "Tool name on that server" },
+          args: { type: "string", description: "Tool arguments as a JSON object in a string (optional)" },
+        },
+        required: ["server", "tool"],
+      },
+    },
+  ];
+  const delegate: ToolSpec[] =
+    opts?.allowDelegate === false
+      ? []
+      : [
+          {
+            name: "delegate",
+            description:
+              'Hand a small subtask to a bounded sub-agent and get back its summary. Example: {"task": "find where login validation lives and report files + line numbers"}. Max 12 tool calls, no nested delegates. Use for complex tasks: explore, then implement yourself from its report.',
+            parameters: {
+              type: "object",
+              properties: {
+                task: { type: "string", description: "The small concrete subtask" },
+              },
+              required: ["task"],
+            },
+          },
+        ];
+  const symbols: ToolSpec[] = [
+    {
+      name: "symbols",
+      description:
+        'Ask the language server about TypeScript/JavaScript code. Hover: {"action": "hover", "path": "src/agent.ts", "line": 10, "col": 15}. Definition: {"action": "def", ...}. References: {"action": "refs", ...}. Diagnostics: {"action": "diag", "path": "src/agent.ts"}. Lines and columns start at 1.',
+      parameters: {
+        type: "object",
+        properties: {
+          action: { type: "string", enum: ["hover", "def", "refs", "diag"] },
+          path: { type: "string", description: "File path relative to the workspace" },
+          line: { type: "number", description: "Line number starting at 1 (not for diag)" },
+          col: { type: "number", description: "Column number starting at 1 (not for diag)" },
+        },
+        required: ["action", "path"],
+      },
+    },
+  ];
+  return [...read, ...write, ...exec, ...mcp, ...symbols, ...delegate];
+}
+
+/** One undoable file write: absolute path, full previous content (null when
+ * the file did not exist) and what redo must re-apply. For "edit", redo
+ * replays the old_text -> next replacement (never writes the snippet alone). */
+export interface UndoEntry {
+  abs: string;
+  prev: string | null;
+  next: string;
+  kind: "write" | "edit";
+  oldText?: string;
+}
+
+const UNDO_CAP = 20;
+const UNDO_SKIP_BYTES = 1024 * 1024; // >1 Mo : skip silencieuse, pas d'entrée undo
+
+/** Capture le contenu AVANT écriture. Retourne null quand il n'y a rien à
+ * enregistrer (hors workspace, dossier, >1 Mo, illisible). */
+function capturePrev(workspace: string, rel: unknown): { abs: string; prev: string | null } | null {
+  let abs: string;
+  try {
+    abs = resolveInWorkspace(workspace, String(rel));
+  } catch {
+    return null;
+  }
+  try {
+    if (!fs.existsSync(abs)) return { abs, prev: null };
+    const stat = fs.statSync(abs);
+    if (stat.isDirectory() || stat.size > UNDO_SKIP_BYTES) return null;
+    return { abs, prev: fs.readFileSync(abs, "utf8") };
+  } catch {
+    return null;
+  }
+}
+
+/** Enregistre l'écriture APRES succès (cap 20, redo vidée à chaque nouvel edit). */
+function pushUndo(
+  ctx: ToolContext,
+  captured: { abs: string; prev: string | null } | null,
+  next: unknown,
+  kind: "write" | "edit" = "write",
+  oldText?: unknown
+): void {
+  if (!captured || typeof next !== "string") return;
+  ctx.undoStack ??= [];
+  ctx.redoStack ??= [];
+  ctx.undoStack.push({
+    abs: captured.abs,
+    prev: captured.prev,
+    next,
+    kind,
+    ...(kind === "edit" && typeof oldText === "string" ? { oldText } : {}),
+  });
+  if (ctx.undoStack.length > UNDO_CAP) ctx.undoStack.splice(0, ctx.undoStack.length - UNDO_CAP);
+  ctx.redoStack.length = 0;
 }
 
 export interface ToolContext {
@@ -150,8 +290,23 @@ export interface ToolContext {
   /** Records for the compaction state note. */
   filesTouched: Set<string>;
   commandsRun: string[];
+  /** Undo/redo des écritures fichier (write_file/edit_file). */
+  undoStack?: UndoEntry[];
+  redoStack?: UndoEntry[];
   /** Internal per-request cap; never a model-supplied tool argument. */
   resultCharLimit?: number;
+  /** Nesting depth of sub-agents (0 = main agent). The delegate tool is
+   * hidden at depth >= 1 so sub-agents cannot spawn their own. */
+  depth?: number;
+  /** False in read-only mode: skill "save" is refused. Defaults to true so
+   * older callers and tests keep working. */
+  canWrite?: boolean;
+  /** Wired by the Agent: runs one bounded sub-turn. Never set by the model. */
+  delegate?: (task: string, signal?: AbortSignal) => Promise<string>;
+  /** Lazy MCP bridge (external servers from `.smol/mcp.json`). Never set by the model. */
+  mcp?: McpBridge;
+  /** Workspace tool plugins (.smol/plugins/*.cjs). Never set by the model. */
+  plugins?: LoadedPlugin[];
 }
 
 export async function executeTool(
@@ -161,6 +316,27 @@ export async function executeTool(
   signal?: AbortSignal
 ): Promise<string> {
   try {
+    try {
+      for (const p of ctx.plugins ?? []) {
+        if (!p || !p.ok || typeof p.beforeTool !== "function") continue;
+        let r: unknown;
+        try {
+          r = p.beforeTool(name, args);
+        } catch {
+          continue;
+        }
+        if (!r || typeof r !== "object") continue;
+        const rec = r as { args?: unknown; block?: unknown };
+        if (typeof rec.block === "string" && rec.block.trim()) {
+          return `Error: ${rec.block}`;
+        }
+        if (rec.args && typeof rec.args === "object") {
+          args = rec.args as Record<string, any>;
+        }
+      }
+    } catch {
+      /* plugin hooks never break the turn */
+    }
     let result: string;
     switch (name) {
       case "read_file":
@@ -184,20 +360,26 @@ export async function executeTool(
           return 'Error: action must be one of "set", "done", "add", "show", "checkpoint". Example: {"action": "done"}';
         break;
       }
-      case "write_file":
+      case "write_file": {
+        const undoCap = capturePrev(ctx.workspace, args.path);
         result = writeFile(ctx.workspace, args);
         if (!result.startsWith("Error")) {
+          pushUndo(ctx, undoCap, args.content);
           ctx.filesTouched.add(String(args.path));
           result += afterWrite(ctx.workspace, String(args.path));
         }
         break;
-      case "edit_file":
+      }
+      case "edit_file": {
+        const undoCap = capturePrev(ctx.workspace, args.path);
         result = editFile(ctx.workspace, args);
         if (!result.startsWith("Error")) {
+          pushUndo(ctx, undoCap, args.new_text, "edit", args.old_text);
           ctx.filesTouched.add(String(args.path));
           result += afterWrite(ctx.workspace, String(args.path));
         }
         break;
+      }
       case "run_command":
         if (typeof args.command !== "string" || !args.command.trim()) {
           return 'Error: command is required. Example: {"command": "npm test"}';
@@ -225,8 +407,65 @@ export async function executeTool(
         }
         break;
       }
+      case "delegate": {
+        const task = typeof args.task === "string" ? args.task.trim() : "";
+        if (!task) {
+          return 'Error: task is required. Example: {"task": "find where login validation lives and report files + line numbers"}';
+        }
+        if (task.length > 2000) {
+          return "Error: keep the subtask under 2000 characters — one small concrete job.";
+        }
+        if (!ctx.delegate) {
+          return "Error: sub-agents are unavailable at this depth. Do the step yourself with read/search.";
+        }
+        result = await ctx.delegate(task, signal);
+        break;
+      }
+      case "skill": {
+        const action = args.action;
+        if (action === "list") result = listSkills(ctx.workspace);
+        else if (action === "read") result = readSkill(ctx.workspace, args.name);
+        else if (action === "save") {
+          if (ctx.canWrite === false) {
+            return "Error: saving skills is unavailable in read-only mode. Switch to edit mode to save.";
+          }
+          result = saveSkill(ctx.workspace, args.name, args.content);
+          if (!result.startsWith("Error")) ctx.filesTouched.add(`.smol/skills/${String(args.name).trim()}.md`);
+        } else {
+          return 'Error: action must be one of "list", "read", "save". Example: {"action": "list"}';
+        }
+        break;
+      }
+      case "fetch_url": {
+        result = await fetchUrl(ctx.workspace, args, signal);
+        break;
+      }
+      case "symbols": {
+        result = await querySymbols(ctx.workspace, args, signal);
+        break;
+      }
+      case "mcp": {
+        if (!ctx.mcp) {
+          return "Error: MCP bridge is not wired in this session. The host must set toolCtx.mcp (see docs/plugins.md).";
+        }
+        result = await ctx.mcp.call(String(args.server ?? ""), String(args.tool ?? ""), String(args.args ?? ""), signal);
+        break;
+      }
       default:
         return `Error: unknown tool "${name}". Available tools are listed in your tool definitions — use one of those.`;
+    }
+    try {
+      for (const p of ctx.plugins ?? []) {
+        if (!p || !p.ok || typeof p.afterTool !== "function") continue;
+        try {
+          const out = p.afterTool(name, result);
+          if (typeof out === "string") result = out;
+        } catch {
+          /* ignore failing after-hook */
+        }
+      }
+    } catch {
+      /* plugin hooks never break the turn */
     }
     return truncateMiddle(result, TOOL_RESULT_CAP);
   } catch (err: any) {

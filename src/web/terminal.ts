@@ -6,6 +6,7 @@
 
 import { ChildProcess, spawn } from "child_process";
 import { killTree, pickShell, ShellInfo } from "../tools/shell";
+import { commandEscapesWorkspace } from "../sandbox";
 
 const RS = "\x1e"; // record separator — never appears in normal output
 const SENTINEL = /\x1e(-?\d+)\x1e([^\x1e]*)\x1e\r?\n?/;
@@ -24,6 +25,7 @@ export class Terminal {
   buffer = "";
   closed = false;
   readonly shell: ShellInfo;
+  private workspaceRoot: string;
 
   private proc: ChildProcess | null = null;
   private acc = "";
@@ -35,9 +37,11 @@ export class Terminal {
   constructor(
     readonly id: string,
     cwd: string,
-    private hooks: TerminalHooks
+    private hooks: TerminalHooks,
+    workspaceRoot?: string
   ) {
     this.cwd = cwd;
+    this.workspaceRoot = workspaceRoot ?? cwd;
     this.shell = pickShell();
     this.kind = /powershell|pwsh/i.test(this.shell.exe) ? "powershell" : "posix";
     this.emit(`\x1b[2m${this.shell.label} · no TTY: interactive programs will not work · ctrl+c interrupts\x1b[0m\n`);
@@ -91,11 +95,22 @@ export class Terminal {
   }
 
   /** Run one line. Echoed into the stream first, so every connected page (and
-   * the replay) shows the command with its output. */
+   * the replay) shows the command with its output. Commands that reach
+   * outside the workspace show a clear warning but still run: this panel
+   * is your own shell, not the model. */
   write(line: string): void {
     if (this.closed) return;
     const cmd = line.replace(/\r?\n$/, "");
     this.emit(`\x1b[36m❯\x1b[0m ${cmd}\n`);
+    if (!cmd.trim()) return;
+    try {
+      const reason = commandEscapesWorkspace(cmd, this.workspaceRoot);
+      if (reason) {
+        this.emit(`\x1b[33m[hors dossier : ${reason} — exécuté car c'est vous qui l'avez tapé]\x1b[0m\n`);
+      }
+    } catch {
+      /* le contrôle ne doit jamais bloquer votre frappe */
+    }
     if (!this.proc?.stdin?.writable) {
       this.emit("\x1b[31m[no shell running]\x1b[0m\n");
       return;
@@ -141,6 +156,13 @@ export class Terminal {
       this.acc = this.acc.slice(m.index + m[0].length);
       const cwd = toOsPath(m[2].trim()) || this.cwd;
       this.cwd = cwd;
+      try {
+        if (commandEscapesWorkspace(`cd "${cwd}"`, this.workspaceRoot)) {
+          this.emit(`\x1b[33m[vous êtes hors du dossier projet : ${cwd}]\x1b[0m\n`);
+        }
+      } catch {
+        /* affichage seul */
+      }
       this.hooks.done(Number(m[1]), cwd);
     }
     // Hold back a partial sentinel that may complete with the next chunk,

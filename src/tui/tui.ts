@@ -104,6 +104,7 @@ export class Tui implements SessionUI {
     null;
   private spinnerTimer: NodeJS.Timeout | null = null;
   private spinnerActive = false;
+  private spinnerLabel = "";
   private atLineStart = true;
   private lastKind: "content" | "thinking" | null = null;
 
@@ -165,6 +166,7 @@ export class Tui implements SessionUI {
   confirmCommand(command: string, reason?: string): Promise<"yes" | "no" | "always"> {
     this.stopSpinner();
     this.hideFrame();
+    this.bell();
     this.state = "confirm";
     return new Promise((resolve) => {
       this.confirmState = { command, reason, resolve };
@@ -594,6 +596,11 @@ export class Tui implements SessionUI {
 
   // ---- AgentUI (output while the agent runs) -------------------------------
 
+  /** Efface la ligne du spinner sans arreter son timer : le texte de
+   * l'agent ne casse plus l'animation (c'etait le saccadage). */
+  private spinClear(): void {
+    if (this.spinnerActive) process.stdout.write("\r" + " ".repeat(70) + "\r");
+  }
   private out(s: string): void {
     if (this.tickerOn) this.endTicker();
     if (this.state !== "hidden") {
@@ -601,6 +608,7 @@ export class Tui implements SessionUI {
       process.stdout.write(s);
       this.redraw();
     } else {
+      this.spinClear();
       process.stdout.write(s);
     }
   }
@@ -695,7 +703,10 @@ export class Tui implements SessionUI {
   turnEnd(label: string): void {
     this.ensureLine();
     this.lastKind = null;
-    this.out(`${c.dim("■ " + label)}\n\n`);
+    const n = new Date();
+    const hh = [n.getHours(), n.getMinutes(), n.getSeconds()].map((x) => String(x).padStart(2, "0")).join(":");
+    this.out(`${c.dim("■ " + label + " · " + hh)}\n\n`);
+    this.bell();
     this.atLineStart = true;
   }
 
@@ -708,26 +719,46 @@ export class Tui implements SessionUI {
     this.atLineStart = true;
   }
 
+  subagent(phase: "start" | "done", label: string): void {
+    this.status(phase === "start" ? `⇄ sous-agent : ${label}` : `✓ sous-agent : ${label}`);
+  }
+
+  /** Terminal bell: ping on approval prompts, finished turns and errors. */
+  private bell(): void {
+    try {
+      process.stdout.write("\x07");
+    } catch {
+      /* headless pipe */
+    }
+  }
+
   warn(s: string): void {
     this.println(c.yellow(s));
   }
 
   error(s: string): void {
     this.println(c.red(s));
+    this.bell();
   }
 
   startSpinner(label: string): void {
     if (!process.stdout.isTTY || this.state !== "hidden") return;
+    // Meme label : on garde l'elapsed (pas de restart qui remettait à 0).
+    if (this.spinnerActive && this.spinnerLabel === label) return;
     this.stopSpinner();
     const frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+    const bars = ["▓░░░░░░░░░", "░▓░░░░░░░░", "░░▓░░░░░░░", "░░░▓░░░░░░", "░░░░▓░░░░░", "░░░░░▓░░░░", "░░░░░░▓░░░", "░░░░░░░▓░░", "░░░░░░░░▓░", "░░░░░░░░░▓"];
     let i = 0;
     const started = Date.now();
+    this.spinnerLabel = label;
     this.spinnerActive = true;
     this.spinnerTimer = setInterval(() => {
       const secs = Math.floor((Date.now() - started) / 1000);
+      const f = i % frames.length;
       process.stdout.write(
-        `\r${c.cyan(frames[i++ % frames.length])} ${c.dim(label + (secs > 2 ? ` ${secs}s` : "") + " · esc to cancel")}   `
+        `\r${c.cyan(frames[f])} ${c.dim(label)} ${c.cyan(bars[f])} ${c.dim(`${secs}s · esc to cancel`)}   `
       );
+      i++;
     }, 100);
   }
 
@@ -739,6 +770,7 @@ export class Tui implements SessionUI {
     if (this.spinnerActive) {
       process.stdout.write("\r" + " ".repeat(70) + "\r");
       this.spinnerActive = false;
+      this.spinnerLabel = "";
     }
   }
 }

@@ -10,6 +10,7 @@ import * as path from "path";
 import { Mode } from "./tools/index";
 
 const AGENTS_MD_CAP_CHARS = 8000; // ~2k tokens — small-context friendly
+const MEMORY_MD_CAP_CHARS = 4000; // ~1k tokens — long-term memory stays cheap
 
 /** Read the workspace's AGENTS.md memory file, if any. */
 export function loadAgentsMd(workspace: string): string | null {
@@ -29,12 +30,33 @@ export function loadAgentsMd(workspace: string): string | null {
   }
 }
 
+/** Read the workspace's MEMORY.md long-term memory file, if any. Facts the
+ * user wants kept across sessions: preferences, durable decisions, people. */
+export function loadMemoryMd(workspace: string): string | null {
+  try {
+    const p = path.join(workspace, "MEMORY.md");
+    if (!fs.existsSync(p)) return null;
+    let text = fs.readFileSync(p, "utf8").trim();
+    if (!text) return null;
+    if (text.length > MEMORY_MD_CAP_CHARS) {
+      text =
+        text.slice(0, MEMORY_MD_CAP_CHARS) +
+        "\n[MEMORY.md was truncated here to save context]";
+    }
+    return text;
+  } catch {
+    return null;
+  }
+}
+
 export function buildSystemPrompt(opts: {
   workspace: string;
   mode: Mode;
   shellLabel: string;
   /** Contents of the workspace AGENTS.md, when present. */
   agentsMd?: string | null;
+  /** Contents of the workspace MEMORY.md, when present. */
+  memoryMd?: string | null;
 }): string {
   const os =
     process.platform === "win32" ? "Windows" : process.platform === "darwin" ? "macOS" : "Linux";
@@ -50,12 +72,16 @@ export function buildSystemPrompt(opts: {
     `You are smolcoder, a coding agent working in the workspace ${opts.workspace} on ${os}. ` +
     `Commands run in ${opts.shellLabel} with the workspace as the working directory. ` +
     `File paths are relative to the workspace; you cannot access files outside it. ${modeLine}\n\n` +
-    `For multi-step work, first set a short plan of runnable increments; mark each step done as you finish it. The plan survives compaction. Use plan checkpoint to retain exact APIs, errors and your next edit during an investigation. Establish a working entry point early and run the build after wiring modules. ` +
-    `Read relevant files before editing. Search narrowly and read small line ranges. Inspect a local module's actual exports before importing it. Make one tool call at a time; use small modules and write large files in parts. ` +
-    `Read errors and change your approach when a call fails. Put test programs in files rather than long inline shell commands. Verify changes with the relevant test or command; a failed check is not success. ` +
+    `For multi-step work, first set a short plan of runnable increments; mark each step done as you finish it. The plan survives compaction. Use plan checkpoint to retain exact APIs, errors and your next edit during an investigation. For complex tasks, delegate one small exploration with the delegate tool, then implement yourself from its report (no nested delegates). ` +
+    `Read relevant files before editing. Search narrowly and read small line ranges. Use symbols (hover/def/refs/diag) for exact types and definitions in TypeScript/JavaScript instead of guessing. Use fetch_url to read public web docs or API references (no key needed). External services (mail, sheets, browser…) run through the mcp tool only when the workspace lists them in \`.smol/mcp.json\`. Inspect a local module's actual exports before importing it. Make one tool call at a time; use small modules and write large files in parts. ` +
+    `Read errors and change your approach when a call fails. Put test programs in files rather than long inline shell commands. Verify changes with the relevant test or command; a failed check is not success — the harness reruns acceptance automatically until it passes (auto-repair). ` +
+    `After a hard-won repair, save the reusable checklist with skill save so future sessions reuse it (auto-evolution). Saved skills matching your task are loaded automatically — read and apply them. ` +
     `Continue until the request is finished or explain the blocker. Summarize the result and verification briefly.` +
     (opts.agentsMd
       ? `\n\nWorkspace instructions from AGENTS.md — follow these:\n${opts.agentsMd}`
+      : "") +
+    (opts.memoryMd
+      ? `\n\nLong-term memory from MEMORY.md — durable facts, follow these:\n${opts.memoryMd}`
       : "")
   );
 }

@@ -47,6 +47,13 @@ function shortPath(p) {
   if (home && p.slice(0, home.length).toLowerCase() === home.toLowerCase()) p = "~" + p.slice(home.length);
   return p.replace(/\\/g, "/");
 }
+function bellOn() { return ls.get("smol-notify") === "1"; }
+function ping(title, body) {
+  try {
+    if (!bellOn() || !document.hidden) return;
+    if (typeof Notification !== "undefined" && Notification.permission === "granted") new Notification(title, { body: String(body || "").slice(0, 160) });
+  } catch (e) {}
+}
 
 // ---- markdown ------------------------------------------------------------
 // Model output is untrusted: escape everything first, then build tags
@@ -66,6 +73,24 @@ function inlineMd(s) {
   s = s.replace(new RegExp(SENT + "(\\d+)" + SENT, "g"), (m, i) => "<code>" + codes[i] + "</code>");
   return s;
 }
+// ---- coloration du code --------------------------------------------------
+// Zero dependance : petit surlignage sur du texte DEJA echappe (esc()).
+// On n'insere que nos propres <span> fixes : aucun HTML du modele ne passe.
+const HL_KEYWORDS = "const let var function return if else elif elseif for while do break continue switch case default class new delete typeof instanceof in of try catch finally throw async await import export from as with this super extends static get set def lambda pass raise assert yield global nonlocal print input len range open self True False None And Or Not null true false nil echo cd ls cat grep export local fi then done select until esac time coproc sudo int string bool float double char void long short signed unsigned struct enum union typedef namespace template typename public private protected virtual override final package interface implements".
+  split(" ");
+const HL_RE = new RegExp(
+  "(&quot;.*?&quot;|'[^'\\n]*?')|(\\/\\*[\\s\\S]*?\\*\\/|\\/\\/[^\\n]*|#[^\\n]*)|(\\b\\d[\\d_]*(?:\\.\\d+)?\\b)|(\\b(?:" +
+  HL_KEYWORDS.join("|") + ")\\b)",
+  "g"
+);
+function highlightCode(code) {
+  return code.replace(HL_RE, (m, str, com, num, kw) => {
+    if (str) return '<span class="tok-s">' + str + "</span>";
+    if (com) return '<span class="tok-c">' + com + "</span>";
+    if (num) return '<span class="tok-n">' + num + "</span>";
+    return '<span class="tok-k">' + kw + "</span>";
+  });
+}
 function renderMarkdown(src) {
   const lines = esc(src).split("\n");
   let out = "", i = 0, listType = null;
@@ -79,7 +104,7 @@ function renderMarkdown(src) {
       const body = []; i++;
       while (i < lines.length && !/^\s*\`\`\`/.test(lines[i])) { body.push(lines[i]); i++; }
       i++;
-      out += "<pre><code>" + body.join("\n") + "</code></pre>";
+      out += '<pre><code class="lang-' + (fence[1] || "txt") + '">' + highlightCode(body.join("\n")) + "</code></pre>";
       continue;
     }
     if (/^\s*\|/.test(line) && i + 1 < lines.length && /^\s*\|?[\s:|-]+\|[\s:|-]*$/.test(lines[i + 1])) {
@@ -207,6 +232,43 @@ const logResize = new ResizeObserver(stick);
 logResize.observe(logwrap); logResize.observe(logsEl); logResize.observe($("busywrap"));
 function add(v, e) { v.logEl.appendChild(e); if (v === active) stick(); return e; }
 function fmtSize(n) { return n < 1024 ? n + " B" : n < 1048576 ? (n / 1024).toFixed(n < 10240 ? 1 : 0) + " KB" : (n / 1048576).toFixed(1) + " MB"; }
+// Heure + bouton copier sur chaque bulle (utilisateur ET assistant).
+// Le modele ne fournit aucun % de chargement : on affiche un passe-ecoule
+// honnete + une barre indeterminee, jamais un faux pourcentage.
+function msgTime() {
+  const n = new Date();
+  const hh = String(n.getHours()).padStart(2, "0"), mm = String(n.getMinutes()).padStart(2, "0");
+  const t = el("span", "msgtime", hh + ":" + mm);
+  t.title = n.toLocaleString();
+  return t;
+}
+function copyBtn(getText) {
+  const b = el("button", "msgcopy", "⧉");
+  b.title = "Copier le message";
+  b.onclick = async (ev) => {
+    ev.stopPropagation();
+    const text = getText() || "";
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (e) {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy"); } catch (_e) {}
+      ta.remove();
+    }
+    b.textContent = "✓";
+    setTimeout(() => { b.textContent = "⧉"; }, 1200);
+  };
+  return b;
+}
+function msgMeta(getText) {
+  const meta = el("div", "msgmeta");
+  meta.appendChild(msgTime());
+  meta.appendChild(copyBtn(getText));
+  return meta;
+}
 // A sent message: its text, then thumbnails for images and links for files.
 function userBubble(m) {
   const d = el("div", "user", m.s || "");
@@ -225,6 +287,7 @@ function userBubble(m) {
     }
     d.appendChild(row);
   }
+  d.appendChild(msgMeta(() => m.s || ""));
   return d;
 }
 // Streaming: accumulate raw markdown on the element, re-render on a short
@@ -269,23 +332,31 @@ function setBusy(v, label) {
   if (label) v.busyStart = Date.now();
   if (v === active) renderBusy();
 }
+const SPIN_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+let spinTimer = null, spinIdx = 0;
 function renderBusy() {
   const label = active ? active.busyLabel : null;
   actionBtn.textContent = label ? "■ stop" : "send";
   actionBtn.className = label ? "stop" : "";
   actionBtn.title = label ? "interrupt the agent (esc)" : "send (enter)";
+  const spinEl = document.querySelector("#busy .spin");
+  // Le modele ne donne aucun % : secondes passe-ecoule toujours visibles +
+  // barre indeterminee animee (CSS), jamais de faux pourcentage.
   const tick = () => {
     const s = active && active.busyLabel ? Math.floor((Date.now() - active.busyStart) / 1000) : 0;
-    $("busysecs").textContent = s > 2 ? s + "s" : "";
+    $("busysecs").textContent = s + "s";
+    if (spinEl) spinEl.textContent = SPIN_FRAMES[spinIdx++ % SPIN_FRAMES.length];
   };
   if (label) {
     busyEl.classList.add("on");
     $("busylabel").textContent = label + "…";
     if (!busyTimer) busyTimer = setInterval(tick, 500);
+    if (!spinTimer) spinTimer = setInterval(tick, 90);
     tick();
   } else {
     busyEl.classList.remove("on");
     if (busyTimer) { clearInterval(busyTimer); busyTimer = null; }
+    if (spinTimer) { clearInterval(spinTimer); spinTimer = null; }
     $("busysecs").textContent = "";
   }
   stick();
@@ -299,11 +370,21 @@ function renderState(v) {
   st.innerHTML = "";
   if (!s.mode) { st.textContent = "starting…"; renderCrumb(); return; }
   const command = (name) => post("/msg", { sid: v.sid, text: "/" + name });
-  const mode = el("button", "statusbtn mode " + s.mode, s.mode === "ro" ? "Read-only" : s.mode === "bypass" ? "Bypass" : "Edit");
-  mode.title = "Permission mode"; mode.onclick = () => command("mode");
+  const modeLabel = s.modeLabel || (s.mode === "ro" ? "Read-only" : s.mode === "bypass" ? "YOLO bypass" : "Edit");
+  const mode = el("button", "statusbtn mode " + s.mode, modeLabel);
+  mode.title = s.yolo ? "YOLO ACTIF — aucune demande avant d'agir" : "Permission mode"; mode.onclick = () => command("mode");
   st.appendChild(mode);
   const model = el("button", "statusbtn modelpick", s.model + (s.host ? " @ " + s.host : "") + " ▾"); model.title = s.backend + (s.host ? " on " + s.host : "") + " · Switch model or find models on another machine"; model.onclick = () => command("models"); st.appendChild(model);
   const effort = el("button", "statusbtn eff", s.effort || "Auto"); effort.title = "Reasoning effort"; effort.onclick = () => command("effort"); st.appendChild(effort);
+  const bell = el("button", "statusbtn bell", bellOn() ? "🔔" : "🔕"); bell.title = "Desktop notifications: approvals, finished turns, errors";
+  bell.onclick = () => {
+    if (!bellOn()) {
+      ls.set("smol-notify", "1");
+      try { if (typeof Notification !== "undefined" && Notification.permission === "default") Notification.requestPermission(); } catch (e) {}
+    } else ls.set("smol-notify", "0");
+    renderState(v);
+  };
+  st.appendChild(bell);
   st.appendChild(el("span", "grow"));
   const ctx = el("button", "statusbtn context-chip" + (s.ctxPct >= 75 ? " pressure" : ""));
   const meter = document.createElement("meter"); meter.min = 0; meter.max = 100; meter.value = s.ctxPct || 0; meter.setAttribute("aria-label", "Context used");
@@ -315,6 +396,11 @@ function renderState(v) {
     st.appendChild(el("span", "plan-chip" + (s.plan.current < 0 ? " done" : ""), "plan " + done + "/" + s.plan.steps.length));
   }
   if (s.tasks) st.appendChild(el("span", "task-chip", s.tasks + " running"));
+  if (s.verification && (s.outcome === "running" || s.outcome === "idle")) {
+    const vchip = el("span", "task-chip", s.verification.passed ? "vérifié ✓" : "réparation auto " + s.verification.attempts);
+    vchip.title = "Contrôles automatiques en cours";
+    st.appendChild(vchip);
+  }
   if (s.outcome === "error" || s.outcome === "cancelled") {
     const paused = el("span", s.outcome === "error" ? "line-warn" : "task-chip", s.outcome === "error" ? "Paused" : "Stopped");
     paused.title = s.lastError || "Turn cancelled; progress is kept"; st.appendChild(paused);
@@ -356,7 +442,15 @@ function handle(m) {
       v.curText = null; v.curThought = null; v.thoughtBuf = ""; break;
     case "token":
       endThought(v);
-      if (!v.curText) { v.curText = add(v, el("div", "md")); v.curText._raw = ""; }
+      if (!v.curText) {
+        // La meta (heure+copier) est SOEUR du texte : le re-rendu streaming
+        // (innerHTML) ne l'efface pas.
+        const w = add(v, el("div", "msgwrap"));
+        v.curText = el("div", "md");
+        v.curText._raw = "";
+        w.appendChild(v.curText);
+        w.appendChild(msgMeta(() => (v.curText ? v.curText._raw : "") || ""));
+      }
       v.curText._raw += m.s; scheduleMd(v, v.curText); break;
     case "thinking":
       if (!v.curThought) v.curThought = startThought(v);
@@ -370,7 +464,19 @@ function handle(m) {
       endThought(v); v.curText = null;
       const d = el("details", "tool");
       const summary = el("summary"); summary.appendChild(el("span", "name", m.name.replace(/_/g, " "))); summary.appendChild(el("span", "tool-args", m.summary || ""));
-      d.appendChild(summary); v.curTool = d; add(v, d); break;
+      d.appendChild(summary); v.curTool = d;
+      if (typeof m.diff === "string" && m.diff) {
+        const pre = document.createElement("pre");
+        pre.className = "diff";
+        for (const line of m.diff.split("\n")) {
+          const span = document.createElement("span");
+          span.className = line.startsWith("+ ") ? "add" : line.startsWith("- ") ? "del" : "same";
+          span.textContent = line + "\n";
+          pre.appendChild(span);
+        }
+        d.appendChild(pre);
+      }
+      add(v, d); break;
     }
     case "result": {
       endThought(v); v.curText = null;
@@ -379,10 +485,16 @@ function handle(m) {
       else add(v, body);
       break;
     }
-    case "plan": endThought(v); v.curText = null; renderPlan(v, m); break;
-    case "line": endThought(v); v.curText = null; add(v, el("div", "line-" + m.kind, m.s)); break;
+      case "plan": endThought(v); v.curText = null; renderPlan(v, m); break;
+      case "sub": endThought(v); v.curText = null;
+        add(v, el("div", "line-status", (m.phase === "done" ? "✓ sous-agent : " : "⇄ sous-agent : ") + (m.label || "")));
+        break;
+    case "line": endThought(v); v.curText = null; add(v, el("div", "line-" + m.kind, m.s));
+      if (m.kind === "error") ping("smolcoder — attention needed", m.s);
+      break;
     case "turnend":
       endThought(v); v.curText = null; add(v, el("div", "turnend", "■ " + m.label));
+      ping("smolcoder — turn finished", m.label);
       if (v !== active) { v.unread = true; renderSidebar(); }
       break;
     case "busy": setBusy(v, m.label); break;
@@ -396,6 +508,7 @@ function handle(m) {
         b.onclick = () => { post("/confirm", { sid: v.sid, id: m.id, answer: a }); box.remove(); };
         box.appendChild(b);
       });
+      ping("smolcoder — approval needed", m.command);
       v.asks.set(m.id, box);
       add(v, box); break;
     }
@@ -994,15 +1107,66 @@ document.addEventListener("keydown", (e) => {
   else if (e.ctrlKey && e.key === "\`") { e.preventDefault(); togglePanelKind("term"); }
 });
 
-// ---- connect --------------------------------------------------------------
-const es = new EventSource("/events?k=" + k);
-es.onopen = () => {
-  // Everything is replayed on (re)connect: start each view from a clean slate.
-  for (const v of views.values()) {
-    v.logEl.innerHTML = ""; v.curText = null; v.curThought = null; v.asks.clear();
-    for (const t of v.terms.values()) { t.out.innerHTML = ""; t.cur = null; t.lines = 0; }
-  }
-};
-es.onmessage = (e) => handle(JSON.parse(e.data));
-es.onerror = () => { $("status").textContent = "reconnecting…"; };
+// ---- connect (SSE avec retry + bandeau) -----------------------------------
+let es = null;
+let sseRetry = 0;
+let sseTimer = null;
+const SSE_DELAYS = [2000, 5000, 15000];
+function netBanner() { return document.getElementById("netbanner"); }
+function hideNetBanner() { const b = netBanner(); if (b) b.remove(); }
+function showNetBanner() {
+  if (netBanner()) return;
+  const bar = el("div", "");
+  bar.id = "netbanner";
+  bar.style.position = "fixed";
+  bar.style.top = "0";
+  bar.style.left = "0";
+  bar.style.right = "0";
+  bar.style.zIndex = "9999";
+  bar.style.display = "flex";
+  bar.style.alignItems = "center";
+  bar.style.justifyContent = "center";
+  bar.style.gap = "10px";
+  bar.style.padding = "8px 12px";
+  bar.style.background = "#3a1214";
+  bar.style.color = "#ffd9d9";
+  bar.style.borderBottom = "1px solid #7a2020";
+  bar.style.fontSize = "13px";
+  bar.appendChild(document.createTextNode("Serveur injoignable — rechargez la page"));
+  const btn = el("button", "ghost", "Recharger");
+  btn.type = "button";
+  btn.onclick = () => location.reload();
+  bar.appendChild(btn);
+  const hide = el("button", "iconbtn", "×");
+  hide.type = "button";
+  hide.title = "masquer";
+  hide.onclick = () => hideNetBanner();
+  bar.appendChild(hide);
+  document.body.appendChild(bar);
+}
+function sseClearRetry() { sseRetry = 0; if (sseTimer) { clearTimeout(sseTimer); sseTimer = null; } }
+function sseFailed() {
+  try { if (es) es.close(); } catch (e) {}
+  $("status").textContent = "reconnecting…";
+  if (sseRetry >= SSE_DELAYS.length) { showNetBanner(); return; }
+  const delay = SSE_DELAYS[sseRetry++];
+  if (sseTimer) clearTimeout(sseTimer);
+  sseTimer = setTimeout(() => { sseTimer = null; connectSSE(); }, delay);
+}
+function connectSSE() {
+  try { if (es) es.close(); } catch (e) {}
+  es = new EventSource("/events?k=" + k);
+  es.onopen = () => {
+    sseClearRetry();
+    hideNetBanner();
+    // Everything is replayed on (re)connect: start each view from a clean slate.
+    for (const v of views.values()) {
+      v.logEl.innerHTML = ""; v.curText = null; v.curThought = null; v.asks.clear();
+      for (const t of v.terms.values()) { t.out.innerHTML = ""; t.cur = null; t.lines = 0; }
+    }
+  };
+  es.onmessage = (e) => { sseClearRetry(); hideNetBanner(); handle(JSON.parse(e.data)); };
+  es.onerror = () => { sseFailed(); };
+}
+connectSSE();
 `;

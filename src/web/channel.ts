@@ -7,6 +7,7 @@
 import { Attachment, UserInput } from "../attachments";
 import { Plan } from "../plan";
 import { SelectOption, SessionUI, SlashCommand, summarizeArgs } from "../ui";
+import { renderEditDiff } from "./diff";
 
 export type Event = Record<string, any>;
 
@@ -242,7 +243,15 @@ export class SessionChannel implements SessionUI {
   }
 
   toolCall(name: string, args: Record<string, any>): void {
-    this.broadcast({ t: "tool", name, summary: summarizeArgs(name, args) });
+    const ev: Record<string, any> = { t: "tool", name, summary: summarizeArgs(name, args) };
+    if (name === "edit_file" && typeof args?.old_text === "string" && typeof args?.new_text === "string") {
+      try {
+        ev.diff = renderEditDiff(args.old_text, args.new_text);
+      } catch {
+        /* summary alone is enough */
+      }
+    }
+    this.broadcast(ev);
   }
 
   toolResult(result: string): void {
@@ -260,6 +269,10 @@ export class SessionChannel implements SessionUI {
   planUpdated(plan: Plan): void {
     this.broadcast({ t: "plan", steps: plan.steps, current: plan.currentIndex });
     this.pushState();
+  }
+
+  subagent(phase: "start" | "done", label: string): void {
+    this.broadcast({ t: "sub", phase, label: label.slice(0, 200) });
   }
 
   println(s = ""): void {

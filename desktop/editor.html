@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smolcoder — Éditeur</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #1e1e1e; color: #d4d4d4;
+    font-family: Consolas, "Courier New", monospace; font-size: 14px; }
+  #bar { display: flex; gap: 10px; align-items: center; padding: 10px 12px; min-height: 52px;
+    background: #252526; border-bottom: 1px solid #3c3c3c; }
+  #bar button { background: #0e639c; color: #fff; border: 0; border-radius: 6px;
+    padding: 8px 14px; cursor: pointer; font-size: 13px; min-height: 36px; line-height: 1.2; }
+  #bar button:hover { background: #1177bb; }
+  #bar button:focus-visible { outline: 2px solid #9cdcfe; outline-offset: 2px; }
+  #root { color: #9cdcfe; font-size: 12.5px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.5; }
+  #main { display: flex; height: calc(100% - 96px); min-height: 0; }
+  #tree { width: 260px; min-width: 180px; overflow: auto; background: #252526;
+    border-right: 1px solid #3c3c3c; padding: 8px 6px; line-height: 1.6; }
+  #tree .d { color: #4ec9b0; cursor: pointer; padding: 6px 8px; border-radius: 4px; }
+  #tree .f { color: #d4d4d4; cursor: pointer; padding: 6px 8px; white-space: nowrap; border-radius: 4px; }
+  #tree .f:hover, #tree .d:hover { background: #2a2d2e; }
+  #tree .open { background: #37373d; box-shadow: inset 2px 0 0 #007acc; }
+  #tree:empty::after { content: "Aucun dossier ouvert — cliquez « Dossier » pour commencer."; display: block; margin: 8px; padding: 20px 12px; color: #858585; font-size: 12.5px; line-height: 1.6; text-align: center; border: 1px dashed #3c3c3c; border-radius: 8px; font-family: Segoe UI, sans-serif; }
+  #ed { flex: 1; min-width: 0; background: #1e1e1e; color: #d4d4d4; border: 0; outline: none;
+    resize: none; padding: 12px 14px; font: inherit; line-height: 1.6; tab-size: 2; }
+  #ed::placeholder { color: #858585; opacity: 1; }
+  #ed:focus-visible { outline: 2px solid #007acc; outline-offset: -2px; }
+  #status { display: flex; gap: 8px 16px; flex-wrap: wrap; align-items: center; padding: 8px 12px; min-height: 28px; background: #007acc; color: #fff;
+    font-size: 12.5px; font-family: Segoe UI, sans-serif; }
+  #err { color: #f48771; padding: 4px 12px; font-size: 12.5px; line-height: 1.5; min-height: 22px; }
+  :focus-visible { outline: 2px solid #9cdcfe; outline-offset: 2px; }
+  @media (max-width: 700px) {
+    body { display: flex; flex-direction: column; }
+    #bar { flex-wrap: wrap; }
+    #main { flex-direction: column; height: auto; flex: 1; }
+    #tree { width: 100%; min-width: 0; max-height: 32vh; border-right: 0; border-bottom: 1px solid #3c3c3c; }
+    #ed { min-height: 40vh; }
+  }
+</style>
+</head>
+<body>
+<div id="bar">
+  <button id="bFolder">📁 Dossier</button>
+  <button id="bSave">💾 Enregistrer (Ctrl+S)</button>
+  <span id="root">aucun dossier — cliquez « Dossier »</span>
+</div>
+<div id="main">
+  <div id="tree"></div>
+  <textarea id="ed" spellcheck="false" placeholder="Choisissez un dossier, puis un fichier…"></textarea>
+</div>
+<div id="err"></div>
+<div id="status"><span id="sFile">—</span><span id="sDirty"></span><span id="sMsg"></span></div>
+<script>
+const $ = (id) => document.getElementById(id);
+const tree = $("tree"), ed = $("ed"), err = $("err");
+let root = null, cur = null, dirty = false, folders = { ".": true };
+
+function showErr(m) { err.textContent = m || ""; }
+function setDirty(d) { dirty = d; $("sDirty").textContent = d ? "● modifié" : ""; }
+function join(a, b) { return a === "." ? b : a + "/" + b; }
+
+async function refreshTree() {
+  tree.innerHTML = "";
+  async function walk(rel, depth) {
+    let items;
+    try { items = await window.smolEd.list(rel); }
+    catch (e) { if (rel === ".") showErr(e.message); return; }
+    for (const it of items) {
+      const p = join(rel, it.name);
+      const div = document.createElement("div");
+      div.className = it.dir ? "d" : "f";
+      div.textContent = "  ".repeat(depth) + (it.dir ? "▸ " : "") + it.name;
+      if (p === cur) div.classList.add("open");
+      div.onclick = () => { it.dir ? toggle(p) : openFile(p); };
+      tree.appendChild(div);
+      if (it.dir && folders[p]) await walk(p, depth + 1);
+    }
+  }
+  await walk(".", 0);
+}
+function toggle(p) { folders[p] ? delete folders[p] : folders[p] = true; refreshTree(); }
+
+async function openFile(p) {
+  if (dirty && !confirm("Abandonner les modifications non enregistrées ?")) return;
+  try {
+    ed.value = await window.smolEd.read(p);
+    cur = p; setDirty(false); showErr("");
+    $("sFile").textContent = p;
+    $("sMsg").textContent = "";
+    refreshTree();
+  } catch (e) { showErr(e.message); }
+}
+
+async function save() {
+  if (!cur) { showErr("Aucun fichier ouvert."); return; }
+  try {
+    await window.smolEd.save(cur, ed.value);
+    setDirty(false); showErr("");
+    $("sMsg").textContent = "enregistré ✓ " + new Date().toLocaleTimeString();
+  } catch (e) { showErr(e.message); }
+}
+
+async function setRoot(r) {
+  root = r; cur = null; folders = { ".": true };
+  ed.value = ""; setDirty(false);
+  $("root").textContent = r || "aucun dossier";
+  $("sFile").textContent = "—"; $("sMsg").textContent = "";
+  if (r) refreshTree(); else tree.innerHTML = "";
+}
+
+$("bFolder").onclick = async () => {
+  try {
+    const r = await window.smolEd.pickFolder();
+    if (r) setRoot(r);
+  } catch (e) { showErr(e.message); }
+};
+$("bSave").onclick = save;
+ed.oninput = () => setDirty(true);
+document.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === "s") { e.preventDefault(); save(); }
+});
+
+(async () => {
+  try {
+    const sug = await window.smolEd.suggestRoot();
+    if (sug) setRoot(sug);
+  } catch (e) { /* l'utilisateur choisira */ }
+})();
+</script>
+</body>
+</html>

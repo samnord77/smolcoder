@@ -27,62 +27,62 @@ export const PAGE_HTML = `<!doctype html>
 <style>${STYLES}</style>
 </head>
 <body>
-<aside id="side">
+<aside id="side" aria-label="Workspaces and sessions">
   <div class="sidehdr">
     <div class="brand" role="img" aria-label="smolcoder">${LOGO_TEXT}</div>
     <span class="grow"></span>
-    <button class="iconbtn" id="sidecollapse" title="hide sidebar (ctrl+b)">«</button>
+    <button type="button" class="iconbtn" id="sidecollapse" title="hide sidebar (ctrl+b)">«</button>
   </div>
-  <button id="openfolder" class="ghost">+ Open folder…</button>
+  <button type="button" id="openfolder" class="ghost">+ Open folder…</button>
   <div id="wslist"></div>
-  <div class="sidefoot"><span id="ver"></span><span class="grow"></span><button class="iconbtn" id="keys" title="Keyboard shortcuts" aria-label="Keyboard shortcuts">?</button></div>
+  <div class="sidefoot"><span id="ver"></span><span class="grow"></span><button type="button" class="iconbtn" id="keys" title="Keyboard shortcuts" aria-label="Keyboard shortcuts">?</button></div>
 </aside>
-<div id="main">
-  <div id="top">
-    <button class="iconbtn" id="sidetoggle" title="show sidebar (ctrl+b)" hidden>☰</button>
+<div id="main" role="main">
+  <div id="top" role="toolbar" aria-label="Session toolbar">
+    <button type="button" class="iconbtn" id="sidetoggle" title="show sidebar (ctrl+b)" hidden>☰</button>
     <div id="crumb"></div>
-    <button class="iconbtn" id="btnbrowser" title="browser panel: preview a dev server next to the chat">${ICON_BROWSER}</button>
-    <button class="iconbtn" id="btnterm" title="terminal panel (ctrl+\`)">${ICON_TERMINAL}</button>
+    <button type="button" class="iconbtn" id="btnbrowser" title="browser panel: preview a dev server next to the chat">${ICON_BROWSER}</button>
+    <button type="button" class="iconbtn" id="btnterm" title="terminal panel (ctrl+\`)">${ICON_TERMINAL}</button>
   </div>
   <div id="logwrap" tabindex="0" role="region" aria-label="Session messages">
     <div id="welcome" hidden>
       <div id="logo" role="img" aria-label="smolcoder">${LOGO_TEXT}   <span class="coder">coder — web</span></div>
       <h1>What are we building?</h1>
-      <div class="row"><button class="primary" id="welcomeopen">Open a folder</button></div>
+      <div class="row"><button type="button" class="primary" id="welcomeopen">Open a folder</button></div>
       <div id="recent"></div>
     </div>
     <div id="logs"></div>
-    <div id="busywrap"><div id="busy"><span class="spin">⠋</span> <span id="busylabel">thinking…</span> <span id="busysecs"></span></div></div>
+    <div id="busywrap"><div id="busy"><span class="spin">⠋</span> <span id="busylabel">thinking…</span> <span id="busysecs"></span><span class="loadbar"><span></span></span></div></div>
   </div>
   <div id="bottom" hidden><div class="inner">
     <button id="jumpbottom" class="ghost" type="button" aria-label="Scroll to bottom" title="Scroll to bottom" hidden>↓ Latest messages</button>
-    <div id="menu"></div>
+    <div id="menu" role="listbox" aria-label="Commands"></div>
     <div id="inputbox">
       <div id="attachrow" hidden></div>
       <div class="inputrow">
         <textarea id="input" aria-label="Message" rows="2" placeholder="Describe a change…" title="Enter to send · Shift+Enter for a new line · / for commands · paste or drop files to attach"></textarea>
-        <button id="attachbtn" class="iconbtn" title="Attach a file or image — or paste / drop one" aria-label="Attach a file">${ICON_ATTACH}</button>
+        <button type="button" id="attachbtn" class="iconbtn" title="Attach a file or image — or paste / drop one" aria-label="Attach a file">${ICON_ATTACH}</button>
         <input type="file" id="filepick" multiple hidden>
-        <button id="actionbtn" title="send (enter)">send</button>
+        <button type="button" id="actionbtn" title="send (enter)">send</button>
       </div>
-      <div id="status">connecting…</div>
+      <div id="status" role="status">connecting…</div>
     </div>
     <span id="ws" hidden></span>
   </div></div>
 </div>
-<div id="panel" hidden>
-  <div id="panelgrip" title="drag to resize"></div>
+<div id="panel" hidden role="complementary" aria-label="Preview panel">
+  <div id="panelgrip" title="drag to resize" aria-hidden="true"></div>
   <div id="paneltabs"></div>
   <div id="panelviews"></div>
 </div>
 <div id="modal" hidden>
-  <div class="dlg">
-    <div class="dlghdr">Open folder<span class="grow"></span><button class="iconbtn" id="fsclose" title="close">×</button></div>
-    <div class="pathrow"><input id="fspath" spellcheck="false" placeholder="type or paste a path"><button class="ghost" id="fsgo">go</button></div>
+  <div class="dlg" role="dialog" aria-modal="true" aria-label="Open folder">
+    <div class="dlghdr">Open folder<span class="grow"></span><button type="button" class="iconbtn" id="fsclose" title="close">×</button></div>
+    <div class="pathrow"><input id="fspath" spellcheck="false" placeholder="type or paste a path"><button type="button" class="ghost" id="fsgo">go</button></div>
     <div id="fsroots"></div>
     <div id="fslist"></div>
     <div class="dlgfoot">
-      <button class="primary" id="fsopen">Open this folder</button>
+      <button type="button" class="primary" id="fsopen">Open this folder</button>
       <label><input type="checkbox" id="fsstart" checked> start a session</label>
       <span class="grow"></span>
     </div>

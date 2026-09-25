@@ -33,29 +33,66 @@ export interface Config {
 }
 
 export function loadConfig(): Config {
+  let raw: string;
   try {
-    const cfg = JSON.parse(fs.readFileSync(CONFIG_PATH, "utf8"));
-    // Never let bypass be inherited implicitly from a past session — a single
-    // shift+tab into it would otherwise silently persist unattended, unchecked
-    // command execution into every later run, including headless -p in CI.
-    // Requires an explicit flag (-m bypass / --bypass) each time. Old configs
-    // saved "write"/"yolo" under the previous mode names.
-    if (cfg.lastMode === "write") cfg.lastMode = "edit";
-    if (cfg.lastMode === "yolo" || cfg.lastMode === "bypass") cfg.lastMode = "edit";
-    cfg.hosts = Array.isArray(cfg.hosts)
-      ? cfg.hosts
-          .filter((h: any) => h && typeof h.address === "string" && h.address.trim())
-          .map((h: any) => ({ address: h.address.trim(), ...(typeof h.name === "string" && h.name.trim() ? { name: h.name.trim() } : {}) }))
-      : [];
-    return cfg;
+    raw = fs.readFileSync(CONFIG_PATH, "utf8");
   } catch {
-    return {};
+    return { hosts: [] };
   }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    try {
+      const backup = `${CONFIG_PATH}.corrupt-${Date.now()}.bak`;
+      fs.copyFileSync(CONFIG_PATH, backup);
+    } catch {
+      /* best effort */
+    }
+    return { hosts: [] };
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return { hosts: [] };
+  }
+  const cfg = parsed as Config;
+  // Never let bypass be inherited implicitly from a past session — a single
+  // shift+tab into it would otherwise silently persist unattended, unchecked
+  // command execution into every later run, including headless -p in CI.
+  // Requires an explicit flag (-m bypass / --bypass) each time. Old configs
+  // saved "write"/"yolo" under the previous mode names.
+  if ((cfg as { lastMode?: string }).lastMode === "write") cfg.lastMode = "edit";
+  if ((cfg as { lastMode?: string }).lastMode === "yolo" || (cfg as { lastMode?: string }).lastMode === "bypass") cfg.lastMode = "edit";
+  if (cfg.lastMode !== undefined && cfg.lastMode !== "ro" && cfg.lastMode !== "edit") {
+    delete cfg.lastMode;
+  }
+  if (cfg.effort !== undefined && cfg.effort !== null && !["off", "low", "medium", "high"].includes(cfg.effort)) {
+    delete cfg.effort;
+  }
+  if (typeof cfg.lastModel !== "string" || !cfg.lastModel.trim()) {
+    delete cfg.lastModel;
+  }
+  if (typeof cfg.lastModelUrl !== "string" || !cfg.lastModelUrl.trim()) {
+    delete cfg.lastModelUrl;
+  }
+  cfg.hosts = Array.isArray(cfg.hosts)
+    ? cfg.hosts
+        .filter((h: any) => h && typeof h.address === "string" && h.address.trim())
+        .map((h: any) => ({ address: h.address.trim(), ...(typeof h.name === "string" && h.name.trim() ? { name: h.name.trim() } : {}) }))
+    : [];
+  return cfg;
 }
 
 export function saveConfig(cfg: Config): void {
   try {
-    fs.writeFileSync(CONFIG_PATH, JSON.stringify(cfg, null, 2));
+    const dir = path.dirname(CONFIG_PATH);
+    try {
+      fs.mkdirSync(dir, { recursive: true });
+    } catch {
+      /* best effort */
+    }
+    const tmp = `${CONFIG_PATH}.${process.pid}.tmp`;
+    fs.writeFileSync(tmp, JSON.stringify(cfg, null, 2));
+    fs.renameSync(tmp, CONFIG_PATH);
   } catch {
     /* non-fatal */
   }

@@ -17,7 +17,7 @@ import { ContextManager } from "./context";
 import { EventBus } from "./events";
 import { terminalLogo } from "./logo";
 import { Plan } from "./plan";
-import { buildSystemPrompt, loadAgentsMd } from "./prompt";
+import { buildSystemPrompt, loadAgentsMd, loadMemoryMd } from "./prompt";
 import { Effort } from "./providers/types";
 import {
   effortAdvice,
@@ -29,14 +29,18 @@ import {
   SessionPrefs,
   sessionLine,
   setupWithoutLocalModels,
+  yoloBanner,
 } from "./session";
 import { Mode, ToolContext } from "./tools/index";
+import { createMcpBridge } from "./mcp";
+import { loadPlugins } from "./plugins";
 import { pickShell } from "./tools/shell";
 import { TaskManager } from "./tools/tasks";
 import { Tui } from "./tui/tui";
 import { UI } from "./ui";
 import { c } from "./util";
 import { askHubToOpen, pingHub, readHubRecord, WebHub } from "./web/hub";
+import { launchApp } from "./web/app";
 
 const VERSION = require("../package.json").version as string;
 const DEFAULT_WEB_PORT = 7433;
@@ -54,18 +58,29 @@ interface CliArgs {
   effort?: Effort | null; // null = explicit "default"
   web?: boolean;
   webPort?: number;
+  /** --host for --web: "127.0.0.1" (default) or "0.0.0.0" for the LAN. */
+  webHost?: string;
+  /** Open the web hub like a desktop app instead of a browser tab. */
+  app?: boolean;
   help?: boolean;
   version?: boolean;
 }
 
 function parseArgs(argv: string[]): CliArgs {
   const args: CliArgs = { workspace: process.cwd() };
+  const needValue = (flag: string, value: string | undefined): string => {
+    if (value === undefined || value === "") {
+      console.error(`Option "${flag}" needs a value. Try smol --help.`);
+      process.exit(1);
+    }
+    return value;
+  };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--help" || a === "-h") args.help = true;
     else if (a === "--version" || a === "-v") args.version = true;
     else if (a === "--mode" || a === "-m") {
-      const v = argv[++i];
+      const v = needValue(a, argv[++i]);
       if (v === "ro" || v === "read-only" || v === "readonly") args.mode = "ro";
       else if (v === "edit" || v === "e" || v === "write" || v === "w") args.mode = "edit";
       else if (v === "bypass" || v === "bypass-permissions" || v === "b" || v === "yolo" || v === "y")
@@ -75,16 +90,17 @@ function parseArgs(argv: string[]): CliArgs {
         process.exit(1);
       }
     } else if (a === "--bypass" || a === "--bypass-permissions" || a === "--yolo") args.mode = "bypass";
-    else if (a === "--model") args.model = argv[++i];
+    else if (a === "--model") args.model = needValue(a, argv[++i]);
     else if (a === "--ctx") {
-      args.ctx = Number(argv[++i]);
+      const raw = needValue(a, argv[++i]);
+      args.ctx = Number(raw);
       if (!Number.isSafeInteger(args.ctx) || args.ctx < 1024) {
         console.error("--ctx must be a whole number of at least 1024 tokens.");
         process.exit(1);
       }
     }
     else if (a === "--effort") {
-      const v = argv[++i];
+      const v = needValue(a, argv[++i]);
       if (v === "off" || v === "low" || v === "medium" || v === "high") args.effort = v;
       else if (v === "default") args.effort = null;
       else {
@@ -92,15 +108,38 @@ function parseArgs(argv: string[]): CliArgs {
         process.exit(1);
       }
     } else if (a === "--verify") {
-      args.verify = argv[++i];
-      if (!args.verify?.trim()) throw new Error('--verify needs an acceptance command');
+      const raw = needValue(a, argv[++i]);
+      args.verify = raw;
+      if (!args.verify?.trim()) {
+        console.error("--verify needs an acceptance command.");
+        process.exit(1);
+      }
     } else if (a === "--verify-attempts") {
-      args.verifyAttempts = Number(argv[++i]);
-      if (!Number.isSafeInteger(args.verifyAttempts) || args.verifyAttempts < 1) throw new Error('--verify-attempts must be a positive whole number');
-    } else if (a === "--print" || a === "-p") args.print = argv[++i];
-    else if (a === "--web") {
+      const raw = needValue(a, argv[++i]);
+      args.verifyAttempts = Number(raw);
+      if (!Number.isSafeInteger(args.verifyAttempts) || args.verifyAttempts < 1) {
+        console.error("--verify-attempts must be a positive whole number.");
+        process.exit(1);
+      }
+    }     else if (a === "--print" || a === "-p") args.print = needValue(a, argv[++i]);
+    else if (a === "--app") args.app = true;
+    else if (a === "--host") {
+      const v = needValue(a, argv[++i]).trim();
+      if (!v) {
+        console.error('--host needs an address ("127.0.0.1" or "0.0.0.0").');
+        process.exit(1);
+      }
+      args.webHost = v;
+    } else if (a === "--web") {
       args.web = true;
-      if (argv[i + 1] && /^\d+$/.test(argv[i + 1])) args.webPort = Number(argv[++i]);
+      if (argv[i + 1] && /^\d+$/.test(argv[i + 1] as string)) {
+        const port = Number(argv[++i]);
+        if (!Number.isSafeInteger(port) || port < 1 || port > 65535) {
+          console.error("--web port must be a number between 1 and 65535.");
+          process.exit(1);
+        }
+        args.webPort = port;
+      }
     } else if (!a.startsWith("-")) {
       args.workspace = path.resolve(a);
       args.workspaceGiven = true;
@@ -135,22 +174,34 @@ ${c.bold("Options:")}
                                workspaces and sessions, an embedded browser and
                                terminal panel. Run it from anywhere; a second
                                smol --web adds its folder to the running UI.
+  --app                        with --web: open the UI like a desktop app
+                                (own window, no browser tab).
+  --host <addr>                with --web: listen address ("127.0.0.1" or
+                                "0.0.0.0" for the LAN; token link stays the key).
   -p, --print "<prompt>"       headless: run a single prompt and exit
   -h, --help                   this help
   -v, --version                version
 
 ${c.bold("Keys:")}
-  shift+tab   cycle mode (read-only → edit → bypass permissions)
+  shift+tab   cycle mode (read-only → edit → YOLO bypass)
   /           slash commands (autocomplete menu)
   esc         cancel a running turn · clear the input
   ctrl+c ×2   quit
 
-${c.bold("Slash commands:")}
-  /models     switch model         /tasks        background tasks
-  /mode       set mode             /logs <id>    task output
-  /effort     reasoning effort     /stop <id>    kill a task
-  /context    context usage        /clear        reset conversation
-  /compact    compact now          /exit         quit
+ ${c.bold("Slash commands:")}
+   /models     switch model         /tasks        background tasks
+   /mode       set mode             /logs <id>    task output
+   /effort     reasoning effort     /stop <id>    kill a task
+   /context    context usage        /mcp          MCP server lights
+   /compact    compact now          /skills       saved skills
+   /plan       show the plan        /clear        reset conversation
+   /undo       undo last write      /redo         redo undone write
+    /editor     message via $EDITOR  /export       export to markdown
+    /copy       copy last reply      /exit         quit
+
+ ${c.bold("Input tricks:")}
+   @path       inline a file (e.g. @src/app.js, max 9000 chars)
+   !command    run in the workspace and send the output to the model
 `;
 
 /** Node fires 'exit' on normal termination but NOT on a killing signal, so
@@ -197,6 +248,7 @@ async function main(): Promise<void> {
   }
   if (args.verify && (!args.print || args.web)) throw new Error('--verify requires a headless -p run');
   if (args.verifyAttempts !== undefined && !args.verify) throw new Error('--verify-attempts requires --verify');
+  if (args.app && !args.web) throw new Error('--app needs --web (smol --web --app)');
   if (!fs.existsSync(args.workspace) || !fs.statSync(args.workspace).isDirectory()) {
     console.error(`Workspace folder does not exist: ${args.workspace}`);
     process.exit(1);
@@ -225,24 +277,43 @@ async function runHeadless(args: CliArgs): Promise<void> {
   const provider = makeProvider(chosen);
   provider.setEffort(args.effort !== undefined ? args.effort : (cfg.effort ?? null));
   const taskManager = new TaskManager(args.workspace);
+  let headlessPlugins: ToolContext["plugins"] = [];
+  try {
+    headlessPlugins = loadPlugins(args.workspace);
+  } catch {
+    headlessPlugins = [];
+  }
   const toolCtx: ToolContext = {
     workspace: args.workspace,
     taskManager,
     plan: new Plan(),
     filesTouched: new Set(),
     commandsRun: [],
+    mcp: createMcpBridge(args.workspace),
+    plugins: headlessPlugins,
   };
   const ctxMgr = new ContextManager(chosen.contextWindow, provider.maxOutputTokens);
   const agentsMd = loadAgentsMd(args.workspace);
   if (agentsMd) ui.status(`· AGENTS.md loaded (${agentsMd.split("\n").length} lines)`);
-  const systemPrompt = buildSystemPrompt({ workspace: args.workspace, mode, shellLabel: shell.label, agentsMd });
+  const memoryMd = loadMemoryMd(args.workspace);
+  if (memoryMd) ui.status(`· MEMORY.md loaded (${memoryMd.split("\n").length} lines)`);
+  const systemPrompt = buildSystemPrompt({ workspace: args.workspace, mode, shellLabel: shell.label, agentsMd, memoryMd });
   const agent = new Agent(provider, mode, systemPrompt, toolCtx, ctxMgr, bus, ui, false, 1000,
     args.verify ? { command: args.verify, maxAttempts: args.verifyAttempts } : undefined);
   reportCompactions(bus, ui);
-  process.on("exit", () => taskManager.killAll());
-  installSignalCleanup(() => taskManager.killAll());
+  const shutdownTools = (): void => {
+    taskManager.killAll();
+    try {
+      toolCtx.mcp?.closeAll();
+    } catch {
+      /* best effort */
+    }
+  };
+  process.on("exit", shutdownTools);
+  installSignalCleanup(shutdownTools);
 
   ui.println(sessionLine(chosen, mode));
+  if (mode === "bypass") ui.warn(`  ${yoloBanner()}`);
   if (chosen.note) ui.warn(`  ${chosen.note}`);
   const effortSetting = args.effort !== undefined ? args.effort : (cfg.effort ?? null);
   ui.status(`  effort ${provider.effortLabel() ?? effortSetting ?? "default"}`);
@@ -358,11 +429,16 @@ async function runWeb(args: CliArgs): Promise<void> {
       console.log(
         `\n  ${autoStart ? "started a session for" : "added"} ${workspace} in the running web UI:\n  ${url}\n`
       );
+      if (args.app) openAppWindow(url);
       return;
     }
   }
 
-  const hub = new WebHub({ port, prefs: prefsOf(args), help: HELP, version: VERSION });
+  const host = args.webHost || "127.0.0.1";
+  if (args.webHost && args.webHost !== "127.0.0.1" && args.webHost !== "localhost") {
+    console.log("  LAN open: anyone on your network with the ?k= link can use it (token key, no password).");
+  }
+  const hub = new WebHub({ port, host, prefs: prefsOf(args), help: HELP, version: VERSION });
   try {
     await hub.start();
   } catch (err: any) {
@@ -381,6 +457,19 @@ async function runWeb(args: CliArgs): Promise<void> {
       autoStart ? `workspace ${workspace}` : "pick a workspace in the sidebar"
     } · ctrl+c stops the server\n`
   );
+  if (args.app) openAppWindow(hub.url());
+}
+
+/** Open the hub like a desktop app and say what happened. Never throws. */
+function openAppWindow(url: string): void {
+  try {
+    const how = launchApp(url);
+    if (how === "app") console.log("  opened as a desktop app window\n");
+    else if (how === "browser") console.log("  no app browser found — opened in your browser instead\n");
+    else console.log("  could not open a window — copy the link above\n");
+  } catch {
+    console.log("  could not open a window — copy the link above\n");
+  }
 }
 
 main().catch((err) => {

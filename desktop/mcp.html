@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smolcoder — MCP, plugins &amp; LSP</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; background: #1e1e1e; color: #d4d4d4;
+    font-family: Segoe UI, sans-serif; font-size: 13px; }
+  header { display: flex; gap: 12px; align-items: center; padding: 12px 16px; min-height: 52px;
+    background: #252526; border-bottom: 1px solid #3c3c3c; position: sticky; top: 0; }
+  header button { background: #0e639c; color: #fff; border: 0; border-radius: 6px;
+    padding: 8px 14px; cursor: pointer; min-height: 36px; }
+  header button:hover { background: #1177bb; }
+  header button:focus-visible { outline: 2px solid #9cdcfe; outline-offset: 2px; }
+  #ws { color: #9cdcfe; font-size: 12.5px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  section { padding: 16px 20px; max-width: 960px; margin: 0 auto; }
+  h2 { font-size: 15px; margin: 8px 0 12px; padding-bottom: 6px; border-bottom: 1px solid #2d2d2d; color: #fff; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #2d2d2d;
+    vertical-align: top; }
+  th { color: #9cdcfe; font-weight: 600; font-size: 12px; }
+  .dot { font-weight: 700; font-size: 14px; }
+  .ok { color: #4ec9b0; } .ko { color: #f48771; }
+  .mono { font-family: Consolas, monospace; font-size: 12px; }
+  .dim { color: #858585; }
+  .tools { color: #ce9178; font-size: 12px; line-height: 1.6; }
+  tbody tr:hover { background: #252526; }
+  #loading { padding: 32px 20px; color: #858585; line-height: 1.6; text-align: center; max-width: 640px; margin: 0 auto; }
+  :focus-visible { outline: 2px solid #9cdcfe; outline-offset: 2px; }
+  @media (max-width: 640px) {
+    header { flex-wrap: wrap; }
+    section { padding: 12px; }
+    th, td { padding: 6px 8px; }
+    table { display: block; overflow-x: auto; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <button id="bRefresh">↻ Actualiser</button>
+  <span id="ws"></span>
+</header>
+<div id="loading">Interrogation des serveurs… (jusqu'à ~40 secondes au premier appel, les serveurs npx démarrent lentement)</div>
+<div id="content" hidden>
+  <section><h2 id="hMcp">Serveurs MCP</h2><table id="tMcp"></table></section>
+  <section><h2 id="hSkills">Plugins (skills)</h2><table id="tSkills"></table></section>
+  <section><h2>LSP (symboles du code)</h2><table id="tLsp"></table></section>
+</div>
+<script>
+const $ = (id) => document.getElementById(id);
+
+function esc(s) {
+  return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;");
+}
+
+async function load() {
+  $("loading").hidden = false;
+  $("content").hidden = true;
+  try {
+    const d = await window.smolPanel.getData();
+    $("ws").textContent = d.workspace || "";
+    const m = d.servers || [];
+    $("hMcp").textContent = `Serveurs MCP (${m.filter((s) => s.ok).length}/${m.length} verts)`;
+    $("tMcp").innerHTML = "<tr><th></th><th>Nom</th><th>Transport</th><th>Outils</th></tr>" + m.map((s) => (
+      "<tr><td class='dot " + (s.ok ? "ok'>●" : "ko'>○") + "</td>" +
+      "<td><b>" + esc(s.name) + "</b>" + (s.ok ? "" : "<br><span class='dim'>" + esc(s.error || "") + "</span>") + "</td>" +
+      "<td class='mono dim'>" + esc(s.transport || "") + "</td>" +
+      "<td class='tools'>" + esc((s.tools || []).join(", ")) + "</td></tr>"
+    )).join("");
+    const k = d.skills || [];
+    $("hSkills").textContent = `Plugins (skills) (${k.length})`;
+    $("tSkills").innerHTML = "<tr><th>Nom</th><th>Description</th><th>Source</th></tr>" + k.map((s) => (
+      "<tr><td class='mono'><b>" + esc(s.name) + "</b></td>" +
+      "<td>" + esc(s.desc || "") + "</td>" +
+      "<td class='dim'>" + (s.builtin ? "intégré" : "projet") + "</td></tr>"
+    )).join("");
+    const l = d.lsp || {};
+    $("tLsp").innerHTML = "<tr><th>Outil</th><th>État</th><th>Détail</th></tr>" +
+      "<tr><td class='mono'><b>" + esc(l.tool || "symbols") + "</b></td>" +
+      "<td class='dot " + (l.available ? "ok'>●" : "ko'>○") + "</td>" +
+      "<td>" + esc(l.note || "") + "<br><span class='dim mono'>" + esc(l.serverBinary || "") + "</span></td></tr>";
+    $("loading").hidden = true;
+    $("content").hidden = false;
+  } catch (e) {
+    $("loading").textContent = "Erreur : " + e.message;
+  }
+}
+
+$("bRefresh").onclick = load;
+load();
+</script>
+</body>
+</html>

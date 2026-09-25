@@ -33,6 +33,9 @@ const UPLOAD_ID_RE = /^[a-f0-9]{16}$/;
 
 export interface HubOptions {
   port: number;
+  /** Interface to listen on. Default "127.0.0.1" (this machine only).
+   * "0.0.0.0" exposes the LAN — the ?k= token stays the only key (no password). */
+  host?: string;
   prefs: SessionPrefs;
   help: string;
   version: string;
@@ -257,7 +260,7 @@ export class WebHub {
       const server = http.createServer((req, res) => this.route(req, res));
       this.server = server;
       server.once("error", reject);
-      server.listen(this.opts.port, "127.0.0.1", () => {
+      server.listen(this.opts.port, this.opts.host || "127.0.0.1", () => {
         const addr = server.address();
         if (addr && typeof addr === "object") this.port = addr.port;
         writeHubRecord({ port: this.port, token: this.authToken, pid: process.pid, startedAt: Date.now() }, this.dataDir);
@@ -675,8 +678,15 @@ export class WebHub {
     res.setHeader("Cache-Control", "no-store");
     const url = new URL(req.url ?? "/", `http://127.0.0.1:${this.port}`);
     const origin = req.headers.origin;
+    // Same-machine spellings always pass; when listening on the LAN, the
+    // browser's own host:port (Host header) passes too — the ?k= token
+    // remains the only key, no password involved.
+    const host = String(req.headers.host ?? "");
     const sameOrigin =
-      !origin || origin === `http://127.0.0.1:${this.port}` || origin === `http://localhost:${this.port}`;
+      !origin ||
+      origin === `http://127.0.0.1:${this.port}` ||
+      origin === `http://localhost:${this.port}` ||
+      (host !== "" && origin === `http://${host}`);
     if (url.searchParams.get("k") !== this.authToken || !sameOrigin) {
       res.writeHead(403, { "content-type": "text/plain" });
       res.end("forbidden — open smolcoder's printed URL (it includes the session key)");

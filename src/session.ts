@@ -3,7 +3,11 @@
 // terminal TUI and the web hub (many sessions side by side, one per browser
 // sidebar entry) run exactly the same loop.
 
+import { spawnSync } from "child_process";
+import * as fs from "fs";
+import { Attachment } from "./attachments";
 import * as os from "os";
+import * as path from "path";
 import { Agent } from "./agent";
 import { Config, loadConfig, updateConfig } from "./config";
 import { ContextManager } from "./context";
@@ -18,10 +22,12 @@ import { Effort, Msg, Provider } from "./providers/types";
 import { Mode, MODE_LABELS, ToolContext } from "./tools/index";
 import { createMcpBridge } from "./mcp";
 import { listSkills } from "./skills";
-import { pickShell } from "./tools/shell";
+import { loadPlugins } from "./plugins";
+import { readFile } from "./tools/fs-tools";
+import { pickShell, runCommand } from "./tools/shell";
 import { TaskManager } from "./tools/tasks";
 import { renderPlan, SelectOption, SessionUI, SlashCommand } from "./ui";
-import { c, truncateEnd } from "./util";
+import { c, truncateEnd, truncateMiddle } from "./util";
 
 /** Per-session preferences from the command line. `effort: null` means an
  * explicit "default"; undefined means "whatever the config remembers". */
@@ -48,6 +54,11 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { name: "mcp", desc: "MCP servers: green/red lights + tools" },
   { name: "skills", desc: "Saved skills, incl. built-ins" },
   { name: "clear", desc: "Reset the conversation" },
+  { name: "undo", desc: "Undo the last file write" },
+  { name: "redo", desc: "Redo the undone file write" },
+  { name: "editor", desc: "Write your message in $EDITOR" },
+  { name: "export", desc: "Export the conversation to markdown" },
+  { name: "copy", desc: "Copy the last assistant reply to the clipboard" },
   { name: "help", desc: "Show help" },
   { name: "exit", desc: "Quit smolcoder (web: close this session)" },
 ];
@@ -347,13 +358,22 @@ export class Session {
     const provider = makeProvider(chosen);
     provider.setEffort(this.effort);
     this.taskManager = new TaskManager(workspace);
+    let plugins: ToolContext["plugins"] = [];
+    try {
+      plugins = loadPlugins(workspace);
+    } catch {
+      plugins = [];
+    }
     this.toolCtx = {
       workspace,
       taskManager: this.taskManager,
       plan: new Plan(),
       filesTouched: new Set(),
       commandsRun: [],
+      undoStack: [],
+      redoStack: [],
       mcp: createMcpBridge(workspace),
+      plugins,
     };
     this.ctxMgr = new ContextManager(chosen.contextWindow, provider.maxOutputTokens);
     this.agentsMd = loadAgentsMd(workspace);
@@ -475,6 +495,243 @@ export class Session {
     this.toolCtx.commandsRun.push(...(s.commandsRun ?? []));
   }
 
+  /** User-input pipeline — applied ONLY to user text, never to model
+   * messages. `!` is checked first on the raw text (a shell command must not
+   * have its arguments rewritten), otherwise @file mentions are expanded. */
+  private async handleUserMessage(input: string, attachments: Attachment[]): Promise<void> {
+    const { ui, agent } = this;
+    if (input.startsWith("!") && input.slice(1).trim()) {
+      const cmd = input.slice(1).trim();
+      ui.toolCall("run_command", { command: cmd });
+      const raw = await runCommand(cmd, this.workspace);
+      const body = raw.length > 8000 ? truncateMiddle(raw, 8000) : raw;
+      ui.toolResult(body);
+      try {
+        await agent.runTurn(`${input}\n\n[shell output of "${cmd}":]\n${body}`, attachments);
+        this.onTurnDone?.();
+      } catch (err: any) {
+        ui.error(`\n${err?.message ?? err}`);
+      }
+      return;
+    }
+    const expanded = this.expandMentions(input);
+    try {
+      await agent.runTurn(expanded, attachments);
+      this.onTurnDone?.();
+    } catch (err: any) {
+      ui.error(`\n${err?.message ?? err}`);
+      if (String(err?.message ?? "").toLowerCase().includes("does not support tools")) {
+        ui.warn(
+          "This model does not support tool calling. Pick a tool-capable model with /models (e.g. qwen3, llama3.1, mistral-nemo)."
+        );
+      }
+    }
+  }
+
+  /** Replace each @path with the file's content (cap 9000 chars). A failure
+   * becomes an inline error text — never an exception. */
+  private expandMentions(text: string): string {
+    if (!text.includes("@")) return text;
+    return text.replace(/@([^\s`"'()[\]{}<>]+)/g, (m, p: string) => {
+      const rel = p.replace(/[.,;:!?]+$/, "");
+      if (!rel) return m;
+      try {
+        const content = readFile(this.workspace, { path: rel }, 9000);
+        return `[file @${rel}:]\n${content}`;
+      } catch (err: any) {
+        return `[file @${rel}: ${err?.message ?? err}]`;
+      }
+    });
+  }
+
+  /** Restore the last file write (prev null = the file was created → delete). */
+  private undoEdit(): void {
+    const ui = this.ui;
+    const stack = (this.toolCtx.undoStack ??= []);
+    const redo = (this.toolCtx.redoStack ??= []);
+    const entry = stack.pop();
+    if (!entry) {
+      ui.status("· nothing to undo — no file written yet");
+      return;
+    }
+    const rel = path.relative(this.workspace, entry.abs) || entry.abs;
+    try {
+      if (entry.prev === null) {
+        try {
+          fs.unlinkSync(entry.abs);
+        } catch (err: any) {
+          if (err?.code !== "ENOENT") throw err;
+        }
+        ui.println(`· undo: ${rel} deleted (it had been created)`);
+      } else {
+        fs.mkdirSync(path.dirname(entry.abs), { recursive: true });
+        fs.writeFileSync(entry.abs, entry.prev, "utf8");
+        ui.println(`· undo: ${rel} restored to its previous version`);
+      }
+      redo.push(entry);
+    } catch (err: any) {
+      stack.push(entry);
+      ui.error(`· undo: could not restore ${rel} (${err?.message ?? err})`);
+    }
+  }
+
+  /** Re-apply the last undone write. Edits replay old_text -> next on the
+   * current content (writing the snippet alone would destroy the file). */
+  private redoEdit(): void {
+    const ui = this.ui;
+    const stack = (this.toolCtx.undoStack ??= []);
+    const redo = (this.toolCtx.redoStack ??= []);
+    const entry = redo.pop();
+    if (!entry) {
+      ui.status("· nothing to redo — no undone write");
+      return;
+    }
+    const rel = path.relative(this.workspace, entry.abs) || entry.abs;
+    const fail = (msg: string) => {
+      redo.push(entry);
+      ui.error(`· redo: ${rel} — ${msg}`);
+    };
+    try {
+      fs.mkdirSync(path.dirname(entry.abs), { recursive: true });
+      if (entry.kind === "edit" && typeof entry.oldText === "string" && entry.oldText) {
+        let cur: string;
+        try {
+          cur = fs.readFileSync(entry.abs, "utf8");
+        } catch {
+          return fail("file changed since undo (cannot replay the edit)");
+        }
+        const n = cur.split(entry.oldText).length - 1;
+        if (n !== 1) return fail(`anchor found ${n} times (need exactly 1) — file changed since undo`);
+        fs.writeFileSync(entry.abs, cur.replace(entry.oldText, entry.next), "utf8");
+      } else {
+        fs.writeFileSync(entry.abs, entry.next, "utf8");
+      }
+      ui.println(`· redo: ${rel} re-applied`);
+      stack.push(entry);
+    } catch (err: any) {
+      fail(`could not re-apply (${err?.message ?? err})`);
+    }
+  }
+
+  /** Suspend the TUI, open $EDITOR (or notepad) on a tmp file holding the
+   * draft, read the saved text back as the message, resume the TUI. Returns
+   * null when the editor could not run (error already shown). */
+  private async openEditor(draft: string): Promise<string | null> {
+    const ui = this.ui;
+    if (!process.stdin.isTTY || !process.stdout.isTTY) {
+      ui.error("· /editor needs an interactive terminal (no TTY here) — type your message directly.");
+      return null;
+    }
+    const editor = process.env.EDITOR || process.env.VISUAL || (process.platform === "win32" ? "notepad" : "vi");
+    const tmp = path.join(os.tmpdir(), `smol-editor-${Date.now()}.md`);
+    try {
+      fs.writeFileSync(tmp, draft ?? "", "utf8");
+    } catch (err: any) {
+      ui.error(`· /editor: could not create the draft file (${err?.message ?? err})`);
+      return null;
+    }
+    try {
+      (ui as any).close?.();
+    } catch {
+      /* non-TUI surface */
+    }
+    let status: number | null = 1;
+    let spawnErr: any = null;
+    try {
+      const res = spawnSync(editor, [tmp], { stdio: "inherit" });
+      status = res.status;
+      spawnErr = (res as any).error ?? null;
+    } catch (err: any) {
+      spawnErr = err;
+    }
+    try {
+      (ui as any).start?.();
+    } catch {
+      /* non-TUI surface */
+    }
+    // Tui.start() is a no-op after close() (started flag): re-arm stdin here.
+    try {
+      process.stdin.setRawMode?.(true);
+      process.stdin.resume();
+      if (process.stdout.isTTY) process.stdout.write("\x1b[?2004h");
+    } catch {
+      /* headless pipe */
+    }
+    let content: string;
+    try {
+      content = fs.readFileSync(tmp, "utf8");
+    } catch (err: any) {
+      ui.error(`· /editor: could not read back the draft (${err?.message ?? err})`);
+      return null;
+    }
+    try {
+      fs.unlinkSync(tmp);
+    } catch {
+      /* best effort */
+    }
+    if (spawnErr) {
+      ui.error(`· /editor: could not start "${editor}" (${spawnErr?.message ?? spawnErr}) — message not sent.`);
+      return null;
+    }
+    if (status !== 0) {
+      ui.error(`· /editor: "${editor}" exited with code ${status ?? "?"} — message not sent.`);
+      return null;
+    }
+    return content;
+  }
+
+  /** Write the transcript as timestamped markdown under .smol/exports/. */
+  private exportTranscript(): void {
+    const ui = this.ui;
+    try {
+      const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+      const dir = path.join(this.workspace, ".smol", "exports");
+      fs.mkdirSync(dir, { recursive: true });
+      const file = path.join(dir, `export-${stamp}.md`);
+      const lines = [`# smolcoder export — ${new Date().toLocaleString()}`, ""];
+      for (const m of this.agent.messages) {
+        lines.push(`## ${m.role}`, "", m.content || "(empty)", "");
+      }
+      fs.writeFileSync(file, lines.join("\n"), "utf8");
+      ui.println(`· conversation exported: ${file}`);
+    } catch (err: any) {
+      ui.error(`· /export failed (${err?.message ?? err})`);
+    }
+  }
+
+  /** Copy the last assistant reply to the OS clipboard (best effort). */
+  private copyLastReply(): void {
+    const ui = this.ui;
+    const msgs = this.agent.messages;
+    let text = "";
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      if (msgs[i].role === "assistant" && (msgs[i].content ?? "").trim()) {
+        text = msgs[i].content;
+        break;
+      }
+    }
+    if (!text.trim()) {
+      ui.status("· nothing to copy yet — no assistant reply");
+      return;
+    }
+    try {
+      if (process.platform === "win32") {
+        const r = spawnSync("clip", [], { input: text, windowsHide: true });
+        if (r.error) throw r.error;
+      } else if (process.platform === "darwin") {
+        const r = spawnSync("pbcopy", [], { input: text });
+        if (r.error) throw r.error;
+      } else {
+        let r = spawnSync("xclip", ["-selection", "clipboard"], { input: text });
+        if (r.error) r = spawnSync("xsel", ["--clipboard", "--input"], { input: text });
+        if (r.error) throw r.error;
+      }
+      ui.println(`· copied ${text.length} chars to the clipboard`);
+    } catch (err: any) {
+      ui.error(`· /copy failed (${err?.message ?? err})`);
+    }
+  }
+
   /** The input loop. Returns after /exit (or after the host asked the UI to
    * hand back "/exit"). */
   async run(): Promise<void> {
@@ -526,9 +783,27 @@ export class Session {
               ui.warn("MCP bridge is not wired in this session.");
               break;
             }
-            ui.startSpinner("checking MCP servers");
+            if ((arg ?? "").toLowerCase() === "debug") {
+              const target = rest[1];
+              if (!target) {
+                ui.warn("Usage: /mcp debug <nom> — ex. /mcp debug files");
+                break;
+              }
+              ui.startSpinner(`debug MCP ${target}`);
+              try {
+                ui.println(await toolCtx.mcp.debugServer(target));
+              } catch (err: any) {
+                ui.error(String(err?.message ?? err));
+              } finally {
+                ui.stopSpinner();
+              }
+              break;
+            }
+            ui.startSpinner("checking MCP servers (up to 20s — npx servers start slowly)");
             try {
-              const rows = await toolCtx.mcp.status();
+              // 8s par défaut marquait les serveurs npx "too slow" à tort :
+              // 5/22 verts à 8s contre 19/22 à 20s (mesuré).
+              const rows = await toolCtx.mcp.status(20000);
               if (!rows.length) {
                 ui.status("· no MCP servers configured — see docs/plugins.md");
               } else {
@@ -564,6 +839,28 @@ export class Session {
             toolCtx.plan.reset();
             ui.status("· conversation cleared");
             break;
+          case "undo":
+            this.undoEdit();
+            break;
+          case "redo":
+            this.redoEdit();
+            break;
+          case "editor": {
+            const content = await this.openEditor(rest.join(" "));
+            if (content === null) break;
+            if (!content.trim()) {
+              ui.status("· empty message — nothing sent");
+              break;
+            }
+            await this.handleUserMessage(content, []);
+            break;
+          }
+          case "export":
+            this.exportTranscript();
+            break;
+          case "copy":
+            this.copyLastReply();
+            break;
           default:
             ui.warn(`Unknown command /${cmd} — try /help`);
         }
@@ -574,17 +871,7 @@ export class Session {
         continue;
       }
 
-      try {
-        await agent.runTurn(input, attachments);
-        this.onTurnDone?.();
-      } catch (err: any) {
-        ui.error(`\n${err?.message ?? err}`);
-        if (String(err?.message ?? "").toLowerCase().includes("does not support tools")) {
-          ui.warn(
-            "This model does not support tool calling. Pick a tool-capable model with /models (e.g. qwen3, llama3.1, mistral-nemo)."
-          );
-        }
-      }
+      await this.handleUserMessage(input, attachments);
     }
   }
 

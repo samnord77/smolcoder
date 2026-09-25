@@ -118,6 +118,10 @@ export const STYLES = String.raw`
   .md code { background: #1b2124; padding: 1px 5px; border-radius: 3px; color: var(--yellow); }
   .md pre { background: #11161a; border: 1px solid var(--line); border-radius: 4px; padding: 10px 12px; overflow-x: auto; margin: 8px 0; }
   .md pre code { background: none; padding: 0; color: var(--fg); }
+  .md pre code .tok-k { color: #569cd6; }
+  .md pre code .tok-s { color: #ce9178; }
+  .md pre code .tok-c { color: #6a9955; font-style: italic; }
+  .md pre code .tok-n { color: #b5cea8; }
   .md table { border-collapse: collapse; margin: 8px 0; display: block; overflow-x: auto; max-width: 100%; }
   .md th, .md td { border: 1px solid var(--line); padding: 4px 10px; text-align: left; }
   .md th { background: #171d20; color: #eef3f5; }
@@ -136,8 +140,18 @@ export const STYLES = String.raw`
   .line-status { color: var(--gray); white-space: pre-wrap; } .line-warn { color: var(--yellow); white-space: pre-wrap; } .line-error { color: var(--red); white-space: pre-wrap; }
   #busy { color: var(--dim); display: none; }
   #busy.on { display: block; }
-  #busy .spin { display: inline-block; color: var(--accent); animation: pulse 1s infinite; }
   @keyframes pulse { 50% { opacity: .3; } }
+  #busy .spin { display: inline-block; color: var(--accent); width: 1.2em; }
+  #busy .loadbar { display: inline-block; width: 90px; height: 4px; margin-left: 10px; vertical-align: middle;
+    background: #1b2124; border-radius: 2px; overflow: hidden; }
+  #busy .loadbar span { display: block; height: 100%; width: 30%; background: var(--accent); border-radius: 2px;
+    animation: slide 1.1s linear infinite; }
+  @keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(300%); } }
+  .msgmeta { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
+  .msgtime { color: var(--gray); font-size: 11px; }
+  .msgcopy { background: transparent; border: 1px solid transparent; color: var(--dim); cursor: pointer;
+    border-radius: 4px; padding: 1px 6px; font: inherit; font-size: 12px; }
+  .msgcopy:hover { color: var(--fg); border-color: var(--line); background: #1a2023; }
   .ask { background: var(--box); border-left: 3px solid var(--yellow); padding: 10px 12px; margin: 10px 0; }
   .ask .cmd { font-weight: 700; }
   .ask button, .ask .opt { margin: 6px 8px 0 0; background: #1e2428; color: var(--fg); border: 1px solid #2c343a; padding: 4px 12px; cursor: pointer; font: inherit; border-radius: 3px; }
@@ -167,6 +181,9 @@ export const STYLES = String.raw`
   #status .mode { font-weight: 700; }
   #status .mode.edit { color: var(--accent); } #status .mode.bypass { color: var(--red); } #status .mode.ro { color: var(--magenta); }
   #status .eff { color: var(--yellow); } #status .plan-chip { color: var(--accent); } #status .plan-chip.done { color: var(--green); }
+  #status .task-chip { color: var(--green); } #status .line-warn { color: var(--yellow); }
+  .diff { background: #101416; border: 1px solid var(--line); border-radius: 5px; padding: 6px 8px; overflow-x: auto; }
+  .diff .del { color: var(--red); } .diff .add { color: var(--green); } .diff .same { color: var(--dim); }
   #hintrow { font-size: 12px; color: var(--gray); margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   /* ---- right panel: browser + terminal tabs ---- */
@@ -329,5 +346,55 @@ export const STYLES = String.raw`
     #panel { position: absolute; inset: 48px 0 0; width: 100% !important; max-width: 100%; z-index: 15; }
     .modelpick { max-width: 150px; }
     .wshdr .iconbtn, .sess .iconbtn { visibility: visible; }
+  }
+
+  /* OPERATE polish : rythme, vides accueillants, clavier, etroit — identite gardee. */
+  #wslist { padding: 0 8px 12px; }
+  .ws { margin: 4px 0 14px; }
+  .wshdr { margin-bottom: 2px; }
+  .sess { margin: 1px 0; line-height: 1.45; }
+  .sess:hover { background: #182025; }
+  .wshdr:focus-within .iconbtn, .sess:focus-within .iconbtn { visibility: visible; }
+  #top { gap: 8px; }
+  #logs { padding-top: 20px; }
+  .user { margin: 22px 0 12px; }
+  .ask, .plan { margin: 12px 0; }
+  .turnend { padding-top: 12px; border-top: 1px solid var(--line); }
+  #status { min-height: 24px; padding-top: 8px; border-top: 1px solid var(--line); gap: 6px 10px; }
+  .iconbtn { min-height: 28px; min-width: 28px; justify-content: center; }
+  .iconbtn:focus-visible, .primary:focus-visible, .ghost:focus-visible, .wsbtn:focus-visible, .statusbtn:focus-visible, .msgcopy:focus-visible, .chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .primary:focus-visible, .ghost:focus-visible { box-shadow: 0 0 0 3px #35bfd433; }
+  #inputbox:focus-within { box-shadow: 0 8px 30px #0003, 0 0 0 3px #35bfd422; }
+  #welcome { padding-bottom: 32px; }
+  #welcome .row { margin: 18px 0 24px; }
+  #welcome .primary { min-height: 40px; }
+  #recent { gap: 2px; width: 100%; }
+  .wsbtn { border-radius: 8px; padding: 10px 12px; line-height: 1.4; }
+  .wsbtn:hover { background: #172024; }
+  .recent-label { text-transform: uppercase; letter-spacing: .08em; font-size: 11px; }
+  .sidehint { line-height: 1.6; padding: 12px; text-align: center; color: var(--gray); }
+  .tabbody.browser .empty { padding: 32px 24px; gap: 12px; line-height: 1.6; }
+  .tabbody.browser .empty .urls { gap: 8px; max-width: 420px; width: 100%; }
+  .log:empty::before { opacity: .9; }
+  .log:empty::after { font-size: clamp(20px, 2.6vw, 26px); }
+  .msgcopy, .ptab .x, .attach-x { min-height: 24px; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+    #busy .loadbar span { animation: none; }
+    .sess.busy .dot, .sess.starting .dot { animation: none; }
+  }
+  @media (max-width: 1000px) {
+    #side { width: min(300px, 85vw); }
+    #sidetoggle { min-width: 36px; min-height: 36px; }
+    #crumb { font-size: 12px; }
+  }
+  @media (max-width: 600px) {
+    #welcome { padding-top: 56px; }
+    #welcome h1 { font-size: 24px; letter-spacing: -.5px; }
+    .user { padding: 12px 14px; margin: 16px 0 10px; }
+    #input { min-height: 44px; }
+    #status { gap: 6px 8px; }
+    .md { line-height: 1.7; }
+    .md table { font-size: 12.5px; }
   }
 `;

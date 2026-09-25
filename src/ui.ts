@@ -28,6 +28,8 @@ export interface AgentUI {
   turnEnd(label: string): void;
   /** Called whenever the agent changes its plan — render the checklist. */
   planUpdated(plan: Plan): void;
+  /** Sub-agent progress (delegate tool). Optional so older UIs keep working. */
+  subagent?(phase: "start" | "done", label: string): void;
 }
 
 export interface SlashCommand {
@@ -207,6 +209,10 @@ export class UI implements AgentUI {
 
   planUpdated(plan: Plan): void {
     this.meta(renderPlan(plan));
+  }
+
+  subagent(phase: "start" | "done", label: string): void {
+    this.meta(phase === "start" ? c.cyan(`⇄ sous-agent : ${label}`) : c.green(`✓ sous-agent : ${label}`));
   }
 
   warn(s: string): void {
