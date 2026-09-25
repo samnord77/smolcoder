@@ -53,6 +53,59 @@ export function isAutoApproved(command: string, allowed: Set<string>, reason?: s
   return allowed.has(program) && !SHELL_META.test(trimmed);
 }
 
+/** UI vue par un sous-agent : tout son travail (pensees, appels d'outils,
+ * code, resultats) ruisselle dans les 3 interfaces comme celui du parent,
+ * mais chaque ligne est signee ⇄ et la fin de tour ne sonne pas (seule la
+ * fin du tour parent sonne). Le spinner affiche "sous-agent · …". */
+export class ChildUI implements AgentUI {
+  constructor(private parent: AgentUI) {}
+  resetResponse?(): void {
+    this.parent.resetResponse?.();
+  }
+  token(text: string): void {
+    this.parent.token(text);
+  }
+  thinking(text: string): void {
+    this.parent.thinking(text);
+  }
+  toolCall(name: string, args: Record<string, any>): void {
+    this.parent.toolCall(name, args);
+  }
+  toolResult(result: string): void {
+    this.parent.toolResult(result);
+  }
+  println(s?: string): void {
+    this.parent.println(s);
+  }
+  status(s: string): void {
+    this.parent.status(`⇄ ${s}`);
+  }
+  warn(s: string): void {
+    this.parent.warn(s);
+  }
+  error(s: string): void {
+    this.parent.error(s);
+  }
+  startSpinner(label: string): void {
+    this.parent.startSpinner(`sous-agent · ${label}`);
+  }
+  stopSpinner(): void {
+    this.parent.stopSpinner();
+  }
+  confirmCommand(command: string, reason?: string): Promise<"yes" | "no" | "always"> {
+    return this.parent.confirmCommand(command, reason);
+  }
+  turnEnd(label: string): void {
+    this.parent.status(`✓ sous-agent : ${label} (voir le rapport dans le tour parent)`);
+  }
+  planUpdated(plan: Plan): void {
+    this.parent.planUpdated(plan);
+  }
+  subagent?(phase: "start" | "done", label: string): void {
+    this.parent.subagent?.(phase, label);
+  }
+}
+
 export class Agent {
   messages: Msg[] = [];
   tools: ToolSpec[];
@@ -113,6 +166,7 @@ export class Agent {
         depth: (this.toolCtx.depth ?? 0) + 1,
         canWrite: this.mode !== "ro",
         mcp: this.toolCtx.mcp,
+        plugins: this.toolCtx.plugins,
       };
       const window = this.ctxMgr.budget(this.messages, this.tools).window;
       const childMgr = new ContextManager(window, this.provider.maxOutputTokens);
@@ -123,7 +177,7 @@ export class Agent {
         childCtx,
         childMgr,
         this.bus,
-        this.ui,
+        new ChildUI(this.ui),
         false,
         12
       );
