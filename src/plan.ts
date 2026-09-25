@@ -56,8 +56,11 @@ export class Plan {
       idx = this.currentIndex;
       if (idx < 0) return "All steps are already done.";
     } else {
+      if (typeof stepNumber !== "number" || !Number.isFinite(stepNumber)) {
+        return `Error: step must be a number between 1 and ${this.steps.length}.`;
+      }
       idx = Math.floor(stepNumber) - 1;
-      if (idx < 0 || idx >= this.steps.length) {
+      if (!Number.isSafeInteger(idx) || idx < 0 || idx >= this.steps.length) {
         return `Error: step ${stepNumber} does not exist. The plan has ${this.steps.length} steps.`;
       }
     }
@@ -80,7 +83,7 @@ export class Plan {
   checkpoint(text: string): string {
     const idx = this.currentIndex;
     if (idx < 0) return 'Error: create a plan with an unfinished step before recording a checkpoint.';
-    if (!text.trim() || text.length > 1000) return 'Error: checkpoint text must be 1–1000 characters. Keep exact APIs, the unresolved error and the next small edit.';
+    if (typeof text !== "string" || !text.trim() || text.length > 1000) return 'Error: checkpoint text must be 1–1000 characters. Keep exact APIs, the unresolved error and the next small edit.';
     this.steps[idx].note = text.trim();
     return `Checkpoint saved for step ${idx + 1}: ${text.trim()}`;
   }

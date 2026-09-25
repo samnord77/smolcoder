@@ -53,7 +53,7 @@ usable input  = window - reply reserve - safety margin
 ```
 
 | Loaded window | Reply reserve | Safety margin | Usable input |
-|---|---:|---:|---:|
+| --- | ---: | ---: | ---: |
 | 4,096 tokens | 1,024 | 204 | 2,868 |
 | 16,384 tokens | 4,096 | 256 | 12,032 |
 
@@ -154,7 +154,7 @@ This is a sequential execution checklist. It does not schedule a dependency grap
 Planning and compaction are established techniques. smolcoder's distinction is the combination of a small default interface, state-backed progress, measured local context budgets and opportunistic maintenance on the same model. The comparison below describes documented mechanisms, checked on **13 September 2026**; it is not a benchmark ranking.
 
 | Harness | Planning | Context and local-model support |
-|---|---|---|
+| --- | --- | --- |
 | **smolcoder** | One flat `plan` tool, incremental completion, harness-derived next step and checklist state retained through compaction. | Eight coding tools, or four in read-only mode; loaded-window budgets; staged eviction; same-model background handovers with foreground priority. |
 | **Claude Code** | Plan mode for exploring and proposing changes; task tools can track status and dependencies, with availability depending on model/settings. [Architecture](https://code.claude.com/docs/en/how-claude-code-works), [task tools](https://code.claude.com/docs/en/tools-reference#task-tool-availability). | Its documented Claude workflow also clears old tool output before summarizing, and defers MCP tool definitions. These techniques are shared, rather than unique to smolcoder. [Context management](https://code.claude.com/docs/en/how-claude-code-works#the-context-window). |
 | **Codex** | A planning mode plus structured plan updates with step statuses. [Commands](https://learn.chatgpt.com/docs/developer-commands?surface=cli), [plan events](https://learn.chatgpt.com/docs/app-server#turn-events). | Automatic compaction has a configurable token threshold. Codex also supports Ollama and LM Studio through `--oss`; local execution alone is not a smolcoder differentiator. [Configuration](https://learn.chatgpt.com/docs/config-file/config-reference). |

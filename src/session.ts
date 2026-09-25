@@ -11,11 +11,13 @@ import { detectAll, DetectedModel, resolveContextWindow } from "./detect";
 import { EventBus } from "./events";
 import { findModelsOnNetwork, FlowUI, manageHosts } from "./network";
 import { Plan, PlanStep } from "./plan";
-import { buildSystemPrompt, loadAgentsMd } from "./prompt";
+import { buildSystemPrompt, loadAgentsMd, loadMemoryMd } from "./prompt";
 import { LmStudioProvider } from "./providers/lmstudio";
 import { OllamaProvider } from "./providers/ollama";
 import { Effort, Msg, Provider } from "./providers/types";
 import { Mode, MODE_LABELS, ToolContext } from "./tools/index";
+import { createMcpBridge } from "./mcp";
+import { listSkills } from "./skills";
 import { pickShell } from "./tools/shell";
 import { TaskManager } from "./tools/tasks";
 import { renderPlan, SelectOption, SessionUI, SlashCommand } from "./ui";
@@ -43,6 +45,8 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { name: "tasks", desc: "List background tasks" },
   { name: "logs", desc: "Show task output — /logs t1" },
   { name: "stop", desc: "Stop a background task — /stop t1" },
+  { name: "mcp", desc: "MCP servers: green/red lights + tools" },
+  { name: "skills", desc: "Saved skills, incl. built-ins" },
   { name: "clear", desc: "Reset the conversation" },
   { name: "help", desc: "Show help" },
   { name: "exit", desc: "Quit smolcoder (web: close this session)" },
@@ -138,6 +142,14 @@ export function backendLabel(m: DetectedModel): string {
 
 export function sessionLine(m: DetectedModel, mode: Mode): string {
   return `${c.green("●")} ${backendLabel(m)} · ${c.bold(m.id)} · ctx ${m.contextWindow.toLocaleString()} · ${MODE_LABELS[mode]} mode`;
+}
+
+/** Gros bandeau quand le mode YOLO est actif : rien ne demande avant d'agir. */
+export function yoloBanner(): string {
+  return (
+    `${c.red(c.bold("YOLO ACTIF"))} ${c.red("— aucune demande avant d'écrire ou d'exécuter.")}\n` +
+    `${c.dim("Restez dans votre dossier projet. shift+tab pour revenir en edit.")}`
+  );
 }
 
 export function fmtTokens(n: number): string {
@@ -315,6 +327,7 @@ export class Session {
   onTurnDone: (() => void) | null = null;
 
   private readonly agentsMd: string | null;
+  private readonly memoryMd: string | null;
   private readonly prefs: SessionPrefs;
   private readonly help: string;
   private ended = false;
@@ -340,9 +353,11 @@ export class Session {
       plan: new Plan(),
       filesTouched: new Set(),
       commandsRun: [],
+      mcp: createMcpBridge(workspace),
     };
     this.ctxMgr = new ContextManager(chosen.contextWindow, provider.maxOutputTokens);
     this.agentsMd = loadAgentsMd(workspace);
+    this.memoryMd = loadMemoryMd(workspace);
     // The step cap is a runaway-loop backstop, not a work limit — esc/ctrl+c
     // is the user's real kill switch, so set it far above any legitimate task.
     this.agent = new Agent(provider, mode0, this.sysPrompt(mode0), this.toolCtx, this.ctxMgr, this.bus, ui, true, 1000);
@@ -363,7 +378,7 @@ export class Session {
   }
 
   private sysPrompt(mode: Mode): string {
-    return buildSystemPrompt({ workspace: this.workspace, mode, shellLabel: this.shell.label, agentsMd: this.agentsMd });
+    return buildSystemPrompt({ workspace: this.workspace, mode, shellLabel: this.shell.label, agentsMd: this.agentsMd, memoryMd: this.memoryMd });
   }
 
   private persist(): void {
@@ -397,6 +412,8 @@ export class Session {
     const plan = this.toolCtx.plan;
     return {
       mode: this.agent.mode,
+      yolo: this.agent.mode === "bypass",
+      modeLabel: MODE_LABELS[this.agent.mode],
       model: this.chosen.id,
       backend: this.chosen.backend,
       host: this.chosen.host,
@@ -407,6 +424,9 @@ export class Session {
       context: this.agent.contextBudget(),
       outcome: this.agent.outcome,
       lastError: this.agent.lastError,
+      verification: this.agent.verificationResult
+        ? { attempts: this.agent.verificationResult.attempts, passed: this.agent.verificationResult.passed }
+        : null,
       plan: plan.exists ? { steps: plan.steps, current: plan.currentIndex } : null,
       tasks: this.taskManager.runningSummary().length,
       workspace: this.workspace,
@@ -418,6 +438,7 @@ export class Session {
   /** The opening lines: backend · model · mode, workspace, AGENTS.md, advice. */
   announce(): void {
     const ui = this.ui;
+    if (this.agent.mode === "bypass") ui.warn(`  ${yoloBanner()}`);
     if (this.chosen.note) ui.warn(`  ${this.chosen.note}`);
     const advice = effortAdvice(this.chosen, this.effort);
     if (advice) ui.warn(`  ${advice}`);
@@ -465,6 +486,7 @@ export class Session {
       const attachments = typeof raw === "string" ? [] : raw.attachments;
 
       if (!attachments.length && input.startsWith("/")) {
+        try {
         const [cmd, ...rest] = input.slice(1).split(/\s+/);
         const arg = rest[0];
         switch (cmd) {
@@ -499,6 +521,32 @@ export class Session {
           case "stop":
             ui.println(taskManager.stop(arg ?? ""));
             break;
+          case "mcp":
+            if (!toolCtx.mcp) {
+              ui.warn("MCP bridge is not wired in this session.");
+              break;
+            }
+            ui.startSpinner("checking MCP servers");
+            try {
+              const rows = await toolCtx.mcp.status();
+              if (!rows.length) {
+                ui.status("· no MCP servers configured — see docs/plugins.md");
+              } else {
+                for (const r of rows) {
+                  ui.println(
+                    r.ok ? `● ${r.name} (${(r.tools ?? []).length} tools)` : `○ ${r.name} — ${r.error ?? "unreachable"}`
+                  );
+                }
+              }
+            } catch (err: any) {
+              ui.error(String(err?.message ?? err));
+            } finally {
+              ui.stopSpinner();
+            }
+            break;
+          case "skills":
+            ui.println(listSkills(toolCtx.workspace));
+            break;
           case "compact":
             ui.startSpinner("compacting");
             try { await agent.compactNow(); }
@@ -518,6 +566,9 @@ export class Session {
             break;
           default:
             ui.warn(`Unknown command /${cmd} — try /help`);
+        }
+        } catch (err: any) {
+          ui.error(`\n${err?.message ?? err}`);
         }
         ui.refresh();
         continue;
@@ -549,6 +600,11 @@ export class Session {
       /* best effort */
     }
     this.taskManager.killAll();
+    try {
+      this.toolCtx.mcp?.closeAll();
+    } catch {
+      /* best effort */
+    }
     this.ui.close();
     this.onExit?.();
   }
@@ -562,8 +618,13 @@ export class Session {
     for (;;) {
       const hosts = loadConfig().hosts ?? [];
       ui.startSpinner("looking for models");
-      fresh = await detectAll({ hosts });
-      ui.stopSpinner();
+      try {
+        fresh = await detectAll({ hosts });
+      } catch {
+        fresh = [];
+      } finally {
+        ui.stopSpinner();
+      }
       if (!fresh.length) ui.warn("No model server is answering right now.");
       const rows = [...modelOptions(fresh, this.chosen), FIND_ROW, ...(hosts.length ? [HOSTS_ROW] : [])];
       idx = await ui.select("Select model", rows);

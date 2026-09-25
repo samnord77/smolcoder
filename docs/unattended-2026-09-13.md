@@ -7,7 +7,7 @@ This follow-up uses fresh workspaces and one `Agent.runTurn` per trial. No game 
 Both selected builds completed unattended and passed a fresh repeat of the same **30-check gate**: fifteen groups in the real smolcoder preview and fifteen in a direct browser. This includes Play, visible terrain/HUD, mesh quality, gravity/jumping, WASD at three headings, visible mining/placement, repeated pause/resume, manual Save and reload, New World followed by visible editing, and malformed-save recovery. Screenshots were inspected separately. No manual source fixes or agent restarts were used within either accepted trial.
 
 | Provider and trial | Time | Coding requests / model tools | Own tests | Acceptance attempts during generation | Final independent repeat |
-|---|---:|---:|---:|---:|---|
+| --- | ---: | ---: | ---: | ---: | --- |
 | Ollama v9 | 261 s | 65 / 63 | 28 passed | 2 | 30 passed |
 | LM Studio v11 | 937 s | 187 / 195 | 23 passed | 5 | 30 passed |
 
@@ -32,7 +32,7 @@ The task is `bench/minecraft-lifecycle-prompt.txt`: a seeded voxel game with col
 The comparison checkout is `5e0346c`, immediately before the audit changes. The driver can load its compiled production code with `--harness=PATH`; no old-agent behavior is replaced by the driver. Trial outcomes are stochastic single samples, not completion-rate estimates.
 
 | Trial | Model requests | Tool calls | Time | Independent outcome |
-|---|---:|---:|---:|---|
+| --- | ---: | ---: | ---: | --- |
 | LM Studio, audit version | 155 | 158 | 710 s | Own tests/build pass; preview gameplay reaches Save, where the pause overlay intercepts the button. Fails acceptance. |
 | LM Studio, previous checkout | 25 | 35 | 274 s | Claimed tests/browser checks without executing them. Independent tests: 19 pass, 7 fail; build passes; no usable Play button. Fails acceptance. |
 | Ollama, audit version plus retained-read fix | 160 | 187 | 486 s | Tests/build and main gameplay pass; the then-current checker did not observe a New World reset. The confirmation adapter was subsequently corrected, so this is not a final-checker verdict. |
@@ -140,7 +140,7 @@ The user's global `smol` command was still using an older package. The tested ch
 The actual installed `smol -p ... --verify ...` command then built the dependency-free math smoke task in two fresh folders. Both providers loaded with an observed **4,096-token allocation**, reasoning off, and completed without a repair prompt or resume. The caller-owned `bench/math-acceptance.cjs` checks the actual module and index exports, arithmetic behavior and zero-divisor errors independently of model-written tests.
 
 | Provider | Agent time | Model calls / tools | Compactions | Plan | Independent arithmetic checks |
-|---|---:|---:|---:|---|---:|
+| --- | ---: | ---: | ---: | --- | ---: |
 | [LM Studio log](evidence/installed-cli-lmstudio.txt) | 17.1 s | 19 / 18 | 3 | 6/6 complete | 30 passed |
 | [Ollama log](evidence/installed-cli-ollama.txt) | 17.1 s | 12 / 17 | 2 | 5/5 complete | 30 passed |
 

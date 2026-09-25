@@ -78,18 +78,29 @@ export function relPath(root: string, abs: string): string {
 // one goes to the y/n prompt with the reason shown. False positives cost one
 // prompt, false negatives are the accepted limit of a text scan.
 
-const HOME_TOKENS = /^(~|\$HOME|\$\{HOME\}|%USERPROFILE%|%HOMEPATH%)([\\/]|$)/i;
-const TEMP_TOKENS = /^(\$TMPDIR|\$\{TMPDIR\}|\$TEMP|\$TMP|%TEMP%|%TMP%|\$\{TEMP\}|\$\{TMP\})([\\/]|$)/i;
+const HOME_TOKENS = /^(~|\$HOME|\$\{HOME\}|\$env:HOME|%USERPROFILE%|%HOMEPATH%)([\\/]|$)/i;
+const TEMP_TOKENS = /^(\$TMPDIR|\$\{TMPDIR\}|\$TEMP|\$TMP|%TEMP%|%TMP%|\$\{TEMP\}|\$\{TMP\}|\$env:TMPDIR|\$env:TEMP|\$env:TMP)([\\/]|$)/i;
+const POWERSHELL_ENV = /^\$env:[A-Za-z_][A-Za-z0-9_]*/i;
 const GLOBAL_INSTALL = /\b(npm|pnpm|yarn|bun)\b[^;&|]*\s(-g|--global|global)(\s|$)/;
 /** MSYS roots Git Bash maps to real places; any other one-segment `/word` on
  * Windows is a command switch (`taskkill /pid`, `dir /s`), not a path. */
 const MSYS_ROOTS = /^\/(tmp|usr|etc|bin|home|mnt|dev|proc|var|opt|root)(\/|$)/i;
 
 /** Split a command into candidate path tokens: whitespace-separated words with
- * quotes stripped, the value side of `--flag=value` and `VAR=value`, and the
- * target of `>`/`<` redirections written without a space. */
+ * quotes stripped, the value side of `--flag=value` and `VAR=value`, the
+ * target of `>`/`<` redirections written without a space, plus any absolute
+ * path hidden inside quotes or parens (`open('/etc/passwd')`,
+ * `python -c "open('/tmp/x')"`) and PowerShell `$env:NAME` references. */
 function pathCandidates(command: string): string[] {
   const out: string[] = [];
+  const pushInnerPaths = (s: string): void => {
+    const innerRe = new RegExp(
+      "([A-Za-z]:[\\\\/][^\\s\"'`,;()]*|\\\\\\\\[^\\s\"'`,;()]+|/(?:tmp|etc|usr|home|mnt|var|opt|root|dev|proc)/[^\\s\"'`,;()]*)",
+      "g"
+    );
+    const inner = s.match(innerRe);
+    if (inner) for (const p of inner) out.push(p);
+  };
   for (const raw of command.split(/\s+/)) {
     if (!raw) continue;
     let tok = raw.replace(/^[<>]+|^[\d]?[<>]+&?/, "").replace(/^["'`]+|["'`,;)]+$/g, "");
@@ -98,6 +109,11 @@ function pathCandidates(command: string): string[] {
     const eq = tok.indexOf("=");
     if (eq > 0 && /^[-\w.]+$/.test(tok.slice(0, eq))) tok = tok.slice(eq + 1);
     if (tok) out.push(tok);
+    pushInnerPaths(raw);
+    const envMatch = raw.match(/\$env:[A-Za-z_][A-Za-z0-9_]*/gi);
+    if (envMatch) for (const e of envMatch) out.push(e);
+    const quoted = raw.match(/["']([^"']+)["']/g);
+    if (quoted) for (const q of quoted) out.push(q.replace(/^["']|["']$/g, ""));
   }
   return out;
 }
@@ -113,7 +129,8 @@ function fromMsys(tok: string): string {
 
 function isAbsoluteLike(tok: string): boolean {
   if (/^[a-zA-Z]:[\\/]/.test(tok)) return true; // C:\ or C:/
-  if (/^\\\\/.test(tok)) return true; // UNC
+  if (/^\\\\/.test(tok)) return true; // UNC backslash
+  if (/^\/\/[^/]/.test(tok)) return true; // UNC forward slash (//server/share)
   return tok.startsWith("/");
 }
 
@@ -147,8 +164,11 @@ export function commandEscapesWorkspace(command: string, root: string): string |
   for (const tok of pathCandidates(command)) {
     if (HOME_TOKENS.test(tok)) return `uses the home directory (${tok})`;
     if (TEMP_TOKENS.test(tok)) return `uses the system temp directory (${tok})`;
+    if (POWERSHELL_ENV.test(tok)) return `uses an environment path (${tok})`;
     const t = fromMsys(tok);
     if (isAbsoluteLike(t)) {
+      // UNC network shares are never inside the workspace, on any OS.
+      if (/^\\\\/.test(t) || /^\/\/[^/]/.test(t)) return `reaches outside the workspace (${tok})`;
       // On Windows under Git Bash, a bare POSIX path like /tmp or /usr/bin is
       // an MSYS path — never inside a Windows workspace.
       const posixOnWin = isWin && t.startsWith("/");

@@ -45,9 +45,29 @@ function isProbablyBinary(filePath: string): boolean {
   return false;
 }
 
+/** Re-vérifie après le premier contrôle : si le fichier final est un lien
+ * qui pointe hors dossier, on refuse. Ça ferme le piège du lien créé
+ * entre la vérification et la lecture. */
+function assertFinalInside(root: string, abs: string, userPath: string): void {
+  try {
+    fs.lstatSync(abs);
+    const realRoot = fs.realpathSync(root);
+    const realTarget = fs.realpathSync(abs);
+    const rel = path.relative(realRoot, realTarget);
+    const norm = process.platform === "win32" ? rel.toLowerCase() : rel;
+    if (norm.startsWith("..") || path.isAbsolute(norm)) {
+      throw new SandboxError(`"${userPath}" pointe hors du dossier de travail. Lecture refusée.`);
+    }
+  } catch (err: any) {
+    if (err instanceof SandboxError) throw err;
+    /* fichier absent entre-temps : le contrôle initial suffit */
+  }
+}
+
 export function readFile(root: string, args: any, maxChars = READ_CHAR_LIMIT): string {
   const charLimit = Math.max(128, Math.min(READ_CHAR_LIMIT, Math.floor(maxChars)));
   const abs = resolveInWorkspace(root, args.path);
+  assertFinalInside(root, abs, String(args.path));
   if (!fs.existsSync(abs)) {
     const dir = path.dirname(abs);
     let hint = "";
@@ -107,6 +127,7 @@ export function readFile(root: string, args: any, maxChars = READ_CHAR_LIMIT): s
 
 export function writeFile(root: string, args: any): string {
   const abs = resolveInWorkspace(root, args.path);
+  assertFinalInside(root, abs, String(args.path));
   if (typeof args.content !== "string") {
     return 'Error: content is required and must be a string. Example: {"path": "notes.txt", "content": "hello"}';
   }
@@ -177,6 +198,7 @@ function closestSnippet(fileLines: string[], oldText: string): { text: string; o
 
 export function editFile(root: string, args: any): string {
   const abs = resolveInWorkspace(root, args.path);
+  assertFinalInside(root, abs, String(args.path));
   if (!fs.existsSync(abs)) {
     return `Error: file "${args.path}" does not exist. Use write_file to create a new file.`;
   }
@@ -355,7 +377,24 @@ export function searchFiles(root: string, args: any): string {
   };
 
   if (startIsFile) {
-    walk(path.dirname(start), 8); // degenerate case; just scan that dir shallowly
+    // Scan only that single file: walking its whole parent folder would leak
+    // neighboring files into model context and waste time.
+    try {
+      const stat = fs.statSync(start);
+      if (stat.size <= SEARCH_FILE_SIZE_LIMIT && !isProbablyBinary(start)) {
+        filesScanned++;
+        const text = fs.readFileSync(start, "utf8");
+        const lines = text.split(/\r?\n/);
+        for (let i = 0; i < lines.length; i++) {
+          if (re.test(lines[i])) {
+            matches.push(`${relPath(root, start)}:${i + 1}: ${lines[i].trim().slice(0, 200)}`);
+            if (matches.length >= SEARCH_MATCH_LIMIT) break;
+          }
+        }
+      }
+    } catch {
+      /* unreadable file counts as no match */
+    }
   } else {
     walk(start, 0);
   }

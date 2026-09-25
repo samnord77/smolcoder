@@ -6,6 +6,7 @@
 import { Attachment, renderAttachmentsForModel } from "./attachments";
 import { ContextManager } from "./context";
 import { EventBus } from "./events";
+import { Plan } from "./plan";
 import { ChatResult, Msg, Provider, ToolSpec } from "./providers/types";
 import {
   buildToolSpecs,
@@ -22,7 +23,8 @@ import { abortableDelay } from "./providers/transport";
 import { truncateMiddle } from "./util";
 import { createHash } from "crypto";
 import { runCommand } from "./tools/shell";
-import { failureSignature, projectVerification } from "./verification";
+import { failureSignature, mergeVerificationCommands, projectVerification } from "./verification";
+import { recordDelegateStats, relevantSkills, saveAutoRepairLesson } from "./skills";
 
 /** Supplied by the caller, never generated or changed by a model tool. */
 export interface Verification {
@@ -40,8 +42,11 @@ const SHELL_META = /[;&|`$<>(){}\n\r\\]/;
 
 /** Exported for tests: does the always-allow set cover this exact command?
  * First-token match alone is bypassable (`npm -v; evil`) because commands run
- * under a real shell — so chained/piped/substituted commands always re-prompt. */
-export function isAutoApproved(command: string, allowed: Set<string>): boolean {
+ * under a real shell — so chained/piped/substituted commands always re-prompt.
+ * Global installs are never auto-approved: `npm test` must not unlock
+ * `npm i -g evil`. */
+export function isAutoApproved(command: string, allowed: Set<string>, reason?: string | null): boolean {
+  if (reason && /globally|outside the workspace/i.test(reason)) return false;
   const trimmed = command.trim();
   let program = trimmed.split(/\s+/)[0] ?? "";
   if (process.platform === "win32") program = program.toLowerCase();
@@ -83,16 +88,81 @@ export class Agent {
     this.verification = callerVerification;
     if (callerVerification && (!callerVerification.command.trim() || (callerVerification.maxAttempts !== undefined && (!Number.isSafeInteger(callerVerification.maxAttempts) || callerVerification.maxAttempts < 1)))) throw new Error("Verification needs a command and a positive attempt limit.");
     this.messages = [{ role: "system", content: systemPrompt }];
-    this.tools = buildToolSpecs(mode);
+    this.tools = buildToolSpecs(mode, { allowDelegate: (toolCtx.depth ?? 0) < 1 });
+    this.toolCtx.canWrite = mode !== "ro";
     this.ctxMgr.setReplayThinking(provider.replaysThinking !== false);
+    this.wireDelegate();
+  }
+
+  /** Sub-agents: one bounded child turn, same workspace and mode (never
+   * higher), no nested delegates, max 12 tool calls. The child shares the
+   * file/command records so the parent sees its work. */
+  private wireDelegate(): void {
+    if ((this.toolCtx.depth ?? 0) >= 1 || this.mode === "ro") {
+      this.toolCtx.delegate = undefined;
+      return;
+    }
+    this.toolCtx.delegate = async (task: string, signal?: AbortSignal): Promise<string> => {
+      const childCtx: ToolContext = {
+        workspace: this.toolCtx.workspace,
+        taskManager: this.toolCtx.taskManager,
+        plan: new Plan(),
+        filesTouched: this.toolCtx.filesTouched,
+        commandsRun: this.toolCtx.commandsRun,
+        resultCharLimit: this.toolCtx.resultCharLimit,
+        depth: (this.toolCtx.depth ?? 0) + 1,
+        canWrite: this.mode !== "ro",
+        mcp: this.toolCtx.mcp,
+      };
+      const window = this.ctxMgr.budget(this.messages, this.tools).window;
+      const childMgr = new ContextManager(window, this.provider.maxOutputTokens);
+      const child = new Agent(
+        this.provider,
+        this.mode,
+        this.messages[0]?.content ?? "",
+        childCtx,
+        childMgr,
+        this.bus,
+        this.ui,
+        false,
+        12
+      );
+      this.ui.status("· sous-agent : travail délégué (max 12 actions)");
+      this.ui.subagent?.("start", task.slice(0, 120));
+      try {
+        await child.runTurn(`Subtask (answer with a short report: what you found or changed, files + line numbers, what remains):\n${task}`);
+      } catch (err: any) {
+        try {
+          recordDelegateStats(this.toolCtx.workspace, child.lastTurnStats?.toolCalls ?? 0);
+        } catch {
+          /* stats must never break a turn */
+        }
+        this.ui.subagent?.("done", "interrompu");
+        return `Sub-agent stopped: ${String(err?.message ?? err).slice(0, 800)}`;
+      }
+      if (signal?.aborted) throw signal.reason;
+      const last = [...child.messages].reverse().find((m) => m.role === "assistant" && m.content.trim());
+      const report = (last?.content ?? "No report.").slice(0, 3000);
+      const touched = [...childCtx.filesTouched].slice(-10).join(", ");
+      try {
+        recordDelegateStats(this.toolCtx.workspace, child.lastTurnStats?.toolCalls ?? 0);
+      } catch {
+        /* stats must never break a turn */
+      }
+      const doneCalls = child.lastTurnStats?.toolCalls ?? 0;
+      this.ui.subagent?.("done", `${doneCalls} actions`);
+      return `${report}${touched ? `\nFiles touched: ${touched}` : ""}\n(Sub-agent did ${doneCalls} tool calls.)`;
+    };
   }
 
   setMode(mode: Mode, systemPrompt: string): void {
     this.ctxMgr.cancelBackground(true);
     this.ctxMgr.resetAnchor();
     this.mode = mode;
-    this.tools = buildToolSpecs(mode);
+    this.tools = buildToolSpecs(mode, { allowDelegate: (this.toolCtx.depth ?? 0) < 1 });
+    this.toolCtx.canWrite = mode !== "ro";
     this.messages[0] = { role: "system", content: systemPrompt };
+    this.wireDelegate();
   }
 
   setProvider(provider: Provider): void {
@@ -182,8 +252,8 @@ export class Agent {
       if (command) {
         // Include scripts added during repairs, while retaining checks already
         // required earlier in this turn (deleting one must not bypass it).
-        const commands = new Set([...(this.verification?.command.split(" && ") ?? []), ...command.split(" && ")]);
-        this.verification = { command: [...commands].join(" && "), source: "project" };
+        const merged = mergeVerificationCommands(this.verification?.command, command);
+        this.verification = { command: merged, source: "project" };
       }
     }
   }
@@ -204,7 +274,26 @@ export class Agent {
     this.verificationResult = { attempts, passed, output };
     this.ui.toolResult(output);
     await this.bus.emit("post_verify", this.verificationResult);
-    if (passed) { this.ui.status("· acceptance checks passed"); return true; }
+    if (passed) {
+      this.ui.status("· acceptance checks passed");
+      // Auto-evolution: a repair that took several tries becomes a reusable
+      // lesson on its own — no model call needed, files only.
+      if (attempts > 1 && (this.mode as string) !== "ro") {
+        try {
+          const name = saveAutoRepairLesson(this.toolCtx.workspace, {
+            command: check.command,
+            attempts,
+            failure: failureSignature(this.verificationResult.output),
+            files: [...this.toolCtx.filesTouched],
+            commands: this.toolCtx.commandsRun,
+          });
+          if (name) this.ui.status(`· leçon auto sauvée : skill ${name}`);
+        } catch {
+          /* lessons must never break a turn */
+        }
+      }
+      return true;
+    }
     if (attempts >= (check.maxAttempts ?? 6)) throw new Error(`Acceptance checks still fail after ${attempts} attempts. The task is incomplete.\n${truncateMiddle(output, 1600)}`);
     this.ui.status("· acceptance failed — continuing repairs automatically");
     this.messages.push({ role: "user", content: `[Acceptance failed; the task is not complete. Repair the first failing behavior. The harness will rerun acceptance automatically. Do not skip tests or report success.${check.source === "project" ? `\nCommand: ${check.command}` : ""}\n${truncateMiddle(output, this.ctxMgr.toolResultCharLimit())}]` });
@@ -261,6 +350,20 @@ export class Agent {
     const requestNote = attachments.length ? `${request} [attached: ${attachments.map((a) => a.name).join(", ")}]` : request;
     if (!this.originalRequest) this.originalRequest = requestNote;
     this.currentRequest = requestNote; // the task compaction must never lose
+    // Auto-evolution: skills matching the task ride along without being asked.
+    let autoSkills = "";
+    try {
+      autoSkills = relevantSkills(this.toolCtx.workspace, requestNote);
+    } catch {
+      autoSkills = "";
+    }
+    if (autoSkills) {
+      this.messages.push({
+        role: "user",
+        historyNote: true,
+        content: `[Auto-loaded skills matching your task — read and apply them, then work:]\n${autoSkills}`,
+      });
+    }
     this.messages.push({
       role: "user",
       content: request + (rendered.text ? "\n\n" + rendered.text : "") + this.verificationInstruction(),
@@ -637,11 +740,15 @@ export class Agent {
   }
 
   private async refreshLoadedWindow(): Promise<void> {
-    const actual = await this.provider.loadedContextWindow?.();
-    if (actual && Number.isSafeInteger(actual) && actual < this.contextBudget().window) {
-      this.ctxMgr.setWindow(actual, Math.min(this.provider.maxOutputTokens, Math.floor(actual / 4)));
-      this.ui.status(`· loaded model context changed to ${actual.toLocaleString()} tokens; budget adjusted`);
-      await this.bus.emit("context_update");
+    try {
+      const actual = await this.provider.loadedContextWindow?.();
+      if (actual && Number.isSafeInteger(actual) && actual < this.contextBudget().window) {
+        this.ctxMgr.setWindow(actual, Math.min(this.provider.maxOutputTokens, Math.floor(actual / 4)));
+        this.ui.status(`· loaded model context changed to ${actual.toLocaleString()} tokens; budget adjusted`);
+        await this.bus.emit("context_update");
+      }
+    } catch {
+      /* probe réseau optionnelle : ne casse jamais le tour */
     }
   }
 
@@ -651,13 +758,32 @@ export class Agent {
     signal?: AbortSignal
   ): Promise<string> {
     const command = commandOf(name, args);
+    // External MCP servers can send mail, edit sheets and browse the web —
+    // always ask in edit mode (bypass runs without asking, like commands).
+    if (name === "mcp" && this.mode !== "bypass") {
+      const server = String(args.server ?? "").trim() || "?";
+      const key = `mcp:${server.toLowerCase()}`;
+      if (!this.alwaysAllowed.has(key)) {
+        if (!this.interactive) {
+          return `Error: MCP server "${server}" needs user approval, and this session is non-interactive. The user can rerun smol with --mode bypass, or run this themselves.`;
+        }
+        const answer = await this.ui.confirmCommand(
+          `mcp ${server} ${String(args.tool ?? "").trim()}`,
+          `uses the external MCP server "${server}"`
+        );
+        if (answer === "no") {
+          return "The user declined the MCP call. Continue without it, or ask the user what to do instead.";
+        }
+        if (answer === "always") this.alwaysAllowed.add(key);
+      }
+    }
     // Gate everywhere except bypass (defense-in-depth: in ro mode exec tools are
     // already rejected before this point by the tool-existence check). Edit
     // mode runs commands that stay inside the workspace without asking and
     // only prompts for ones that reach outside it.
     if (command !== null && this.mode !== "bypass") {
       const reason = commandEscapesWorkspace(command, this.toolCtx.workspace);
-      if (reason !== null && !isAutoApproved(command, this.alwaysAllowed)) {
+      if (reason !== null && !isAutoApproved(command, this.alwaysAllowed, reason)) {
         if (!this.interactive) {
           return `Error: this command ${reason}, which needs user approval, and this session is non-interactive. Keep every path inside the workspace (relative paths, a scratch folder in the workspace instead of /tmp), or the user can rerun smol with --mode bypass, or run this themselves: ${command}`;
         }
@@ -666,9 +792,13 @@ export class Agent {
           return "The user declined to run this command. Continue without it, or ask the user what to do instead.";
         }
         if (answer === "always") {
-          let program = command.trim().split(/\s+/)[0] ?? "";
-          if (process.platform === "win32") program = program.toLowerCase();
-          if (program) this.alwaysAllowed.add(program);
+          if (/globally|outside the workspace/i.test(reason)) {
+            this.ui.status?.("· autorisation unique : les installs globales demandent toujours");
+          } else {
+            let program = command.trim().split(/\s+/)[0] ?? "";
+            if (process.platform === "win32") program = program.toLowerCase();
+            if (program) this.alwaysAllowed.add(program);
+          }
         }
       }
     }

@@ -8,7 +8,7 @@ Measured head-to-head with identical qwen3.8-27B Q4_K_M weights on one RTX 5090
 (the model is a hybrid recurrent `qwen35` build; Ollama 0.33, LM Studio 0.4.21):
 
 | | Ollama | LM Studio |
-|---|---|---|
+| --- | --- | --- |
 | prompt processing (6.7k-token cold prompt) | ~3,300 tok/s | ~3,000–3,400 tok/s |
 | generation, 400 tokens of prose, thinking off | ~120 tok/s | ~68 (4 slots + MTP) / ~76 (1 slot, no MTP) tok/s |
 | generation, 1,200 tokens of JavaScript, thinking off | ~170 tok/s | ~110 (1 slot + MTP) / ~76 (no MTP) tok/s |
@@ -55,7 +55,7 @@ model weights, same prompt (procedural voxel terrain, first-person controls, blo
 place/remove, three.js from a CDN, then serve it). Nobody typed "continue".
 
 | | Ollama | LM Studio (1 slot, MTP on) |
-|---|---|---|
+| --- | --- | --- |
 | wall clock | 64 s | 85 s |
 | tool calls | 20 (5 files) | 14 (3 files) |
 | tokens generated | 9.4k @ 171 tok/s | 7.4k @ 96 tok/s |
@@ -71,7 +71,7 @@ started a static server to prove the page served. Reproduce with `bench/run.sh`
 a second headless turn carrying a one-paragraph, symptom-only bug report:
 
 | fix turn | Ollama | LM Studio |
-|---|---|---|
+| --- | --- | --- |
 | wall clock | 42 s | 100 s |
 | tool calls | 27 (reads, searches, 3 edits, node one-liners) | 27 (7 reads, 3 edits, 10 commands, 6 plan) |
 | tokens generated | 4.8k @ 165 tok/s | 6.9k @ 79 tok/s |
@@ -83,7 +83,7 @@ a second headless turn carrying a one-paragraph, symptom-only bug report:
 ties snap to the cheaper neighbour) and to `think: true` on Ollama.
 
 | | Ollama (`think: true`) | LM Studio (`high → medium`) |
-|---|---|---|
+| --- | --- | --- |
 | wall clock | 84 s | 289 s (about a third of it a port-collision detour caused by the test setup) |
 | tool calls | 16 | 28 |
 | tokens generated | 10.6k @ 146 tok/s, ~2.6k of them reasoning | 22.5k @ 84 tok/s, ~12.2k of them reasoning |
@@ -116,4 +116,3 @@ and a parse check cannot catch runtime errors.) Two things made the runs work at
   retried the same oversized write three times in a row;
 - the plan and the hand-over notes are re-injected after every compaction, so the
   model resumes at the right step instead of starting over.
-

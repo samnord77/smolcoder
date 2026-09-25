@@ -37,7 +37,7 @@ If your models run on a different computer, see [Using models on another machine
 Type what you want done and press enter. The agent reads files, edits them and runs commands inside your project folder, and says what it is doing as it goes. After it edits files it runs your project's build and test scripts and repairs what fails.
 
 | Key | What it does |
-|---|---|
+| --- | --- |
 | `/` | Opens the command menu |
 | `shift+tab` | Cycles the permission mode: read-only, edit, bypass |
 | `esc` | Cancels the running turn, or clears the input |
@@ -48,7 +48,7 @@ The line under the input shows the mode, the model, the reasoning effort, how fu
 ### Commands
 
 | Command | What it does |
-|---|---|
+| --- | --- |
 | `/models` | Switch model, or add models from other machines |
 | `/mode` | Set the permission mode (`ro`, `edit`, `bypass`) |
 | `/effort` | Set reasoning effort (`off`, `low`, `medium`, `high`, `default`) |
@@ -56,16 +56,20 @@ The line under the input shows the mode, the model, the reasoning effort, how fu
 | `/context` | Show context window usage |
 | `/compact` | Compact the conversation now |
 | `/tasks`, `/logs <id>`, `/stop <id>` | Inspect and stop background tasks such as dev servers |
+| `/mcp` | MCP servers: green/red lights + tools |
+| `/skills` | Saved skills, incl. built-ins |
 | `/clear` | Start a fresh conversation |
 | `/help`, `/exit` | Help and quit |
 
 ### Permission modes
 
 | Mode | Files | Commands |
-|---|---|---|
+| --- | --- | --- |
 | `ro` | read and search only | none |
 | `edit` (default) | read, write, edit | run freely inside the project folder; anything reaching outside it asks you first |
 | `bypass` | read, write, edit | never asks |
+
+> Old names `write` (= `edit`) and `yolo` (= `bypass`) still work for backward compatibility.
 
 File access stops at the project folder. In edit mode, a command that reaches outside it (another folder, your home directory, a global install) asks for approval first and says why. This is a text check on the command, not an operating-system sandbox, so use read-only mode on code you do not trust.
 
@@ -94,7 +98,7 @@ The models do not have to run on the computer you code on. A desktop with a big 
 Ollama and LM Studio only answer their own computer until you tell them otherwise. Do this once, on the machine that runs the models.
 
 | Server | What to turn on |
-|---|---|
+| --- | --- |
 | Ollama (Windows, macOS) | Settings → **Expose Ollama to the network** |
 | Ollama (Linux, headless) | Set `OLLAMA_HOST=0.0.0.0` for the service and restart it |
 | LM Studio | Developer → Local Server → **Serve on Local Network** |
@@ -140,12 +144,13 @@ smolcoder sends your code and prompts to the server you choose, and runs the too
 - **Paste screenshots and files.** Paste an image with `ctrl+v` or right-click and choose Paste, drop files onto the chat, or click the paperclip. Images go to the model when it can see them, and the chip warns you when it cannot. Text files are added to your message.
 - **Browser and terminal panels.** Preview the dev server the agent started, or open a shell in the workspace, next to the chat.
 - **One server for everything.** Running `smol --web` in another folder adds it to the UI that is already open.
+- **Desktop app mode.** `smol --web --app` opens the UI in its own window (no browser tab) when Chrome or Edge is installed — same hub, same sessions.
 
 ## Why it works well with local models
 
 Local models are free and private, but they give you less to work with. The context window is small, generation is slower, and long instructions get lost. smolcoder is built around those limits.
 
-- **It stays out of the model's way.** A short system prompt and eight simple tools (four in read-only mode) leave most of the window for your code.
+- **It stays out of the model's way.** A short system prompt and thirteen simple tools (six in read-only mode) leave most of the window for your code.
 - **It watches the real window.** It asks the server how much context is actually loaded, shows a meter, and keeps room for the reply. A model that advertises a 128k window is often loaded with 4k, and smolcoder budgets for the 4k.
 - **It tidies up before the window fills.** Old file reads and command output go first. Only then does it ask the model for a short handover. Your request and the checklist are never summarized away.
 - **It keeps the plan outside the conversation.** The to-do list and the notes for the current step live in smolcoder itself, so they survive any summary.
@@ -157,6 +162,8 @@ The full mechanics are in [docs/how-it-works.md](docs/how-it-works.md): the cont
 ## Tips
 
 - **Give it a memory.** Put your conventions and commands in an `AGENTS.md` file at the project root. It is loaded every session and survives compaction.
+- **Let it delegate and remember.** Complex task? The agent hands a small exploration to a bounded sub-agent (`delegate`, 12 actions max) and files hard-won repairs away as reusable `skill`s in `.smol/skills/` — including the built-in `impeccable-design` for UI work. Matching skills load on their own.
+- **Calibrate before long jobs.** `node scripts/vram-check.cjs` reads your GPU and Ollama's loaded context, then prints the right `smol --ctx` — no more memory saturation guesses.
 - **Turn thinking off for long jobs.** `/effort off` leaves more of each reply for tool calls and code.
 - **Let it run things in the background.** Dev servers and watchers run as background tasks. Check them with `/tasks` and `/logs`, stop them with `/stop`.
 - **Backend notes.** Benchmarks and Ollama versus LM Studio tuning are in [docs/backend-notes.md](docs/backend-notes.md).

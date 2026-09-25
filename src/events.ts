@@ -14,7 +14,7 @@ export type LifecycleEvent =
   | "post_compact"
   | "session_end";
 
-type Handler = (payload?: any) => void | Promise<void>;
+type Handler = (payload?: unknown) => void | Promise<void>;
 
 export class EventBus {
   private handlers = new Map<LifecycleEvent, Handler[]>();
@@ -25,11 +25,15 @@ export class EventBus {
     this.handlers.set(event, list);
   }
 
-  async emit(event: LifecycleEvent, payload?: any): Promise<void> {
+  async emit(event: LifecycleEvent, payload?: unknown): Promise<void> {
     const list = this.handlers.get(event);
     if (!list) return;
     for (const h of list) {
-      await h(payload);
+      try {
+        await h(payload);
+      } catch (err) {
+        console.error(`[events] ${event} handler failed: ${(err as Error)?.message ?? err}`);
+      }
     }
   }
 }

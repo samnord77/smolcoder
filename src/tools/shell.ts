@@ -104,8 +104,8 @@ export function runCommand(command: string, cwd: string, signal?: AbortSignal): 
       output += chunk.toString("utf8");
       if (output.length > OUTPUT_CAP * 4) output = truncateMiddle(output, OUTPUT_CAP * 4);
     };
-    proc.stdout.on("data", append);
-    proc.stderr.on("data", append);
+    proc.stdout?.on("data", append);
+    proc.stderr?.on("data", append);
 
     // User interrupt (esc / ctrl+c / web stop button): kill the whole tree now.
     const onAbort = () => {
@@ -113,9 +113,9 @@ export function runCommand(command: string, cwd: string, signal?: AbortSignal): 
       finished = true;
       clearTimeout(timer);
       cleanup();
-      killTree(proc.pid!);
-      proc.stdout.destroy();
-      proc.stderr.destroy();
+      if (proc.pid !== undefined) killTree(proc.pid);
+      proc.stdout?.destroy();
+      proc.stderr?.destroy();
       resolve(
         (output.trim() ? truncateMiddle(output, OUTPUT_CAP) + "\n" : "") +
           "[command cancelled by the user before it finished]"
@@ -128,9 +128,9 @@ export function runCommand(command: string, cwd: string, signal?: AbortSignal): 
       if (finished) return;
       finished = true;
       cleanup();
-      killTree(proc.pid!);
-      proc.stdout.destroy();
-      proc.stderr.destroy();
+      if (proc.pid !== undefined) killTree(proc.pid);
+      proc.stdout?.destroy();
+      proc.stderr?.destroy();
       resolve(
         "Error: " + truncateMiddle(output, OUTPUT_CAP) +
           `\n[command timed out after ${DEFAULT_TIMEOUT_MS / 1000}s and was killed. For tests/builds, isolate the stuck test or phase and inspect its loop or initialization before rerunning. For a persistent dev server, use task {"action": "start"}.]`

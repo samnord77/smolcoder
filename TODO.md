@@ -1,6 +1,7 @@
 # smolcoder — TODO
 
 ## Done
+
 - [x] **AGENTS.md memory files** — injected after the system prompt, size-capped (~2k tokens),
   survives compaction. Pirate-tested on Ollama and LM Studio.
 - [x] **Plan tool** — harness-held checklist (set/done/add/show), TUI + web rendering,
@@ -31,12 +32,29 @@
   compactions on Ollama; both finished the build with the plan intact. Headless logs show the tier.
 - [x] **Cut-off tool calls are coached** — an oversized write_file that overflows the output cap
   now gets "not executed, write it in parts" instead of a generic "continue".
+- [x] **Visible YOLO mode** — `bypass` shows as `YOLO bypass` with a red banner at startup (CLI + web flag).
+- [x] **Desktop app mode** — `smol --web --app` opens the hub in its own Chrome/Edge window (own profile), plain browser tab otherwise; Kaggle GPU recipe in `docs/kaggle.md` (remote address flow, no key yet).
+- [x] **IDE-grade web extras** — desktop notifications (bell, approvals/turn-end/errors, silent while watching), sub-agent start/done lines on CLI + TUI + web, color diffs on edits.
+- [x] **Pro TUI extras** — `/mcp` lights (●/○ + tools, both UIs), `/skills` list, terminal bell on approval/finish/error; multi-project stays web-side (one dossier par terminal, comme des onglets).
+- [x] **Visible web dashboard extras** — YOLO label + warning, live verification chip (`vérifié ✓` / `réparation auto N`), color diffs on every `edit_file`, sub-agent progress lines; context meter + plan + tasks already live.
+- [x] **VRAM-calibrated startup** — `scripts/vram-check.cjs` reports GPU headroom + Ollama loaded context and recommends `smol --ctx` (floor 4096, cap 32768, same ceiling as the agent).
+- [x] **Bounded sub-agents** — `delegate` tool (edit/bypass only, 12 actions max, no nesting, same-or-lower mode) with per-workspace stats in `.smol/delegate-stats.json`.
+- [x] **Skills + auto-evolution** — `skill` list/read/save in `.smol/skills/`, matching skills auto-load into each turn, hard repairs auto-save a capped `auto-*` lesson, built-in `impeccable-design` adapted from pbakaus/impeccable (Apache-2.0).
+- [x] **Web reading without subscription** — `fetch_url` tool (built-in fetch, public pages only, loopback/private refused, capped output); external browser pilots (browser-use, stagehand, Playwright) documented in `docs/plugins.md` but not vendored (Python/API-key/browser weight vs zero-config promise).
+- [x] **Same MCPs as your other assistants** — zero-dependency JSON-RPC client (`src/mcp.ts`), `.smol/mcp.json` config, `mcp` tool with per-server approval, servers die with the session.
+- [x] **6 MCP servers installed and proven here (2026-09-24)** — files, memory, fetch, thinking, everything, browser (Playwright, 25 tools, real page read) + git (12 tools); preset in `docs/mcp.json`, project wired in `.smol/mcp.json`; Windows `.cmd` wrappers fixed; servers start in the workspace.
+- [x] **All 13 user MCPs wired and proven (2026-09-24)** — `~/.smolcoder/mcp.json` merged under project config (workspace wins): memory (file), sqlite, windows (26 tools), excel, word (50 tools), powerbi (22), n8n, firecrawl (key via environment, never in file), websearch, context7, chrome-devtools (30), scrapling, youtube-transcripts; 19 servers, ~200 tools total.
+- [x] **Remote MCP over HTTP (2026-09-24)** — Streamable HTTP transport (JSON + SSE + session ids, `${VAR}` secrets): deepwiki (3 tools, real answer) and zapier (portal, key via env) proven live; laya wired but crashes on start here; c3 alive via `c3_status`.
+- [x] **Real LSP code intelligence** — `symbols` tool (hover/def/refs/diag) over typescript-language-server, zero new deps; 2 server quirks fixed (forward-slash URIs, diagnostics need didChange + declared caps).
+- [x] **ADHD-style + long memory** — built-in `direct-style` skill (adapted from i-have-adhd, MIT) and `MEMORY.md` loaded into every session like AGENTS.md.
+- [x] **Every MCP CLI kept** — `docs/mcp-cli.md` lists all server commands incl. laya; zapier/deepwiki noted remote-only (needs HTTP transport, next step).
 
 ## Outstanding
+
 - [ ] **Human pass on the terminal TUI** — puppet-tested and the web twin is visually verified, but
   no human has driven the real terminal UI in a while (logo, slash menu, shift+tab, pickers,
   approval prompt, esc-cancel mid-stream).
 - [ ] **Plan persistence across sessions** (write/restore from the workspace?).
 - [ ] **Per-backend effort memory** — one saved effort for both backends is awkward now that the
   levels differ (`high` → `medium` on qwen/LM Studio, `→ thinking on` on Ollama).
-- [ ] **npm publish** — package `smolcoder`, command `smol`; repo at github.com/leonvanzyl/smolcoder. First release pending.
+- [x] **npm publish** — package `smolcoder`, command `smol`; repo at github.com/leonvanzyl/smolcoder. Released as v0.7.1.

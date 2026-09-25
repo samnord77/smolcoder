@@ -21,7 +21,7 @@ Browser execution was essential. Passing the build initially concealed a div pas
 ## Harness changes driven by the run
 
 | Observed failure | Change |
-|---|---|
+| --- | --- |
 | Fresh source was discarded merely to reach the soft compaction target | Preserve the newest complete tool group when it fits the hard input budget. |
 | Large reads displaced related modules | Return contiguous context-sized pages with exact continuation lines. |
 | Earlier file-write arguments consumed the working window | Remove old successfully applied write/edit bodies from model history; keep execution receipts and the newest group. |

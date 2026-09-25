@@ -91,7 +91,9 @@ export function readHubRecord(dataDir = DATA_DIR): HubRecord | null {
 function writeHubRecord(rec: HubRecord, dataDir: string): void {
   try {
     fs.mkdirSync(dataDir, { recursive: true });
-    fs.writeFileSync(path.join(dataDir, HUB_FILE), JSON.stringify(rec));
+    const file = path.join(dataDir, HUB_FILE);
+    fs.writeFileSync(file, JSON.stringify(rec), { mode: 0o600 });
+    try { fs.chmodSync(file, 0o600); } catch { /* best effort on Windows */ }
   } catch {
     /* non-fatal: a second smol --web will just start its own server */
   }
@@ -277,6 +279,11 @@ export class WebHub {
         /* best effort */
       }
       live.session?.taskManager.killAll();
+      try {
+        live.session?.toolCtx.mcp?.closeAll();
+      } catch {
+        /* best effort */
+      }
       for (const t of live.terminals.values()) t.close();
     }
     clearHubRecord(process.pid, this.dataDir);
@@ -576,7 +583,7 @@ export class WebHub {
     const term = new Terminal(tid, live.workspace, {
       output: (text) => this.send({ t: "term", sid, tid, s: text }),
       done: (code, cwd) => this.send({ t: "termdone", sid, tid, code, cwd }),
-    });
+    }, live.workspace);
     live.terminals.set(tid, term);
     this.changed();
     return { tid, cwd: term.cwd };

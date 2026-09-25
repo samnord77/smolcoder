@@ -45,7 +45,14 @@ export function parseAddress(input: string): ParsedAddress {
   // URL drops a default port ("box:80"), so look at the text for one too.
   const portTyped = /:\d+$/.test(text.replace(/^\[[^\]]*\]/, ""));
   if (schemeMatch || portTyped || pathPart) {
-    const base = `${url.protocol}//${url.host}${pathPart}`;
+    // A path on a bare IP (v4, v6, decimal) is never a reverse proxy prefix:
+    // it is a typed URL like http://169.254.169.254/latest/meta-data/ that
+    // would make identifyServer fetch attacker-chosen paths (SSRF). Strip it
+    // so only fixed /api/... routes are probed. DNS names keep their path
+    // (https://llm.example.com/ollama served behind a prefix).
+    const looksIp = /^[0-9.]+$/.test(hostname) || hostname.includes(":") || /^\d+$/.test(hostname);
+    const safePath = looksIp ? "" : pathPart === "/" ? "" : pathPart;
+    const base = `${url.protocol}//${url.host}${safePath}`;
     return { address: base, hostname, urls: [base] };
   }
   return { address: url.hostname, hostname, urls: [`http://${url.host}:${OLLAMA_PORT}`, `http://${url.host}:${LMSTUDIO_PORT}`] };
