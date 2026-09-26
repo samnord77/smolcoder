@@ -1,6 +1,6 @@
-import { browserHighlighterSource } from "../highlight";
 import { editorTabStoreBrowserSource } from "../editor-tabs";
 import { editorToolsBrowserSource } from "../editor-tools";
+import { browserHighlighterSource } from "../highlight";
 // The browser-side script for the web page. Plain JS in a raw template string
 // (no build step, no dependencies). Rules: no template literals in here, and
 // a literal backtick is written as \` — String.raw hands it through as-is.
@@ -1024,17 +1024,97 @@ function buildFilesTab(v, t) {
     meta.textContent = String(message || "");
     meta.classList.toggle("error", !!message);
   };
+  function getFileItemHtml(name, isDir) {
+    var safeName = String(name || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    if (isDir) {
+      return '<span class="fileitem-icon" style="display:inline-flex;align-items:center;justify-content:center;width:20px;font-size:13px;margin-right:6px;flex-shrink:0;">📁</span><span class="fileitem-name" style="color:#fde047;font-weight:500;">' + safeName + '</span>';
+    }
+    var lower = String(name || "").toLowerCase();
+    var ext = lower.indexOf(".") !== -1 ? lower.split(".").pop() : "";
+    var badge = "DOC";
+    var bg = "rgba(255, 255, 255, 0.08)";
+    var color = "#94a3b8";
+    var border = "rgba(255, 255, 255, 0.15)";
+    var nameColor = "#d4d4d4";
+
+    switch (ext) {
+      case "js":
+      case "mjs":
+      case "cjs":
+        badge = "JS"; bg = "rgba(250, 204, 21, 0.18)"; color = "#facc15"; border = "rgba(250, 204, 21, 0.35)"; nameColor = "#fef08a"; break;
+      case "ts":
+      case "mts":
+      case "cts":
+        badge = "TS"; bg = "rgba(56, 189, 248, 0.18)"; color = "#38bdf8"; border = "rgba(56, 189, 248, 0.35)"; nameColor = "#bae6fd"; break;
+      case "jsx":
+        badge = "JSX"; bg = "rgba(6, 182, 212, 0.18)"; color = "#06b6d4"; border = "rgba(6, 182, 212, 0.35)"; nameColor = "#a5f3fc"; break;
+      case "tsx":
+        badge = "TSX"; bg = "rgba(6, 182, 212, 0.18)"; color = "#06b6d4"; border = "rgba(6, 182, 212, 0.35)"; nameColor = "#a5f3fc"; break;
+      case "py":
+      case "pyw":
+        badge = "PY"; bg = "rgba(59, 130, 246, 0.22)"; color = "#60a5fa"; border = "rgba(96, 165, 250, 0.35)"; nameColor = "#bfdbfe"; break;
+      case "html":
+      case "htm":
+        badge = "HTML"; bg = "rgba(249, 115, 22, 0.2)"; color = "#f97316"; border = "rgba(249, 115, 22, 0.35)"; nameColor = "#fed7aa"; break;
+      case "css":
+      case "scss":
+      case "less":
+        badge = "CSS"; bg = "rgba(192, 132, 252, 0.2)"; color = "#c084fc"; border = "rgba(192, 132, 252, 0.35)"; nameColor = "#e9d5ff"; break;
+      case "json":
+        badge = "JSON"; bg = "rgba(163, 230, 53, 0.2)"; color = "#a3e635"; border = "rgba(163, 230, 53, 0.35)"; nameColor = "#d9f99d"; break;
+      case "md":
+      case "markdown":
+        badge = "MD"; bg = "rgba(148, 163, 184, 0.2)"; color = "#94a3b8"; border = "rgba(148, 163, 184, 0.35)"; nameColor = "#cbd5e1"; break;
+      case "sh":
+      case "bash":
+      case "bat":
+      case "cmd":
+      case "ps1":
+        badge = "SH"; bg = "rgba(74, 222, 128, 0.2)"; color = "#4ade80"; border = "rgba(74, 222, 128, 0.35)"; nameColor = "#bbf7d0"; break;
+      case "png":
+      case "jpg":
+      case "jpeg":
+      case "gif":
+      case "svg":
+      case "ico":
+      case "webp":
+        badge = "IMG"; bg = "rgba(244, 63, 94, 0.2)"; color = "#f43f5e"; border = "rgba(244, 63, 94, 0.35)"; nameColor = "#fecdd3"; break;
+      case "rs":
+        badge = "RS"; bg = "rgba(234, 88, 12, 0.2)"; color = "#ea580c"; border = "rgba(234, 88, 12, 0.35)"; nameColor = "#fed7aa"; break;
+      case "c":
+      case "h":
+      case "cpp":
+      case "hpp":
+        badge = "C"; bg = "rgba(96, 165, 250, 0.2)"; color = "#60a5fa"; border = "rgba(96, 165, 250, 0.35)"; nameColor = "#bfdbfe"; break;
+      case "sql":
+        badge = "SQL"; bg = "rgba(232, 121, 249, 0.2)"; color = "#e879f9"; border = "rgba(232, 121, 249, 0.35)"; nameColor = "#f5d0fe"; break;
+      case "yaml":
+      case "yml":
+      case "toml":
+        badge = "CFG"; bg = "rgba(148, 163, 184, 0.18)"; color = "#94a3b8"; border = "rgba(148, 163, 184, 0.35)"; nameColor = "#cbd5e1"; break;
+      default:
+        if (lower.indexOf(".env") === 0 || lower.indexOf(".git") === 0 || lower === "dockerfile") {
+          badge = "CFG"; bg = "rgba(148, 163, 184, 0.18)"; color = "#94a3b8"; border = "rgba(148, 163, 184, 0.35)"; nameColor = "#cbd5e1";
+        }
+        break;
+    }
+
+    var badgeHtml = '<span class="fileitem-badge" style="display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:16px;padding:0 3px;font-size:9.5px;font-weight:700;font-family:Consolas,monospace;border-radius:3px;background:' + bg + ';color:' + color + ';border:1px solid ' + border + ';margin-right:6px;flex-shrink:0;line-height:1;">' + badge + '</span>';
+    return badgeHtml + '<span class="fileitem-name" style="color:' + nameColor + ';">' + safeName + '</span>';
+  }
   const renderTree = (entries, base) => {
     tree.innerHTML = "";
     const parent = base && base !== "." ? base.split("/").slice(0, -1).join("/") || "." : null;
     if (parent) {
-      const d = el("button", "fileitem parent", "↩ ..");
+      const d = el("button", "fileitem parent");
+      d.innerHTML = '<span class="fileitem-icon" style="display:inline-flex;align-items:center;justify-content:center;width:20px;font-size:13px;margin-right:6px;flex-shrink:0;">📁</span><span class="fileitem-name" style="color:#94a3b8;font-weight:600;">..</span>';
       d.onclick = () => t.loadDir(parent);
       tree.appendChild(d);
     }
     for (const item of entries || []) {
-      const b = el("button", "fileitem" + (item.dir ? " folder" : ""), (item.dir ? "▸ " : "  ") + item.name);
+      const b = el("button", "fileitem" + (item.dir ? " folder" : ""));
       b.title = item.path;
+      b.innerHTML = getFileItemHtml(item.name, !!item.dir);
       b.onclick = () => item.dir ? t.loadDir(item.path) : t.loadFile(item.path);
       tree.appendChild(b);
     }

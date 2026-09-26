@@ -241,7 +241,8 @@ export const STYLES = String.raw`
   .filefindbar button { min-height: 28px; padding: 4px 8px; }
   .filefind-count { min-width: 92px; color: var(--dim); font-size: 11px; }
   .filetree { width: 38%; min-width: 150px; overflow: auto; border-right: 1px solid var(--line); padding: 6px; }
-  .fileitem { display: block; width: 100%; text-align: left; border: 0; background: transparent; color: var(--fg); padding: 5px 7px; border-radius: 3px; cursor: pointer; font: inherit; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fileitem { display: flex; align-items: center; width: 100%; text-align: left; border: 0; background: transparent; color: var(--fg); padding: 4px 7px; border-radius: 3px; cursor: pointer; font: inherit; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .fileitem-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; text-align: left; }
   .fileitem:hover { background: rgba(255,255,255,.06); }
   .fileitem.folder { color: var(--accent); }
   .fileitem.parent { color: var(--dim); border-bottom: 1px solid var(--line); margin-bottom: 4px; }

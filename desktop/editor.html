@@ -26,7 +26,11 @@
   #results { max-height: 32%; overflow: auto; border-bottom: 1px solid #3c3c3c; }
   .result { display: block; width: 100%; text-align: left; color: #d4d4d4; background: transparent; border: 0; padding: 5px 7px; cursor: pointer; font: 12px Consolas, monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .result:hover { background: #37373d; }
-  #tree .d { color: #4ec9b0; cursor: pointer; padding: 6px 8px; border-radius: 4px; }
+  #tree .d { color: #4ec9b0; cursor: pointer; padding: 4px 6px; border-radius: 4px; display: flex; align-items: center; }
+    #tree .f { color: #d4d4d4; cursor: pointer; padding: 4px 6px; white-space: nowrap; border-radius: 4px; display: flex; align-items: center; }
+    .fileitem-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 16px; padding: 0 3px; font-size: 9.5px; font-weight: 700; font-family: Consolas, monospace; border-radius: 3px; margin-right: 6px; flex-shrink: 0; line-height: 1; }
+    .fileitem-icon { display: inline-flex; align-items: center; justify-content: center; width: 20px; font-size: 13px; margin-right: 6px; flex-shrink: 0; }
+    .fileitem-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; text-align: left; }
   #tree .f { color: #d4d4d4; cursor: pointer; padding: 6px 8px; white-space: nowrap; border-radius: 4px; }
   #tree .f:hover, #tree .d:hover { background: #2a2d2e; }
   #tree .open { background: #37373d; box-shadow: inset 2px 0 0 #007acc; }
@@ -133,6 +137,86 @@ function closeTab(filePath) {
   if (result.closed) showTab(result.active);
 }
 
+function getFileItemHtml(name, isDir, depth = 0) {
+  const safeName = String(name || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const indent = depth > 0 ? `<span style="display:inline-block;width:${depth * 14}px;flex-shrink:0;"></span>` : "";
+  if (isDir) {
+    return `${indent}<span class="fileitem-icon" style="color:#eab308;">📁</span><span class="fileitem-name" style="color:#fde047;font-weight:500;">${safeName}</span>`;
+  }
+  const lower = String(name || "").toLowerCase();
+  const ext = lower.includes(".") ? lower.split(".").pop() || "" : "";
+  let badge = "DOC";
+  let bg = "rgba(255, 255, 255, 0.08)";
+  let color = "#94a3b8";
+  let border = "rgba(255, 255, 255, 0.15)";
+  let nameColor = "#d4d4d4";
+
+  switch (ext) {
+    case "js":
+    case "mjs":
+    case "cjs":
+      badge = "JS"; bg = "rgba(250, 204, 21, 0.18)"; color = "#facc15"; border = "rgba(250, 204, 21, 0.35)"; nameColor = "#fef08a"; break;
+    case "ts":
+    case "mts":
+    case "cts":
+      badge = "TS"; bg = "rgba(56, 189, 248, 0.18)"; color = "#38bdf8"; border = "rgba(56, 189, 248, 0.35)"; nameColor = "#bae6fd"; break;
+    case "jsx":
+      badge = "JSX"; bg = "rgba(6, 182, 212, 0.18)"; color = "#06b6d4"; border = "rgba(6, 182, 212, 0.35)"; nameColor = "#a5f3fc"; break;
+    case "tsx":
+      badge = "TSX"; bg = "rgba(6, 182, 212, 0.18)"; color = "#06b6d4"; border = "rgba(6, 182, 212, 0.35)"; nameColor = "#a5f3fc"; break;
+    case "py":
+    case "pyw":
+      badge = "PY"; bg = "rgba(59, 130, 246, 0.22)"; color = "#60a5fa"; border = "rgba(96, 165, 250, 0.35)"; nameColor = "#bfdbfe"; break;
+    case "html":
+    case "htm":
+      badge = "HTML"; bg = "rgba(249, 115, 22, 0.2)"; color = "#f97316"; border = "rgba(249, 115, 22, 0.35)"; nameColor = "#fed7aa"; break;
+    case "css":
+    case "scss":
+    case "less":
+      badge = "CSS"; bg = "rgba(192, 132, 252, 0.2)"; color = "#c084fc"; border = "rgba(192, 132, 252, 0.35)"; nameColor = "#e9d5ff"; break;
+    case "json":
+      badge = "JSON"; bg = "rgba(163, 230, 53, 0.2)"; color = "#a3e635"; border = "rgba(163, 230, 53, 0.35)"; nameColor = "#d9f99d"; break;
+    case "md":
+    case "markdown":
+      badge = "MD"; bg = "rgba(148, 163, 184, 0.2)"; color = "#94a3b8"; border = "rgba(148, 163, 184, 0.35)"; nameColor = "#cbd5e1"; break;
+    case "sh":
+    case "bash":
+    case "bat":
+    case "cmd":
+    case "ps1":
+      badge = "SH"; bg = "rgba(74, 222, 128, 0.2)"; color = "#4ade80"; border = "rgba(74, 222, 128, 0.35)"; nameColor = "#bbf7d0"; break;
+    case "png":
+    case "jpg":
+    case "jpeg":
+    case "gif":
+    case "svg":
+    case "ico":
+    case "webp":
+      badge = "IMG"; bg = "rgba(244, 63, 94, 0.2)"; color = "#f43f5e"; border = "rgba(244, 63, 94, 0.35)"; nameColor = "#fecdd3"; break;
+    case "rs":
+      badge = "RS"; bg = "rgba(234, 88, 12, 0.2)"; color = "#ea580c"; border = "rgba(234, 88, 12, 0.35)"; nameColor = "#fed7aa"; break;
+    case "c":
+    case "h":
+    case "cpp":
+    case "hpp":
+      badge = "C"; bg = "rgba(96, 165, 250, 0.2)"; color = "#60a5fa"; border = "rgba(96, 165, 250, 0.35)"; nameColor = "#bfdbfe"; break;
+    case "sql":
+      badge = "SQL"; bg = "rgba(232, 121, 249, 0.2)"; color = "#e879f9"; border = "rgba(232, 121, 249, 0.35)"; nameColor = "#f5d0fe"; break;
+    case "yaml":
+    case "yml":
+    case "toml":
+      badge = "CFG"; bg = "rgba(148, 163, 184, 0.18)"; color = "#94a3b8"; border = "rgba(148, 163, 184, 0.35)"; nameColor = "#cbd5e1"; break;
+    default:
+      if (lower.startsWith(".env") || lower.startsWith(".git") || lower === "dockerfile") {
+        badge = "CFG"; bg = "rgba(148, 163, 184, 0.18)"; color = "#94a3b8"; border = "rgba(148, 163, 184, 0.35)"; nameColor = "#cbd5e1";
+      }
+      break;
+  }
+
+  const badgeHtml = `<span class="fileitem-badge" style="background:${bg};color:${color};border:1px solid ${border};">${badge}</span>`;
+  return `${indent}${badgeHtml}<span class="fileitem-name" style="color:${nameColor};">${safeName}</span>`;
+}
+
 async function refreshTree() {
   tree.innerHTML = "";
   async function walk(rel, depth) {
@@ -143,7 +227,7 @@ async function refreshTree() {
       const p = join(rel, it.name);
       const div = document.createElement("div");
       div.className = it.dir ? "d" : "f";
-      div.textContent = "  ".repeat(depth) + (it.dir ? "▸ " : "") + it.name;
+      div.innerHTML = getFileItemHtml(it.name, it.dir, depth);
       if (p === cur) div.classList.add("open");
       div.onclick = () => { it.dir ? toggle(p) : openFile(p); };
       tree.appendChild(div);
