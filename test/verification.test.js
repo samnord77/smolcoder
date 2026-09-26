@@ -264,6 +264,35 @@ test('project check discovery never interpolates package script bodies',t=>{
   fs.writeFileSync(path.join(workspace,'package.json'),'{broken');assert.equal(projectVerification(workspace),'npm run build --if-present');
 });
 
+test('project check discovery recognizes common non-Node test runners with fixed commands',t=>{
+  const {workspace}=setup(t,async()=>answer());
+  fs.writeFileSync(path.join(workspace,'pyproject.toml'),'[project]\nname = "demo"\n');
+  fs.mkdirSync(path.join(workspace,'tests'));
+  fs.writeFileSync(path.join(workspace,'tests','test_app.py'),'def test_app(): pass\n');
+  fs.writeFileSync(path.join(workspace,'go.mod'),'module example.com/demo\n');
+  fs.writeFileSync(path.join(workspace,'Cargo.toml'),'[package]\nname="demo"\n');
+  fs.writeFileSync(path.join(workspace,'Demo.csproj'),'<Project />');
+  fs.writeFileSync(path.join(workspace,'pom.xml'),'<project />');
+  const expected = [
+    'python -m pytest -q',
+    'go test ./...',
+    'cargo test --workspace',
+    'dotnet test --nologo',
+    process.platform === 'win32' ? 'mvn test' : 'mvn test',
+  ].join(' && ');
+  assert.equal(projectVerification(workspace),expected);
+});
+
+test('Java builds prefer checked-in wrappers and Python without tests is not guessed',t=>{
+  const {workspace}=setup(t,async()=>answer());
+  fs.writeFileSync(path.join(workspace,'pyproject.toml'),'[project]\nname = "library"\n');
+  fs.writeFileSync(path.join(workspace,'build.gradle'),'plugins {}\n');
+  fs.writeFileSync(path.join(workspace,process.platform === 'win32' ? 'gradlew.bat' : 'gradlew'),'');
+  assert.equal(projectVerification(workspace),process.platform === 'win32' ? '.\\gradlew.bat test' : './gradlew test');
+  fs.unlinkSync(path.join(workspace,process.platform === 'win32' ? 'gradlew.bat' : 'gradlew'));
+  assert.equal(projectVerification(workspace),process.platform === 'win32' ? 'gradle test' : 'gradle test');
+});
+
 test('automatic repairs discover added checks and cannot bypass a required script by deleting it',async t=>{
   let calls=0;
   const pkg=scripts=>({content:'',toolCalls:[{id:'pkg'+calls,name:'write_file',args:{path:'package.json',content:JSON.stringify({scripts})}}]});

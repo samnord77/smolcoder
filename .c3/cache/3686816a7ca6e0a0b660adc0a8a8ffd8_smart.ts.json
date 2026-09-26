@@ -1,0 +1,9 @@
+{
+  "original_tokens": 3383,
+  "compressed_tokens": 347,
+  "saved_tokens": 3036,
+  "savings_pct": 89.7,
+  "compressed": "# mcp.ts (.ts) \u2014 350 lines\nimport { spawn, ChildProcess } from \"child_process\";\nimport * as fs from \"fs\";\nimport * as os from \"os\";\nimport * as path from \"path\";\n\nexport interface McpServerConfig\nconst NAME_RE = /^[A-Za-z0-9_-]{1,40}$/;\nconst DEFAULT_TIMEOUT_MS = 60_000;\nconst MAX_TOOLS = 50;\nexport function resolveCommand(cmd: string): string\nexport function globalMcpConfigPath(): string\nexport function loadMcpConfig(workspace: string): McpServerConfig[]\nfunction readServerList(file: string): McpServerConfig[]\ninterface Pending\nexport interface McpToolInfo\n\nexport class McpClient\n  private proc: ChildProcess | null = null;\n  private nextId = 1;\n  private pending = new Map<number, Pending>();\n  private buf = \"\";\n  private ready: Promise<void> | null = null;\n  private dead: Error | null = null;\n  constructor( private cfg: McpServerConfig, private workspace?: string\n  private ensure(): Promise<void>\n  private spawn(): Promise<void>\n  private failAll(err: Error): void\n  private ingest(chunk: string): void\n  private notify(method: string): void\n  request(method: string, params?: any, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<any>\n  async listTools(): Promise<McpToolInfo[]>\n  async callTool(tool: string, args: Record<string, any>, signal?: AbortSignal): Promise<string>\n  close(): void\nexport interface McpBridge\nexport function createMcpBridge(workspace: string): McpBridge",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\mcp.ts"
+}

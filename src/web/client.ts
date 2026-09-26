@@ -1,3 +1,6 @@
+import { browserHighlighterSource } from "../highlight";
+import { editorTabStoreBrowserSource } from "../editor-tabs";
+import { editorToolsBrowserSource } from "../editor-tools";
 // The browser-side script for the web page. Plain JS in a raw template string
 // (no build step, no dependencies). Rules: no template literals in here, and
 // a literal backtick is written as \` — String.raw hands it through as-is.
@@ -9,6 +12,9 @@
 
 export const CLIENT_JS = String.raw`
 "use strict";
+${browserHighlighterSource}
+const makeEditorTabStore = ${editorTabStoreBrowserSource};
+const editorTools = ${editorToolsBrowserSource};
 const k = new URLSearchParams(location.search).get("k") || "";
 const $ = (id) => document.getElementById(id);
 const ls = {
@@ -18,6 +24,7 @@ const ls = {
 const logwrap = $("logwrap"), logsEl = $("logs"), busyEl = $("busy"), actionBtn = $("actionbtn");
 const jumpBottom = $("jumpbottom");
 const input = $("input"), menu = $("menu"), sideEl = $("side"), panelEl = $("panel"), tabsEl = $("paneltabs");
+const filesBtn = $("btnfiles");
 
 let hub = { workspaces: [], home: "", version: "" };
 const sessInfo = new Map();   // sid -> sidebar entry from the last hub snapshot
@@ -73,24 +80,7 @@ function inlineMd(s) {
   s = s.replace(new RegExp(SENT + "(\\d+)" + SENT, "g"), (m, i) => "<code>" + codes[i] + "</code>");
   return s;
 }
-// ---- coloration du code --------------------------------------------------
-// Zero dependance : petit surlignage sur du texte DEJA echappe (esc()).
-// On n'insere que nos propres <span> fixes : aucun HTML du modele ne passe.
-const HL_KEYWORDS = "const let var function return if else elif elseif for while do break continue switch case default class new delete typeof instanceof in of try catch finally throw async await import export from as with this super extends static get set def lambda pass raise assert yield global nonlocal print input len range open self True False None And Or Not null true false nil echo cd ls cat grep export local fi then done select until esac time coproc sudo int string bool float double char void long short signed unsigned struct enum union typedef namespace template typename public private protected virtual override final package interface implements".
-  split(" ");
-const HL_RE = new RegExp(
-  "(&quot;.*?&quot;|'[^'\\n]*?')|(\\/\\*[\\s\\S]*?\\*\\/|\\/\\/[^\\n]*|#[^\\n]*)|(\\b\\d[\\d_]*(?:\\.\\d+)?\\b)|(\\b(?:" +
-  HL_KEYWORDS.join("|") + ")\\b)",
-  "g"
-);
-function highlightCode(code) {
-  return code.replace(HL_RE, (m, str, com, num, kw) => {
-    if (str) return '<span class="tok-s">' + str + "</span>";
-    if (com) return '<span class="tok-c">' + com + "</span>";
-    if (num) return '<span class="tok-n">' + num + "</span>";
-    return '<span class="tok-k">' + kw + "</span>";
-  });
-}
+function highlightCode(code, language) { return highlightEscapedHtml(code, language); }
 function renderMarkdown(src) {
   const lines = esc(src).split("\n");
   let out = "", i = 0, listType = null;
@@ -104,7 +94,7 @@ function renderMarkdown(src) {
       const body = []; i++;
       while (i < lines.length && !/^\s*\`\`\`/.test(lines[i])) { body.push(lines[i]); i++; }
       i++;
-      out += '<pre><code class="lang-' + (fence[1] || "txt") + '">' + highlightCode(body.join("\n")) + "</code></pre>";
+      out += '<pre><code class="lang-' + (fence[1] || "txt") + '">' + highlightCode(body.join("\n"), fence[1] || "") + "</code></pre>";
       continue;
     }
     if (/^\s*\|/.test(line) && i + 1 < lines.length && /^\s*\|?[\s:|-]+\|[\s:|-]*$/.test(lines[i + 1])) {
@@ -181,7 +171,7 @@ function getView(sid) {
   if (!v) {
     v = {
       sid, logEl: el("div", "log"), state: { commands: [] }, curText: null, curThought: null, thoughtBuf: "", thoughtStart: 0,
-      busyLabel: null, busyStart: 0, unread: false, draft: "", scrollTop: null, followBottom: true, asks: new Map(), curTool: null, planEl: null,
+      busyLabel: null, busyStart: 0, unread: false, draft: "", scrollTop: null, followBottom: true, asks: new Map(), curTool: null, planEl: null, curSub: null,
       terms: new Map(), tabs: [], activeTab: null, panelOpen: false, panelEl: el("div", "panelview"),
     };
     v.logEl.hidden = true; logsEl.appendChild(v.logEl);
@@ -231,6 +221,7 @@ jumpBottom.onclick = scrollToBottom;
 const logResize = new ResizeObserver(stick);
 logResize.observe(logwrap); logResize.observe(logsEl); logResize.observe($("busywrap"));
 function add(v, e) { v.logEl.appendChild(e); if (v === active) stick(); return e; }
+function subAdd(v, e) { if (v.curSub) { v.curSub.appendChild(e); if (v === active) stick(); return e; } return add(v, e); }
 function fmtSize(n) { return n < 1024 ? n + " B" : n < 1048576 ? (n / 1024).toFixed(n < 10240 ? 1 : 0) + " KB" : (n / 1048576).toFixed(1) + " MB"; }
 // Heure + bouton copier sur chaque bulle (utilisateur ET assistant).
 // Le modele ne fournit aucun % de chargement : on affiche un passe-ecoule
@@ -327,6 +318,21 @@ function startThought(v) {
   return add(v, thought);
 }
 
+function showToast(text, type, duration) {
+  const container = $("toasts");
+  if (!container) return;
+  const t = el("div", "toast " + (type || "info"));
+  const icon = el("span", "t-icon", type === "success" ? "✔" : type === "error" ? "✖" : "ℹ");
+  const msg = el("span", "t-msg", text);
+  t.appendChild(icon);
+  t.appendChild(msg);
+  container.appendChild(t);
+  setTimeout(() => {
+    t.classList.add("out");
+    setTimeout(() => { if (t.parentNode) t.remove(); }, 300);
+  }, duration || 3500);
+}
+
 function setBusy(v, label) {
   v.busyLabel = label || null;
   if (label) v.busyStart = Date.now();
@@ -339,9 +345,11 @@ function renderBusy() {
   actionBtn.textContent = label ? "■ stop" : "send";
   actionBtn.className = label ? "stop" : "";
   actionBtn.title = label ? "interrupt the agent (esc)" : "send (enter)";
+  const connBar = $("connbar");
+  if (connBar) connBar.classList.toggle("active", !!label);
   const spinEl = document.querySelector("#busy .spin");
-  // Le modele ne donne aucun % : secondes passe-ecoule toujours visibles +
-  // barre indeterminee animee (CSS), jamais de faux pourcentage.
+  // Le modèle ne donne aucun % : secondes passées toujours visibles +
+  // barre animée CSS, jamais de faux pourcentage.
   const tick = () => {
     const s = active && active.busyLabel ? Math.floor((Date.now() - active.busyStart) / 1000) : 0;
     $("busysecs").textContent = s + "s";
@@ -362,8 +370,10 @@ function renderBusy() {
   stick();
 }
 
+
 function renderState(v) {
   for (const t of v.tabs) if (t.kind === "browser") fillUrls(t, v.state.urls || []);
+  for (const t of v.tabs) if (t.kind === "files" && t.refreshMode) t.refreshMode(v.state.mode !== "ro");
   if (v !== active) return;
   const s = v.state;
   const st = $("status");
@@ -401,9 +411,28 @@ function renderState(v) {
     vchip.title = "Contrôles automatiques en cours";
     st.appendChild(vchip);
   }
+  if (s.subagent) {
+    const chip = el("span", "task-chip sub-chip live");
+    chip.appendChild(el("span", "dot"));
+    chip.appendChild(document.createTextNode("sous-agent " + String(s.subagent).slice(0, 40)));
+    chip.title = "Sous-agent en cours : " + s.subagent;
+    chip.onclick = () => openCC("agents");
+    st.appendChild(chip);
+  }
+  if (s.skills && s.skills.length) {
+    const chip = el("span", "plan-chip skills-chip", "skills " + s.skills.length);
+    chip.title = "Skills chargées automatiquement pour ce tour : " + s.skills.join(", ");
+    chip.onclick = () => openCC("skills");
+    st.appendChild(chip);
+  }
   if (s.outcome === "error" || s.outcome === "cancelled") {
     const paused = el("span", s.outcome === "error" ? "line-warn" : "task-chip", s.outcome === "error" ? "Paused" : "Stopped");
     paused.title = s.lastError || "Turn cancelled; progress is kept"; st.appendChild(paused);
+    if (s.outcome === "error" && s.lastError) showToast(s.lastError, "error");
+  }
+  if ($("topmodelname") && s.model) {
+    const raw = s.model.split("/").pop().split(":").shift();
+    $("topmodelname").textContent = raw.length > 15 ? raw.slice(0, 14) + "…" : raw;
   }
   $("ws").textContent = shortPath(s.workspace || "");
   renderCrumb();
@@ -411,14 +440,21 @@ function renderState(v) {
 
 function renderPlan(v, p) {
   const box = el("div", "plan");
+  const total = p.steps.length;
   const done = p.steps.filter((x) => x.done).length;
-  const hdr = el("div", "hdr", "Plan ");
-  hdr.appendChild(el("small", "", done + "/" + p.steps.length));
+  const pct = total ? Math.round((done / total) * 100) : 0;
+  const hdr = el("div", "hdr", done + " tâches sur " + total + " terminées");
   box.appendChild(hdr);
+  const bar = el("div", "planbar");
+  const fill = el("span", "");
+  fill.style.width = pct + "%";
+  bar.appendChild(fill);
+  box.appendChild(bar);
   p.steps.forEach((s, i) => {
-    const cls = s.done ? "done" : i === p.current ? "cur" : "todo";
-    const mark = s.done ? "✔ " : i === p.current ? "▶ " : "○ ";
-    box.appendChild(el("div", cls, mark + s.text));
+    const state = s.done ? "done" : i === p.current ? "cur" : "todo";
+    const extra = s.done ? "pdone" : i === p.current ? "pcur" : "ptodo";
+    const mark = s.done ? "☑ " : i === p.current ? "◉ " : "☐ ";
+    box.appendChild(el("div", state + " " + extra, mark + s.text));
   });
   if (v.planEl && v.planEl.isConnected) v.planEl.replaceWith(box); else add(v, box);
   v.planEl = box;
@@ -435,7 +471,7 @@ function handle(m) {
       v.state = Object.assign(v.state, m.s);
       if (m.s && "busy" in m.s) setBusy(v, m.s.busy);
       renderState(v); break;
-    case "user": endThought(v); v.curText = null; v.curTool = null; v.planEl = null; add(v, userBubble(m)); break;
+    case "user": endThought(v); v.curText = null; v.curTool = null; v.planEl = null; v.curSub = null; add(v, userBubble(m)); break;
     case "response_reset":
       if (v.curText) v.curText.remove();
       if (v.curThought) v.curThought.remove();
@@ -445,7 +481,7 @@ function handle(m) {
       if (!v.curText) {
         // La meta (heure+copier) est SOEUR du texte : le re-rendu streaming
         // (innerHTML) ne l'efface pas.
-        const w = add(v, el("div", "msgwrap"));
+        const w = subAdd(v, el("div", "msgwrap"));
         v.curText = el("div", "md");
         v.curText._raw = "";
         w.appendChild(v.curText);
@@ -453,7 +489,7 @@ function handle(m) {
       }
       v.curText._raw += m.s; scheduleMd(v, v.curText); break;
     case "thinking":
-      if (!v.curThought) v.curThought = startThought(v);
+      if (!v.curThought) { v.curThought = startThought(v); if (v.curSub) v.curSub.appendChild(v.curThought); }
       v.curThought._body.appendData(m.s);
       // Only the one-line preview is truncated; the full text stays available.
       v.thoughtBuf = (v.thoughtBuf + m.s).slice(-2000);
@@ -476,7 +512,7 @@ function handle(m) {
         }
         d.appendChild(pre);
       }
-      add(v, d); break;
+      subAdd(v, d); break;
     }
     case "result": {
       endThought(v); v.curText = null;
@@ -487,17 +523,30 @@ function handle(m) {
     }
       case "plan": endThought(v); v.curText = null; renderPlan(v, m); break;
       case "sub": endThought(v); v.curText = null;
-        add(v, el("div", "line-status", (m.phase === "done" ? "✓ sous-agent : " : "⇄ sous-agent : ") + (m.label || "")));
+        if (m.phase === "start") {
+          const d = el("details", "subagent"); d.open = true;
+          const summary = el("summary"); summary.appendChild(document.createTextNode("⇄ sous-agent : " + (m.label || ""))); summary.appendChild(el("span", "sub-dot", " ●"));
+          d.appendChild(summary); d._summary = summary; d._dot = summary.querySelector(".sub-dot");
+          v.curSub = d; add(v, d);
+        } else {
+          if (v.curSub) { if (v.curSub._dot) v.curSub._dot.textContent = " ✓"; v.curSub._summary.appendChild(document.createTextNode(" · done")); v.curSub = null; }
+          else add(v, el("div", "line-status", "✓ sous-agent : " + (m.label || "")));
+        }
         break;
-    case "line": endThought(v); v.curText = null; add(v, el("div", "line-" + m.kind, m.s));
+    case "line": endThought(v); v.curText = null; subAdd(v, el("div", "line-" + m.kind, m.s));
       if (m.kind === "error") ping("smolcoder — attention needed", m.s);
       break;
     case "turnend":
-      endThought(v); v.curText = null; add(v, el("div", "turnend", "■ " + m.label));
+      endThought(v); v.curText = null; v.curSub = null; add(v, el("div", "turnend", "■ " + m.label));
       ping("smolcoder — turn finished", m.label);
       if (v !== active) { v.unread = true; renderSidebar(); }
       break;
     case "busy": setBusy(v, m.label); break;
+    case "skills":
+      v.state.skills = m.names || [];
+      if (ccOpenNow()) renderCC();
+      if (v === active) renderState(v);
+      break;
     case "confirm": {
       endThought(v); v.curText = null;
       const box = el("div", "ask");
@@ -768,6 +817,7 @@ function renderPanel() {
   const open = !!(v && v.panelOpen && v.tabs.length);
   panelEl.hidden = !open;
   const cur = open ? curTab(v) : null;
+  if (filesBtn) filesBtn.classList.toggle("on", !!(cur && cur.kind === "files"));
   $("btnbrowser").classList.toggle("on", !!(cur && cur.kind === "browser"));
   $("btnterm").classList.toggle("on", !!(cur && cur.kind === "term"));
   for (const o of views.values()) o.panelEl.hidden = o !== v || !open;
@@ -777,20 +827,21 @@ function renderPanel() {
   tabsEl.innerHTML = "";
   for (const t of v.tabs) {
     const b = el("div", "ptab" + (t === cur ? " on" : ""));
-    b.appendChild(el("span", "ico", t.kind === "browser" ? "◎" : ">_"));
-    b.appendChild(el("span", "lbl", t.kind === "browser" ? (t.url ? t.url.replace(/^https?:\/\//, "") : "new tab") : "terminal " + t.tid.replace(/^t/, "")));
+    b.appendChild(el("span", "ico", t.kind === "browser" ? "◎" : t.kind === "files" ? "▤" : ">_"));
+    b.appendChild(el("span", "lbl", t.kind === "browser" ? (t.url ? t.url.replace(/^https?:\/\//, "") : "new tab") : t.kind === "files" ? "project files" : "terminal " + t.tid.replace(/^t/, "")));
     const x = el("span", "x", "×"); x.title = "close tab";
     x.onclick = (e) => { e.stopPropagation(); closeTab(v, t); };
     b.appendChild(x);
     b.onclick = () => { v.activeTab = t.id; savePanel(v); renderPanel(); if (t.kind === "term" && t.inp) t.inp.focus(); };
-    b.title = t.kind === "browser" ? (t.url || "new browser tab") : "terminal in " + shortPath(t.cwd);
+    b.title = t.kind === "browser" ? (t.url || "new browser tab") : t.kind === "files" ? "workspace explorer" : "terminal in " + shortPath(t.cwd);
     tabsEl.appendChild(b);
   }
   tabsEl.appendChild(el("span", "grow"));
   const nb = el("button", "iconbtn", "+◎"); nb.title = "new browser tab"; nb.onclick = () => openBrowserTab(v);
+  const nf = el("button", "iconbtn", "+▤"); nf.title = "project files"; nf.onclick = () => openFilesTab(v);
   const nt = el("button", "iconbtn", "+>_"); nt.title = "new terminal"; nt.onclick = () => openTerminalTab(v);
   const cl = el("button", "iconbtn", "»"); cl.title = "hide panel"; cl.onclick = () => { v.panelOpen = false; savePanel(v); renderPanel(); };
-  tabsEl.appendChild(nb); tabsEl.appendChild(nt); tabsEl.appendChild(cl);
+  tabsEl.appendChild(nb); tabsEl.appendChild(nf); tabsEl.appendChild(nt); tabsEl.appendChild(cl);
   for (const t of v.tabs) if (t.el) t.el.hidden = t !== cur;
 }
 function closeTab(v, t) {
@@ -811,8 +862,10 @@ function togglePanelKind(kind) {
     v.activeTab = existing.id; v.panelOpen = true; savePanel(v); renderPanel();
     if (kind === "term" && existing.inp) existing.inp.focus();
   } else if (kind === "browser") openBrowserTab(v);
+  else if (kind === "files") openFilesTab(v);
   else openTerminalTab(v);
 }
+$("btnfiles").onclick = () => togglePanelKind("files");
 $("btnbrowser").onclick = () => togglePanelKind("browser");
 $("btnterm").onclick = () => togglePanelKind("term");
 
@@ -845,6 +898,8 @@ function buildBrowserTab(v, t) {
   const go = el("button", "iconbtn", "→"); go.title = "go";
   const ext = el("a", "iconbtn", "↗"); ext.title = "open in a new browser tab"; ext.target = "_blank"; ext.rel = "noopener";
   bar.appendChild(reload); bar.appendChild(urlIn); bar.appendChild(dl); bar.appendChild(go); bar.appendChild(ext);
+  const previewStatus = el("span", "preview-status", "Preview inactive");
+  bar.appendChild(previewStatus);
   const empty = el("div", "empty");
   empty.appendChild(el("div", "", "Enter a URL to preview it here."));
   const urlsEl = el("div", "urls"); empty.appendChild(urlsEl);
@@ -856,7 +911,20 @@ function buildBrowserTab(v, t) {
   frame.title = "App preview";
   body.appendChild(bar); body.appendChild(empty); body.appendChild(frame);
   v.panelEl.appendChild(body);
-  t.el = body; t.frame = frame; t.urlIn = urlIn; t.dl = dl; t.urlsEl = urlsEl;
+  t.el = body; t.frame = frame; t.urlIn = urlIn; t.dl = dl; t.urlsEl = urlsEl; t.previewStatus = previewStatus;
+  let loadTimer = null;
+  const setPreviewStatus = (kind, text) => {
+    previewStatus.className = "preview-status " + kind;
+    previewStatus.textContent = text;
+  };
+  frame.addEventListener("load", () => {
+    if (loadTimer) { clearTimeout(loadTimer); loadTimer = null; }
+    setPreviewStatus("ok", "Preview chargée");
+  });
+  frame.addEventListener("error", () => {
+    if (loadTimer) { clearTimeout(loadTimer); loadTimer = null; }
+    setPreviewStatus("error", "Preview inaccessible");
+  });
   t.nav = (u) => {
     u = (u || "").trim();
     if (!u) return;
@@ -868,14 +936,329 @@ function buildBrowserTab(v, t) {
     }
     urlIn.setCustomValidity(""); u = parsed.href;
     t.url = u; urlIn.value = u; ext.href = u;
+    setPreviewStatus("loading", "Chargement de la preview…");
     frame.src = u; frame.hidden = false; empty.hidden = true;
+    if (loadTimer) clearTimeout(loadTimer);
+    loadTimer = setTimeout(() => {
+      loadTimer = null;
+      setPreviewStatus("blocked", "Preview bloquée ou hors ligne");
+    }, 9000);
     savePanel(v); renderPanel();
   };
   go.onclick = () => t.nav(urlIn.value);
   urlIn.onkeydown = (e) => { if (e.key === "Enter") t.nav(urlIn.value); };
-  reload.onclick = () => { if (t.url) frame.src = t.url; };
+  reload.onclick = () => {
+    if (!t.url) return;
+    setPreviewStatus("loading", "Rechargement…");
+    frame.src = t.url;
+    if (loadTimer) clearTimeout(loadTimer);
+    loadTimer = setTimeout(() => {
+      loadTimer = null;
+      setPreviewStatus("blocked", "Preview bloquée ou hors ligne");
+    }, 9000);
+  };
   fillUrls(t, v.state.urls || []);
   if (t.url) t.nav(t.url);
+}
+
+// workspace files/editor tab
+function openFilesTab(v, focusSearch) {
+  const existing = v.tabs.find((x) => x.kind === "files");
+  if (existing) {
+    v.activeTab = existing.id; v.panelOpen = true; savePanel(v); renderPanel();
+    if (focusSearch && existing.findInput) existing.findInput.focus(); else if (existing.pathInput) existing.pathInput.focus();
+    return;
+  }
+  const t = { kind: "files", id: uid(), rel: "." };
+  buildFilesTab(v, t);
+  v.tabs.push(t); v.activeTab = t.id; v.panelOpen = true;
+  savePanel(v); renderPanel();
+  t.loadDir(".");
+  if (focusSearch && t.findInput) t.findInput.focus();
+}
+function buildFilesTab(v, t) {
+  const body = el("div", "tabbody files"); body.hidden = true;
+  const bar = el("div", "bar");
+  const up = el("button", "iconbtn", "↑"); up.title = "parent folder";
+  const pathInput = document.createElement("input");
+  pathInput.placeholder = "workspace path"; pathInput.spellcheck = false;
+  const refresh = el("button", "iconbtn", "↻"); refresh.title = "refresh files";
+  const save = el("button", "iconbtn", "save"); save.title = "save file";
+  const diagnosticsButton = el("button", "iconbtn", "✓ problèmes"); diagnosticsButton.title = "Analyser le fichier avec le serveur de langage";
+  const findInput = document.createElement("input");
+  findInput.placeholder = "Rechercher dans le projet…"; findInput.setAttribute("aria-label", "Rechercher dans les fichiers du projet");
+  const findButton = el("button", "iconbtn", "⌕"); findButton.title = "search workspace";
+  bar.appendChild(up); bar.appendChild(pathInput); bar.appendChild(findInput); bar.appendChild(findButton); bar.appendChild(refresh); bar.appendChild(diagnosticsButton); bar.appendChild(save);
+  const results = el("div", "filesearch-results"); results.hidden = true;
+  const split = el("div", "filesplit");
+  const tree = el("div", "filetree");
+  const editorWrap = el("div", "fileeditor-wrap");
+  const tabsBar = el("div", "filetabs");
+  const code = document.createElement("pre"); code.className = "filecode"; code.setAttribute("aria-hidden", "true");
+  const editor = document.createElement("textarea");
+  editor.className = "fileeditor"; editor.spellcheck = false; editor.placeholder = "Select a file…";
+  const meta = el("div", "filemeta", "workspace files");
+  const diagnosticsPanel = el("div", "filediagnostics"); diagnosticsPanel.setAttribute("role", "region"); diagnosticsPanel.setAttribute("aria-label", "Problèmes du fichier");
+  const fileFindBar = el("div", "filefindbar"); fileFindBar.hidden = true; fileFindBar.setAttribute("role", "search");
+  const currentFindInput = document.createElement("input"); currentFindInput.placeholder = "Rechercher dans le fichier"; currentFindInput.setAttribute("aria-label", "Rechercher dans le fichier");
+  const currentFindPrev = el("button", "iconbtn", "↑"); currentFindPrev.type = "button"; currentFindPrev.title = "Occurrence précédente (Maj+F3)";
+  const currentFindNext = el("button", "iconbtn", "↓"); currentFindNext.type = "button"; currentFindNext.title = "Occurrence suivante (F3)";
+  const currentFindCount = el("span", "filefind-count"); currentFindCount.setAttribute("aria-live", "polite");
+  const currentReplaceInput = document.createElement("input"); currentReplaceInput.placeholder = "Remplacer par"; currentReplaceInput.setAttribute("aria-label", "Remplacer par"); currentReplaceInput.hidden = true;
+  const currentReplaceOne = el("button", "iconbtn", "Remplacer"); currentReplaceOne.type = "button"; currentReplaceOne.hidden = true;
+  const currentReplaceAll = el("button", "iconbtn", "Tout remplacer"); currentReplaceAll.type = "button"; currentReplaceAll.hidden = true;
+  const currentFindClose = el("button", "iconbtn", "×"); currentFindClose.type = "button"; currentFindClose.title = "Fermer la recherche";
+  fileFindBar.append(currentFindInput, currentFindPrev, currentFindNext, currentFindCount, currentReplaceInput, currentReplaceOne, currentReplaceAll, currentFindClose);
+  editorWrap.appendChild(tabsBar); editorWrap.appendChild(code); editorWrap.appendChild(editor);
+  split.appendChild(tree); split.appendChild(editorWrap);
+  body.appendChild(bar); body.appendChild(results); body.appendChild(fileFindBar); body.appendChild(split); body.appendChild(diagnosticsPanel); body.appendChild(meta);
+  v.panelEl.appendChild(body);
+  t.el = body; t.pathInput = pathInput; t.findInput = findInput; t.tree = tree; t.editor = editor; t.code = code; t.tabsBar = tabsBar; t.tabStore = makeEditorTabStore(); t.saveBtn = save; t.meta = meta;
+  t.filePath = ""; t.mtimeMs = 0; t.rel = ".";
+  let diagnosticRequest = 0;
+  const paint = () => {
+    code.innerHTML = highlightEscapedHtml(esc(editor.value), t.filePath.split(".").pop()) || " ";
+    code.scrollTop = editor.scrollTop; code.scrollLeft = editor.scrollLeft;
+  };
+  const showError = (message) => {
+    meta.textContent = String(message || "");
+    meta.classList.toggle("error", !!message);
+  };
+  const renderTree = (entries, base) => {
+    tree.innerHTML = "";
+    const parent = base && base !== "." ? base.split("/").slice(0, -1).join("/") || "." : null;
+    if (parent) {
+      const d = el("button", "fileitem parent", "↩ ..");
+      d.onclick = () => t.loadDir(parent);
+      tree.appendChild(d);
+    }
+    for (const item of entries || []) {
+      const b = el("button", "fileitem" + (item.dir ? " folder" : ""), (item.dir ? "▸ " : "  ") + item.name);
+      b.title = item.path;
+      b.onclick = () => item.dir ? t.loadDir(item.path) : t.loadFile(item.path);
+      tree.appendChild(b);
+    }
+  };
+  const renderTabs = () => {
+    tabsBar.replaceChildren();
+    for (const tab of t.tabStore.list()) {
+      const item = el("div", "filetab" + (tab.path === t.filePath ? " active" : ""));
+      const label = el("button", "filetab-label", (tab.dirty ? "● " : "") + tab.path.split("/").pop());
+      label.type = "button"; label.title = tab.path; label.setAttribute("aria-selected", String(tab.path === t.filePath));
+      label.onclick = () => t.loadFile(tab.path);
+      const close = el("button", "filetab-close", "×"); close.type = "button"; close.title = "Close " + tab.path;
+      close.setAttribute("aria-label", "Close " + tab.path);
+      close.onclick = (event) => { event.stopPropagation(); closeFile(tab.path); };
+      item.append(label, close); tabsBar.appendChild(item);
+    }
+  };
+  const displayTab = (tab) => {
+    t.filePath = tab ? tab.path : ""; t.mtimeMs = tab ? tab.mtimeMs : 0;
+    editor.value = tab ? tab.content : ""; editor.dataset.original = tab ? tab.savedContent : ""; paint();
+    editor.dataset.dirty = tab && tab.dirty ? "1" : "0";
+    save.disabled = v.state.mode === "ro" || !tab;
+    updatePosition();
+    meta.classList.remove("error"); pathInput.value = tab ? tab.path : (t.rel || ".");
+    renderTabs();
+    void analyzeFile(t.filePath);
+  };
+  const updatePosition = () => {
+    const position = editorTools.cursorPosition(editor.value, editor.selectionStart);
+    const tab = t.filePath && t.tabStore.active();
+    meta.textContent = (t.filePath ? t.filePath + " · " : "") + "Ln " + position.line + ", Col " + position.column + (tab && tab.dirty ? " · modifié" : "");
+  };
+  const analyzeFile = async (filePath = t.filePath) => {
+    if (!filePath || !/\.(?:[cm]?js|jsx|tsx?)$/i.test(filePath)) { diagnosticRequest++; diagnosticsPanel.replaceChildren(); return; }
+    const active = t.tabStore.active();
+    if (active && active.path === filePath && active.dirty) {
+      diagnosticRequest++;
+      diagnosticsPanel.replaceChildren(el("div", "filediagnostic-note", "Enregistrez les modifications pour analyser la version actuelle."));
+      return;
+    }
+    const request = ++diagnosticRequest;
+    diagnosticsPanel.replaceChildren(el("div", "filediagnostic-note", "Analyse du fichier…"));
+    try {
+      const url = "/workspace/diagnostics?k=" + k + "&sid=" + encodeURIComponent(v.sid) + "&path=" + encodeURIComponent(filePath);
+      const response = await fetch(url);
+      const result = await response.json();
+      if (!response.ok || result.error) throw new Error(result.error || "L’analyse a échoué.");
+      if (request !== diagnosticRequest || filePath !== t.filePath) return;
+      diagnosticsPanel.replaceChildren();
+      if (result.message) diagnosticsPanel.appendChild(el("div", "filediagnostic-note", result.message));
+      for (const diagnostic of result.diagnostics || []) {
+        const row = el("button", "filediagnostic " + diagnostic.severity);
+        row.type = "button";
+        row.textContent = diagnostic.severity.toUpperCase() + "  " + diagnostic.path + ":" + diagnostic.line + "  " + diagnostic.message;
+        row.onclick = async () => {
+          if (diagnostic.path !== t.filePath && !await t.loadFile(diagnostic.path)) return;
+          const offset = editorTools.offsetForPosition(editor.value, diagnostic.line);
+          editor.focus(); editor.setSelectionRange(offset, offset); updatePosition();
+        };
+        diagnosticsPanel.appendChild(row);
+      }
+    } catch (error) {
+      if (request !== diagnosticRequest || filePath !== t.filePath) return;
+      diagnosticsPanel.replaceChildren(el("div", "filediagnostic-note error", String(error.message || error)));
+    }
+  };
+  const updateCurrentFindCount = () => {
+    const query = currentFindInput.value;
+    const result = editorTools.findMatches(editor.value, query, { limit: 1000 });
+    currentFindCount.textContent = !query ? "" : result.matches.length + (result.truncated ? "+" : "") + " occurrence(s)";
+  };
+  const openCurrentFind = (replaceMode = false) => {
+    if (!t.filePath) return;
+    fileFindBar.hidden = false;
+    currentReplaceInput.hidden = !replaceMode; currentReplaceOne.hidden = !replaceMode; currentReplaceAll.hidden = !replaceMode;
+    if (editor.selectionStart !== editor.selectionEnd) currentFindInput.value = editor.value.slice(editor.selectionStart, editor.selectionEnd);
+    updateCurrentFindCount(); currentFindInput.focus(); currentFindInput.select();
+  };
+  const closeCurrentFind = () => { fileFindBar.hidden = true; editor.focus(); };
+  const moveCurrentFind = (backwards = false) => {
+    const match = editorTools.findNextMatch(editor.value, currentFindInput.value, backwards ? editor.selectionStart : editor.selectionEnd, backwards);
+    if (!match) { currentFindCount.textContent = currentFindInput.value ? "Aucun résultat" : ""; return; }
+    editor.focus(); editor.setSelectionRange(match.start, match.end); updatePosition();
+  };
+  const replaceCurrentOne = () => {
+    const query = currentFindInput.value;
+    if (!query) { currentFindCount.textContent = "Saisissez un texte à rechercher."; return; }
+    const match = editorTools.findNextMatch(editor.value, query, editor.selectionStart);
+    if (!match) { updateCurrentFindCount(); return; }
+    editor.setRangeText(currentReplaceInput.value, match.start, match.end, "end");
+    editor.dispatchEvent(new Event("input", { bubbles: true })); moveCurrentFind(false);
+  };
+  const replaceCurrentAll = () => {
+    const result = editorTools.replaceAllLiteral(editor.value, currentFindInput.value, currentReplaceInput.value);
+    if (result.error) { currentFindCount.textContent = result.error; return; }
+    if (!result.count) { currentFindCount.textContent = "Aucun résultat"; return; }
+    editor.value = result.text; editor.setSelectionRange(0, 0); editor.dispatchEvent(new Event("input", { bubbles: true }));
+    currentFindCount.textContent = result.count + " remplacement(s)";
+  };
+  t.openCurrentFind = openCurrentFind; t.closeCurrentFind = closeCurrentFind;
+  t.moveCurrentFind = moveCurrentFind; t.currentFindOpen = () => !fileFindBar.hidden;
+  currentFindInput.oninput = updateCurrentFindCount;
+  currentFindInput.onkeydown = (event) => { if (event.key === "Enter") { event.preventDefault(); moveCurrentFind(event.shiftKey); } };
+  currentFindPrev.onclick = () => moveCurrentFind(true); currentFindNext.onclick = () => moveCurrentFind(false);
+  currentReplaceOne.onclick = replaceCurrentOne; currentReplaceAll.onclick = replaceCurrentAll; currentFindClose.onclick = closeCurrentFind;
+  diagnosticsButton.onclick = () => analyzeFile();
+  t.goToLine = () => {
+    if (!t.filePath) { showError("Ouvrez d’abord un fichier."); return; }
+    const current = editorTools.cursorPosition(editor.value, editor.selectionStart).line;
+    const line = Number(prompt("Aller à la ligne :", String(current)));
+    if (!Number.isFinite(line) || line < 1) return;
+    const offset = editorTools.offsetForPosition(editor.value, line);
+    editor.focus(); editor.setSelectionRange(offset, offset); updatePosition();
+  };
+  const closeFile = (filePath) => {
+    if (t.filePath) t.tabStore.update(t.filePath, editor.value);
+    const tab = t.tabStore.list().find((item) => item.path === filePath);
+    if (!tab || (tab.dirty && !confirm("Fermer " + filePath + " sans enregistrer ses modifications ?"))) return;
+    const result = t.tabStore.close(filePath, tab.dirty);
+    if (result.closed) displayTab(result.active);
+  };
+  t.loadDir = (rel) => {
+    rel = rel || ".";
+    fetch("/workspace/tree?k=" + k + "&sid=" + encodeURIComponent(v.sid) + "&path=" + encodeURIComponent(rel))
+      .then((r) => r.json()).then((d) => {
+        if (d.error) throw new Error(d.error);
+        t.rel = d.path || ".";
+        pathInput.value = t.rel;
+        renderTree(d.entries, t.rel);
+        showError((d.entries || []).length + " éléments · " + shortPath(d.workspace || ""));
+      }).catch((e) => showError(e.message));
+  };
+  t.loadFile = async (rel) => {
+    if (t.filePath) t.tabStore.update(t.filePath, editor.value);
+    const existing = t.tabStore.activate(rel);
+    if (existing) { displayTab(existing); return true; }
+    try {
+      const response = await fetch("/workspace/file?k=" + k + "&sid=" + encodeURIComponent(v.sid) + "&path=" + encodeURIComponent(rel));
+      const d = await response.json();
+      if (!response.ok || d.error) throw new Error(d.error || "Impossible d’ouvrir ce fichier.");
+      const tab = t.tabStore.open(d.path, d.content || "", d.mtimeMs || 0);
+      displayTab(tab);
+      return true;
+    } catch (e) { showError(e.message); return false; }
+  };
+  t.refreshMode = (canWrite) => {
+    save.disabled = !canWrite || !t.filePath;
+    editor.readOnly = !canWrite;
+  };
+  pathInput.onkeydown = (e) => { if (e.key === "Enter") t.loadDir(pathInput.value.trim() || "."); };
+  const search = async () => {
+    const query = findInput.value.trim();
+    if (!query) { results.hidden = true; results.replaceChildren(); return; }
+    results.hidden = false; results.textContent = "Recherche…";
+    try {
+      const url = "/workspace/search?k=" + k + "&sid=" + encodeURIComponent(v.sid) + "&q=" + encodeURIComponent(query);
+      const response = await fetch(url);
+      const data = await response.json();
+      if (!response.ok || data.error) throw new Error(data.error || "Search failed");
+      results.replaceChildren();
+      for (const match of data.matches || []) {
+        const button = el("button", "filesearch-result");
+        button.type = "button";
+        button.textContent = match.path + ":" + match.line + ":" + match.column + "  " + match.text;
+        button.title = match.path + ", ligne " + match.line;
+        button.onclick = async () => {
+          if (!await t.loadFile(match.path)) return;
+          const start = editor.value.split("\n").slice(0, Math.max(0, match.line - 1)).join("\n").length + (match.line > 1 ? 1 : 0) + match.column - 1;
+          editor.focus(); editor.setSelectionRange(start, start + query.length);
+        };
+        results.appendChild(button);
+      }
+      if (!data.matches?.length) results.textContent = "Aucun résultat.";
+      if (data.truncated) results.appendChild(el("div", "filesearch-note", "Résultats limités ; précisez votre recherche."));
+    } catch (error) { results.textContent = String(error.message || error); }
+  };
+  findButton.onclick = search;
+  findInput.onkeydown = (e) => { if (e.key === "Enter") search(); };
+  up.onclick = () => {
+    const p = t.rel && t.rel !== "." ? t.rel.split("/").slice(0, -1).join("/") || "." : ".";
+    t.loadDir(p);
+  };
+  refresh.onclick = () => t.loadDir(t.rel || ".");
+  editor.oninput = () => {
+    const tab = t.filePath && t.tabStore.update(t.filePath, editor.value);
+    editor.dataset.dirty = tab && tab.dirty ? "1" : "0"; paint(); renderTabs();
+    updatePosition(); updateCurrentFindCount();
+  };
+  editor.onscroll = () => { code.scrollTop = editor.scrollTop; code.scrollLeft = editor.scrollLeft; };
+  editor.onkeyup = editor.onclick = editor.onselect = updatePosition;
+  editor.onkeydown = (e) => {
+    if (editor.readOnly) return;
+    if (e.key === "Tab") {
+      e.preventDefault();
+      const edit = editorTools.changeIndent(editor.value, editor.selectionStart, editor.selectionEnd, e.shiftKey ? -1 : 1);
+      editor.value = edit.text; editor.setSelectionRange(edit.start, edit.end); editor.dispatchEvent(new Event("input", { bubbles: true }));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      const edit = editorTools.insertNewlineWithIndent(editor.value, editor.selectionStart, editor.selectionEnd);
+      editor.value = edit.text; editor.setSelectionRange(edit.start, edit.end); editor.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+  };
+  save.onclick = () => {
+    if (!t.filePath) return;
+    const filePath = t.filePath, content = editor.value, expectedMtimeMs = t.mtimeMs;
+    t.tabStore.update(filePath, content);
+    save.disabled = true;
+    fetch("/workspace/file?k=" + k + "&sid=" + encodeURIComponent(v.sid), {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ path: filePath, content, expectedMtimeMs }),
+    }).then((r) => r.json()).then((d) => {
+      if (d.error) throw new Error(d.error);
+      const tab = t.tabStore.saved(filePath, d.mtimeMs, content);
+      if (t.filePath === filePath && tab) {
+        t.mtimeMs = tab.mtimeMs; editor.dataset.original = content; editor.dataset.dirty = tab.dirty ? "1" : "0";
+        meta.textContent = d.path + (tab.dirty ? " · enregistré ; nouvelles modifications non enregistrées" : " · enregistré");
+        meta.classList.remove("error");
+      }
+      renderTabs();
+      t.loadDir(t.rel || ".");
+      if (!tab || !tab.dirty) void analyzeFile(filePath);
+    }).catch((e) => showError(e.message)).finally(() => t.refreshMode(v.state.mode !== "ro"));
+  };
+  t.refreshMode(v.state.mode !== "ro");
 }
 
 // terminal tabs
@@ -1095,17 +1478,378 @@ mainEl.addEventListener("drop", (e) => { mainEl.classList.remove("dragging"); if
 $("keys").onclick = () => {
   const dialog = document.createElement("dialog"); dialog.className = "dlg";
   const list = el("div", "shortcut-list");
-  ["/  Commands", "Enter  Send", "Shift+Enter  New line", "Ctrl+V  Paste an image or a file", "Shift+Tab  Permission mode", "Esc  Cancel", "Ctrl+B  Sidebar", "Ctrl+\`  Terminal"].forEach((s) => list.appendChild(el("div", "", s)));
+  ["/  Commands", "Enter  Send", "Shift+Enter  New line", "Ctrl+V  Paste an image or a file", "Shift+Tab  Permission mode", "Esc  Cancel", "Ctrl+B  Sidebar", "⚙  Centre de contrôle", "Ctrl+\`  Terminal"].forEach((s) => list.appendChild(el("div", "", s)));
   const close = el("button", "ghost", "Close"); close.onclick = () => dialog.close(); list.appendChild(close);
   dialog.appendChild(list); document.body.appendChild(dialog); dialog.onclose = () => dialog.remove(); dialog.showModal();
 };
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && document.activeElement !== input) {
-    if (!$("modal").hidden) closeDialog();
+  const fileEditor = active && active.tabs.find((tab) => tab.kind === "files");
+  if (e.ctrlKey && e.shiftKey && !e.altKey && !e.metaKey && e.key.toLowerCase() === "f" && active) { e.preventDefault(); openFilesTab(active, true); }
+  else if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && (e.key.toLowerCase() === "f" || e.key.toLowerCase() === "h") && fileEditor && fileEditor.filePath && fileEditor.openCurrentFind) {
+    e.preventDefault(); fileEditor.openCurrentFind(e.key.toLowerCase() === "h");
+  }
+  else if (e.key === "F3" && fileEditor && fileEditor.currentFindOpen && fileEditor.currentFindOpen()) {
+    e.preventDefault(); fileEditor.moveCurrentFind(e.shiftKey);
+  }
+  else if (e.key === "Escape" && fileEditor && fileEditor.currentFindOpen && fileEditor.currentFindOpen()) {
+    e.preventDefault(); fileEditor.closeCurrentFind();
+  }
+  else if (e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey && e.key.toLowerCase() === "g" && active) {
+    const files = active.tabs.find((tab) => tab.kind === "files");
+    if (files && files.filePath && files.goToLine) { e.preventDefault(); files.goToLine(); }
+  }
+  else if (e.key === "Escape" && document.activeElement !== input) {
+    if (ccOpenNow()) closeCC();
+    else if (!$("modal").hidden) closeDialog();
     else if (active && !(document.activeElement && document.activeElement.closest && document.activeElement.closest(".tabbody.term"))) post("/cancel", { sid: active.sid });
   } else if (e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey && e.key.toLowerCase() === "b") { e.preventDefault(); setSide(!sideEl.classList.contains("collapsed")); }
   else if (e.ctrlKey && e.key === "\`") { e.preventDefault(); togglePanelKind("term"); }
 });
+
+// ---- centre de contrôle ----------------------------------------------------
+// Le statut complet d'une session — modèle, contexte, plan, tâches,
+// sous-agents, skills, outils, serveurs MCP, options — dans une seule fenêtre.
+// Même rapport que le TUI et l'IDE Electron : GET /status le sert.
+const CC_TABS = [
+  { id: "overview", label: "Vue d'ensemble" },
+  { id: "agents", label: "Sous-agents" },
+  { id: "skills", label: "Skills" },
+  { id: "tools", label: "Outils" },
+  { id: "mcp", label: "Serveurs MCP" },
+  { id: "options", label: "Options" },
+];
+let cc = { tab: "overview", data: null, error: "", loading: false, at: 0 };
+function ccOpenNow() { return !$("cc").hidden; }
+function openCC(tab) {
+  if (tab) cc.tab = tab;
+  $("cc").hidden = false;
+  if (!CC_TABS.some((t) => t.id === cc.tab)) cc.tab = "overview";
+  renderCCTabs();
+  renderCC();
+  loadCC();
+}
+function closeCC() { $("cc").hidden = true; }
+function loadCC() {
+  if (!active) { cc.error = "ouvrez une session pour voir son statut"; cc.data = null; cc.loading = false; renderCC(); return; }
+  cc.loading = true; cc.error = "";
+  renderCC();
+  fetch("/status?k=" + k + "&sid=" + encodeURIComponent(active.sid))
+    .then((r) => r.json())
+    .then((d) => {
+      cc.loading = false;
+      cc.data = d && !d.error ? d : null;
+      cc.error = d && d.error ? d.error : "";
+      cc.at = Date.now();
+      renderCC();
+    })
+    .catch((e) => { cc.loading = false; cc.error = (e && e.message) || "statut indisponible"; renderCC(); });
+}
+function renderCCTabs() {
+  const tabs = $("cctabs");
+  tabs.innerHTML = "";
+  for (const t of CC_TABS) {
+    const b = el("button", "cc-tab" + (cc.tab === t.id ? " on" : ""), t.label);
+    b.type = "button";
+    b.setAttribute("role", "tab");
+    b.setAttribute("aria-selected", cc.tab === t.id ? "true" : "false");
+    b.onclick = () => { cc.tab = t.id; renderCCTabs(); renderCC(); };
+    tabs.appendChild(b);
+  }
+}
+// Remplit le composeur (jamais d'envoi silencieux : l'utilisateur garde la main).
+function ccFill(text) {
+  if (!active) {
+    showToast("Veuillez d'abord ouvrir un dossier de projet", "info");
+    return;
+  }
+  input.value = text;
+  autoGrow();
+  renderMenu();
+  if (active) active.draft = text;
+  input.focus();
+}
+function ccSend(text) {
+  if (!active) {
+    showToast("Veuillez d'abord ouvrir un dossier de projet", "info");
+    return;
+  }
+  ccFill(text);
+  submit();
+}
+function ccKV(pairs) {
+  const box = el("div", "cc-kv");
+  for (const [label, value] of pairs) {
+    const s = el("span");
+    s.appendChild(el("b", "", label + " "));
+    s.appendChild(document.createTextNode(String(value)));
+    box.appendChild(s);
+  }
+  return box;
+}
+function ccSection(title, node) {
+  const sec = el("div", "cc-sec");
+  if (title) sec.appendChild(el("h3", "", title));
+  sec.appendChild(node);
+  return sec;
+}
+function ccSkeleton() {
+  const box = el("div", "cc-load");
+  for (const w of ["", "w60", "w40", "w60"]) box.appendChild(el("div", "skel " + w));
+  return box;
+}
+
+
+function ccLights(list) {
+  const box = el("div", "cc-lights");
+  for (const m of list) {
+    const c = el("span", "cc-light " + (m.ok ? "ok" : "bad"));
+    c.appendChild(el("span", "dot"));
+    c.appendChild(el("span", "", m.name));
+    c.appendChild(el("span", "cc-tag", m.ok ? m.tools + " outils" : "hors ligne"));
+    if (!m.ok && m.error) c.title = m.error;
+    box.appendChild(c);
+  }
+  if (!list.length) box.appendChild(el("div", "cc-empty", "Aucun serveur MCP configuré (.smol/mcp.json)."));
+  return box;
+}
+function ccCard(title, text, actionLabel, onClick) {
+  const c = el("div", "cc-card");
+  c.appendChild(el("h4", "", title));
+  c.appendChild(el("p", "", text));
+  if (actionLabel) {
+    const b = el("button", "cc-act", actionLabel);
+    b.type = "button";
+    b.onclick = onClick;
+    c.appendChild(b);
+  }
+  return c;
+}
+function ccGoTab(id) { cc.tab = id; renderCCTabs(); renderCC(); }
+function ccOverview(d) {
+  const wrap = el("div", "cc-anim");
+  const s = d.state || {};
+  const ctx = s.context || null;
+  wrap.appendChild(
+    ccSection(
+      "",
+      ccKV([
+        ["mode", s.modeLabel || s.mode || "—"],
+        ["modèle", (s.model || "—") + (s.host ? " @" + s.host : "")],
+        ["backend", s.backend || "—"],
+        ["raisonnement", s.effort || "auto"],
+        ["contexte", (s.ctxPct || 0) + "%" + (ctx ? " (" + ctx.prompt.toLocaleString() + " / " + ctx.window.toLocaleString() + ")" : "")],
+        ["plan", s.plan ? s.plan.steps.filter((x) => x.done).length + "/" + s.plan.steps.length : "—"],
+        ["tâches", s.tasks || 0],
+        ["état", s.outcome || "idle"],
+        ["espace", shortPath(d.workspace || "")],
+        ["runtime", "smol " + (d.version || "?") + " · node " + (((d.runtime || {}).node) || "?")],
+      ])
+    )
+  );
+  const chips = el("div", "cc-lights");
+  if (d.subagents && d.subagents.running) {
+    const c = el("span", "cc-light ok");
+    c.appendChild(el("span", "dot"));
+    c.appendChild(el("span", "", "sous-agent : " + d.subagents.running));
+    chips.appendChild(c);
+  }
+  for (const n of d.skillsActive || []) {
+    const c = el("span", "cc-light ok");
+    c.appendChild(el("span", "dot"));
+    c.appendChild(el("span", "", n));
+    c.appendChild(el("span", "cc-tag", "skill active"));
+    chips.appendChild(c);
+  }
+  if (s.verification) {
+    const c = el("span", "cc-light " + (s.verification.passed ? "ok" : "bad"));
+    c.appendChild(el("span", "dot"));
+    c.appendChild(el("span", "", s.verification.passed ? "vérification passée" : "réparation auto ×" + s.verification.attempts));
+    chips.appendChild(c);
+  }
+  if (chips.childNodes.length) wrap.appendChild(ccSection("En direct", chips));
+  const grid = el("div", "cc-grid");
+  const runs = d.subagents && d.subagents.stats ? d.subagents.stats.runs : 0;
+  grid.appendChild(ccCard("Sous-agents", runs ? runs + " délégations cumulées dans cet espace." : "Aucune délégation encore : chaque rôle est prêt.", "Voir les rôles", () => ccGoTab("agents")));
+  grid.appendChild(ccCard("Skills", (d.skills || []).length + " skills utilisables (projet + intégrées).", "Parcourir", () => ccGoTab("skills")));
+  grid.appendChild(ccCard("Outils", (d.tools || []).length + " outils disponibles dans ce mode.", "Lister", () => ccGoTab("tools")));
+  grid.appendChild(ccCard("Serveurs MCP", (d.mcp || []).filter((x) => x.ok).length + "/" + (d.mcp || []).length + " joignables.", "Diagnostiquer", () => ccGoTab("mcp")));
+  wrap.appendChild(ccSection("Raccourcis", grid));
+  return wrap;
+}
+
+function ccAgents(d) {
+  const wrap = el("div", "cc-anim");
+  const info = d.subagents || {};
+  const roles = info.roles || [];
+  const stats = info.stats || { runs: 0, toolCalls: 0, lastAt: 0 };
+  wrap.appendChild(
+    ccSection(
+      "",
+      ccKV([
+        ["rôles", roles.length],
+        ["délégations", stats.runs],
+        ["outils délégués", stats.toolCalls],
+        ["en cours", info.running || "—"],
+        ["dernière", stats.lastAt ? new Date(stats.lastAt).toLocaleString() : "—"],
+      ])
+    )
+  );
+  const grid = el("div", "cc-grid");
+  for (const r of roles) {
+    const card = el("div", "cc-card cc-role");
+    const h = el("h4");
+    h.appendChild(document.createTextNode(r.role || r.name));
+    h.appendChild(el("span", "cc-tag", r.name + (r.source === "builtin" ? "" : " · " + r.source)));
+    card.appendChild(h);
+    card.appendChild(el("p", "", r.description || ""));
+    if (r.tools && r.tools.length) card.appendChild(el("div", "hint", "outils autorisés : " + r.tools.join(", ")));
+    const row = el("div", "row");
+    const inp = document.createElement("input");
+    inp.placeholder = "tâche à déléguer…";
+    inp.spellcheck = false;
+    const b = el("button", "cc-act", "Préparer");
+    b.type = "button";
+    const run = el("button", "cc-act primary", "Lancer");
+    run.type = "button";
+    b.onclick = () => {
+      const task = inp.value.trim();
+      if (!task) { inp.setCustomValidity("décrivez la tâche"); inp.reportValidity(); inp.focus(); return; }
+      inp.setCustomValidity("");
+      post("/agents/draft", { sid: active.sid, role: r.name, task }).then((res) => {
+        if (res && res.error) { alert(res.error); return; }
+        ccFill(res.text || "");
+        closeCC();
+      });
+    };
+    run.onclick = () => {
+      const task = inp.value.trim();
+      if (!task) { inp.setCustomValidity("décrivez la tâche"); inp.reportValidity(); inp.focus(); return; }
+      inp.setCustomValidity("");
+      run.disabled = true;
+      post("/agents/draft", { sid: active.sid, role: r.name, task }).then((res) => {
+        if (res && res.error) { alert(res.error); return; }
+        return post("/msg", { sid: active.sid, text: res.text || "" });
+      }).then(() => {
+        closeCC();
+      }).finally(() => { run.disabled = false; });
+    };
+    inp.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); b.click(); } };
+    row.appendChild(inp);
+    row.appendChild(b);
+    row.appendChild(run);
+    card.appendChild(row);
+    grid.appendChild(card);
+  }
+  wrap.appendChild(ccSection("Rôles disponibles", grid));
+  if (!roles.length) wrap.appendChild(el("div", "cc-empty", "Aucun rôle : ajoutez .smol/agents/<nom>.json."));
+  return wrap;
+}
+function ccSkills(d) {
+  const wrap = el("div", "cc-anim");
+  const list = el("div", "cc-list");
+  const active = new Set(d.skillsActive || []);
+  for (const s of d.skills || []) {
+    const it = el("div", "cc-item" + (active.has(s.name) ? " on" : ""));
+    it.appendChild(el("span", "nm", s.name));
+    if (s.builtin) it.appendChild(el("span", "cc-tag", "intégrée"));
+    else if (s.auto) it.appendChild(el("span", "cc-tag", "auto-réparation"));
+    it.appendChild(el("span", "ds", s.description || ""));
+    if (!s.builtin && s.updatedAt) it.appendChild(el("span", "cc-tag", new Date(s.updatedAt).toLocaleDateString()));
+    const b = el("button", "cc-act", "Lire");
+    b.type = "button";
+    b.onclick = () => { ccSend("/skill read " + s.name); closeCC(); };
+    it.appendChild(b);
+    list.appendChild(it);
+  }
+  if (!(d.skills || []).length) list.appendChild(el("div", "cc-empty", "Aucune skill pour l'instant."));
+  wrap.appendChild(ccSection("Skills du projet et intégrées (" + (d.skills || []).length + ")", list));
+  return wrap;
+}
+function ccTools(d) {
+  const wrap = el("div", "cc-anim");
+  const list = el("div", "cc-list");
+  for (const t of d.tools || []) {
+    const it = el("div", "cc-item");
+    it.appendChild(el("span", "nm", t.name));
+    it.appendChild(el("span", "ds", t.description || ""));
+    list.appendChild(it);
+  }
+  if (!(d.tools || []).length) list.appendChild(el("div", "cc-empty", "Aucun outil dans ce mode."));
+  wrap.appendChild(ccSection("Outils actifs (" + (d.tools || []).length + ")", list));
+  return wrap;
+}
+
+function ccMcp(d) {
+  const wrap = el("div", "cc-anim");
+  wrap.appendChild(ccSection("État des serveurs", ccLights(d.mcp || [])));
+  const bad = (d.mcp || []).filter((m) => !m.ok);
+  if (bad.length) {
+    const list = el("div", "cc-list");
+    for (const m of bad) {
+      const it = el("div", "cc-item");
+      it.appendChild(el("span", "nm", m.name));
+      it.appendChild(el("span", "ds", m.error || "injoignable"));
+      const b = el("button", "cc-act", "Diagnostiquer");
+      b.type = "button";
+      b.onclick = () => { ccSend("/mcp debug " + m.name); closeCC(); };
+      it.appendChild(b);
+      list.appendChild(it);
+    }
+    wrap.appendChild(ccSection("Serveurs hors ligne", list));
+  }
+  return wrap;
+}
+function ccOptions(d) {
+  const wrap = el("div", "cc-anim");
+  const s = d.state || {};
+  const grid = el("div", "cc-grid");
+  grid.appendChild(ccCard("Mode de permission", "Lecture seule, édition, puis YOLO (aucune confirmation avant d'agir).", "Changer : " + (s.modeLabel || "—"), () => { ccSend("/mode"); closeCC(); }));
+  grid.appendChild(ccCard("Modèle", "Choisir un modèle local ou en découvrir un sur une autre machine.", "Choisir (/models)", () => { ccSend("/models"); closeCC(); }));
+  grid.appendChild(ccCard("Raisonnement", "Régler l'effort de réflexion envoyé au modèle.", "Régler (/effort)", () => { ccSend("/effort"); closeCC(); }));
+  grid.appendChild(ccCard("Contexte", "Voir le budget de contexte et compacter la conversation si besoin.", "Voir (/context)", () => { ccSend("/context"); closeCC(); }));
+  grid.appendChild(ccCard("Notifications", bellOn() ? "Actives : fin de tour, erreurs, approbations." : "Inactives.", bellOn() ? "Désactiver" : "Activer", () => {
+    ls.set("smol-notify", bellOn() ? "0" : "1");
+    if (active) renderState(active);
+    renderCC();
+  }));
+  grid.appendChild(ccCard("Barre latérale", "Afficher ou masquer la liste des espaces et sessions.", "Basculer", () => setSide(sideEl.classList.contains("collapsed"))));
+  grid.appendChild(ccCard("Serveurs MCP", "Liste, nombre d'outils et interrupteur par serveur.", "Panneau MCP (/mcp)", () => { ccSend("/mcp"); closeCC(); }));
+  grid.appendChild(ccCard("Skills", "Lister, lire ou enregistrer une skill (/skill save).", "Lister (/skills)", () => { ccSend("/skills"); closeCC(); }));
+  wrap.appendChild(ccSection("Options de session", grid));
+  return wrap;
+}
+function renderCC() {
+  const body = $("ccbody");
+  if (!body) return;
+  body.innerHTML = "";
+  const meta = $("ccmeta");
+  if (meta) meta.textContent = cc.at ? "actualisé " + rel(cc.at) : "";
+  if (cc.loading && !cc.data) { body.appendChild(ccSkeleton()); return; }
+  if (cc.error) { body.appendChild(el("div", "cc-empty", cc.error)); return; }
+  if (!cc.data) { body.appendChild(el("div", "cc-empty", "Aucune donnée de statut.")); return; }
+  const d = cc.data;
+  if (cc.tab === "agents") body.appendChild(ccAgents(d));
+  else if (cc.tab === "skills") body.appendChild(ccSkills(d));
+  else if (cc.tab === "tools") body.appendChild(ccTools(d));
+  else if (cc.tab === "mcp") body.appendChild(ccMcp(d));
+  else if (cc.tab === "options") body.appendChild(ccOptions(d));
+  else body.appendChild(ccOverview(d));
+}
+$("btnstatus").onclick = () => (ccOpenNow() ? closeCC() : openCC());
+if ($("btnmodels")) $("btnmodels").onclick = () => {
+  if (active) {
+    post("/msg", { sid: active.sid, text: "/models" });
+  } else {
+    showToast("Veuillez d'abord ouvrir un dossier de projet", "info");
+  }
+};
+$("ccclose").onclick = closeCC;
+$("ccrefresh").onclick = () => loadCC();
+$("cc").onclick = (e) => { if (e.target === $("cc")) closeCC(); };
+// Le hub peut ouvrir le centre directement (lien #status, IDE Electron) et le
+// rafraîchit tout seul pendant qu'il est ouvert.
+setTimeout(() => { if (location.hash === "#status" && active) openCC(); }, 600);
+setInterval(() => { if (ccOpenNow() && !cc.loading) loadCC(); }, 20000);
 
 // ---- connect (SSE avec retry + bandeau) -----------------------------------
 let es = null;

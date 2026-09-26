@@ -5,10 +5,13 @@ const { app, BrowserWindow, Menu, dialog, ipcMain, shell } = require("electron")
 const fs = require("fs");
 const path = require("path");
 const hub = require("./hub-client");
+const gitService = require("./git-service");
+const editorFileService = require("./editor-file-service");
 
 const ROOT = path.join(__dirname, ".."); // smolcoder-source
 const DIST_INDEX = path.join(ROOT, "dist", "index.js");
 const { resolveInWorkspace } = require(path.join(ROOT, "dist", "sandbox.js"));
+const { searchWorkspace } = require(path.join(ROOT, "dist", "workspace-search.js"));
 
 let hubRec = null;
 let hubBase = "";
@@ -116,6 +119,18 @@ function openEditor() {
 }
 
 let panelWin = null;
+let gitWin = null;
+
+function openGit() {
+  if (gitWin) { gitWin.focus(); return; }
+  gitWin = new BrowserWindow({
+    width: 1120, height: 760, minWidth: 760, minHeight: 520,
+    title: "Smolcoder - Git", backgroundColor: "#1e1e1e",
+    webPreferences: { preload: path.join(__dirname, "preload-git.js"), contextIsolation: true, nodeIntegration: false },
+  });
+  gitWin.loadFile(path.join(__dirname, "git.html"));
+  gitWin.on("closed", () => { gitWin = null; });
+}
 
 function openPanel() {
   if (panelWin) {
@@ -206,6 +221,7 @@ function buildMenu() {
       label: "Outils",
       submenu: [
         { label: "Panneau MCP, plugins & LSP", accelerator: "CmdOrCtrl+M", click: openPanel },
+        { label: "Git", accelerator: "CmdOrCtrl+Shift+G", click: openGit },
         { type: "separator" },
         send("Voir le plan", "/plan"),
         send("Contexte", "/context"),
@@ -270,15 +286,31 @@ ipcMain.handle("ed:read", async (_e, rel) => {
   const st = fs.statSync(abs);
   if (st.isDirectory()) throw new Error("C\u2019est un dossier.");
   if (st.size > 1024 * 1024) throw new Error("Fichier > 1 Mo : ouvrez-le dans un autre \u00e9diteur.");
-  return fs.readFileSync(abs, "utf8");
+  return editorFileService.readWorkspaceFile(root, rel);
 });
 
-ipcMain.handle("ed:save", async (_e, rel, content) => {
+ipcMain.handle("ed:search", async (_e, query) => searchWorkspace(assertRoot(), query, { maxMatches: 200 }));
+ipcMain.handle("ed:diagnostics", async (_e, rel) => {
+  const { workspaceDiagnostics } = require(path.join(ROOT, "dist", "workspace-diagnostics.js"));
+  return workspaceDiagnostics(assertRoot(), rel);
+});
+
+ipcMain.handle("ed:save", async (_e, rel, content, expectedMtimeMs) => {
   const root = assertRoot();
+  if (typeof content !== "string") throw new Error("Le contenu à enregistrer doit être du texte.");
+  if (Buffer.byteLength(content, "utf8") > 1024 * 1024) throw new Error("Fichier > 1 Mo : réduisez son contenu avant de l’enregistrer.");
   const abs = resolveInWorkspace(root, rel);
+  if (fs.existsSync(abs)) {
+    const current = fs.statSync(abs);
+    if (!Number.isFinite(expectedMtimeMs) || Math.abs(current.mtimeMs - expectedMtimeMs) > 1) {
+      throw new Error("Le fichier a changé sur le disque. Rechargez-le avant d’enregistrer.");
+    }
+  } else if (Number.isFinite(expectedMtimeMs)) {
+    throw new Error("Le fichier a été supprimé du disque. Rechargez le dossier avant d’enregistrer.");
+  }
   fs.mkdirSync(path.dirname(abs), { recursive: true });
-  fs.writeFileSync(abs, String(content ?? ""), "utf8");
-  return true;
+  fs.writeFileSync(abs, content, "utf8");
+  return { mtimeMs: fs.statSync(abs).mtimeMs };
 });
 
 ipcMain.handle("ed:askModel", async () => {
@@ -296,8 +328,48 @@ ipcMain.handle("ed:askModel", async () => {
 // ---- panneau MCP / plugins / LSP : memes categories que l'IDE opencode ----
 // Serveurs (nom, statut, transport, outils), plugins = skills (nom,
 // description courte, source), LSP (disponibilite de l'outil symbols).
+async function activeWorkspace() {
+  try {
+    const snap = await hub.snapshot(hubRec);
+    for (const workspace of snap.workspaces ?? []) {
+      if ((workspace.sessions ?? []).some((session) => session.id === activeSid)) return workspace.path;
+    }
+    const recent = [...(snap.workspaces ?? [])].sort((a, b) => (b.last || 0) - (a.last || 0));
+    if (recent.length) return recent[0].path;
+  } catch { /* use the current project when the hub is offline */ }
+  return editorRoot || currentProjectDir || ROOT;
+}
+
+ipcMain.handle("ed:gitStatus", async () => gitService.status(assertRoot()));
+ipcMain.handle("git:status", async () => gitService.status(await activeWorkspace()));
+ipcMain.handle("git:diff", async (_event, rel) => ({ diff: await gitService.diff(await activeWorkspace(), rel) }));
+ipcMain.handle("git:commit", async (_event, message, rel) => gitService.commit(await activeWorkspace(), rel, message));
+
+ipcMain.handle("panel:setEnabled", async (_event, name, enabled) => {
+  if (typeof name !== "string" || !/^[A-Za-z0-9_-]{1,40}$/.test(name) || typeof enabled !== "boolean") {
+    throw new Error("Invalid MCP server settings.");
+  }
+  const workspace = await activeWorkspace();
+  const { globalMcpConfigPath, loadMcpConfig } = require(path.join(ROOT, "dist", "mcp.js"));
+  const configured = loadMcpConfig(workspace).find((server) => server.name.toLowerCase() === name.toLowerCase());
+  if (!configured) throw new Error("This MCP server is no longer configured.");
+  const candidates = [path.join(workspace, ".smol", "mcp.json"), globalMcpConfigPath()];
+  for (const file of candidates) {
+    let raw;
+    try { raw = JSON.parse(fs.readFileSync(file, "utf8")); } catch { continue; }
+    const list = Array.isArray(raw) ? raw : Array.isArray(raw?.servers) ? raw.servers : null;
+    const entry = list?.find((server) => server && typeof server.name === "string" && server.name.toLowerCase() === name.toLowerCase());
+    if (!entry) continue;
+    entry.enabled = enabled;
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, JSON.stringify(raw, null, 2) + "\n", "utf8");
+    return { enabled };
+  }
+  throw new Error("MCP configuration file was not found.");
+});
 ipcMain.handle("panel:data", async () => {
   const { createMcpBridge, loadMcpConfig } = require(path.join(ROOT, "dist", "mcp.js"));
+  const { buildToolSpecs } = require(path.join(ROOT, "dist", "tools", "index.js"));
   const { listSkills, readSkill } = require(path.join(ROOT, "dist", "skills.js"));
   const { BUILTIN_SKILLS } = require(path.join(ROOT, "dist", "builtin-skills.js"));
   let workspace = editorRoot;
@@ -326,6 +398,7 @@ ipcMain.handle("panel:data", async () => {
         name: r.name,
         ok: !!r.ok,
         tools: r.tools ?? [],
+        enabled: cfgs.find((server) => server.name.toLowerCase() === String(r.name).toLowerCase())?.enabled !== false,
         error: r.error ?? null,
         transport: transportOf(r.name),
       }));
@@ -333,7 +406,7 @@ ipcMain.handle("panel:data", async () => {
       bridge.closeAll();
     }
   } catch (e) {
-    servers = cfgs.map((c) => ({ name: c.name, ok: false, tools: [], error: String(e.message ?? e), transport: transportOf(c.name) }));
+    servers = cfgs.map((c) => ({ name: c.name, ok: false, tools: [], enabled: c.enabled !== false, error: String(e.message ?? e), transport: transportOf(c.name) }));
   }
   // Plugins = skills : lus + integres, avec leur premiere ligne en description.
   const firstLine = (t) => String(t ?? "").split("\n").map((l) => l.trim()).find(Boolean) ?? "";
@@ -366,10 +439,29 @@ ipcMain.handle("panel:data", async () => {
     }
     if (lspServer) break;
   }
+  const toolModes = [
+    ["ro", "Lecture seule"],
+    ["edit", "Edition"],
+    ["bypass", "Sans demande"],
+  ];
+  const toolMap = new Map();
+  for (const [mode, label] of toolModes) {
+    for (const tool of buildToolSpecs(mode, { allowDelegate: true })) {
+      const current = toolMap.get(tool.name) ?? {
+        name: tool.name,
+        description: tool.description,
+        modes: [],
+      };
+      if (!current.description && tool.description) current.description = tool.description;
+      current.modes.push({ id: mode, label });
+      toolMap.set(tool.name, current);
+    }
+  }
   return {
     workspace,
     servers,
     skills,
+    tools: [...toolMap.values()].sort((a, b) => a.name.localeCompare(b.name)),
     lsp: {
       tool: "symbols (hover, d\u00e9finition, r\u00e9f\u00e9rences, diagnostics)",
       available: true,

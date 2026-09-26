@@ -1,0 +1,12 @@
+{
+  "path": "desktop/mcp-status.js",
+  "content_hash": "776df602f96de9332627a23da445b17f",
+  "updated_at": "2026-09-25T15:43:41",
+  "lines": 19,
+  "size_bytes": 632,
+  "mtime_ns": 1790346782168045700,
+  "language": "javascript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": []
+}

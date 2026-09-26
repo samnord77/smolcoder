@@ -1,0 +1,9 @@
+{
+  "original_tokens": 745,
+  "compressed_tokens": 62,
+  "saved_tokens": 683,
+  "savings_pct": 91.7,
+  "compressed": "# lsp.test.js (.js) \u2014 52 lines\nconst test = require(\"node:test\");\nconst assert = require(\"node:assert/strict\");\nconst fs = require(\"node:fs\");\nconst os = require(\"node:os\");\nconst path = require(\"node:path\");\nfunction scratchTs(content)",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\lsp.test.js"
+}

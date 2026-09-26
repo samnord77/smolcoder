@@ -1,0 +1,9 @@
+{
+  "original_tokens": 2154,
+  "compressed_tokens": 146,
+  "saved_tokens": 2008,
+  "savings_pct": 93.2,
+  "compressed": "# main.js (.js) \u2014 231 lines\nconst fs = require(\"fs\");\nconst path = require(\"path\");\nconst hub = require(\"./hub-client\");\nconst ROOT = path.join(__dirname, \"..\"); // smolcoder-source\nconst DIST_INDEX = path.join(ROOT, \"dist\", \"index.js\");\nlet hubRec = null;\nlet hubBase = \"\";\nlet activeSid = null;\nlet mainWin = null;\nlet editorWin = null;\nlet editorRoot = null;\nfunction hubMsg(text)\nfunction errBox(msg)\nfunction openMainWindow()\nfunction openEditor()\nfunction buildMenu()\nfunction assertRoot()\nconst SKIP_DIRS = new Set([\"node_modules\", \".git\", \"dist\", \".smolcoder\"]);",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\desktop\\main.js"
+}

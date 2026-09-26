@@ -1,0 +1,230 @@
+{
+  "path": "src/tools/index.ts",
+  "content_hash": "d35e4e068931b65bb74182ffcaf78e7b",
+  "updated_at": "2026-09-26T17:59:05",
+  "lines": 538,
+  "size_bytes": 23638,
+  "mtime_ns": 1790426448283178900,
+  "language": "typescript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "import",
+      "name": "import * as fs from \"fs\";",
+      "line_start": 9,
+      "line_end": 9,
+      "signature": "import * as fs from \"fs\";"
+    },
+    {
+      "type": "import",
+      "name": "import { Plan } from \"../plan\";",
+      "line_start": 10,
+      "line_end": 10,
+      "signature": "import { Plan } from \"../plan\";"
+    },
+    {
+      "type": "import",
+      "name": "import { ToolSpec } from \"../providers/types\";",
+      "line_start": 11,
+      "line_end": 11,
+      "signature": "import { ToolSpec } from \"../providers/types\";"
+    },
+    {
+      "type": "import",
+      "name": "import { editFile, listFiles, readFile, writeFile } from \"./fs-tools\";",
+      "line_start": 12,
+      "line_end": 12,
+      "signature": "import { editFile, listFiles, readFile, writeFile } from \"./fs-tools\";"
+    },
+    {
+      "type": "import",
+      "name": "import { fetchUrl } from \"./web\";",
+      "line_start": 13,
+      "line_end": 13,
+      "signature": "import { fetchUrl } from \"./web\";"
+    },
+    {
+      "type": "import",
+      "name": "import { querySymbols } from \"../lsp\";",
+      "line_start": 14,
+      "line_end": 14,
+      "signature": "import { querySymbols } from \"../lsp\";"
+    },
+    {
+      "type": "import",
+      "name": "import { McpBridge } from \"../mcp\";",
+      "line_start": 15,
+      "line_end": 15,
+      "signature": "import { McpBridge } from \"../mcp\";"
+    },
+    {
+      "type": "import",
+      "name": "import { listSkills, readSkill, saveSkill } from \"../skills\";",
+      "line_start": 16,
+      "line_end": 16,
+      "signature": "import { listSkills, readSkill, saveSkill } from \"../skills\";"
+    },
+    {
+      "type": "import",
+      "name": "import { syntaxCheck } from \"./check\";",
+      "line_start": 17,
+      "line_end": 17,
+      "signature": "import { syntaxCheck } from \"./check\";"
+    },
+    {
+      "type": "import",
+      "name": "import { runCommand } from \"./shell\";",
+      "line_start": 18,
+      "line_end": 18,
+      "signature": "import { runCommand } from \"./shell\";"
+    },
+    {
+      "type": "import",
+      "name": "import { TaskManager } from \"./tasks\";",
+      "line_start": 19,
+      "line_end": 19,
+      "signature": "import { TaskManager } from \"./tasks\";"
+    },
+    {
+      "type": "import",
+      "name": "import { CoworkBoard } from \"./cowork\";",
+      "line_start": 20,
+      "line_end": 20,
+      "signature": "import { CoworkBoard } from \"./cowork\";"
+    },
+    {
+      "type": "import",
+      "name": "import { resolveInWorkspace, SandboxError } from \"../sandbox\";",
+      "line_start": 21,
+      "line_end": 21,
+      "signature": "import { resolveInWorkspace, SandboxError } from \"../sandbox\";"
+    },
+    {
+      "type": "import",
+      "name": "import { truncateMiddle } from \"../util\";",
+      "line_start": 22,
+      "line_end": 22,
+      "signature": "import { truncateMiddle } from \"../util\";"
+    },
+    {
+      "type": "import",
+      "name": "import { searchFilesBounded } from \"./search-worker\";",
+      "line_start": 23,
+      "line_end": 23,
+      "signature": "import { searchFilesBounded } from \"./search-worker\";"
+    },
+    {
+      "type": "import",
+      "name": "import { LoadedPlugin } from \"../plugins\";",
+      "line_start": 24,
+      "line_end": 24,
+      "signature": "import { LoadedPlugin } from \"../plugins\";"
+    },
+    {
+      "type": "type",
+      "name": "Mode",
+      "line_start": 26,
+      "line_end": 26,
+      "signature": "type Mode = \"ro\" | \"edit\" | \"bypass\";",
+      "children": []
+    },
+    {
+      "type": "constant",
+      "name": "MODE_LABELS",
+      "line_start": 28,
+      "line_end": 32,
+      "signature": "const MODE_LABELS: Record<Mode, string> = {"
+    },
+    {
+      "type": "constant",
+      "name": "TOOL_RESULT_CAP",
+      "line_start": 34,
+      "line_end": 34,
+      "signature": "const TOOL_RESULT_CAP = 10000; // chars \u2014 final safety net over per-tool caps"
+    },
+    {
+      "type": "function",
+      "name": "workTool",
+      "line_start": 36,
+      "line_end": 58,
+      "signature": "function workTool(canWrite: boolean): ToolSpec {"
+    },
+    {
+      "type": "function",
+      "name": "buildToolSpecs",
+      "line_start": 60,
+      "line_end": 255,
+      "signature": "function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): ToolSpec[] {"
+    },
+    {
+      "type": "interface",
+      "name": "UndoEntry",
+      "line_start": 260,
+      "line_end": 266,
+      "signature": "interface UndoEntry {",
+      "children": []
+    },
+    {
+      "type": "constant",
+      "name": "UNDO_CAP",
+      "line_start": 268,
+      "line_end": 268,
+      "signature": "const UNDO_CAP = 20;"
+    },
+    {
+      "type": "constant",
+      "name": "UNDO_SKIP_BYTES",
+      "line_start": 269,
+      "line_end": 269,
+      "signature": "const UNDO_SKIP_BYTES = 1024 * 1024; // >1 Mo : skip silencieuse, pas d'entr\u00e9e undo"
+    },
+    {
+      "type": "function",
+      "name": "capturePrev",
+      "line_start": 273,
+      "line_end": 288,
+      "signature": "function capturePrev(workspace: string, rel: unknown): { abs: string; prev: string | null } | null {",
+      "doc": "Capture le contenu AVANT \u00e9criture. Retourne null quand il n'y a rien \u00e0"
+    },
+    {
+      "type": "function",
+      "name": "pushUndo",
+      "line_start": 291,
+      "line_end": 310,
+      "signature": "function pushUndo(",
+      "doc": "Enregistre l'\u00e9criture APRES succ\u00e8s (cap 20, redo vid\u00e9e \u00e0 chaque nouvel edit)."
+    },
+    {
+      "type": "interface",
+      "name": "ToolContext",
+      "line_start": 312,
+      "line_end": 339,
+      "signature": "interface ToolContext {",
+      "children": []
+    },
+    {
+      "type": "function",
+      "name": "executeTool",
+      "line_start": 341,
+      "line_end": 516,
+      "signature": "async function executeTool(",
+      "async": true
+    },
+    {
+      "type": "function",
+      "name": "afterWrite",
+      "line_start": 521,
+      "line_end": 530,
+      "signature": "function afterWrite(workspace: string, relPath: string): string {",
+      "doc": "Post-write hook: parse what was just written and coach on the first"
+    },
+    {
+      "type": "function",
+      "name": "commandOf",
+      "line_start": 534,
+      "line_end": 538,
+      "signature": "function commandOf(name: string, args: Record<string, any>): string | null {"
+    }
+  ]
+}

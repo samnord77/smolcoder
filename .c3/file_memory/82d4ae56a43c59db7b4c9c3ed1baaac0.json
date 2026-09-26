@@ -1,0 +1,76 @@
+{
+  "path": "test/sandbox.test.js",
+  "content_hash": "310ae3ef1bac335a38cf0f0023098124",
+  "updated_at": "2026-09-24T17:36:22",
+  "lines": 103,
+  "size_bytes": 4658,
+  "mtime_ns": 1790260570028462200,
+  "language": "javascript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "constant",
+      "name": "test",
+      "line_start": 3,
+      "line_end": 3,
+      "signature": "const test = require(\"node:test\");"
+    },
+    {
+      "type": "constant",
+      "name": "assert",
+      "line_start": 4,
+      "line_end": 4,
+      "signature": "const assert = require(\"node:assert/strict\");"
+    },
+    {
+      "type": "constant",
+      "name": "fs",
+      "line_start": 5,
+      "line_end": 5,
+      "signature": "const fs = require(\"fs\");"
+    },
+    {
+      "type": "constant",
+      "name": "os",
+      "line_start": 6,
+      "line_end": 6,
+      "signature": "const os = require(\"os\");"
+    },
+    {
+      "type": "constant",
+      "name": "path",
+      "line_start": 7,
+      "line_end": 7,
+      "signature": "const path = require(\"path\");"
+    },
+    {
+      "type": "constant",
+      "name": "ws",
+      "line_start": 10,
+      "line_end": 10,
+      "signature": "const ws = fs.mkdtempSync(path.join(os.tmpdir(), \"tc-sandbox-\"));"
+    },
+    {
+      "type": "constant",
+      "name": "isWin",
+      "line_start": 12,
+      "line_end": 12,
+      "signature": "const isWin = process.platform === \"win32\";"
+    },
+    {
+      "type": "function",
+      "name": "inside",
+      "line_start": 14,
+      "line_end": 14,
+      "signature": "const inside = (cmd) => assert.equal(commandEscapesWorkspace(cmd, ws), null, `should run freely: ${cmd}`);"
+    },
+    {
+      "type": "function",
+      "name": "outside",
+      "line_start": 15,
+      "line_end": 19,
+      "signature": "const outside = (cmd, why) => {"
+    }
+  ]
+}

@@ -1,0 +1,160 @@
+{
+  "path": "desktop/mcp.html",
+  "content_hash": "10114b00a99932e2b1f3c76ed98f9af1",
+  "updated_at": "2026-09-26T17:55:04",
+  "lines": 185,
+  "size_bytes": 9341,
+  "mtime_ns": 1790416865846559200,
+  "language": "html",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "section",
+      "name": "#bRefresh",
+      "tag": "button",
+      "line_start": 54,
+      "line_end": 54,
+      "signature": "<button id=\"bRefresh\">\u21bb Actualiser</button>"
+    },
+    {
+      "type": "section",
+      "name": "#ws",
+      "tag": "span",
+      "line_start": 55,
+      "line_end": 55,
+      "signature": "<span id=\"ws\"></span>"
+    },
+    {
+      "type": "section",
+      "name": "#loading",
+      "tag": "div",
+      "line_start": 57,
+      "line_end": 57,
+      "signature": "<div id=\"loading\">Interrogation des serveurs\u2026 (jusqu'\u00e0 ~40 secondes au premier appel, les serveurs npx d\u00e9marrent lentement)</div>"
+    },
+    {
+      "type": "section",
+      "name": "#content",
+      "tag": "div",
+      "line_start": 58,
+      "line_end": 115,
+      "signature": "<div id=\"content\" hidden>"
+    },
+    {
+      "type": "section",
+      "name": "#tabPillars",
+      "tag": "a",
+      "line_start": 59,
+      "line_end": 59,
+      "signature": "<a href=\"#sPillars\" id=\"tabPillars\" style=\"color:#38bdf8; font-weight:600;\">\u26a1 Capacit\u00e9s</a><a href=\"#sTools\" id=\"tabTools\" style=\"color:#34d399; font-weight:600;\">\ud83d\udee0\ufe0f Outils</a><a href=\"#sMcp\" id=\"tabMcp\">MCP</a><a href=\"#sSkills\" id=\"tabSkills\">Plugins</a><a href=\"#sLsp\" id=\"tabLsp\">LSP</a></nav>"
+    },
+    {
+      "type": "section",
+      "name": "#sPillars",
+      "tag": "section",
+      "line_start": 61,
+      "line_end": 105,
+      "signature": "<section id=\"sPillars\">"
+    },
+    {
+      "type": "heading",
+      "name": "h2: \u26a1 Les 5 Piliers d'Excellence Ing\u00e9nierie (Standard Mondial)</",
+      "line_start": 62,
+      "line_end": 62,
+      "signature": "<h2>\u26a1 Les 5 Piliers d'Excellence Ing\u00e9nierie (Standard Mondial)</h2>"
+    },
+    {
+      "type": "section",
+      "name": "#sTools",
+      "tag": "section",
+      "line_start": 107,
+      "line_end": 110,
+      "signature": "<section id=\"sTools\">"
+    },
+    {
+      "type": "heading",
+      "name": "h2: \ud83d\udee0\ufe0f Outils disponibles</h2>",
+      "line_start": 108,
+      "line_end": 108,
+      "signature": "<h2 id=\"hTools\">\ud83d\udee0\ufe0f Outils disponibles</h2>"
+    },
+    {
+      "type": "section",
+      "name": "#tTools",
+      "tag": "table",
+      "line_start": 109,
+      "line_end": 109,
+      "signature": "<table id=\"tTools\"></table>"
+    },
+    {
+      "type": "section",
+      "name": "#sMcp",
+      "tag": "section",
+      "line_start": 112,
+      "line_end": 112,
+      "signature": "<section id=\"sMcp\"><h2 id=\"hMcp\">Serveurs MCP</h2><table id=\"tMcp\"></table></section>"
+    },
+    {
+      "type": "heading",
+      "name": "h2: Serveurs MCP",
+      "line_start": 112,
+      "line_end": 112,
+      "signature": "<h2 id=\"hMcp\">Serveurs MCP</h2><table id=\"tMcp\"></table></section>"
+    },
+    {
+      "type": "section",
+      "name": "#tMcp",
+      "tag": "table",
+      "line_start": 112,
+      "line_end": 112,
+      "signature": "<table id=\"tMcp\"></table></section>"
+    },
+    {
+      "type": "section",
+      "name": "#sSkills",
+      "tag": "section",
+      "line_start": 113,
+      "line_end": 113,
+      "signature": "<section id=\"sSkills\"><h2 id=\"hSkills\">Plugins (skills)</h2><table id=\"tSkills\"></table></section>"
+    },
+    {
+      "type": "heading",
+      "name": "h2: Plugins (skills)",
+      "line_start": 113,
+      "line_end": 113,
+      "signature": "<h2 id=\"hSkills\">Plugins (skills)</h2><table id=\"tSkills\"></table></section>"
+    },
+    {
+      "type": "section",
+      "name": "#tSkills",
+      "tag": "table",
+      "line_start": 113,
+      "line_end": 113,
+      "signature": "<table id=\"tSkills\"></table></section>"
+    },
+    {
+      "type": "section",
+      "name": "#sLsp",
+      "tag": "section",
+      "line_start": 114,
+      "line_end": 114,
+      "signature": "<section id=\"sLsp\"><h2>LSP (symboles du code)</h2><table id=\"tLsp\"></table></section>"
+    },
+    {
+      "type": "heading",
+      "name": "h2: LSP (symboles du code)",
+      "line_start": 114,
+      "line_end": 114,
+      "signature": "<h2>LSP (symboles du code)</h2><table id=\"tLsp\"></table></section>"
+    },
+    {
+      "type": "section",
+      "name": "#tLsp",
+      "tag": "table",
+      "line_start": 114,
+      "line_end": 114,
+      "signature": "<table id=\"tLsp\"></table></section>"
+    }
+  ]
+}

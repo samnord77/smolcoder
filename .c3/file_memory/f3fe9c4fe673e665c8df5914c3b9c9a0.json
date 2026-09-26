@@ -1,0 +1,671 @@
+{
+  "path": "src/session.ts",
+  "content_hash": "efce5c37d352ebe8d454d300c1f398e5",
+  "updated_at": "2026-09-26T17:57:05",
+  "lines": 1058,
+  "size_bytes": 42301,
+  "mtime_ns": 1790426774136908700,
+  "language": "typescript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "import",
+      "name": "import { spawnSync } from \"child_process\";",
+      "line_start": 6,
+      "line_end": 6,
+      "signature": "import { spawnSync } from \"child_process\";"
+    },
+    {
+      "type": "import",
+      "name": "import * as fs from \"fs\";",
+      "line_start": 7,
+      "line_end": 7,
+      "signature": "import * as fs from \"fs\";"
+    },
+    {
+      "type": "import",
+      "name": "import { Attachment } from \"./attachments\";",
+      "line_start": 8,
+      "line_end": 8,
+      "signature": "import { Attachment } from \"./attachments\";"
+    },
+    {
+      "type": "import",
+      "name": "import * as os from \"os\";",
+      "line_start": 9,
+      "line_end": 9,
+      "signature": "import * as os from \"os\";"
+    },
+    {
+      "type": "import",
+      "name": "import * as path from \"path\";",
+      "line_start": 10,
+      "line_end": 10,
+      "signature": "import * as path from \"path\";"
+    },
+    {
+      "type": "import",
+      "name": "import { Agent } from \"./agent\";",
+      "line_start": 11,
+      "line_end": 11,
+      "signature": "import { Agent } from \"./agent\";"
+    },
+    {
+      "type": "import",
+      "name": "import { Config, effortForBackend, loadConfig, updateConfig } from \"./config\";",
+      "line_start": 12,
+      "line_end": 12,
+      "signature": "import { Config, effortForBackend, loadConfig, updateConfig } from \"./config\";"
+    },
+    {
+      "type": "import",
+      "name": "import { ContextManager } from \"./context\";",
+      "line_start": 13,
+      "line_end": 13,
+      "signature": "import { ContextManager } from \"./context\";"
+    },
+    {
+      "type": "import",
+      "name": "import { detectAll, DetectedModel, resolveContextWindow } from \"./detect\";",
+      "line_start": 14,
+      "line_end": 14,
+      "signature": "import { detectAll, DetectedModel, resolveContextWindow } from \"./detect\";"
+    },
+    {
+      "type": "import",
+      "name": "import { EventBus } from \"./events\";",
+      "line_start": 15,
+      "line_end": 15,
+      "signature": "import { EventBus } from \"./events\";"
+    },
+    {
+      "type": "import",
+      "name": "import { findModelsOnNetwork, FlowUI, manageHosts } from \"./network\";",
+      "line_start": 16,
+      "line_end": 16,
+      "signature": "import { findModelsOnNetwork, FlowUI, manageHosts } from \"./network\";"
+    },
+    {
+      "type": "import",
+      "name": "import { Plan, PlanStep } from \"./plan\";",
+      "line_start": 17,
+      "line_end": 17,
+      "signature": "import { Plan, PlanStep } from \"./plan\";"
+    },
+    {
+      "type": "import",
+      "name": "import { buildSystemPrompt, loadAgentsMd, loadMemoryMd } from \"./prompt\";",
+      "line_start": 18,
+      "line_end": 18,
+      "signature": "import { buildSystemPrompt, loadAgentsMd, loadMemoryMd } from \"./prompt\";"
+    },
+    {
+      "type": "import",
+      "name": "import { LmStudioProvider } from \"./providers/lmstudio\";",
+      "line_start": 19,
+      "line_end": 19,
+      "signature": "import { LmStudioProvider } from \"./providers/lmstudio\";"
+    },
+    {
+      "type": "import",
+      "name": "import { OllamaProvider } from \"./providers/ollama\";",
+      "line_start": 20,
+      "line_end": 20,
+      "signature": "import { OllamaProvider } from \"./providers/ollama\";"
+    },
+    {
+      "type": "import",
+      "name": "import { Effort, Msg, Provider } from \"./providers/types\";",
+      "line_start": 21,
+      "line_end": 21,
+      "signature": "import { Effort, Msg, Provider } from \"./providers/types\";"
+    },
+    {
+      "type": "import",
+      "name": "import { Mode, MODE_LABELS, ToolContext } from \"./tools/index\";",
+      "line_start": 22,
+      "line_end": 22,
+      "signature": "import { Mode, MODE_LABELS, ToolContext } from \"./tools/index\";"
+    },
+    {
+      "type": "import",
+      "name": "import { createMcpBridge } from \"./mcp\";",
+      "line_start": 23,
+      "line_end": 23,
+      "signature": "import { createMcpBridge } from \"./mcp\";"
+    },
+    {
+      "type": "import",
+      "name": "import { listSkills } from \"./skills\";",
+      "line_start": 24,
+      "line_end": 24,
+      "signature": "import { listSkills } from \"./skills\";"
+    },
+    {
+      "type": "import",
+      "name": "import { loadPlugins } from \"./plugins\";",
+      "line_start": 25,
+      "line_end": 25,
+      "signature": "import { loadPlugins } from \"./plugins\";"
+    },
+    {
+      "type": "import",
+      "name": "import { readFile } from \"./tools/fs-tools\";",
+      "line_start": 26,
+      "line_end": 26,
+      "signature": "import { readFile } from \"./tools/fs-tools\";"
+    },
+    {
+      "type": "import",
+      "name": "import { pickShell, runCommand } from \"./tools/shell\";",
+      "line_start": 27,
+      "line_end": 27,
+      "signature": "import { pickShell, runCommand } from \"./tools/shell\";"
+    },
+    {
+      "type": "import",
+      "name": "import { TaskManager } from \"./tools/tasks\";",
+      "line_start": 28,
+      "line_end": 28,
+      "signature": "import { TaskManager } from \"./tools/tasks\";"
+    },
+    {
+      "type": "import",
+      "name": "import { renderPlan, SelectOption, SessionUI, SlashCommand } from \"./ui\";",
+      "line_start": 29,
+      "line_end": 29,
+      "signature": "import { renderPlan, SelectOption, SessionUI, SlashCommand } from \"./ui\";"
+    },
+    {
+      "type": "import",
+      "name": "import { c, truncateEnd, truncateMiddle } from \"./util\";",
+      "line_start": 30,
+      "line_end": 30,
+      "signature": "import { c, truncateEnd, truncateMiddle } from \"./util\";"
+    },
+    {
+      "type": "interface",
+      "name": "SessionPrefs",
+      "line_start": 34,
+      "line_end": 42,
+      "signature": "interface SessionPrefs {",
+      "children": []
+    },
+    {
+      "type": "constant",
+      "name": "SLASH_COMMANDS",
+      "line_start": 44,
+      "line_end": 65,
+      "signature": "const SLASH_COMMANDS: SlashCommand[] = ["
+    },
+    {
+      "type": "constant",
+      "name": "MODE_ORDER",
+      "line_start": 67,
+      "line_end": 67,
+      "signature": "const MODE_ORDER: Mode[] = [\"ro\", \"edit\", \"bypass\"];"
+    },
+    {
+      "type": "function",
+      "name": "outputBudget",
+      "line_start": 74,
+      "line_end": 76,
+      "signature": "function outputBudget(window: number): number {"
+    },
+    {
+      "type": "function",
+      "name": "makeProvider",
+      "line_start": 78,
+      "line_end": 83,
+      "signature": "function makeProvider(m: DetectedModel): Provider {"
+    },
+    {
+      "type": "function",
+      "name": "effortAdvice",
+      "line_start": 88,
+      "line_end": 95,
+      "signature": "function effortAdvice(m: DetectedModel, effort: Effort | null): string | null {"
+    },
+    {
+      "type": "function",
+      "name": "reportCompactions",
+      "line_start": 99,
+      "line_end": 107,
+      "signature": "function reportCompactions(bus: EventBus, ui: { status: (s: string) => void; warn: (s: string) => void }): void {"
+    },
+    {
+      "type": "function",
+      "name": "autoPickModel",
+      "line_start": 111,
+      "line_end": 135,
+      "signature": "function autoPickModel("
+    },
+    {
+      "type": "function",
+      "name": "noBackendsMessage",
+      "line_start": 137,
+      "line_end": 148,
+      "signature": "function noBackendsMessage(): string {"
+    },
+    {
+      "type": "function",
+      "name": "backendLabel",
+      "line_start": 151,
+      "line_end": 153,
+      "signature": "function backendLabel(m: DetectedModel): string {"
+    },
+    {
+      "type": "function",
+      "name": "sessionLine",
+      "line_start": 155,
+      "line_end": 157,
+      "signature": "function sessionLine(m: DetectedModel, mode: Mode): string {"
+    },
+    {
+      "type": "function",
+      "name": "yoloBanner",
+      "line_start": 160,
+      "line_end": 165,
+      "signature": "function yoloBanner(): string {"
+    },
+    {
+      "type": "function",
+      "name": "fmtTokens",
+      "line_start": 167,
+      "line_end": 169,
+      "signature": "function fmtTokens(n: number): string {"
+    },
+    {
+      "type": "function",
+      "name": "modeColored",
+      "line_start": 171,
+      "line_end": 176,
+      "signature": "function modeColored(mode: Mode): string {"
+    },
+    {
+      "type": "function",
+      "name": "prepareModel",
+      "line_start": 180,
+      "line_end": 198,
+      "signature": "async function prepareModel(",
+      "async": true
+    },
+    {
+      "type": "function",
+      "name": "modelOptions",
+      "line_start": 201,
+      "line_end": 209,
+      "signature": "function modelOptions(models: DetectedModel[], current?: DetectedModel): SelectOption[] {"
+    },
+    {
+      "type": "constant",
+      "name": "FIND_ROW",
+      "line_start": 211,
+      "line_end": 211,
+      "signature": "const FIND_ROW: SelectOption = { label: \"+ Find models on another machine\u2026\", hint: \"search my network or enter an address\" };"
+    },
+    {
+      "type": "constant",
+      "name": "HOSTS_ROW",
+      "line_start": 212,
+      "line_end": 212,
+      "signature": "const HOSTS_ROW: SelectOption = { label: \"Network hosts\u2026\", hint: \"rename, remove or re-find added machines\" };"
+    },
+    {
+      "type": "function",
+      "name": "setupWithoutLocalModels",
+      "line_start": 217,
+      "line_end": 244,
+      "signature": "async function setupWithoutLocalModels(ui: FlowUI, prefs: SessionPrefs): Promise<DetectedModel | null> {",
+      "async": true
+    },
+    {
+      "type": "function",
+      "name": "suggestTitle",
+      "line_start": 251,
+      "line_end": 278,
+      "signature": "async function suggestTitle(messages: Msg[], provider: Provider): Promise<string | null> {",
+      "async": true
+    },
+    {
+      "type": "function",
+      "name": "cleanTitle",
+      "line_start": 281,
+      "line_end": 296,
+      "signature": "function cleanTitle(raw: string): string | null {"
+    },
+    {
+      "type": "interface",
+      "name": "SessionSnapshot",
+      "line_start": 301,
+      "line_end": 314,
+      "signature": "interface SessionSnapshot {",
+      "children": []
+    },
+    {
+      "type": "interface",
+      "name": "SessionOptions",
+      "line_start": 316,
+      "line_end": 327,
+      "signature": "interface SessionOptions {",
+      "children": []
+    },
+    {
+      "type": "class",
+      "name": "Session",
+      "line_start": 329,
+      "line_end": 1058,
+      "signature": "class Session {",
+      "children": [
+        {
+          "type": "property",
+          "name": "workspace",
+          "line_start": 330,
+          "line_end": 330,
+          "signature": "readonly workspace: string;"
+        },
+        {
+          "type": "property",
+          "name": "chosen",
+          "line_start": 331,
+          "line_end": 331,
+          "signature": "chosen: DetectedModel;"
+        },
+        {
+          "type": "property",
+          "name": "effort",
+          "line_start": 332,
+          "line_end": 332,
+          "signature": "effort: Effort | null;"
+        },
+        {
+          "type": "property",
+          "name": "agent",
+          "line_start": 333,
+          "line_end": 333,
+          "signature": "readonly agent: Agent;"
+        },
+        {
+          "type": "property",
+          "name": "toolCtx",
+          "line_start": 334,
+          "line_end": 334,
+          "signature": "readonly toolCtx: ToolContext;"
+        },
+        {
+          "type": "property",
+          "name": "taskManager",
+          "line_start": 335,
+          "line_end": 335,
+          "signature": "readonly taskManager: TaskManager;"
+        },
+        {
+          "type": "property",
+          "name": "ctxMgr",
+          "line_start": 336,
+          "line_end": 336,
+          "signature": "readonly ctxMgr: ContextManager;"
+        },
+        {
+          "type": "property",
+          "name": "bus",
+          "line_start": 337,
+          "line_end": 337,
+          "signature": "readonly bus = new EventBus();"
+        },
+        {
+          "type": "property",
+          "name": "shell",
+          "line_start": 338,
+          "line_end": 338,
+          "signature": "readonly shell = pickShell();"
+        },
+        {
+          "type": "property",
+          "name": "onExit",
+          "line_start": 340,
+          "line_end": 340,
+          "signature": "onExit: (() => void) | null = null;",
+          "doc": "Host hook: fired once when the session has shut down (/exit, ctrl+c)."
+        },
+        {
+          "type": "property",
+          "name": "onTurnDone",
+          "line_start": 343,
+          "line_end": 343,
+          "signature": "onTurnDone: (() => void) | null = null;",
+          "doc": "Host hook: fired after each completed user turn (the web hub names the"
+        },
+        {
+          "type": "property",
+          "name": "agentsMd",
+          "line_start": 345,
+          "line_end": 345,
+          "signature": "private readonly agentsMd: string | null;",
+          "access": "private"
+        },
+        {
+          "type": "property",
+          "name": "memoryMd",
+          "line_start": 346,
+          "line_end": 346,
+          "signature": "private readonly memoryMd: string | null;",
+          "access": "private"
+        },
+        {
+          "type": "property",
+          "name": "prefs",
+          "line_start": 347,
+          "line_end": 347,
+          "signature": "private readonly prefs: SessionPrefs;",
+          "access": "private"
+        },
+        {
+          "type": "property",
+          "name": "help",
+          "line_start": 348,
+          "line_end": 348,
+          "signature": "private readonly help: string;",
+          "access": "private"
+        },
+        {
+          "type": "property",
+          "name": "hubRec",
+          "line_start": 349,
+          "line_end": 349,
+          "signature": "private readonly hubRec: any;",
+          "access": "private"
+        },
+        {
+          "type": "property",
+          "name": "ended",
+          "line_start": 350,
+          "line_end": 350,
+          "signature": "private ended = false;",
+          "access": "private"
+        },
+        {
+          "type": "method",
+          "name": "constructor",
+          "line_start": 352,
+          "line_end": 405,
+          "signature": "constructor("
+        },
+        {
+          "type": "method",
+          "name": "sysPrompt",
+          "line_start": 407,
+          "line_end": 409,
+          "signature": "private sysPrompt(mode: Mode): string {",
+          "access": "private"
+        },
+        {
+          "type": "method",
+          "name": "persist",
+          "line_start": 411,
+          "line_end": 420,
+          "signature": "private persist(): void {",
+          "access": "private"
+        },
+        {
+          "type": "method",
+          "name": "statusLine",
+          "line_start": 423,
+          "line_end": 442,
+          "signature": "statusLine(): string {",
+          "doc": "The TUI's status row: mode \u00b7 model \u00b7 effort \u00b7 context \u00b7 plan \u00b7 tasks."
+        },
+        {
+          "type": "method",
+          "name": "state",
+          "line_start": 445,
+          "line_end": 471,
+          "signature": "state(): Record<string, any> {",
+          "doc": "Structured status for the web page's status bar."
+        },
+        {
+          "type": "method",
+          "name": "announce",
+          "line_start": 474,
+          "line_end": 480,
+          "signature": "announce(): void {",
+          "doc": "The opening lines: backend \u00b7 model \u00b7 mode, workspace, AGENTS.md, advice."
+        },
+        {
+          "type": "method",
+          "name": "snapshot",
+          "line_start": 482,
+          "line_end": 496,
+          "signature": "snapshot(): SessionSnapshot {"
+        },
+        {
+          "type": "method",
+          "name": "suggestTitle",
+          "line_start": 499,
+          "line_end": 501,
+          "signature": "suggestTitle(): Promise<string | null> {",
+          "doc": "A model-written name for this session, or null to keep the fallback."
+        },
+        {
+          "type": "method",
+          "name": "restore",
+          "line_start": 505,
+          "line_end": 513,
+          "signature": "restore(s: SessionSnapshot): void {",
+          "doc": "Bring a saved transcript back (the system message is rebuilt for the"
+        },
+        {
+          "type": "method",
+          "name": "handleUserMessage",
+          "line_start": 518,
+          "line_end": 546,
+          "signature": "private async handleUserMessage(input: string, attachments: Attachment[]): Promise<void> {",
+          "async": true,
+          "access": "private",
+          "doc": "User-input pipeline \u2014 applied ONLY to user text, never to model"
+        },
+        {
+          "type": "method",
+          "name": "expandMentions",
+          "line_start": 550,
+          "line_end": 562,
+          "signature": "private expandMentions(text: string): string {",
+          "access": "private",
+          "doc": "Replace each @path with the file's content (cap 9000 chars). A failure"
+        },
+        {
+          "type": "method",
+          "name": "undoEdit",
+          "line_start": 565,
+          "line_end": 593,
+          "signature": "private undoEdit(): void {",
+          "access": "private",
+          "doc": "Restore the last file write (prev null = the file was created \u2192 delete)."
+        },
+        {
+          "type": "method",
+          "name": "redoEdit",
+          "line_start": 597,
+          "line_end": 631,
+          "signature": "private redoEdit(): void {",
+          "access": "private",
+          "doc": "Re-apply the last undone write. Edits replay old_text -> next on the"
+        },
+        {
+          "type": "method",
+          "name": "openEditor",
+          "line_start": 636,
+          "line_end": 698,
+          "signature": "private async openEditor(draft: string): Promise<string | null> {",
+          "async": true,
+          "access": "private",
+          "doc": "Suspend the TUI, open $EDITOR (or notepad) on a tmp file holding the"
+        },
+        {
+          "type": "method",
+          "name": "exportTranscript",
+          "line_start": 701,
+          "line_end": 717,
+          "signature": "private exportTranscript(): void {",
+          "access": "private",
+          "doc": "Write the transcript as timestamped markdown under .smol/exports/."
+        },
+        {
+          "type": "method",
+          "name": "copyLastReply",
+          "line_start": 720,
+          "line_end": 750,
+          "signature": "private copyLastReply(): void {",
+          "access": "private",
+          "doc": "Copy the last assistant reply to the OS clipboard (best effort)."
+        },
+        {
+          "type": "method",
+          "name": "run",
+          "line_start": 754,
+          "line_end": 923,
+          "signature": "async run(): Promise<void> {",
+          "async": true,
+          "doc": "The input loop. Returns after /exit (or after the host asked the UI to"
+        },
+        {
+          "type": "method",
+          "name": "shutdown",
+          "line_start": 927,
+          "line_end": 944,
+          "signature": "async shutdown(): Promise<void> {",
+          "async": true,
+          "doc": "Idempotent: end-of-session hook, kill background tasks, close the UI,"
+        },
+        {
+          "type": "method",
+          "name": "switchModel",
+          "line_start": 946,
+          "line_end": 994,
+          "signature": "private async switchModel(): Promise<void> {",
+          "async": true,
+          "access": "private"
+        },
+        {
+          "type": "method",
+          "name": "setMode",
+          "line_start": 996,
+          "line_end": 1025,
+          "signature": "private async setMode(arg?: string): Promise<void> {",
+          "async": true,
+          "access": "private"
+        },
+        {
+          "type": "method",
+          "name": "setEffort",
+          "line_start": 1027,
+          "line_end": 1057,
+          "signature": "private async setEffort(arg?: string): Promise<void> {",
+          "async": true,
+          "access": "private"
+        }
+      ]
+    }
+  ]
+}

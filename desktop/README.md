@@ -20,8 +20,8 @@ smolcoder-source. Le hub demarre tout seul si besoin (Ollama ou LM Studio requis
 | Fichier | Role |
 |---|---|
 | `main.js` | Processus principal : hub, fenetres, menus, fichiers editeur |
-| `preload.js` | Pont securise (6 fonctions, pas de Node dans l'editeur) |
-| `editor.html` | Editeur : arbre + zone de texte + Ctrl+S |
+| `preload.js` | Pont securise entre l’editeur et ses fonctions de fichiers |
+| `editor.html` | Editeur : onglets multi-fichiers, recherche projet, coloration et Ctrl+S |
 | `hub-client.js` | Client hub Node pur (testable sans Electron) |
 | `smoke.js` | Test fumee : `node smoke.js` |
 
@@ -32,4 +32,16 @@ bypass + bascule), Effort (off/low/medium/high), Taches (/tasks /plan /context
 /compact + terminal), Affichage (zoom, devtools).
 
 Chat, terminal integre, projets et sessions : fenetre principale (hub complet).
+Panneau MCP (Outils → Panneau, Ctrl+M) : onglets MCP/Plugins/LSP avec compteurs,
+pastilles ●/○, outils et interrupteur on/off par serveur (flag `enabled` écrit
+dans `.smol/mcp.json` ou `~/.smolcoder/mcp.json`, champs préservés).
 Securite editeur : confine au dossier via `dist/sandbox.js`, 1 Mo max.
+La recherche globale est accessible au-dessus de l’arbre de fichiers ou avec
+`Ctrl+Shift+F`. Un resultat ouvre le fichier et place le curseur sur la ligne.
+Chaque fichier ouvert conserve son propre brouillon. Un point signale les
+modifications non enregistrees ; fermer un brouillon ou changer de dossier
+demande confirmation. Une sauvegarde refuse d’ecraser un fichier modifie
+depuis son ouverture.
+Dans l’editeur : `Tab` indente, `Shift+Tab` desindente, `Enter` reprend
+l’indentation, `Ctrl+G` ouvre une ligne precise, et la barre d’etat indique
+ligne et colonne.

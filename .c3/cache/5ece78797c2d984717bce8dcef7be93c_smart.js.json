@@ -1,0 +1,9 @@
+{
+  "original_tokens": 427,
+  "compressed_tokens": 31,
+  "saved_tokens": 396,
+  "savings_pct": 92.7,
+  "compressed": "# diff.test.js (.js) \u2014 35 lines\nconst test = require(\"node:test\");\nconst assert = require(\"node:assert/strict\");",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\diff.test.js"
+}

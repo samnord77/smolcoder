@@ -1,0 +1,69 @@
+{
+  "path": "src/prompt.ts",
+  "content_hash": "eb673c98fce1f6a12b74c79442030938",
+  "updated_at": "2026-09-24T22:03:32",
+  "lines": 87,
+  "size_bytes": 4748,
+  "mtime_ns": 1790283771803489000,
+  "language": "typescript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "import",
+      "name": "import * as fs from \"fs\";",
+      "line_start": 8,
+      "line_end": 8,
+      "signature": "import * as fs from \"fs\";"
+    },
+    {
+      "type": "import",
+      "name": "import * as path from \"path\";",
+      "line_start": 9,
+      "line_end": 9,
+      "signature": "import * as path from \"path\";"
+    },
+    {
+      "type": "import",
+      "name": "import { Mode } from \"./tools/index\";",
+      "line_start": 10,
+      "line_end": 10,
+      "signature": "import { Mode } from \"./tools/index\";"
+    },
+    {
+      "type": "constant",
+      "name": "AGENTS_MD_CAP_CHARS",
+      "line_start": 12,
+      "line_end": 12,
+      "signature": "const AGENTS_MD_CAP_CHARS = 8000; // ~2k tokens \u2014 small-context friendly"
+    },
+    {
+      "type": "constant",
+      "name": "MEMORY_MD_CAP_CHARS",
+      "line_start": 13,
+      "line_end": 13,
+      "signature": "const MEMORY_MD_CAP_CHARS = 4000; // ~1k tokens \u2014 long-term memory stays cheap"
+    },
+    {
+      "type": "function",
+      "name": "loadAgentsMd",
+      "line_start": 16,
+      "line_end": 31,
+      "signature": "function loadAgentsMd(workspace: string): string | null {"
+    },
+    {
+      "type": "function",
+      "name": "loadMemoryMd",
+      "line_start": 35,
+      "line_end": 50,
+      "signature": "function loadMemoryMd(workspace: string): string | null {"
+    },
+    {
+      "type": "function",
+      "name": "buildSystemPrompt",
+      "line_start": 52,
+      "line_end": 87,
+      "signature": "function buildSystemPrompt(opts: {"
+    }
+  ]
+}

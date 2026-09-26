@@ -1,0 +1,362 @@
+{
+  "path": "src/mcp.ts",
+  "content_hash": "6cb7e7d07aaa0f19724460d4cc12b107",
+  "updated_at": "2026-09-26T17:57:05",
+  "lines": 628,
+  "size_bytes": 25008,
+  "mtime_ns": 1790418305360024500,
+  "language": "typescript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "import",
+      "name": "import { spawn, ChildProcess } from \"child_process\";",
+      "line_start": 11,
+      "line_end": 11,
+      "signature": "import { spawn, ChildProcess } from \"child_process\";"
+    },
+    {
+      "type": "import",
+      "name": "import * as fs from \"fs\";",
+      "line_start": 12,
+      "line_end": 12,
+      "signature": "import * as fs from \"fs\";"
+    },
+    {
+      "type": "import",
+      "name": "import * as os from \"os\";",
+      "line_start": 13,
+      "line_end": 13,
+      "signature": "import * as os from \"os\";"
+    },
+    {
+      "type": "import",
+      "name": "import * as path from \"path\";",
+      "line_start": 14,
+      "line_end": 14,
+      "signature": "import * as path from \"path\";"
+    },
+    {
+      "type": "import",
+      "name": "import { shellEnv } from \"./tools/shell\";",
+      "line_start": 15,
+      "line_end": 15,
+      "signature": "import { shellEnv } from \"./tools/shell\";"
+    },
+    {
+      "type": "interface",
+      "name": "McpServerConfig",
+      "line_start": 17,
+      "line_end": 31,
+      "signature": "interface McpServerConfig {",
+      "children": []
+    },
+    {
+      "type": "constant",
+      "name": "NAME_RE",
+      "line_start": 33,
+      "line_end": 33,
+      "signature": "const NAME_RE = /^[A-Za-z0-9_-]{1,40}$/;"
+    },
+    {
+      "type": "constant",
+      "name": "DEFAULT_TIMEOUT_MS",
+      "line_start": 34,
+      "line_end": 34,
+      "signature": "const DEFAULT_TIMEOUT_MS = 60_000;"
+    },
+    {
+      "type": "constant",
+      "name": "MAX_TOOLS",
+      "line_start": 35,
+      "line_end": 35,
+      "signature": "const MAX_TOOLS = 50;"
+    },
+    {
+      "type": "function",
+      "name": "fallbackBinDirs",
+      "line_start": 40,
+      "line_end": 63,
+      "signature": "function fallbackBinDirs(): string[] {",
+      "doc": "Folders where Node/npm (and a few common tools) live, tried after PATH so"
+    },
+    {
+      "type": "function",
+      "name": "isRunnableFile",
+      "line_start": 66,
+      "line_end": 72,
+      "signature": "function isRunnableFile(full: string): boolean {",
+      "doc": "True when `full` is an existing regular file we may try to spawn."
+    },
+    {
+      "type": "function",
+      "name": "resolveCommand",
+      "line_start": 77,
+      "line_end": 100,
+      "signature": "function resolveCommand(cmd: string): string {"
+    },
+    {
+      "type": "function",
+      "name": "globalMcpConfigPath",
+      "line_start": 104,
+      "line_end": 106,
+      "signature": "function globalMcpConfigPath(): string {"
+    },
+    {
+      "type": "function",
+      "name": "loadMcpConfig",
+      "line_start": 109,
+      "line_end": 116,
+      "signature": "function loadMcpConfig(workspace: string): McpServerConfig[] {"
+    },
+    {
+      "type": "function",
+      "name": "expandEnvVars",
+      "line_start": 119,
+      "line_end": 121,
+      "signature": "function expandEnvVars(s: string): string {"
+    },
+    {
+      "type": "function",
+      "name": "isHttpUrl",
+      "line_start": 123,
+      "line_end": 125,
+      "signature": "function isHttpUrl(s: string): boolean {"
+    },
+    {
+      "type": "function",
+      "name": "readServerList",
+      "line_start": 127,
+      "line_end": 164,
+      "signature": "function readServerList(file: string): McpServerConfig[] {"
+    },
+    {
+      "type": "interface",
+      "name": "Pending",
+      "line_start": 166,
+      "line_end": 170,
+      "signature": "interface Pending {",
+      "children": []
+    },
+    {
+      "type": "interface",
+      "name": "McpToolInfo",
+      "line_start": 172,
+      "line_end": 175,
+      "signature": "interface McpToolInfo {",
+      "children": []
+    },
+    {
+      "type": "class",
+      "name": "McpClient",
+      "line_start": 179,
+      "line_end": 479,
+      "signature": "class McpClient {",
+      "children": [
+        {
+          "type": "property",
+          "name": "proc",
+          "line_start": 180,
+          "line_end": 180,
+          "signature": "private proc: ChildProcess | null = null;",
+          "access": "private"
+        },
+        {
+          "type": "property",
+          "name": "nextId",
+          "line_start": 181,
+          "line_end": 181,
+          "signature": "private nextId = 1;",
+          "access": "private"
+        },
+        {
+          "type": "property",
+          "name": "pending",
+          "line_start": 182,
+          "line_end": 182,
+          "signature": "private pending = new Map<number, Pending>();",
+          "access": "private"
+        },
+        {
+          "type": "property",
+          "name": "buf",
+          "line_start": 183,
+          "line_end": 183,
+          "signature": "private buf = \"\";",
+          "access": "private"
+        },
+        {
+          "type": "property",
+          "name": "ready",
+          "line_start": 184,
+          "line_end": 184,
+          "signature": "private ready: Promise<void> | null = null;",
+          "access": "private"
+        },
+        {
+          "type": "property",
+          "name": "dead",
+          "line_start": 185,
+          "line_end": 185,
+          "signature": "private dead: Error | null = null;",
+          "access": "private"
+        },
+        {
+          "type": "property",
+          "name": "sessionId",
+          "line_start": 186,
+          "line_end": 186,
+          "signature": "private sessionId: string | null = null;",
+          "access": "private"
+        },
+        {
+          "type": "method",
+          "name": "constructor",
+          "line_start": 188,
+          "line_end": 191,
+          "signature": "constructor("
+        },
+        {
+          "type": "method",
+          "name": "remote",
+          "line_start": 194,
+          "line_end": 196,
+          "signature": "private get remote(): boolean {",
+          "access": "private",
+          "doc": "Remote when an address is set and no program overrides it."
+        },
+        {
+          "type": "method",
+          "name": "ensure",
+          "line_start": 198,
+          "line_end": 222,
+          "signature": "private ensure(): Promise<void> {",
+          "access": "private"
+        },
+        {
+          "type": "method",
+          "name": "spawn",
+          "line_start": 224,
+          "line_end": 268,
+          "signature": "private spawn(): Promise<void> {",
+          "access": "private"
+        },
+        {
+          "type": "method",
+          "name": "failAll",
+          "line_start": 270,
+          "line_end": 277,
+          "signature": "private failAll(err: Error): void {",
+          "access": "private"
+        },
+        {
+          "type": "method",
+          "name": "ingest",
+          "line_start": 279,
+          "line_end": 304,
+          "signature": "private ingest(chunk: string): void {",
+          "access": "private"
+        },
+        {
+          "type": "method",
+          "name": "notify",
+          "line_start": 306,
+          "line_end": 316,
+          "signature": "private notify(method: string): void {",
+          "access": "private"
+        },
+        {
+          "type": "method",
+          "name": "remotePost",
+          "line_start": 320,
+          "line_end": 345,
+          "signature": "private async remotePost(",
+          "async": true,
+          "access": "private",
+          "doc": "POST one JSON-RPC message to a remote address (plain JSON or SSE"
+        },
+        {
+          "type": "method",
+          "name": "pickReply",
+          "line_start": 348,
+          "line_end": 387,
+          "signature": "private pickReply(text: string, id: number): any {",
+          "access": "private",
+          "doc": "Pick the reply matching our id out of a plain-JSON or SSE body."
+        },
+        {
+          "type": "method",
+          "name": "remoteRequest",
+          "line_start": 389,
+          "line_end": 407,
+          "signature": "private async remoteRequest(method: string, params: any, timeoutMs: number): Promise<any> {",
+          "async": true,
+          "access": "private"
+        },
+        {
+          "type": "method",
+          "name": "remoteNotify",
+          "line_start": 409,
+          "line_end": 415,
+          "signature": "private async remoteNotify(method: string): Promise<void> {",
+          "async": true,
+          "access": "private"
+        },
+        {
+          "type": "method",
+          "name": "request",
+          "line_start": 417,
+          "line_end": 435,
+          "signature": "request(method: string, params?: any, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<any> {"
+        },
+        {
+          "type": "method",
+          "name": "listTools",
+          "line_start": 437,
+          "line_end": 451,
+          "signature": "async listTools(): Promise<McpToolInfo[]> {",
+          "async": true
+        },
+        {
+          "type": "method",
+          "name": "callTool",
+          "line_start": 453,
+          "line_end": 467,
+          "signature": "async callTool(tool: string, args: Record<string, any>, signal?: AbortSignal): Promise<string> {",
+          "async": true
+        },
+        {
+          "type": "method",
+          "name": "close",
+          "line_start": 469,
+          "line_end": 478,
+          "signature": "close(): void {"
+        }
+      ]
+    },
+    {
+      "type": "interface",
+      "name": "McpBridge",
+      "line_start": 483,
+      "line_end": 492,
+      "signature": "interface McpBridge {",
+      "children": []
+    },
+    {
+      "type": "interface",
+      "name": "McpStatusRow",
+      "line_start": 494,
+      "line_end": 499,
+      "signature": "interface McpStatusRow {",
+      "children": []
+    },
+    {
+      "type": "function",
+      "name": "createMcpBridge",
+      "line_start": 501,
+      "line_end": 628,
+      "signature": "function createMcpBridge(workspace: string): McpBridge {"
+    }
+  ]
+}

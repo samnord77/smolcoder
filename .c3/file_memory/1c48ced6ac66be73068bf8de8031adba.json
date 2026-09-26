@@ -1,0 +1,105 @@
+{
+  "path": "src/tools/shell.ts",
+  "content_hash": "f31c54fde3ba4ee54ef478a04fcaa904",
+  "updated_at": "2026-09-26T17:59:05",
+  "lines": 330,
+  "size_bytes": 8888,
+  "mtime_ns": 1790417635516441900,
+  "language": "typescript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "import",
+      "name": "import { spawn, spawnSync } from \"child_process\";",
+      "line_start": 7,
+      "line_end": 7,
+      "signature": "import { spawn, spawnSync } from \"child_process\";"
+    },
+    {
+      "type": "import",
+      "name": "import * as fs from \"fs\";",
+      "line_start": 8,
+      "line_end": 8,
+      "signature": "import * as fs from \"fs\";"
+    },
+    {
+      "type": "import",
+      "name": "import * as path from \"path\";",
+      "line_start": 9,
+      "line_end": 9,
+      "signature": "import * as path from \"path\";"
+    },
+    {
+      "type": "import",
+      "name": "import { truncateMiddle } from \"../util\";",
+      "line_start": 10,
+      "line_end": 10,
+      "signature": "import { truncateMiddle } from \"../util\";"
+    },
+    {
+      "type": "interface",
+      "name": "ShellInfo",
+      "line_start": 12,
+      "line_end": 16,
+      "signature": "interface ShellInfo {",
+      "children": []
+    },
+    {
+      "type": "variable",
+      "name": "cached",
+      "line_start": 18,
+      "line_end": 18,
+      "signature": "let cached: ShellInfo | null = null;"
+    },
+    {
+      "type": "function",
+      "name": "pickShell",
+      "line_start": 20,
+      "line_end": 131,
+      "signature": "function pickShell(): ShellInfo {"
+    },
+    {
+      "type": "function",
+      "name": "killTree",
+      "line_start": 133,
+      "line_end": 149,
+      "signature": "function killTree(pid: number): void {"
+    },
+    {
+      "type": "constant",
+      "name": "OUTPUT_CAP",
+      "line_start": 151,
+      "line_end": 151,
+      "signature": "const OUTPUT_CAP = 8000;"
+    },
+    {
+      "type": "constant",
+      "name": "DEFAULT_TIMEOUT_MS",
+      "line_start": 152,
+      "line_end": 152,
+      "signature": "const DEFAULT_TIMEOUT_MS = 120_000;"
+    },
+    {
+      "type": "function",
+      "name": "managedCommand",
+      "line_start": 156,
+      "line_end": 160,
+      "signature": "function managedCommand(shell: ShellInfo, command: string): string {"
+    },
+    {
+      "type": "function",
+      "name": "shellEnv",
+      "line_start": 162,
+      "line_end": 231,
+      "signature": "function shellEnv(): NodeJS.ProcessEnv {"
+    },
+    {
+      "type": "function",
+      "name": "runCommand",
+      "line_start": 233,
+      "line_end": 330,
+      "signature": "function runCommand("
+    }
+  ]
+}

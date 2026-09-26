@@ -1,0 +1,9 @@
+{
+  "original_tokens": 680,
+  "compressed_tokens": 134,
+  "saved_tokens": 546,
+  "savings_pct": 80.3,
+  "compressed": "# config.ts (.ts) \u2014 70 lines\nimport * as fs from \"fs\";\nimport * as os from \"os\";\nimport * as path from \"path\";\nimport { Effort } from \"./providers/types\";\nimport { Mode } from \"./tools/index\";\n\nexport const CONFIG_PATH = process.env.SMOLCODER_CONFIG || path.join(os.homedir(), \".smolcoder.json\");\nexport const DATA_DIR = path.join(os.homedir(), \".smolcoder\");\nexport interface SavedHost\nexport interface Config\nexport function loadConfig(): Config\nexport function saveConfig(cfg: Config): void\nexport function updateConfig(patch: Partial<Config>): Config",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\config.ts"
+}

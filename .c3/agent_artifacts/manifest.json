@@ -1,0 +1,46 @@
+{
+ "schema_version": 1,
+ "updated_at": "2026-09-26T18:47:05",
+ "last_scan": "2026-09-26T18:47:05",
+ "artifacts": {
+  "instructions:AGENTS.md": {
+   "id": "instructions:AGENTS.md",
+   "class": "instructions",
+   "provider": "codex",
+   "root": "AGENTS.md",
+   "scope": "project",
+   "roles": [],
+   "first_seen": "2026-09-26T18:43:05",
+   "versions": [
+    {
+     "v": 1,
+     "ts": "2026-09-26T18:43:05",
+     "unit_hash": "b675527152f514cf02f25ba47e821ee290364c2c32ce0cc258b8d2ced7e2e2f9",
+     "event_id": "art_20260926_184305_001_5231",
+     "source": "scan",
+     "members": [
+      {
+       "path": "AGENTS.md",
+       "blob": "490b76298f362281d744ecace30278d9bcc70f270cefac4b2dc3783d6a89073f",
+       "size": 691,
+       "binary": false
+      }
+     ]
+    }
+   ],
+   "exists": true,
+   "unit_hash": "b675527152f514cf02f25ba47e821ee290364c2c32ce0cc258b8d2ced7e2e2f9",
+   "current_version": 1,
+   "last_changed": "2026-09-26T18:43:05",
+   "members": [
+    {
+     "path": "AGENTS.md",
+     "sha256": "490b76298f362281d744ecace30278d9bcc70f270cefac4b2dc3783d6a89073f",
+     "size": 691,
+     "mtime": 1790444458.8958468,
+     "binary": false
+    }
+   ]
+  }
+ }
+}

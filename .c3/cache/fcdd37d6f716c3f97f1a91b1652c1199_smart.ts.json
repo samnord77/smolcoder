@@ -1,0 +1,9 @@
+{
+  "original_tokens": 576,
+  "compressed_tokens": 137,
+  "saved_tokens": 439,
+  "savings_pct": 76.2,
+  "compressed": "# logo.ts (.ts) \u2014 47 lines\nimport { c } from \"./util\";\n\nexport const LOGO_ROWS: readonly string[] = [ \"\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2588\u2557   \u2588\u2588\u2588\u2557  \u2588\u2588\u2588\u2588\u2588\u2588\u2557  \u2588\u2588\u2557     \", \"\u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255d \u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2551 \u2588\u2588\u2554\u2550\u2550\u2550\u2588\u2588\u2557 \u2588\u2588\u2551     \",\nexport const LOGO_WIDTH = LOGO_ROWS[0].length;\nexport const LOGO_TEXT = LOGO_ROWS.map((r) => r.trimEnd()).join(\"\\n\");\nexport function plainBrand(version: string): string\nexport function terminalLogo(cols: number, version: string): string[]",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\logo.ts"
+}

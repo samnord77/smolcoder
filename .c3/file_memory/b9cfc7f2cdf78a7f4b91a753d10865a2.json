@@ -1,0 +1,125 @@
+{
+  "path": "package.json",
+  "content_hash": "ed3b7e77aa43c9be9eeee433d5898ec5",
+  "updated_at": "2026-09-25T14:51:38",
+  "lines": 54,
+  "size_bytes": 1288,
+  "mtime_ns": 1790344246075060500,
+  "language": "json",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "property",
+      "name": "name",
+      "line_start": 2,
+      "line_end": 2,
+      "signature": "name"
+    },
+    {
+      "type": "property",
+      "name": "version",
+      "line_start": 3,
+      "line_end": 3,
+      "signature": "version"
+    },
+    {
+      "type": "property",
+      "name": "description",
+      "line_start": 4,
+      "line_end": 4,
+      "signature": "description"
+    },
+    {
+      "type": "property",
+      "name": "keywords",
+      "line_start": 5,
+      "line_end": 15,
+      "signature": "keywords"
+    },
+    {
+      "type": "property",
+      "name": "license",
+      "line_start": 16,
+      "line_end": 16,
+      "signature": "license"
+    },
+    {
+      "type": "property",
+      "name": "author",
+      "line_start": 17,
+      "line_end": 17,
+      "signature": "author"
+    },
+    {
+      "type": "property",
+      "name": "homepage",
+      "line_start": 18,
+      "line_end": 18,
+      "signature": "homepage"
+    },
+    {
+      "type": "property",
+      "name": "repository",
+      "line_start": 19,
+      "line_end": 22,
+      "signature": "repository"
+    },
+    {
+      "type": "property",
+      "name": "bugs",
+      "line_start": 23,
+      "line_end": 25,
+      "signature": "bugs"
+    },
+    {
+      "type": "property",
+      "name": "bin",
+      "line_start": 26,
+      "line_end": 29,
+      "signature": "bin"
+    },
+    {
+      "type": "property",
+      "name": "main",
+      "line_start": 30,
+      "line_end": 30,
+      "signature": "main"
+    },
+    {
+      "type": "property",
+      "name": "files",
+      "line_start": 31,
+      "line_end": 35,
+      "signature": "files"
+    },
+    {
+      "type": "property",
+      "name": "scripts",
+      "line_start": 36,
+      "line_end": 42,
+      "signature": "scripts"
+    },
+    {
+      "type": "property",
+      "name": "engines",
+      "line_start": 43,
+      "line_end": 45,
+      "signature": "engines"
+    },
+    {
+      "type": "property",
+      "name": "devDependencies",
+      "line_start": 46,
+      "line_end": 50,
+      "signature": "devDependencies"
+    },
+    {
+      "type": "property",
+      "name": "dependencies",
+      "line_start": 51,
+      "line_end": 53,
+      "signature": "dependencies"
+    }
+  ]
+}

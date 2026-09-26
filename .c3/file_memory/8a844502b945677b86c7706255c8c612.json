@@ -1,0 +1,71 @@
+{
+  "path": "src/web/diff.ts",
+  "content_hash": "2ef7a71fc6ddff3890ef303064adbb94",
+  "updated_at": "2026-09-24T22:44:35",
+  "lines": 101,
+  "size_bytes": 2869,
+  "mtime_ns": 1790286252557250600,
+  "language": "typescript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "type",
+      "name": "DiffKind",
+      "line_start": 4,
+      "line_end": 4,
+      "signature": "type DiffKind = \"same\" | \"del\" | \"add\" | \"skip\";",
+      "children": []
+    },
+    {
+      "type": "interface",
+      "name": "DiffLine",
+      "line_start": 6,
+      "line_end": 9,
+      "signature": "interface DiffLine {",
+      "children": []
+    },
+    {
+      "type": "constant",
+      "name": "MAX_INPUT_LINES",
+      "line_start": 11,
+      "line_end": 11,
+      "signature": "const MAX_INPUT_LINES = 200;"
+    },
+    {
+      "type": "constant",
+      "name": "MAX_OUT_LINES",
+      "line_start": 12,
+      "line_end": 12,
+      "signature": "const MAX_OUT_LINES = 80;"
+    },
+    {
+      "type": "constant",
+      "name": "COLLAPSE_AFTER",
+      "line_start": 13,
+      "line_end": 13,
+      "signature": "const COLLAPSE_AFTER = 3;"
+    },
+    {
+      "type": "function",
+      "name": "diffLines",
+      "line_start": 15,
+      "line_end": 69,
+      "signature": "function diffLines(oldText: string, newText: string): DiffLine[] {"
+    },
+    {
+      "type": "function",
+      "name": "collapseRuns",
+      "line_start": 71,
+      "line_end": 93,
+      "signature": "function collapseRuns(lines: DiffLine[]): DiffLine[] {"
+    },
+    {
+      "type": "function",
+      "name": "renderEditDiff",
+      "line_start": 96,
+      "line_end": 101,
+      "signature": "function renderEditDiff(oldText: string, newText: string): string {"
+    }
+  ]
+}

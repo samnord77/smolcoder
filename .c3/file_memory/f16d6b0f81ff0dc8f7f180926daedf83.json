@@ -1,0 +1,152 @@
+{
+  "path": "src/sandbox.ts",
+  "content_hash": "d3ed6458eb2176ac3e788936b4670f77",
+  "updated_at": "2026-09-24T23:38:45",
+  "lines": 184,
+  "size_bytes": 8390,
+  "mtime_ns": 1790289520833594300,
+  "language": "typescript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "import",
+      "name": "import * as fs from \"fs\";",
+      "line_start": 9,
+      "line_end": 9,
+      "signature": "import * as fs from \"fs\";"
+    },
+    {
+      "type": "import",
+      "name": "import * as path from \"path\";",
+      "line_start": 10,
+      "line_end": 10,
+      "signature": "import * as path from \"path\";"
+    },
+    {
+      "type": "class",
+      "name": "SandboxError",
+      "line_start": 12,
+      "line_end": 12,
+      "signature": "class SandboxError extends Error {}",
+      "children": []
+    },
+    {
+      "type": "constant",
+      "name": "isWin",
+      "line_start": 14,
+      "line_end": 14,
+      "signature": "const isWin = process.platform === \"win32\";"
+    },
+    {
+      "type": "function",
+      "name": "normalizeForCompare",
+      "line_start": 16,
+      "line_end": 18,
+      "signature": "function normalizeForCompare(p: string): string {"
+    },
+    {
+      "type": "function",
+      "name": "deepestExisting",
+      "line_start": 22,
+      "line_end": 34,
+      "signature": "function deepestExisting(abs: string): string {",
+      "doc": "The deepest ancestor of `abs` that exists (the path itself when it does)."
+    },
+    {
+      "type": "function",
+      "name": "resolveInWorkspace",
+      "line_start": 36,
+      "line_end": 65,
+      "signature": "function resolveInWorkspace(root: string, userPath: string): string {"
+    },
+    {
+      "type": "function",
+      "name": "relPath",
+      "line_start": 67,
+      "line_end": 69,
+      "signature": "function relPath(root: string, abs: string): string {"
+    },
+    {
+      "type": "constant",
+      "name": "HOME_TOKENS",
+      "line_start": 81,
+      "line_end": 81,
+      "signature": "const HOME_TOKENS = /^(~|\\$HOME|\\$\\{HOME\\}|\\$env:HOME|%USERPROFILE%|%HOMEPATH%)([\\\\/]|$)/i;"
+    },
+    {
+      "type": "constant",
+      "name": "TEMP_TOKENS",
+      "line_start": 82,
+      "line_end": 82,
+      "signature": "const TEMP_TOKENS = /^(\\$TMPDIR|\\$\\{TMPDIR\\}|\\$TEMP|\\$TMP|%TEMP%|%TMP%|\\$\\{TEMP\\}|\\$\\{TMP\\}|\\$env:TMPDIR|\\$env:TEMP|\\$env:TMP)([\\\\/]|$)/i;"
+    },
+    {
+      "type": "constant",
+      "name": "POWERSHELL_ENV",
+      "line_start": 83,
+      "line_end": 83,
+      "signature": "const POWERSHELL_ENV = /^\\$env:[A-Za-z_][A-Za-z0-9_]*/i;"
+    },
+    {
+      "type": "constant",
+      "name": "GLOBAL_INSTALL",
+      "line_start": 84,
+      "line_end": 84,
+      "signature": "const GLOBAL_INSTALL = /\\b(npm|pnpm|yarn|bun)\\b[^;&|]*\\s(-g|--global|global)(\\s|$)/;"
+    },
+    {
+      "type": "constant",
+      "name": "MSYS_ROOTS",
+      "line_start": 87,
+      "line_end": 87,
+      "signature": "const MSYS_ROOTS = /^\\/(tmp|usr|etc|bin|home|mnt|dev|proc|var|opt|root)(\\/|$)/i;"
+    },
+    {
+      "type": "function",
+      "name": "pathCandidates",
+      "line_start": 94,
+      "line_end": 119,
+      "signature": "function pathCandidates(command: string): string[] {",
+      "doc": "Split a command into candidate path tokens: whitespace-separated words with"
+    },
+    {
+      "type": "function",
+      "name": "fromMsys",
+      "line_start": 124,
+      "line_end": 128,
+      "signature": "function fromMsys(tok: string): string {",
+      "doc": "Git Bash writes C:\\x as /c/x; map that back so it compares like a Windows"
+    },
+    {
+      "type": "function",
+      "name": "isAbsoluteLike",
+      "line_start": 130,
+      "line_end": 135,
+      "signature": "function isAbsoluteLike(tok: string): boolean {"
+    },
+    {
+      "type": "function",
+      "name": "realPathOf",
+      "line_start": 139,
+      "line_end": 146,
+      "signature": "function realPathOf(abs: string): string {",
+      "doc": "`abs` with symlinks resolved as far as the path exists; the part not"
+    },
+    {
+      "type": "function",
+      "name": "insideWorkspace",
+      "line_start": 152,
+      "line_end": 155,
+      "signature": "function insideWorkspace(root: string, abs: string): boolean {",
+      "doc": "Both sides are resolved the same way. Resolving only the root made every"
+    },
+    {
+      "type": "function",
+      "name": "commandEscapesWorkspace",
+      "line_start": 162,
+      "line_end": 184,
+      "signature": "function commandEscapesWorkspace(command: string, root: string): string | null {"
+    }
+  ]
+}

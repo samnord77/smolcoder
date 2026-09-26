@@ -1,0 +1,9 @@
+{
+  "original_tokens": 1017,
+  "compressed_tokens": 113,
+  "saved_tokens": 904,
+  "savings_pct": 88.9,
+  "compressed": "# TODO.md (.md) \u2014 45 lines\n# smolcoder \u2014 TODO  ## Done\n## Done - [x] **AGENTS.md memory files** \u2014 injected after the system prompt, size-capped (~2k tokens), survives compaction. Pirate-tested on Ollama and LM Studio.\n## Outstanding - [ ] **Human pass on the terminal TUI** \u2014 puppet-tested and the web twin is visually verified, but no human has driven the real terminal UI in a while (logo, slash menu, shift+tab, pickers,",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\TODO.md"
+}

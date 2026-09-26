@@ -1,0 +1,27 @@
+{
+  "path": "test/vram.test.js",
+  "content_hash": "db1cf95ec58abe94a83501398ed80c16",
+  "updated_at": "2026-09-24T22:50:35",
+  "lines": 27,
+  "size_bytes": 1263,
+  "mtime_ns": 1790286374777520200,
+  "language": "javascript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "constant",
+      "name": "test",
+      "line_start": 2,
+      "line_end": 2,
+      "signature": "const test = require(\"node:test\");"
+    },
+    {
+      "type": "constant",
+      "name": "assert",
+      "line_start": 3,
+      "line_end": 3,
+      "signature": "const assert = require(\"node:assert/strict\");"
+    }
+  ]
+}

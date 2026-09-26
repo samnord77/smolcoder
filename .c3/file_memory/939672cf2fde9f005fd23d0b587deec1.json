@@ -1,0 +1,69 @@
+{
+  "path": "desktop/package.json",
+  "content_hash": "4744eaf1821a333acbf9a84a632400d6",
+  "updated_at": "2026-09-25T14:53:38",
+  "lines": 17,
+  "size_bytes": 366,
+  "mtime_ns": 1790344308891921200,
+  "language": "json",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "property",
+      "name": "name",
+      "line_start": 2,
+      "line_end": 2,
+      "signature": "name"
+    },
+    {
+      "type": "property",
+      "name": "version",
+      "line_start": 3,
+      "line_end": 3,
+      "signature": "version"
+    },
+    {
+      "type": "property",
+      "name": "description",
+      "line_start": 4,
+      "line_end": 4,
+      "signature": "description"
+    },
+    {
+      "type": "property",
+      "name": "license",
+      "line_start": 5,
+      "line_end": 5,
+      "signature": "license"
+    },
+    {
+      "type": "property",
+      "name": "main",
+      "line_start": 6,
+      "line_end": 6,
+      "signature": "main"
+    },
+    {
+      "type": "property",
+      "name": "scripts",
+      "line_start": 7,
+      "line_end": 10,
+      "signature": "scripts"
+    },
+    {
+      "type": "property",
+      "name": "devDependencies",
+      "line_start": 11,
+      "line_end": 13,
+      "signature": "devDependencies"
+    },
+    {
+      "type": "property",
+      "name": "allowScripts",
+      "line_start": 14,
+      "line_end": 16,
+      "signature": "allowScripts"
+    }
+  ]
+}

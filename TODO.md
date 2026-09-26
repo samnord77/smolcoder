@@ -48,13 +48,16 @@
 - [x] **Real LSP code intelligence** — `symbols` tool (hover/def/refs/diag) over typescript-language-server, zero new deps; 2 server quirks fixed (forward-slash URIs, diagnostics need didChange + declared caps).
 - [x] **ADHD-style + long memory** — built-in `direct-style` skill (adapted from i-have-adhd, MIT) and `MEMORY.md` loaded into every session like AGENTS.md.
 - [x] **Every MCP CLI kept** — `docs/mcp-cli.md` lists all server commands incl. laya; zapier/deepwiki noted remote-only (needs HTTP transport, next step).
+- [x] **Durable Cowork work list** — project-scoped personal/work tasks shared by CLI, web and desktop agents; validates dates and limits, supports priorities, notes, status filters, update/complete/archive, and refuses mutations in read-only mode.
+- [x] **Enforced specialist sub-agents** — role tool allowlists are applied to the child schemas and checked again at execution; built-in research, project, Office and personal roles; interactive child MCP/command approvals are relayed to the user.
+- [x] **Restart-safe work plans** — bounded, atomic project-local plans persist for the CLI and per Web conversation; unfinished work is reintroduced to the model on a fresh CLI turn, while concurrent browser conversations keep isolated plans.
 
 ## Outstanding
 
 - [ ] **Human pass on the terminal TUI** — puppet-tested and the web twin is visually verified, but
   no human has driven the real terminal UI in a while (logo, slash menu, shift+tab, pickers,
   approval prompt, esc-cancel mid-stream).
-- [ ] **Plan persistence across sessions** (write/restore from the workspace?).
-- [ ] **Per-backend effort memory** — one saved effort for both backends is awkward now that the
-  levels differ (`high` → `medium` on qwen/LM Studio, `→ thinking on` on Ollama).
+- [x] **Per-backend effort memory** — Ollama and LM Studio retain independent reasoning settings; explicit default is preserved, old configs remain valid, and switching backends loads its saved setting.
+- [x] **Multi-language verification discovery** — auto-runs conventional, fixed test commands for Node scripts, Python pytest projects, Go, Rust, .NET and Maven/Gradle; wrappers are preferred where present and configuration text is never treated as a command.
+- [x] **IDE problem panel (Web + Electron)** — TypeScript/JavaScript diagnostics appear when a file is opened and after saving; selecting a problem opens the reported file and moves to its line. Requests stay within the selected workspace and unsupported languages explain the current LSP limit.
 - [x] **npm publish** — package `smolcoder`, command `smol`; repo at github.com/leonvanzyl/smolcoder. Released as v0.7.1.

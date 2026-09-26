@@ -1,0 +1,9 @@
+{
+  "original_tokens": 116,
+  "compressed_tokens": 24,
+  "saved_tokens": 92,
+  "savings_pct": 79.3,
+  "compressed": "# tsconfig.json (.json) \u2014 17 lines\n\"compilerOptions\":\n\"include\": [\"src/**/*\"]",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\tsconfig.json"
+}

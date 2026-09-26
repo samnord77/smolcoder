@@ -1,0 +1,106 @@
+{
+  "path": "src/config.ts",
+  "content_hash": "7c0de1f545c2fc048ac507aac35b7dc3",
+  "updated_at": "2026-09-26T17:55:04",
+  "lines": 130,
+  "size_bytes": 5121,
+  "mtime_ns": 1790426678882279500,
+  "language": "typescript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "import",
+      "name": "import * as fs from \"fs\";",
+      "line_start": 5,
+      "line_end": 5,
+      "signature": "import * as fs from \"fs\";"
+    },
+    {
+      "type": "import",
+      "name": "import * as os from \"os\";",
+      "line_start": 6,
+      "line_end": 6,
+      "signature": "import * as os from \"os\";"
+    },
+    {
+      "type": "import",
+      "name": "import * as path from \"path\";",
+      "line_start": 7,
+      "line_end": 7,
+      "signature": "import * as path from \"path\";"
+    },
+    {
+      "type": "import",
+      "name": "import { Effort } from \"./providers/types\";",
+      "line_start": 8,
+      "line_end": 8,
+      "signature": "import { Effort } from \"./providers/types\";"
+    },
+    {
+      "type": "import",
+      "name": "import { Mode } from \"./tools/index\";",
+      "line_start": 9,
+      "line_end": 9,
+      "signature": "import { Mode } from \"./tools/index\";"
+    },
+    {
+      "type": "constant",
+      "name": "CONFIG_PATH",
+      "line_start": 13,
+      "line_end": 13,
+      "signature": "const CONFIG_PATH = process.env.SMOLCODER_CONFIG || path.join(os.homedir(), \".smolcoder.json\");"
+    },
+    {
+      "type": "constant",
+      "name": "DATA_DIR",
+      "line_start": 14,
+      "line_end": 14,
+      "signature": "const DATA_DIR = path.join(os.homedir(), \".smolcoder\");"
+    },
+    {
+      "type": "interface",
+      "name": "SavedHost",
+      "line_start": 17,
+      "line_end": 24,
+      "signature": "interface SavedHost {",
+      "children": []
+    },
+    {
+      "type": "interface",
+      "name": "Config",
+      "line_start": 26,
+      "line_end": 35,
+      "signature": "interface Config {",
+      "children": []
+    },
+    {
+      "type": "function",
+      "name": "effortForBackend",
+      "line_start": 37,
+      "line_end": 42,
+      "signature": "function effortForBackend(cfg: Config, backend: \"ollama\" | \"lmstudio\", override?: Effort | null): Effort | null {"
+    },
+    {
+      "type": "function",
+      "name": "loadConfig",
+      "line_start": 44,
+      "line_end": 106,
+      "signature": "function loadConfig(): Config {"
+    },
+    {
+      "type": "function",
+      "name": "saveConfig",
+      "line_start": 108,
+      "line_end": 122,
+      "signature": "function saveConfig(cfg: Config): void {"
+    },
+    {
+      "type": "function",
+      "name": "updateConfig",
+      "line_start": 126,
+      "line_end": 130,
+      "signature": "function updateConfig(patch: Partial<Config>): Config {"
+    }
+  ]
+}

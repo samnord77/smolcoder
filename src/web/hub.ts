@@ -23,13 +23,20 @@ import { Event, SessionChannel, uploadUrl } from "./channel";
 import { PAGE_HTML } from "./page";
 import { SessionMeta, SessionStore, WorkspaceStore, workspaceKey } from "./store";
 import { Terminal } from "./terminal";
+import { resolveInWorkspace, SandboxError } from "../sandbox";
+import { describeSkills, readDelegateStats } from "../skills";
+import { delegatePrompt, loadSubagentRoles, SubagentRole } from "../subagents";
+import { searchWorkspace } from "../workspace-search";
+import { workspaceDiagnostics } from "../workspace-diagnostics";
 
-export type SessionFactory = (ui: SessionChannel, workspace: string, prefs: SessionPrefs) => Promise<Session>;
+export type SessionFactory = (ui: SessionChannel, workspace: string, prefs: SessionPrefs, planKey?: string) => Promise<Session>;
 
 /** Session ids are short hex and upload ids are 16 hex chars. Both end up in
  * file paths under the data folder, so nothing else is accepted. */
 const SESSION_ID_RE = /^[a-z0-9_-]{1,64}$/i;
 const UPLOAD_ID_RE = /^[a-f0-9]{16}$/;
+const WEB_FILE_CAP = 512 * 1024;
+const WEB_TREE_CAP = 800;
 
 export interface HubOptions {
   port: number;
@@ -213,21 +220,21 @@ export function browseDir(input: string | null | undefined): Record<string, any>
 }
 
 function defaultFactory(help: string): SessionFactory {
-  return async (ui, workspace, prefs) => {
+  return async (ui, workspace, prefs, planKey) => {
     const cfg = loadConfig();
     let chosen = await prepareModel(prefs, cfg, (label) => ui.startSpinner(label));
     ui.stopSpinner();
     // Nothing on this computer: the page offers to look on the network.
     if (!chosen) chosen = await setupWithoutLocalModels(ui, prefs);
     if (!chosen) throw new Error(noBackendsMessage());
-    return new Session(ui, { workspace, chosen, prefs, cfg, help });
+    return new Session(ui, { workspace, chosen, prefs, cfg, help, hubRec: null, planKey });
   };
 }
 
 // ---- the hub ----------------------------------------------------------------
 
 export class WebHub {
-  readonly authToken = crypto.randomBytes(9).toString("base64url");
+  readonly authToken: string;
   readonly dataDir: string;
   port: number;
 
@@ -245,6 +252,18 @@ export class WebHub {
   constructor(private opts: HubOptions) {
     this.port = opts.port;
     this.dataDir = opts.dataDir ?? DATA_DIR;
+    // Lien stable : le token survit aux redémarrages (fichier 0600 déjà
+    // existant). Fini les liens morts à chaque redémarrage.
+    let prev: HubRecord | null = null;
+    try {
+      prev = readHubRecord(this.dataDir);
+    } catch {
+      /* none */
+    }
+    this.authToken =
+      prev && typeof prev.token === "string" && prev.token.length >= 8
+        ? prev.token
+        : crypto.randomBytes(9).toString("base64url");
     this.store = new SessionStore(this.dataDir);
     this.workspaces = new WorkspaceStore(this.dataDir);
     for (const m of this.store.listMetas()) this.metas.set(m.id, m);
@@ -469,7 +488,7 @@ export class WebHub {
       prefs = { ...prefs, mode, backend: restore.backend, model: restore.model ?? prefs.model, baseUrl: restore.baseUrl, effort: restore.effort !== undefined ? restore.effort : prefs.effort };
     }
     try {
-      const session = await this.factory(live.channel, live.workspace, prefs);
+      const session = await this.factory(live.channel, live.workspace, prefs, live.id);
       if (live.channel.closed || this.live.get(live.id) !== live) {
         session.taskManager.killAll();
         return;
@@ -715,6 +734,38 @@ export class WebHub {
         case "/upload":
           this.serveUpload(res, url);
           return;
+        case "/workspace/tree":
+          json(200, this.workspaceTree(url.searchParams.get("sid"), url.searchParams.get("path")));
+          return;
+        case "/workspace/search": {
+          const sid = String(url.searchParams.get("sid") ?? "");
+          const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
+          if (!live) { json(404, { error: "no such session" }); return; }
+          try {
+            json(200, searchWorkspace(live.workspace, String(url.searchParams.get("q") ?? ""), {
+              path: String(url.searchParams.get("path") ?? "."), maxMatches: 200,
+            }));
+          } catch (err: any) { json(400, { error: String(err?.message ?? err) }); }
+          return;
+        }
+        case "/workspace/diagnostics": {
+          const sid = String(url.searchParams.get("sid") ?? "");
+          const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
+          if (!live) { json(404, { error: "no such session" }); return; }
+          void workspaceDiagnostics(live.workspace, url.searchParams.get("path"))
+            .then((result) => json(200, result))
+            .catch((err: any) => json(400, { error: String(err?.message ?? err).slice(0, 500) }));
+          return;
+        }
+        case "/workspace/file":
+          this.workspaceFile(res, url);
+          return;
+        case "/status":
+          this.statusReport(url)
+            .then((r) => json(200, r))
+            .catch((err) => json(200, { error: String(err?.message ?? err) }));
+          return;
+
         default:
           res.writeHead(404);
           res.end();
@@ -963,8 +1014,188 @@ export class WebHub {
       case "/term/close":
         this.closeTerminal(sid, String(d.tid ?? ""));
         return {};
+      case "/agents/draft": {
+        const l = live();
+        return this.agentDraft(l.workspace, String(d.role ?? ""), String(d.task ?? ""));
+      }
+      case "/workspace/file":
+        return this.saveWorkspaceFile(sid, d);
       default:
         throw new Error(`unknown endpoint ${p}`);
     }
   }
+
+  /** Structured project tree for the web IDE panel. It is deliberately
+   * read-only and bounded so a huge monorepo cannot freeze the browser. */
+  private workspaceTree(sidRaw: string | null, relRaw: string | null): any {
+    const sid = String(sidRaw ?? "");
+    const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
+    if (!live) throw new Error("no such session");
+    const rel = String(relRaw ?? "").trim() || ".";
+    let abs: string;
+    try {
+      abs = resolveInWorkspace(live.workspace, rel);
+    } catch (err: any) {
+      throw new Error(err instanceof SandboxError ? err.message : String(err?.message ?? err));
+    }
+    const st = fs.statSync(abs);
+    if (!st.isDirectory()) throw new Error("not a folder");
+    const entries = fs.readdirSync(abs, { withFileTypes: true })
+      .filter((e) => !e.name.startsWith(".") && !["node_modules", "dist", "build", "coverage", ".git"].includes(e.name))
+      .sort((a, b) => (a.isDirectory() === b.isDirectory() ? a.name.localeCompare(b.name) : a.isDirectory() ? -1 : 1))
+      .slice(0, WEB_TREE_CAP)
+      .map((e) => {
+        const child = path.join(abs, e.name);
+        let size = 0;
+        let mtimeMs = 0;
+        if (!e.isDirectory()) {
+          try {
+            const cs = fs.statSync(child);
+            size = cs.size;
+            mtimeMs = cs.mtimeMs;
+          } catch { /* best effort */ }
+        }
+        return {
+          name: e.name,
+          path: path.relative(live.workspace, child).split(path.sep).join("/") || ".",
+          dir: e.isDirectory(),
+          size,
+          mtimeMs,
+        };
+      });
+    return { workspace: live.workspace, path: rel === "." ? "." : path.relative(live.workspace, abs).split(path.sep).join("/"), entries };
+  }
+
+  private workspaceFile(res: http.ServerResponse, url: URL): void {
+    const sid = String(url.searchParams.get("sid") ?? "");
+    const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
+    if (!live) {
+      res.writeHead(404, { "content-type": "application/json" });
+      res.end(JSON.stringify({ error: "no such session" }));
+      return;
+    }
+    let abs: string;
+    try {
+      abs = resolveInWorkspace(live.workspace, String(url.searchParams.get("path") ?? ""));
+      const st = fs.statSync(abs);
+      if (st.isDirectory()) throw new Error("not a file");
+      if (st.size > WEB_FILE_CAP) throw new Error(`file is larger than ${WEB_FILE_CAP} bytes`);
+      const content = fs.readFileSync(abs, "utf8");
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({
+        path: path.relative(live.workspace, abs).split(path.sep).join("/"),
+        content,
+        size: st.size,
+        mtimeMs: st.mtimeMs,
+      }));
+    } catch (err: any) {
+      res.writeHead(400, { "content-type": "application/json" });
+      res.end(JSON.stringify({ error: err instanceof SandboxError ? err.message : String(err?.message ?? err) }));
+    }
+  }
+
+  private saveWorkspaceFile(sid: string, d: any): any {
+    const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
+    if (!live || !live.session) throw new Error("no such session");
+    const mode = live.session.agent.mode;
+    if (mode === "ro") throw new Error("workspace is read-only; switch the session to edit mode first");
+    const rel = String(d.path ?? "").trim();
+    const content = typeof d.content === "string" ? d.content : "";
+    if (!rel) throw new Error("path is required");
+    if (content.length > WEB_FILE_CAP) throw new Error(`file is larger than ${WEB_FILE_CAP} bytes`);
+    let abs: string;
+    try {
+      abs = resolveInWorkspace(live.workspace, rel);
+    } catch (err: any) {
+      throw new Error(err instanceof SandboxError ? err.message : String(err?.message ?? err));
+    }
+    if (d.expectedMtimeMs !== undefined) {
+      const expected = Number(d.expectedMtimeMs);
+      if (!Number.isFinite(expected)) throw new Error("invalid file version; reload it before saving");
+      if (!fs.existsSync(abs)) throw new Error("file was removed from disk; reload the folder before saving");
+      const current = fs.statSync(abs).mtimeMs;
+      if (Math.abs(current - expected) > 1) {
+        throw new Error("file changed on disk; reload it before saving");
+      }
+    }
+    fs.mkdirSync(path.dirname(abs), { recursive: true });
+    fs.writeFileSync(abs, content, "utf8");
+    live.session.toolCtx.filesTouched.add(rel);
+    const st = fs.statSync(abs);
+    live.channel.status(`· saved ${rel}`);
+    live.channel.refresh();
+    return { path: rel, size: st.size, mtimeMs: st.mtimeMs };
+  }
+  /** Everything the IDE control centre needs about one live session. Kept off
+   * the hot SSE path: the page asks for it when the panel opens. */
+  private async statusReport(url: URL): Promise<any> {
+    const sid = String(url.searchParams.get("sid") ?? "");
+    const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
+    if (!live) return { error: "no such session" };
+    const session = live.session;
+    let skills: any[] = [];
+    try {
+      skills = describeSkills(live.workspace);
+    } catch {
+      skills = [];
+    }
+    let mcp: any[] = [];
+    try {
+      const bridge = session?.toolCtx?.mcp;
+      if (bridge) {
+        const rows = await bridge.status(6000);
+        mcp = rows.map((r) => ({
+          name: r.name,
+          ok: !!r.ok,
+          tools: Array.isArray(r.tools) ? r.tools.length : 0,
+          error: r.error ? String(r.error).slice(0, 200) : null,
+        }));
+      }
+    } catch {
+      mcp = [];
+    }
+    const tools = (session?.agent?.tools ?? []).map((t: any) => ({
+      name: String(t.name ?? ""),
+      description: String(t.description ?? "").split("\n")[0].slice(0, 220),
+    }));
+    return {
+      t: "status",
+      sid: live.id,
+      workspace: live.workspace,
+      version: this.opts.version,
+      state: session?.state() ?? {},
+      tools,
+      skills,
+      skillsActive: live.channel.skillsActive,
+      subagents: {
+        roles: loadSubagentRoles(live.workspace),
+        running: live.channel.subagentActive,
+        runs: live.channel.subagentRuns,
+        stats: readDelegateStats(live.workspace),
+      },
+      mcp,
+      runtime: {
+        node: process.version,
+        platform: process.platform,
+        arch: process.arch,
+        cpus: os.cpus().length,
+        memTotalMb: Math.round(os.totalmem() / 1048576),
+        memFreeMb: Math.round(os.freemem() / 1048576),
+        pid: process.pid,
+        uptimeSec: Math.round(process.uptime()),
+      },
+    };
+  }
+
+  /** The delegation message for a role. subagents.ts stays the single source of
+   * truth so the IDE, the TUI and the CLI all say the same thing. */
+  private agentDraft(workspace: string, roleName: string, task: string): any {
+    const clean = task.trim();
+    if (!clean) throw new Error("écrivez la tâche à déléguer");
+    const wanted = String(roleName ?? "").trim().toLowerCase();
+    const role = loadSubagentRoles(workspace).find((r: SubagentRole) => r.name === wanted);
+    if (!role) throw new Error(`rôle de sous-agent inconnu : ${roleName}`);
+    return { role: role.name, title: role.role, text: delegatePrompt(role, clean) };
+  }
+
 }

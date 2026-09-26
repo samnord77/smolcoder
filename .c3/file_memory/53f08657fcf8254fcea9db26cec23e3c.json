@@ -1,0 +1,20 @@
+{
+  "path": "src/history.ts",
+  "content_hash": "1db62992267b7859e8899a9dd2ed4f77",
+  "updated_at": "2026-09-24T17:24:23",
+  "lines": 6,
+  "size_bytes": 395,
+  "mtime_ns": 1790260569938160100,
+  "language": "typescript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "function",
+      "name": "isHistoryPlaceholder",
+      "line_start": 4,
+      "line_end": 6,
+      "signature": "function isHistoryPlaceholder(value: string): boolean {"
+    }
+  ]
+}

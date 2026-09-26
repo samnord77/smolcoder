@@ -1,0 +1,9 @@
+{
+  "original_tokens": 1469,
+  "compressed_tokens": 242,
+  "saved_tokens": 1227,
+  "savings_pct": 83.5,
+  "compressed": "# editor.html (.html) \u2014 120 lines\n<div id=\"bar\"> <button id=\"bFolder\">\ud83d\udcc1 Dossier</button> <button id=\"bSave\">\ud83d\udcbe Enregistrer (Ctrl+S)</button>\n<button id=\"bFolder\">\ud83d\udcc1 Dossier</button>\n<button id=\"bSave\">\ud83d\udcbe Enregistrer (Ctrl+S)</button>\n<span id=\"root\">aucun dossier \u2014 cliquez \u00ab Dossier \u00bb</span>\n<div id=\"main\"> <div id=\"tree\"></div> <textarea id=\"ed\" spellcheck=\"false\" placeholder=\"Choisissez un dossier, puis un fichier\u2026\"></textarea>\n<div id=\"tree\"></div>\n<textarea id=\"ed\" spellcheck=\"false\" placeholder=\"Choisissez un dossier, puis un fichier\u2026\"></textarea>\n<div id=\"err\"></div>\n<div id=\"status\"><span id=\"sFile\">\u2014</span><span id=\"sDirty\"></span><span id=\"sMsg\"></span></div>\n<div id=\"status\"><span id=\"sFile\">\u2014</span><span id=\"sDirty\"></span><span id=\"sMsg\"></span></div>",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\desktop\\editor.html"
+}

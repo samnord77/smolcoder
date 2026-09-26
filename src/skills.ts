@@ -126,12 +126,18 @@ export function saveSkill(root: string, name: unknown, content: unknown): string
 // ---------------------------------------------------------------------------
 
 const STOP_WORDS = new Set(
-  "with,from,that,this,have,will,your,into,over,under,about,after,before,when,where,which,while,what,than,also,just,like,make,made,does,doing,file,files,code,task,work,need,needs,using,use,used,error,errors".split(",")
+  "with,from,that,this,have,will,your,into,over,under,about,after,before,when,where,which,while,what,than,also,just,like,make,made,does,doing,file,files,code,task,work,need,needs,using,use,used,error,errors,avec,pour,dans,une,des,les,aux,son,ses,est,sont,faire,fait,besoin,besoins,fichier,fichiers,code,tâche,taches,travail,utiliser,utilise,erreur,erreurs".split(",")
 );
 
 function keywords(s: string): Set<string> {
   const out = new Set<string>();
-  for (const w of (s.toLowerCase().match(/[a-z]{4,}/g) ?? [])) {
+  const normalized = s
+    .toLocaleLowerCase()
+    .normalize("NFKC")
+    .replace(/\b(mise en page|interface|interfaces|ui|ux|visuel|visuelle|visuels|design|conception)\b/gu, " design ")
+    .replace(/\b(espacement|espacements|marges|marge|alignement|alignements)\b/gu, " spacing ")
+    .replace(/\b(animation|animations|transition|transitions)\b/gu, " motion ");
+  for (const w of (normalized.match(/[\p{L}\p{N}][\p{L}\p{N}_-]{2,}/gu) ?? [])) {
     if (!STOP_WORDS.has(w)) out.add(w);
   }
   return out;
@@ -162,22 +168,80 @@ function allSkillTexts(root: string): { name: string; text: string }[] {
   return out;
 }
 
+/** One skill as the control centre shows it. */
+export interface SkillInfo {
+  name: string;
+  /** Shipped with smolcoder (read-only, not a file in the workspace). */
+  builtin: boolean;
+  /** Files an auto-repair lesson wrote (`auto-…`). */
+  auto: boolean;
+  description: string;
+  bytes: number;
+  updatedAt: number;
+}
+
+/** Every skill a session can use, workspace files first then built-ins.
+ * Never throws: the control centre must render in an empty workspace. */
+export function describeSkills(root: string): SkillInfo[] {
+  const out: SkillInfo[] = [];
+  try {
+    const dir = resolveInWorkspace(root, SKILLS_DIR);
+    for (const f of fs.readdirSync(dir)) {
+      if (!f.endsWith(".md")) continue;
+      const name = f.slice(0, -3);
+      if (!NAME_RE.test(name)) continue;
+      try {
+        const abs = path.join(dir, f);
+        const st = fs.statSync(abs);
+        if (!st.isFile()) continue;
+        const text = fs.readFileSync(abs, "utf8");
+        out.push({
+          name,
+          builtin: false,
+          auto: name.startsWith("auto-"),
+          description: skillMeta(text).description ?? "",
+          bytes: st.size,
+          updatedAt: st.mtimeMs,
+        });
+      } catch {
+        /* skip one unreadable file */
+      }
+    }
+  } catch {
+    /* no workspace skills yet */
+  }
+  for (const [name, text] of Object.entries(BUILTIN_SKILLS)) {
+    if (out.some((s) => s.name === name)) continue;
+    out.push({ name, builtin: true, auto: false, description: skillMeta(text).description ?? "", bytes: text.length, updatedAt: 0 });
+  }
+  out.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0) || a.name.localeCompare(b.name));
+  return out.slice(0, 200);
+}
+
+/** Skills whose vocabulary overlaps the request (score >= 2 shared keywords),
+ * best match first. Shared by the text loader and the live status view. */
+function matchingSkills(root: string, request: string): { name: string; score: number; excerpt: string }[] {
+  const req = keywords(String(request ?? ""));
+  if (!req.size) return [];
+  const hits: { name: string; score: number; excerpt: string }[] = [];
+  for (const s of allSkillTexts(root)) {
+    const words = keywords(`${s.name.replace(/[-_]/g, " ")} ${s.text}`);
+    let score = 0;
+    for (const w of req) if (words.has(w)) score++;
+    const nameWords = keywords(s.name.replace(/[-_]/g, " "));
+    const directName = [...req].some((w) => nameWords.has(w));
+    if (score >= 2 || directName) hits.push({ name: s.name, score: directName ? Math.max(score, 3) : score, excerpt: s.text.slice(0, 600) });
+  }
+  hits.sort((a, b) => b.score - a.score);
+  return hits;
+}
+
 /** Skills whose vocabulary overlaps the request. Returns "" when none match
  * (score >= 2 shared keywords). Capped so small contexts stay safe. */
 export function relevantSkills(root: string, request: string, maxChars = 1200): string {
   try {
-    const req = keywords(String(request ?? ""));
-    if (!req.size) return "";
-    const hits: { name: string; score: number; excerpt: string }[] = [];
-    for (const s of allSkillTexts(root)) {
-      const words = keywords(`${s.name.replace(/[-_]/g, " ")} ${s.text}`);
-      let score = 0;
-      for (const w of req) if (words.has(w)) score++;
-      if (score >= 2) hits.push({ name: s.name, score, excerpt: s.text.slice(0, 600) });
-    }
-    hits.sort((a, b) => b.score - a.score);
     let out = "";
-    for (const h of hits.slice(0, 2)) {
+    for (const h of matchingSkills(root, request).slice(0, 2)) {
       const block = `### skill ${h.name}\n${h.excerpt}\n`;
       if ((out + block).length > maxChars) break;
       out += block;
@@ -185,6 +249,15 @@ export function relevantSkills(root: string, request: string, maxChars = 1200): 
     return out;
   } catch {
     return "";
+  }
+}
+
+/** Names of the skills that just rode into a turn (for the status view). */
+export function relevantSkillNames(root: string, request: string, limit = 2): string[] {
+  try {
+    return matchingSkills(root, request).slice(0, Math.max(0, limit)).map((h) => h.name);
+  } catch {
+    return [];
   }
 }
 
@@ -235,6 +308,20 @@ function pruneAutoLessons(root: string): void {
     }
   } catch {
     /* best effort */
+  }
+}
+
+export function readDelegateStats(root: string): { runs: number; toolCalls: number; lastAt: number } {
+  try {
+    const abs = resolveInWorkspace(root, ".smol/delegate-stats.json");
+    const raw = JSON.parse(fs.readFileSync(abs, "utf8"));
+    return {
+      runs: Number(raw?.runs) || 0,
+      toolCalls: Number(raw?.toolCalls) || 0,
+      lastAt: Number(raw?.lastAt) || 0,
+    };
+  } catch {
+    return { runs: 0, toolCalls: 0, lastAt: 0 };
   }
 }
 

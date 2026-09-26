@@ -1,0 +1,51 @@
+{
+  "path": "src/workspace-diagnostics.ts",
+  "content_hash": "ac54a495d2fa352e6b0d49c3a79162c4",
+  "updated_at": "2026-09-26T17:51:05",
+  "lines": 69,
+  "size_bytes": 1977,
+  "mtime_ns": 1790427948830111000,
+  "language": "typescript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "import",
+      "name": "import { querySymbols } from \"./lsp\";",
+      "line_start": 1,
+      "line_end": 1,
+      "signature": "import { querySymbols } from \"./lsp\";"
+    },
+    {
+      "type": "import",
+      "name": "import { resolveInWorkspace } from \"./sandbox\";",
+      "line_start": 2,
+      "line_end": 2,
+      "signature": "import { resolveInWorkspace } from \"./sandbox\";"
+    },
+    {
+      "type": "interface",
+      "name": "WorkspaceDiagnostic",
+      "line_start": 4,
+      "line_end": 9,
+      "signature": "interface WorkspaceDiagnostic {",
+      "children": []
+    },
+    {
+      "type": "interface",
+      "name": "WorkspaceDiagnosticsResult",
+      "line_start": 11,
+      "line_end": 15,
+      "signature": "interface WorkspaceDiagnosticsResult {",
+      "children": []
+    },
+    {
+      "type": "function",
+      "name": "workspaceDiagnostics",
+      "line_start": 18,
+      "line_end": 69,
+      "signature": "async function workspaceDiagnostics(",
+      "async": true
+    }
+  ]
+}

@@ -8,6 +8,7 @@
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; background: #1e1e1e; color: #d4d4d4;
     font-family: Consolas, "Courier New", monospace; font-size: 14px; }
+  body { position: relative; }
   #bar { display: flex; gap: 10px; align-items: center; padding: 10px 12px; min-height: 52px;
     background: #252526; border-bottom: 1px solid #3c3c3c; }
   #bar button { background: #0e639c; color: #fff; border: 0; border-radius: 6px;
@@ -18,25 +19,58 @@
   #main { display: flex; height: calc(100% - 96px); min-height: 0; }
   #tree { width: 260px; min-width: 180px; overflow: auto; background: #252526;
     border-right: 1px solid #3c3c3c; padding: 8px 6px; line-height: 1.6; }
+  #side { display: flex; flex-direction: column; width: 260px; min-width: 180px; min-height: 0; background: #252526; border-right: 1px solid #3c3c3c; }
+  #searchBox { display: flex; gap: 4px; padding: 7px; border-bottom: 1px solid #3c3c3c; }
+  #searchInput { min-width: 0; flex: 1; background: #1e1e1e; color: #d4d4d4; border: 1px solid #555; padding: 6px; }
+  #searchButton { background: #3c3c3c !important; padding: 6px 9px !important; }
+  #results { max-height: 32%; overflow: auto; border-bottom: 1px solid #3c3c3c; }
+  .result { display: block; width: 100%; text-align: left; color: #d4d4d4; background: transparent; border: 0; padding: 5px 7px; cursor: pointer; font: 12px Consolas, monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .result:hover { background: #37373d; }
   #tree .d { color: #4ec9b0; cursor: pointer; padding: 6px 8px; border-radius: 4px; }
   #tree .f { color: #d4d4d4; cursor: pointer; padding: 6px 8px; white-space: nowrap; border-radius: 4px; }
   #tree .f:hover, #tree .d:hover { background: #2a2d2e; }
   #tree .open { background: #37373d; box-shadow: inset 2px 0 0 #007acc; }
+  #editorPane { display: flex; flex: 1; flex-direction: column; min-width: 0; min-height: 0; }
+  #tabs { display: flex; gap: 1px; min-height: 35px; overflow-x: auto; background: #252526; border-bottom: 1px solid #3c3c3c; }
+  #findBar { display: none; gap: 5px; align-items: center; flex-wrap: wrap; padding: 6px; background: #252526; border-bottom: 1px solid #3c3c3c; font: 12px Segoe UI, sans-serif; }
+  #findBar.open { display: flex; }
+  #findBar input { min-width: 80px; width: 22%; padding: 5px 7px; color: #d4d4d4; background: #1e1e1e; border: 1px solid #555; }
+  #findBar button { min-height: 28px; padding: 4px 8px; }
+  #replaceWrap { display: none; gap: 5px; align-items: center; flex: 1; flex-wrap: wrap; }
+  #replaceWrap.open { display: flex; }
+  #findCount { color: #aaa; min-width: 90px; }
+  .tab { display: flex; align-items: center; flex: none; max-width: 220px; background: #2d2d2d; border-right: 1px solid #1e1e1e; }
+  .tab.active { background: #1e1e1e; border-top: 1px solid #007acc; }
+  .tab-label, .tab-close { color: #d4d4d4; border: 0; background: transparent !important; border-radius: 0 !important; min-height: 32px !important; padding: 4px 8px !important; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 12px Consolas, monospace !important; }
+  .tab-label { text-align: left; max-width: 175px; }
+  .tab-close { padding: 4px 7px !important; color: #aaa !important; }
+  .tab-close:hover { background: #3c3c3c !important; }
   #tree:empty::after { content: "Aucun dossier ouvert — cliquez « Dossier » pour commencer."; display: block; margin: 8px; padding: 20px 12px; color: #858585; font-size: 12.5px; line-height: 1.6; text-align: center; border: 1px dashed #3c3c3c; border-radius: 8px; font-family: Segoe UI, sans-serif; }
-  #ed { flex: 1; min-width: 0; background: #1e1e1e; color: #d4d4d4; border: 0; outline: none;
-    resize: none; padding: 12px 14px; font: inherit; line-height: 1.6; tab-size: 2; }
+  #editorWrap { position: relative; flex: 1; min-width: 0; min-height: 0; overflow: hidden; background: #1e1e1e; }
+  #codeLayer, #ed { position: absolute; inset: 0; margin: 0; padding: 12px 14px; font: inherit; line-height: 1.6; tab-size: 2; white-space: pre-wrap; overflow: auto; word-wrap: break-word; }
+  #codeLayer { pointer-events: none; color: #d4d4d4; }
+  #ed { background: transparent; color: transparent; caret-color: #fff; border: 0; outline: none; resize: none; }
   #ed::placeholder { color: #858585; opacity: 1; }
   #ed:focus-visible { outline: 2px solid #007acc; outline-offset: -2px; }
+  .tok-key { color: #c586c0; } .tok-str { color: #ce9178; } .tok-num { color: #b5cea8; }
+  .tok-com, .tok-c { color: #6a9955; } .tok-lit, .tok-k { color: #c586c0; } .tok-f { color: #dcdcaa; } .tok-o { color: #d4d4d4; } .tok-tag { color: #4ec9b0; } .tok-s { color: #ce9178; } .tok-n { color: #b5cea8; }
   #status { display: flex; gap: 8px 16px; flex-wrap: wrap; align-items: center; padding: 8px 12px; min-height: 28px; background: #007acc; color: #fff;
     font-size: 12.5px; font-family: Segoe UI, sans-serif; }
   #err { color: #f48771; padding: 4px 12px; font-size: 12.5px; line-height: 1.5; min-height: 22px; }
+  #diagPanel { display: none; position: absolute; z-index: 5; left: 260px; right: 0; bottom: 58px; max-height: 150px; overflow: auto; background: #181818; border: 1px solid #3c3c3c; box-shadow: 0 8px 24px #0008; font: 12px Segoe UI, sans-serif; }
+  #diagPanel.open { display: block; }
+  .diagItem { display: block; width: 100%; text-align: left; border: 0; border-bottom: 1px solid #292929; padding: 6px 12px; color: #d4d4d4; background: transparent; cursor: pointer; }
+  .diagItem:hover { background: #2a2d2e; }
+  .diagItem.error { box-shadow: inset 3px 0 #f14c4c; } .diagItem.warning { box-shadow: inset 3px 0 #cca700; }
   :focus-visible { outline: 2px solid #9cdcfe; outline-offset: 2px; }
   @media (max-width: 700px) {
     body { display: flex; flex-direction: column; }
     #bar { flex-wrap: wrap; }
     #main { flex-direction: column; height: auto; flex: 1; }
+    #side { width: 100%; min-width: 0; flex: 1; }
     #tree { width: 100%; min-width: 0; max-height: 32vh; border-right: 0; border-bottom: 1px solid #3c3c3c; }
     #ed { min-height: 40vh; }
+    #diagPanel { left: 8px; }
   }
 </style>
 </head>
@@ -44,22 +78,60 @@
 <div id="bar">
   <button id="bFolder">📁 Dossier</button>
   <button id="bSave">💾 Enregistrer (Ctrl+S)</button>
+  <button id="bDiag" title="Analyser le fichier avec le serveur de langage">✓ Problèmes</button>
   <span id="root">aucun dossier — cliquez « Dossier »</span>
 </div>
 <div id="main">
-  <div id="tree"></div>
-  <textarea id="ed" spellcheck="false" placeholder="Choisissez un dossier, puis un fichier…"></textarea>
+  <div id="side"><div id="searchBox"><input id="searchInput" placeholder="Rechercher dans le projet…" aria-label="Rechercher dans le projet"><button id="searchButton" title="Rechercher">⌕</button></div><div id="results" hidden></div><div id="tree"></div></div>
+  <div id="editorPane"><div id="tabs" role="tablist" aria-label="Fichiers ouverts"></div><div id="findBar" role="search"><input id="findInput" aria-label="Rechercher dans le fichier" placeholder="Rechercher dans le fichier"><button id="findPrev" type="button" title="Occurrence précédente (Maj+F3)">↑</button><button id="findNext" type="button" title="Occurrence suivante (F3)">↓</button><span id="findCount" aria-live="polite"></span><div id="replaceWrap"><input id="replaceInput" aria-label="Remplacer par" placeholder="Remplacer par"><button id="replaceOne" type="button">Remplacer</button><button id="replaceAll" type="button">Tout remplacer</button></div><button id="findClose" type="button" aria-label="Fermer la recherche">×</button></div><div id="editorWrap"><pre id="codeLayer" aria-hidden="true"></pre><textarea id="ed" spellcheck="false" placeholder="Choisissez un dossier, puis un fichier…"></textarea></div></div>
 </div>
 <div id="err"></div>
-<div id="status"><span id="sFile">—</span><span id="sDirty"></span><span id="sMsg"></span></div>
+<div id="diagPanel" role="region" aria-label="Problèmes du fichier"></div>
+<div id="status"><span id="sFile">—</span><span id="sPosition">Ln 1, Col 1</span><span id="sDirty"></span><span id="sMsg"></span></div>
 <script>
 const $ = (id) => document.getElementById(id);
 const tree = $("tree"), ed = $("ed"), err = $("err");
+const results = $("results"), searchInput = $("searchInput");
+const tabBar = $("tabs"), tabs = window.smolEd.tabs;
+const codeLayer = $("codeLayer");
 let root = null, cur = null, dirty = false, folders = { ".": true };
+let diagnosticRequest = 0;
 
 function showErr(m) { err.textContent = m || ""; }
 function setDirty(d) { dirty = d; $("sDirty").textContent = d ? "● modifié" : ""; }
 function join(a, b) { return a === "." ? b : a + "/" + b; }
+function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+function languageFor(file) { return file ? file.split(".").pop().toLowerCase() : ""; }
+function paint() { codeLayer.innerHTML = window.smolEd.highlightCode(ed.value, languageFor(cur)); codeLayer.scrollTop = ed.scrollTop; codeLayer.scrollLeft = ed.scrollLeft; }
+function updateCursor() { const p = window.smolEd.editorTools.cursorPosition(ed.value, ed.selectionStart); $("sPosition").textContent = "Ln " + p.line + ", Col " + p.column; }
+function stashCurrent() { if (cur) tabs.update(cur, ed.value); }
+function renderTabs() {
+  tabBar.replaceChildren();
+  for (const tab of tabs.list()) {
+    const item = document.createElement("div"); item.className = "tab" + (tab.path === cur ? " active" : "");
+    const label = document.createElement("button"); label.className = "tab-label"; label.type = "button"; label.setAttribute("role", "tab"); label.setAttribute("aria-selected", String(tab.path === cur));
+    label.textContent = (tab.dirty ? "● " : "") + tab.path.split("/").pop(); label.title = tab.path; label.onclick = () => activateTab(tab.path);
+    const close = document.createElement("button"); close.className = "tab-close"; close.type = "button"; close.textContent = "×"; close.title = "Fermer " + tab.path; close.setAttribute("aria-label", "Fermer " + tab.path); close.onclick = () => closeTab(tab.path);
+    item.append(label, close); tabBar.appendChild(item);
+  }
+}
+function showTab(tab) {
+  cur = tab ? tab.path : null;
+  ed.value = tab ? tab.content : ""; paint(); setDirty(!!(tab && tab.dirty));
+  updateCursor();
+  $("sFile").textContent = tab ? tab.path : "—"; $("sMsg").textContent = "";
+  renderTabs(); refreshTree();
+  if (tab && /\.(?:[cm]?js|jsx|tsx?)$/i.test(tab.path)) void analyzeCurrent();
+  else { diagnosticRequest++; $("diagPanel").classList.remove("open"); $("diagPanel").replaceChildren(); }
+}
+function activateTab(filePath) { stashCurrent(); const tab = tabs.activate(filePath); if (tab) showTab(tab); }
+function closeTab(filePath) {
+  stashCurrent();
+  const tab = tabs.list().find((item) => item.path === filePath);
+  if (!tab || (tab.dirty && !confirm("Fermer " + filePath + " sans enregistrer ses modifications ?"))) return;
+  const result = tabs.close(filePath, tab.dirty);
+  if (result.closed) showTab(result.active);
+}
 
 async function refreshTree() {
   tree.innerHTML = "";
@@ -83,31 +155,124 @@ async function refreshTree() {
 function toggle(p) { folders[p] ? delete folders[p] : folders[p] = true; refreshTree(); }
 
 async function openFile(p) {
-  if (dirty && !confirm("Abandonner les modifications non enregistrées ?")) return;
+  stashCurrent();
+  const existing = tabs.activate(p);
+  if (existing) { showTab(existing); showErr(""); return; }
   try {
-    ed.value = await window.smolEd.read(p);
-    cur = p; setDirty(false); showErr("");
-    $("sFile").textContent = p;
-    $("sMsg").textContent = "";
-    refreshTree();
+    const file = await window.smolEd.read(p);
+    showTab(tabs.open(p, file.content, file.mtimeMs)); showErr("");
   } catch (e) { showErr(e.message); }
 }
 
 async function save() {
   if (!cur) { showErr("Aucun fichier ouvert."); return; }
+  const filePath = cur, content = ed.value, tab = tabs.active();
   try {
-    await window.smolEd.save(cur, ed.value);
-    setDirty(false); showErr("");
-    $("sMsg").textContent = "enregistré ✓ " + new Date().toLocaleTimeString();
+    const result = await window.smolEd.save(filePath, content, tab ? tab.mtimeMs : undefined);
+    const saved = tabs.saved(filePath, result.mtimeMs, content);
+    if (cur === filePath) setDirty(!!(saved && saved.dirty));
+    showErr("");
+    renderTabs();
+    $("sMsg").textContent = (saved && saved.dirty ? "enregistré · nouvelles modifications à enregistrer " : "enregistré ✓ ") + new Date().toLocaleTimeString();
+    if (saved && !saved.dirty) void analyzeCurrent();
   } catch (e) { showErr(e.message); }
 }
 
+async function analyzeCurrent() {
+  if (!cur) { showErr("Ouvrez d’abord un fichier."); return; }
+  if (!/\.(?:[cm]?js|jsx|tsx?)$/i.test(cur)) { showErr("L’analyse en direct prend en charge TypeScript et JavaScript."); return; }
+  const filePath = cur, request = ++diagnosticRequest;
+  const panel = $("diagPanel"); panel.classList.add("open"); panel.replaceChildren(); panel.textContent = "Analyse du fichier…";
+  const tab = tabs.active();
+  if (tab && tab.dirty) { panel.textContent = "Enregistrez les modifications pour analyser la version actuelle."; return; }
+  try {
+    const result = await window.smolEd.diagnostics(filePath);
+    if (request !== diagnosticRequest || cur !== filePath) return;
+    panel.replaceChildren();
+    if (result.message) { const note = document.createElement("div"); note.className = "diagItem"; note.textContent = result.message; panel.appendChild(note); }
+    for (const diagnostic of result.diagnostics || []) {
+      const row = document.createElement("button"); row.type = "button"; row.className = "diagItem " + diagnostic.severity;
+      row.textContent = `${diagnostic.severity.toUpperCase()}  ${diagnostic.path}:${diagnostic.line}  ${diagnostic.message}`;
+      row.onclick = async () => {
+        if (diagnostic.path !== cur) await openFile(diagnostic.path);
+        const offset = window.smolEd.editorTools.offsetForPosition(ed.value, diagnostic.line);
+        ed.focus(); ed.setSelectionRange(offset, offset); updateCursor();
+      };
+      panel.appendChild(row);
+    }
+  } catch (e) {
+    if (request !== diagnosticRequest || cur !== filePath) return;
+    panel.replaceChildren(); panel.textContent = String(e.message || e);
+  }
+}
+
+async function searchProject() {
+  const query = searchInput.value.trim();
+  if (!query) { results.hidden = true; results.replaceChildren(); return; }
+  if (!root) { showErr("Choisissez d’abord un dossier."); return; }
+  results.hidden = false; results.textContent = "Recherche…";
+  try {
+    const data = await window.smolEd.search(query);
+    results.replaceChildren();
+    for (const match of data.matches || []) {
+      const button = document.createElement("button");
+      button.className = "result"; button.type = "button";
+      button.textContent = `${match.path}:${match.line}:${match.column}  ${match.text}`;
+      button.title = `${match.path}, ligne ${match.line}`;
+      button.onclick = async () => {
+        await openFile(match.path);
+        if (cur !== match.path) return;
+        const start = ed.value.split("\n").slice(0, Math.max(0, match.line - 1)).join("\n").length + (match.line > 1 ? 1 : 0) + match.column - 1;
+        ed.focus(); ed.setSelectionRange(start, start + query.length);
+      };
+      results.appendChild(button);
+    }
+    if (!data.matches?.length) results.textContent = "Aucun résultat.";
+    if (data.truncated) { const note = document.createElement("div"); note.className = "result"; note.textContent = "Résultats limités ; précisez la recherche."; results.appendChild(note); }
+  } catch (e) { results.textContent = e.message; }
+}
+
+function updateFindCount() {
+  const query = $("findInput").value;
+  const result = window.smolEd.editorTools.findMatches(ed.value, query, { limit: 1000 });
+  $("findCount").textContent = !query ? "" : (result.matches.length + (result.truncated ? "+" : "") + " occurrence(s)");
+}
+function openFind(replaceMode = false) {
+  $("findBar").classList.add("open");
+  $("replaceWrap").classList.toggle("open", replaceMode);
+  if (ed.selectionStart !== ed.selectionEnd) $("findInput").value = ed.value.slice(ed.selectionStart, ed.selectionEnd);
+  updateFindCount(); $("findInput").focus(); $("findInput").select();
+}
+function moveFind(backwards = false) {
+  const query = $("findInput").value;
+  const match = window.smolEd.editorTools.findNextMatch(ed.value, query, backwards ? ed.selectionStart : ed.selectionEnd, backwards);
+  if (!match) { $("findCount").textContent = query ? "Aucun résultat" : ""; return; }
+  ed.focus(); ed.setSelectionRange(match.start, match.end); updateCursor();
+}
+function replaceOne() {
+  const query = $("findInput").value;
+  if (!query) { $("findCount").textContent = "Saisissez un texte à rechercher."; return; }
+  const match = window.smolEd.editorTools.findNextMatch(ed.value, query, ed.selectionStart);
+  if (!match) { updateFindCount(); return; }
+  ed.setRangeText($("replaceInput").value, match.start, match.end, "end");
+  ed.dispatchEvent(new Event("input", { bubbles: true })); moveFind(false);
+}
+function replaceAll() {
+  const result = window.smolEd.editorTools.replaceAllLiteral(ed.value, $("findInput").value, $("replaceInput").value);
+  if (result.error) { $("findCount").textContent = result.error; return; }
+  if (!result.count) { $("findCount").textContent = "Aucun résultat"; return; }
+  ed.value = result.text; ed.setSelectionRange(0, 0); ed.dispatchEvent(new Event("input", { bubbles: true }));
+  $("findCount").textContent = result.count + " remplacement(s)";
+}
+
 async function setRoot(r) {
-  root = r; cur = null; folders = { ".": true };
-  ed.value = ""; setDirty(false);
+  if (tabs.list().some((tab) => tab.dirty) && !confirm("Changer de dossier et fermer les onglets modifiés ?")) return false;
+  tabs.clear(); root = r; cur = null; folders = { ".": true };
+  ed.value = ""; setDirty(false); paint(); renderTabs();
   $("root").textContent = r || "aucun dossier";
   $("sFile").textContent = "—"; $("sMsg").textContent = "";
   if (r) refreshTree(); else tree.innerHTML = "";
+  return true;
 }
 
 $("bFolder").onclick = async () => {
@@ -117,9 +282,42 @@ $("bFolder").onclick = async () => {
   } catch (e) { showErr(e.message); }
 };
 $("bSave").onclick = save;
-ed.oninput = () => setDirty(true);
+$("bDiag").onclick = analyzeCurrent;
+$("findInput").oninput = updateFindCount;
+$("findInput").onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); moveFind(e.shiftKey); } };
+$("findPrev").onclick = () => moveFind(true);
+$("findNext").onclick = () => moveFind(false);
+$("replaceOne").onclick = replaceOne;
+$("replaceAll").onclick = replaceAll;
+$("findClose").onclick = () => { $("findBar").classList.remove("open"); ed.focus(); };
+$("searchButton").onclick = searchProject;
+searchInput.onkeydown = (e) => { if (e.key === "Enter") searchProject(); };
+ed.oninput = () => { stashCurrent(); const tab = tabs.active(); setDirty(!!(tab && tab.dirty)); paint(); renderTabs(); updateCursor(); updateFindCount(); };
+ed.onscroll = () => { codeLayer.scrollTop = ed.scrollTop; codeLayer.scrollLeft = ed.scrollLeft; };
+ed.onkeyup = ed.onclick = ed.onselect = updateCursor;
+ed.onkeydown = (e) => {
+  if (ed.readOnly) return;
+  if (e.key === "Tab") {
+    e.preventDefault();
+    const edit = window.smolEd.editorTools.changeIndent(ed.value, ed.selectionStart, ed.selectionEnd, e.shiftKey ? -1 : 1);
+    ed.value = edit.text; ed.setSelectionRange(edit.start, edit.end); ed.dispatchEvent(new Event("input", { bubbles: true }));
+  } else if (e.key === "Enter") {
+    e.preventDefault();
+    const edit = window.smolEd.editorTools.insertNewlineWithIndent(ed.value, ed.selectionStart, ed.selectionEnd);
+    ed.value = edit.text; ed.setSelectionRange(edit.start, edit.end); ed.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+};
 document.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "f") { e.preventDefault(); openFind(false); }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "h") { e.preventDefault(); openFind(true); }
+  if (e.key === "F3" && $("findBar").classList.contains("open")) { e.preventDefault(); moveFind(e.shiftKey); }
+  if (e.key === "Escape" && $("findBar").classList.contains("open")) { $("findBar").classList.remove("open"); ed.focus(); }
   if ((e.ctrlKey || e.metaKey) && e.key === "s") { e.preventDefault(); save(); }
+  if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "f") { e.preventDefault(); searchInput.focus(); searchInput.select(); }
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "g") {
+    e.preventDefault(); const line = Number(prompt("Aller à la ligne :", String(window.smolEd.editorTools.cursorPosition(ed.value, ed.selectionStart).line)));
+    if (Number.isFinite(line) && line > 0) { const pos = window.smolEd.editorTools.offsetForPosition(ed.value, line); ed.focus(); ed.setSelectionRange(pos, pos); updateCursor(); }
+  }
 });
 
 (async () => {

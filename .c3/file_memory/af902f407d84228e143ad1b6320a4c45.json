@@ -1,0 +1,140 @@
+{
+  "path": "src/network.ts",
+  "content_hash": "8d88fea31c4d12ee3851946aed1c39f9",
+  "updated_at": "2026-09-24T17:24:23",
+  "lines": 200,
+  "size_bytes": 9584,
+  "mtime_ns": 1790260569949748500,
+  "language": "typescript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "import",
+      "name": "import { loadConfig, SavedHost, updateConfig } from \"./config\";",
+      "line_start": 9,
+      "line_end": 9,
+      "signature": "import { loadConfig, SavedHost, updateConfig } from \"./config\";"
+    },
+    {
+      "type": "import",
+      "name": "import { identifyServer, probeHosts, ServerInfo } from \"./detect\";",
+      "line_start": 10,
+      "line_end": 10,
+      "signature": "import { identifyServer, probeHosts, ServerInfo } from \"./detect\";"
+    },
+    {
+      "type": "import",
+      "name": "import { addHost, hostLabel, isPrivateHost, parseAddress, removeHost, renameHost } from \"./hosts\";",
+      "line_start": 11,
+      "line_end": 11,
+      "signature": "import { addHost, hostLabel, isPrivateHost, parseAddress, removeHost, renameHost } from \"./hosts\";"
+    },
+    {
+      "type": "import",
+      "name": "import { FoundHost, localSubnets, scanSubnets, Subnet } from \"./netscan\";",
+      "line_start": 12,
+      "line_end": 12,
+      "signature": "import { FoundHost, localSubnets, scanSubnets, Subnet } from \"./netscan\";"
+    },
+    {
+      "type": "import",
+      "name": "import { SelectOption } from \"./ui\";",
+      "line_start": 13,
+      "line_end": 13,
+      "signature": "import { SelectOption } from \"./ui\";"
+    },
+    {
+      "type": "import",
+      "name": "import { plural } from \"./util\";",
+      "line_start": 14,
+      "line_end": 14,
+      "signature": "import { plural } from \"./util\";"
+    },
+    {
+      "type": "interface",
+      "name": "FlowUI",
+      "line_start": 17,
+      "line_end": 24,
+      "signature": "interface FlowUI {",
+      "children": []
+    },
+    {
+      "type": "constant",
+      "name": "BACKEND_NAMES",
+      "line_start": 26,
+      "line_end": 26,
+      "signature": "const BACKEND_NAMES = { ollama: \"Ollama\", lmstudio: \"LM Studio\" } as const;"
+    },
+    {
+      "type": "function",
+      "name": "describeServers",
+      "line_start": 28,
+      "line_end": 30,
+      "signature": "function describeServers(servers: { backend: keyof typeof BACKEND_NAMES; models: number }[]): string {"
+    },
+    {
+      "type": "function",
+      "name": "notFoundHelp",
+      "line_start": 34,
+      "line_end": 45,
+      "signature": "function notFoundHelp(platform: NodeJS.Platform = process.platform): string {"
+    },
+    {
+      "type": "function",
+      "name": "save",
+      "line_start": 47,
+      "line_end": 49,
+      "signature": "function save(hosts: SavedHost[]): SavedHost[] {"
+    },
+    {
+      "type": "function",
+      "name": "confirmOutsideNetwork",
+      "line_start": 51,
+      "line_end": 55,
+      "signature": "async function confirmOutsideNetwork(ui: FlowUI, hostname: string, url: string): Promise<boolean> {",
+      "async": true
+    },
+    {
+      "type": "function",
+      "name": "enterAddress",
+      "line_start": 58,
+      "line_end": 82,
+      "signature": "async function enterAddress(ui: FlowUI, replace?: SavedHost): Promise<boolean> {",
+      "async": true,
+      "doc": "\"Enter an address\": returns true when a host was added."
+    },
+    {
+      "type": "function",
+      "name": "savedAddressesOf",
+      "line_start": 84,
+      "line_end": 87,
+      "signature": "function savedAddressesOf(found: FoundHost, hosts: SavedHost[]): boolean {"
+    },
+    {
+      "type": "function",
+      "name": "searchNetwork",
+      "line_start": 90,
+      "line_end": 135,
+      "signature": "async function searchNetwork(ui: FlowUI, subnets: Subnet[], replace?: SavedHost): Promise<boolean> {",
+      "async": true,
+      "doc": "\"Search my network\": returns true when at least one host was added."
+    },
+    {
+      "type": "function",
+      "name": "findModelsOnNetwork",
+      "line_start": 140,
+      "line_end": 152,
+      "signature": "async function findModelsOnNetwork(ui: FlowUI, replace?: SavedHost): Promise<boolean> {",
+      "async": true
+    },
+    {
+      "type": "function",
+      "name": "manageHosts",
+      "line_start": 157,
+      "line_end": 200,
+      "signature": "async function manageHosts(ui: FlowUI): Promise<boolean> {",
+      "async": true
+    }
+  ]
+}

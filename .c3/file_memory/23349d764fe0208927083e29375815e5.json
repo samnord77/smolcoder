@@ -1,0 +1,62 @@
+{
+  "path": "test/mcp.test.js",
+  "content_hash": "7ad70f95afa782ae48a29f53e8553461",
+  "updated_at": "2026-09-26T18:03:05",
+  "lines": 160,
+  "size_bytes": 7891,
+  "mtime_ns": 1790424962561586600,
+  "language": "javascript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "constant",
+      "name": "test",
+      "line_start": 3,
+      "line_end": 3,
+      "signature": "const test = require(\"node:test\");"
+    },
+    {
+      "type": "constant",
+      "name": "assert",
+      "line_start": 4,
+      "line_end": 4,
+      "signature": "const assert = require(\"node:assert/strict\");"
+    },
+    {
+      "type": "constant",
+      "name": "fs",
+      "line_start": 5,
+      "line_end": 5,
+      "signature": "const fs = require(\"node:fs\");"
+    },
+    {
+      "type": "constant",
+      "name": "os",
+      "line_start": 6,
+      "line_end": 6,
+      "signature": "const os = require(\"node:os\");"
+    },
+    {
+      "type": "constant",
+      "name": "path",
+      "line_start": 7,
+      "line_end": 7,
+      "signature": "const path = require(\"node:path\");"
+    },
+    {
+      "type": "constant",
+      "name": "FAKE_SERVER",
+      "line_start": 14,
+      "line_end": 43,
+      "signature": "const FAKE_SERVER = `"
+    },
+    {
+      "type": "function",
+      "name": "scratchWithServer",
+      "line_start": 45,
+      "line_end": 53,
+      "signature": "function scratchWithServer(extra = []) {"
+    }
+  ]
+}

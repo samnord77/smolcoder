@@ -1,0 +1,83 @@
+{
+  "path": "src/web/page.ts",
+  "content_hash": "c31762836a561a0b09e77524b1cff9a6",
+  "updated_at": "2026-09-26T18:01:05",
+  "lines": 123,
+  "size_bytes": 7728,
+  "mtime_ns": 1790417070440523800,
+  "language": "typescript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "import",
+      "name": "import { LOGO_TEXT } from \"../logo\";",
+      "line_start": 1,
+      "line_end": 1,
+      "signature": "import { LOGO_TEXT } from \"../logo\";"
+    },
+    {
+      "type": "import",
+      "name": "import { CLIENT_JS } from \"./client\";",
+      "line_start": 2,
+      "line_end": 2,
+      "signature": "import { CLIENT_JS } from \"./client\";"
+    },
+    {
+      "type": "import",
+      "name": "import { STYLES } from \"./styles\";",
+      "line_start": 3,
+      "line_end": 3,
+      "signature": "import { STYLES } from \"./styles\";"
+    },
+    {
+      "type": "constant",
+      "name": "FAVICON",
+      "line_start": 5,
+      "line_end": 6,
+      "signature": "const FAVICON ="
+    },
+    {
+      "type": "constant",
+      "name": "ICON_BROWSER",
+      "line_start": 8,
+      "line_end": 9,
+      "signature": "const ICON_BROWSER ="
+    },
+    {
+      "type": "constant",
+      "name": "ICON_TERMINAL",
+      "line_start": 11,
+      "line_end": 12,
+      "signature": "const ICON_TERMINAL ="
+    },
+    {
+      "type": "constant",
+      "name": "ICON_FILES",
+      "line_start": 14,
+      "line_end": 15,
+      "signature": "const ICON_FILES ="
+    },
+    {
+      "type": "constant",
+      "name": "ICON_ATTACH",
+      "line_start": 17,
+      "line_end": 18,
+      "signature": "const ICON_ATTACH ="
+    },
+    {
+      "type": "constant",
+      "name": "ICON_GAUGE",
+      "line_start": 20,
+      "line_end": 21,
+      "signature": "const ICON_GAUGE ="
+    },
+    {
+      "type": "constant",
+      "name": "PAGE_HTML",
+      "line_start": 23,
+      "line_end": 123,
+      "signature": "const PAGE_HTML = `<!doctype html>"
+    }
+  ]
+}

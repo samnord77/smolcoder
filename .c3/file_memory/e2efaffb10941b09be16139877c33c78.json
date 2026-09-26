@@ -1,0 +1,27 @@
+{
+  "path": "desktop/preload.js",
+  "content_hash": "7be3cbea834e914b82593f3cb1f07e0f",
+  "updated_at": "2026-09-26T17:55:04",
+  "lines": 39,
+  "size_bytes": 2299,
+  "mtime_ns": 1790428635926909200,
+  "language": "javascript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "constant",
+      "name": "editorTools",
+      "line_start": 6,
+      "line_end": 6,
+      "signature": "const editorTools = require(\"../dist/editor-tools.js\");"
+    },
+    {
+      "type": "constant",
+      "name": "tabs",
+      "line_start": 7,
+      "line_end": 7,
+      "signature": "const tabs = makeEditorTabStore();"
+    }
+  ]
+}

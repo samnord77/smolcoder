@@ -1,0 +1,41 @@
+{
+  "path": "desktop/README.md",
+  "content_hash": "028709b1966c6a3f7f5e455834877f45",
+  "updated_at": "2026-09-26T17:53:04",
+  "lines": 47,
+  "size_bytes": 1979,
+  "mtime_ns": 1790424190128086500,
+  "language": "markdown",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "heading",
+      "name": "h1: Smolcoder Desktop (v0.1.0)",
+      "line_start": 1,
+      "line_end": 47,
+      "signature": "# Smolcoder Desktop (v0.1.0)"
+    },
+    {
+      "type": "heading",
+      "name": "h2: Lancer",
+      "line_start": 5,
+      "line_end": 17,
+      "signature": "## Lancer"
+    },
+    {
+      "type": "heading",
+      "name": "h2: Contenu",
+      "line_start": 18,
+      "line_end": 27,
+      "signature": "## Contenu"
+    },
+    {
+      "type": "heading",
+      "name": "h2: Menus natifs",
+      "line_start": 28,
+      "line_end": 47,
+      "signature": "## Menus natifs"
+    }
+  ]
+}

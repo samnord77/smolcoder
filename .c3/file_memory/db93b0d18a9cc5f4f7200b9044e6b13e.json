@@ -1,0 +1,78 @@
+{
+  "path": "src/highlight.ts",
+  "content_hash": "cdb2d9405453f92166f483a545d82246",
+  "updated_at": "2026-09-26T17:51:05",
+  "lines": 142,
+  "size_bytes": 7344,
+  "mtime_ns": 1790421117213580100,
+  "language": "typescript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "type",
+      "name": "SyntaxTokenKind",
+      "line_start": 1,
+      "line_end": 1,
+      "signature": "type SyntaxTokenKind = \"plain\" | \"tok-k\" | \"tok-s\" | \"tok-n\" | \"tok-c\" | \"tok-f\" | \"tok-o\" | \"tok-tag\";",
+      "children": []
+    },
+    {
+      "type": "interface",
+      "name": "SyntaxToken",
+      "line_start": 2,
+      "line_end": 2,
+      "signature": "interface SyntaxToken { kind: SyntaxTokenKind; text: string }",
+      "children": []
+    },
+    {
+      "type": "function",
+      "name": "tokenizeCode",
+      "line_start": 5,
+      "line_end": 64,
+      "signature": "function tokenizeCode(source: string, language = \"\"): SyntaxToken[] {"
+    },
+    {
+      "type": "function",
+      "name": "escapeHtml",
+      "line_start": 66,
+      "line_end": 68,
+      "signature": "function escapeHtml(text: string): string {"
+    },
+    {
+      "type": "function",
+      "name": "highlightHtml",
+      "line_start": 71,
+      "line_end": 76,
+      "signature": "function highlightHtml(source: string, language = \"\"): string {"
+    },
+    {
+      "type": "function",
+      "name": "highlightEscapedHtml",
+      "line_start": 79,
+      "line_end": 83,
+      "signature": "function highlightEscapedHtml(source: string, language = \"\"): string {"
+    },
+    {
+      "type": "function",
+      "name": "highlightAnsi",
+      "line_start": 85,
+      "line_end": 94,
+      "signature": "function highlightAnsi(source: string, language = \"\"): string {"
+    },
+    {
+      "type": "function",
+      "name": "createCodeStreamColorizer",
+      "line_start": 97,
+      "line_end": 140,
+      "signature": "function createCodeStreamColorizer(write: (text: string) => void, enabled: boolean): { push(text: string): void; flush(): void } {"
+    },
+    {
+      "type": "constant",
+      "name": "browserHighlighterSource",
+      "line_start": 142,
+      "line_end": 142,
+      "signature": "const browserHighlighterSource = `const tokenizeCode = (${tokenizeCode.toString()});\\nconst highlightEscapedHtml = (${highlightEscapedHtml.toString()});`;"
+    }
+  ]
+}

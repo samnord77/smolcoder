@@ -1,0 +1,9 @@
+{
+  "original_tokens": 808,
+  "compressed_tokens": 69,
+  "saved_tokens": 739,
+  "savings_pct": 91.5,
+  "compressed": "# tui.test.js (.js) \u2014 85 lines\nconst test = require(\"node:test\");\nconst assert = require(\"node:assert/strict\");\nfunction capture(fn)\nconst keys = (s) => process.stdin.emit(\"data\", s);\nconst DOWN = \"\\x1b[B\";\nconst UP = \"\\x1b[A\";",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\tui.test.js"
+}

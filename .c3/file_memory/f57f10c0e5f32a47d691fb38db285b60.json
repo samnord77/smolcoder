@@ -1,0 +1,34 @@
+{
+  "path": "src/web/styles.ts",
+  "content_hash": "9ddd6ee03b792ffcaad9513fde1cf782",
+  "updated_at": "2026-09-26T18:03:05",
+  "lines": 737,
+  "size_bytes": 48736,
+  "mtime_ns": 1790428813623534600,
+  "language": "typescript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "import",
+      "name": "import { LOGO_ROWS } from \"../logo\";",
+      "line_start": 3,
+      "line_end": 3,
+      "signature": "import { LOGO_ROWS } from \"../logo\";"
+    },
+    {
+      "type": "constant",
+      "name": "LOGO_CSS",
+      "line_start": 7,
+      "line_end": 7,
+      "signature": "const LOGO_CSS = LOGO_ROWS.map((r) => r.trimEnd()).join(\"\\\\A \");"
+    },
+    {
+      "type": "constant",
+      "name": "STYLES",
+      "line_start": 9,
+      "line_end": 737,
+      "signature": "const STYLES = String.raw`"
+    }
+  ]
+}

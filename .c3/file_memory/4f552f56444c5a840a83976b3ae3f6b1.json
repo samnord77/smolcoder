@@ -1,0 +1,63 @@
+{
+  "path": "test/http-mcp.test.js",
+  "content_hash": "c16b185fab55b8b287c01714d82d3498",
+  "updated_at": "2026-09-24T22:30:35",
+  "lines": 126,
+  "size_bytes": 5667,
+  "mtime_ns": 1790285417861041600,
+  "language": "javascript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "constant",
+      "name": "test",
+      "line_start": 3,
+      "line_end": 3,
+      "signature": "const test = require(\"node:test\");"
+    },
+    {
+      "type": "constant",
+      "name": "assert",
+      "line_start": 4,
+      "line_end": 4,
+      "signature": "const assert = require(\"node:assert/strict\");"
+    },
+    {
+      "type": "constant",
+      "name": "fs",
+      "line_start": 5,
+      "line_end": 5,
+      "signature": "const fs = require(\"node:fs\");"
+    },
+    {
+      "type": "constant",
+      "name": "os",
+      "line_start": 6,
+      "line_end": 6,
+      "signature": "const os = require(\"node:os\");"
+    },
+    {
+      "type": "constant",
+      "name": "path",
+      "line_start": 7,
+      "line_end": 7,
+      "signature": "const path = require(\"node:path\");"
+    },
+    {
+      "type": "constant",
+      "name": "http",
+      "line_start": 8,
+      "line_end": 8,
+      "signature": "const http = require(\"node:http\");"
+    },
+    {
+      "type": "function",
+      "name": "stubServer",
+      "line_start": 15,
+      "line_end": 62,
+      "signature": "function stubServer(mode, { needKey = false } = {}) {",
+      "doc": "Stub remote server. mode: \"json\" answers plain JSON, \"sse\" answers an"
+    }
+  ]
+}

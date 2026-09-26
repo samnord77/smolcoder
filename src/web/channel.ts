@@ -37,6 +37,11 @@ export class SessionChannel implements SessionUI {
   phase: ChannelStatus = "starting";
   title = "";
   busyLabel: string | null = null;
+  /** Live sub-agent activity (delegate tool) — shown by the IDE status view. */
+  subagentActive: string | null = null;
+  subagentRuns = 0;
+  /** Skills that auto-loaded into the current turn. */
+  skillsActive: string[] = [];
   replay: Event[] = [];
   closed = false;
 
@@ -169,7 +174,18 @@ export class SessionChannel implements SessionUI {
   }
 
   stateEvent(): Event {
-    return { t: "state", sid: this.id, s: { ...this.getState(), busy: this.busyLabel, title: this.title } };
+    return {
+      t: "state",
+      sid: this.id,
+      s: {
+        ...this.getState(),
+        busy: this.busyLabel,
+        title: this.title,
+        subagent: this.subagentActive,
+        subagentRuns: this.subagentRuns,
+        skills: this.skillsActive,
+      },
+    };
   }
 
   pushState(): void {
@@ -272,7 +288,24 @@ export class SessionChannel implements SessionUI {
   }
 
   subagent(phase: "start" | "done", label: string): void {
-    this.broadcast({ t: "sub", phase, label: label.slice(0, 200) });
+    const clean = label.slice(0, 200);
+    if (phase === "start") {
+      this.subagentActive = clean;
+      this.subagentRuns += 1;
+    } else {
+      this.subagentActive = null;
+    }
+    this.broadcast({ t: "sub", phase, label: clean });
+    this.pushState();
+  }
+
+  /** Skills that just auto-loaded: the status view lists them live. */
+  skills(names: string[]): void {
+    this.skillsActive = (Array.isArray(names) ? names : [])
+      .filter((n) => typeof n === "string" && n.trim())
+      .slice(0, 20);
+    this.broadcast({ t: "skills", names: this.skillsActive });
+    this.pushState();
   }
 
   println(s = ""): void {

@@ -1,0 +1,9 @@
+{
+  "original_tokens": 937,
+  "compressed_tokens": 91,
+  "saved_tokens": 846,
+  "savings_pct": 90.3,
+  "compressed": "# mcp-cli.md (.md) \u2014 58 lines\n# CLI de chaque serveur MCP \u2014 gard\u00e9es ici, \u00e0 la fin du projet  Copiez une ligne telle quelle dans `.smol/mcp.json` (`command` + `args`)\n## Console (marchent avec smolcoder)  ```text\n## Distants (incompatibles console \u2014 transport HTTP requis)  ```text\n## Laya  ```text",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\docs\\mcp-cli.md"
+}

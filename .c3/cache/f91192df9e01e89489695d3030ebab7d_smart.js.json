@@ -1,0 +1,9 @@
+{
+  "original_tokens": 556,
+  "compressed_tokens": 40,
+  "saved_tokens": 516,
+  "savings_pct": 92.8,
+  "compressed": "# notify.test.js (.js) \u2014 47 lines\nconst test = require(\"node:test\");\nconst assert = require(\"node:assert/strict\");\nconst fs = require(\"node:fs\");",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\notify.test.js"
+}

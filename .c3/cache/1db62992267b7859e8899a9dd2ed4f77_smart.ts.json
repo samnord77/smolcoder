@@ -1,0 +1,9 @@
+{
+  "original_tokens": 81,
+  "compressed_tokens": 21,
+  "saved_tokens": 60,
+  "savings_pct": 74.1,
+  "compressed": "# history.ts (.ts) \u2014 6 lines\nexport function isHistoryPlaceholder(value: string): boolean",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\history.ts"
+}

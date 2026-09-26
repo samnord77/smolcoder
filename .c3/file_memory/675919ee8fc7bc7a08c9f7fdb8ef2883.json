@@ -1,0 +1,12 @@
+{
+  "path": ".smol/mcp.json",
+  "content_hash": "d48d8ba956df4dc1e6055942557e7345",
+  "updated_at": "2026-09-25T18:17:58",
+  "lines": 43,
+  "size_bytes": 889,
+  "mtime_ns": 1790356627427431500,
+  "language": "json",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": []
+}

@@ -1,0 +1,148 @@
+{
+  "path": "desktop/git.html",
+  "content_hash": "33b268fc8aa6de0dac902a94d555f487",
+  "updated_at": "2026-09-26T17:56:05",
+  "lines": 237,
+  "size_bytes": 10941,
+  "mtime_ns": 1790421168439448000,
+  "language": "html",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "section",
+      "name": "#bar",
+      "tag": "div",
+      "line_start": 81,
+      "line_end": 86,
+      "signature": "<div id=\"bar\">"
+    },
+    {
+      "type": "heading",
+      "name": "h1: \ud83d\uddc2\ufe0f Panneau Git</h1>",
+      "line_start": 82,
+      "line_end": 82,
+      "signature": "<h1>\ud83d\uddc2\ufe0f Panneau Git</h1>"
+    },
+    {
+      "type": "section",
+      "name": "#bRefresh",
+      "tag": "button",
+      "line_start": 83,
+      "line_end": 83,
+      "signature": "<button id=\"bRefresh\" aria-label=\"Actualiser le statut Git\">\u21bb Actualiser</button>"
+    },
+    {
+      "type": "section",
+      "name": "#filter",
+      "tag": "input",
+      "line_start": 84,
+      "line_end": 85,
+      "signature": "<input id=\"filter\" type=\"search\" placeholder=\"Filtrer les fichiers\u2026\" aria-label=\"Filtrer les fichiers\">"
+    },
+    {
+      "type": "section",
+      "name": "#root",
+      "tag": "span",
+      "line_start": 85,
+      "line_end": 85,
+      "signature": "<span id=\"root\">\u2026</span>"
+    },
+    {
+      "type": "section",
+      "name": "#stats",
+      "tag": "div",
+      "line_start": 87,
+      "line_end": 87,
+      "signature": "<div id=\"stats\" aria-label=\"Statistiques des modifications\"></div>"
+    },
+    {
+      "type": "section",
+      "name": "#main",
+      "tag": "div",
+      "line_start": 88,
+      "line_end": 94,
+      "signature": "<div id=\"main\">"
+    },
+    {
+      "type": "section",
+      "name": "#files",
+      "tag": "div",
+      "line_start": 89,
+      "line_end": 89,
+      "signature": "<div id=\"files\" role=\"listbox\" aria-label=\"Fichiers modifi\u00e9s\"></div>"
+    },
+    {
+      "type": "section",
+      "name": "#view",
+      "tag": "div",
+      "line_start": 90,
+      "line_end": 93,
+      "signature": "<div id=\"view\">"
+    },
+    {
+      "type": "section",
+      "name": "#fname",
+      "tag": "div",
+      "line_start": 91,
+      "line_end": 91,
+      "signature": "<div id=\"fname\">\u2014</div>"
+    },
+    {
+      "type": "section",
+      "name": "#diff",
+      "tag": "pre",
+      "line_start": 92,
+      "line_end": 92,
+      "signature": "<pre id=\"diff\" aria-label=\"Diff du fichier\"><span class=\"head\">Choisissez un fichier \u00e0 gauche pour voir ses modifications\u2026</span></pre>"
+    },
+    {
+      "type": "section",
+      "name": "#err",
+      "tag": "div",
+      "line_start": 95,
+      "line_end": 95,
+      "signature": "<div id=\"err\" role=\"alert\"></div>"
+    },
+    {
+      "type": "section",
+      "name": "#commitbar",
+      "tag": "div",
+      "line_start": 96,
+      "line_end": 99,
+      "signature": "<div id=\"commitbar\">"
+    },
+    {
+      "type": "section",
+      "name": "#msg",
+      "tag": "textarea",
+      "line_start": 97,
+      "line_end": 97,
+      "signature": "<textarea id=\"msg\" rows=\"1\" placeholder=\"Message de commit (ex : Corrige l\u2019affichage du panneau)\u2026\" aria-label=\"Message de commit\"></textarea>"
+    },
+    {
+      "type": "section",
+      "name": "#bCommit",
+      "tag": "button",
+      "line_start": 98,
+      "line_end": 98,
+      "signature": "<button id=\"bCommit\">\u2713 Commit</button>"
+    },
+    {
+      "type": "section",
+      "name": "#status",
+      "tag": "div",
+      "line_start": 100,
+      "line_end": 100,
+      "signature": "<div id=\"status\"><span id=\"sCount\">\u2014</span><span id=\"sMsg\"></span></div>"
+    },
+    {
+      "type": "section",
+      "name": "#sCount",
+      "tag": "span",
+      "line_start": 100,
+      "line_end": 100,
+      "signature": "<span id=\"sCount\">\u2014</span><span id=\"sMsg\"></span></div>"
+    }
+  ]
+}

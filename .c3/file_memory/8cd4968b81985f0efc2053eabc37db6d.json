@@ -1,0 +1,85 @@
+{
+  "path": "src/util.ts",
+  "content_hash": "139fd31350d7f90d0abe4ddb3c419570",
+  "updated_at": "2026-09-24T17:24:23",
+  "lines": 87,
+  "size_bytes": 2983,
+  "mtime_ns": 1790260569983958200,
+  "language": "typescript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "constant",
+      "name": "useColor",
+      "line_start": 3,
+      "line_end": 3,
+      "signature": "const useColor = process.stdout.isTTY && !process.env.NO_COLOR;"
+    },
+    {
+      "type": "function",
+      "name": "wrap",
+      "line_start": 5,
+      "line_end": 7,
+      "signature": "function wrap(code: string, s: string): string {"
+    },
+    {
+      "type": "constant",
+      "name": "c",
+      "line_start": 9,
+      "line_end": 18,
+      "signature": "const c = {"
+    },
+    {
+      "type": "function",
+      "name": "estimateTokens",
+      "line_start": 21,
+      "line_end": 23,
+      "signature": "function estimateTokens(text: string): number {"
+    },
+    {
+      "type": "function",
+      "name": "truncateMiddle",
+      "line_start": 26,
+      "line_end": 36,
+      "signature": "function truncateMiddle(s: string, maxChars: number): string {"
+    },
+    {
+      "type": "function",
+      "name": "truncateEnd",
+      "line_start": 38,
+      "line_end": 41,
+      "signature": "function truncateEnd(s: string, maxChars: number, note?: string): string {"
+    },
+    {
+      "type": "function",
+      "name": "plural",
+      "line_start": 43,
+      "line_end": 45,
+      "signature": "function plural(n: number, word: string): string {"
+    },
+    {
+      "type": "function",
+      "name": "fmtDuration",
+      "line_start": 47,
+      "line_end": 52,
+      "signature": "function fmtDuration(ms: number): string {"
+    },
+    {
+      "type": "function",
+      "name": "probeJson",
+      "line_start": 56,
+      "line_end": 68,
+      "signature": "async function probeJson(url: string, timeoutMs = 1500): Promise<{ reached: boolean; data: any | null }> {",
+      "async": true
+    },
+    {
+      "type": "function",
+      "name": "tryFetchJson",
+      "line_start": 71,
+      "line_end": 87,
+      "signature": "async function tryFetchJson(",
+      "async": true
+    }
+  ]
+}

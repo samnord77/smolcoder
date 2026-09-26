@@ -1,0 +1,280 @@
+{
+  "path": "src/lsp.ts",
+  "content_hash": "c028175701ada49ffa7c9d3d07d64cfc",
+  "updated_at": "2026-09-25T16:09:45",
+  "lines": 347,
+  "size_bytes": 12825,
+  "mtime_ns": 1790348982448611700,
+  "language": "typescript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "import",
+      "name": "import { spawn, ChildProcess } from \"child_process\";",
+      "line_start": 11,
+      "line_end": 11,
+      "signature": "import { spawn, ChildProcess } from \"child_process\";"
+    },
+    {
+      "type": "import",
+      "name": "import * as fs from \"fs\";",
+      "line_start": 12,
+      "line_end": 12,
+      "signature": "import * as fs from \"fs\";"
+    },
+    {
+      "type": "import",
+      "name": "import * as path from \"path\";",
+      "line_start": 13,
+      "line_end": 13,
+      "signature": "import * as path from \"path\";"
+    },
+    {
+      "type": "import",
+      "name": "import { resolveInWorkspace, SandboxError } from \"./sandbox\";",
+      "line_start": 14,
+      "line_end": 14,
+      "signature": "import { resolveInWorkspace, SandboxError } from \"./sandbox\";"
+    },
+    {
+      "type": "import",
+      "name": "import { resolveCommand } from \"./mcp\";",
+      "line_start": 15,
+      "line_end": 15,
+      "signature": "import { resolveCommand } from \"./mcp\";"
+    },
+    {
+      "type": "function",
+      "name": "lspDisabled",
+      "line_start": 17,
+      "line_end": 19,
+      "signature": "function lspDisabled(): boolean {"
+    },
+    {
+      "type": "function",
+      "name": "lspCommand",
+      "line_start": 21,
+      "line_end": 25,
+      "signature": "function lspCommand(): string[] {"
+    },
+    {
+      "type": "constant",
+      "name": "LSP_TIMEOUT_MS",
+      "line_start": 27,
+      "line_end": 27,
+      "signature": "const LSP_TIMEOUT_MS = 60_000;"
+    },
+    {
+      "type": "constant",
+      "name": "RESULT_CAP",
+      "line_start": 28,
+      "line_end": 28,
+      "signature": "const RESULT_CAP = 4000;"
+    },
+    {
+      "type": "constant",
+      "name": "TS_EXTS",
+      "line_start": 30,
+      "line_end": 30,
+      "signature": "const TS_EXTS = new Set([\".ts\", \".tsx\", \".js\", \".jsx\", \".mjs\", \".cjs\", \".mts\", \".cts\"]);"
+    },
+    {
+      "type": "function",
+      "name": "isTsLike",
+      "line_start": 32,
+      "line_end": 34,
+      "signature": "function isTsLike(filePath: string): boolean {"
+    },
+    {
+      "type": "function",
+      "name": "encodeLsp",
+      "line_start": 37,
+      "line_end": 40,
+      "signature": "function encodeLsp(body: string): Buffer {"
+    },
+    {
+      "type": "interface",
+      "name": "Pending",
+      "line_start": 42,
+      "line_end": 46,
+      "signature": "interface Pending {",
+      "children": []
+    },
+    {
+      "type": "class",
+      "name": "LspClient",
+      "line_start": 48,
+      "line_end": 197,
+      "signature": "class LspClient {",
+      "children": [
+        {
+          "type": "property",
+          "name": "proc",
+          "line_start": 49,
+          "line_end": 49,
+          "signature": "private proc: ChildProcess | null = null;",
+          "access": "private"
+        },
+        {
+          "type": "property",
+          "name": "nextId",
+          "line_start": 50,
+          "line_end": 50,
+          "signature": "private nextId = 1;",
+          "access": "private"
+        },
+        {
+          "type": "property",
+          "name": "pending",
+          "line_start": 51,
+          "line_end": 51,
+          "signature": "private pending = new Map<number, Pending>();",
+          "access": "private"
+        },
+        {
+          "type": "property",
+          "name": "buf",
+          "line_start": 52,
+          "line_end": 52,
+          "signature": "private buf = Buffer.alloc(0);",
+          "access": "private"
+        },
+        {
+          "type": "property",
+          "name": "diagnostics",
+          "line_start": 53,
+          "line_end": 53,
+          "signature": "private diagnostics: any[] = [];",
+          "access": "private"
+        },
+        {
+          "type": "property",
+          "name": "dead",
+          "line_start": 54,
+          "line_end": 54,
+          "signature": "private dead: Error | null = null;",
+          "access": "private"
+        },
+        {
+          "type": "method",
+          "name": "constructor",
+          "line_start": 56,
+          "line_end": 59,
+          "signature": "constructor("
+        },
+        {
+          "type": "method",
+          "name": "start",
+          "line_start": 61,
+          "line_end": 98,
+          "signature": "async start(): Promise<void> {",
+          "async": true
+        },
+        {
+          "type": "method",
+          "name": "failAll",
+          "line_start": 100,
+          "line_end": 108,
+          "signature": "private failAll(err: Error): void {",
+          "access": "private"
+        },
+        {
+          "type": "method",
+          "name": "ingest",
+          "line_start": 110,
+          "line_end": 148,
+          "signature": "private ingest(chunk: Buffer): void {",
+          "access": "private"
+        },
+        {
+          "type": "method",
+          "name": "notify",
+          "line_start": 150,
+          "line_end": 156,
+          "signature": "notify(method: string, params: any): void {"
+        },
+        {
+          "type": "method",
+          "name": "request",
+          "line_start": 158,
+          "line_end": 175,
+          "signature": "request(method: string, params: any, timeoutMs = LSP_TIMEOUT_MS): Promise<any> {"
+        },
+        {
+          "type": "method",
+          "name": "takeDiagnostics",
+          "line_start": 177,
+          "line_end": 181,
+          "signature": "takeDiagnostics(): any[] {"
+        },
+        {
+          "type": "method",
+          "name": "close",
+          "line_start": 183,
+          "line_end": 196,
+          "signature": "close(): void {"
+        }
+      ]
+    },
+    {
+      "type": "function",
+      "name": "toUri",
+      "line_start": 199,
+      "line_end": 201,
+      "signature": "function toUri(abs: string): string {"
+    },
+    {
+      "type": "function",
+      "name": "sameFile",
+      "line_start": 204,
+      "line_end": 215,
+      "signature": "function sameFile(a: unknown, b: string): boolean {",
+      "doc": "Compare document URIs loosely: servers normalize case and escapes."
+    },
+    {
+      "type": "function",
+      "name": "fmtLoc",
+      "line_start": 217,
+      "line_end": 226,
+      "signature": "function fmtLoc(root: string, uri: string, range: any): string {"
+    },
+    {
+      "type": "function",
+      "name": "fmtHover",
+      "line_start": 228,
+      "line_end": 234,
+      "signature": "function fmtHover(res: any): string {"
+    },
+    {
+      "type": "function",
+      "name": "fmtLocList",
+      "line_start": 236,
+      "line_end": 247,
+      "signature": "function fmtLocList(root: string, res: any): string {"
+    },
+    {
+      "type": "function",
+      "name": "fmtDiagnostics",
+      "line_start": 249,
+      "line_end": 259,
+      "signature": "function fmtDiagnostics(root: string, uri: string, diags: any[]): string {"
+    },
+    {
+      "type": "type",
+      "name": "SymbolAction",
+      "line_start": 261,
+      "line_end": 261,
+      "signature": "type SymbolAction = \"hover\" | \"def\" | \"refs\" | \"diag\";",
+      "children": []
+    },
+    {
+      "type": "function",
+      "name": "querySymbols",
+      "line_start": 265,
+      "line_end": 347,
+      "signature": "async function querySymbols(",
+      "async": true
+    }
+  ]
+}

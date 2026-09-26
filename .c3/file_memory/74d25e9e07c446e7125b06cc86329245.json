@@ -1,0 +1,290 @@
+{
+  "path": "src/ui.ts",
+  "content_hash": "137c2d5f85518c1698c12c04147dce4a",
+  "updated_at": "2026-09-26T17:59:05",
+  "lines": 272,
+  "size_bytes": 9591,
+  "mtime_ns": 1790420974696768300,
+  "language": "typescript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "import",
+      "name": "import * as readline from \"readline\";",
+      "line_start": 5,
+      "line_end": 5,
+      "signature": "import * as readline from \"readline\";"
+    },
+    {
+      "type": "import",
+      "name": "import { UserInput } from \"./attachments\";",
+      "line_start": 6,
+      "line_end": 6,
+      "signature": "import { UserInput } from \"./attachments\";"
+    },
+    {
+      "type": "import",
+      "name": "import { Plan } from \"./plan\";",
+      "line_start": 7,
+      "line_end": 7,
+      "signature": "import { Plan } from \"./plan\";"
+    },
+    {
+      "type": "import",
+      "name": "import { c } from \"./util\";",
+      "line_start": 8,
+      "line_end": 8,
+      "signature": "import { c } from \"./util\";"
+    },
+    {
+      "type": "import",
+      "name": "import { createCodeStreamColorizer } from \"./highlight\";",
+      "line_start": 9,
+      "line_end": 9,
+      "signature": "import { createCodeStreamColorizer } from \"./highlight\";"
+    },
+    {
+      "type": "interface",
+      "name": "AgentUI",
+      "line_start": 13,
+      "line_end": 36,
+      "signature": "interface AgentUI {",
+      "children": []
+    },
+    {
+      "type": "interface",
+      "name": "SlashCommand",
+      "line_start": 38,
+      "line_end": 41,
+      "signature": "interface SlashCommand {",
+      "children": []
+    },
+    {
+      "type": "interface",
+      "name": "SelectOption",
+      "line_start": 43,
+      "line_end": 47,
+      "signature": "interface SelectOption {",
+      "children": []
+    },
+    {
+      "type": "interface",
+      "name": "SessionUI",
+      "line_start": 51,
+      "line_end": 66,
+      "signature": "interface SessionUI extends AgentUI {",
+      "children": []
+    },
+    {
+      "type": "function",
+      "name": "renderPlan",
+      "line_start": 69,
+      "line_end": 78,
+      "signature": "function renderPlan(plan: Plan, indent = \"  \"): string {"
+    },
+    {
+      "type": "class",
+      "name": "UI",
+      "line_start": 80,
+      "line_end": 236,
+      "signature": "class UI implements AgentUI {",
+      "children": [
+        {
+          "type": "property",
+          "name": "rl",
+          "line_start": 81,
+          "line_end": 81,
+          "signature": "private rl: readline.Interface;",
+          "access": "private"
+        },
+        {
+          "type": "property",
+          "name": "spinnerTimer",
+          "line_start": 82,
+          "line_end": 82,
+          "signature": "private spinnerTimer: NodeJS.Timeout | null = null;",
+          "access": "private"
+        },
+        {
+          "type": "property",
+          "name": "spinnerActive",
+          "line_start": 83,
+          "line_end": 83,
+          "signature": "private spinnerActive = false;",
+          "access": "private"
+        },
+        {
+          "type": "property",
+          "name": "atLineStart",
+          "line_start": 84,
+          "line_end": 84,
+          "signature": "private atLineStart = true;",
+          "access": "private"
+        },
+        {
+          "type": "property",
+          "name": "codeColorizer",
+          "line_start": 85,
+          "line_end": 85,
+          "signature": "private codeColorizer = createCodeStreamColorizer((text) => process.stdout.write(text), process.stdout.isTTY && !process.env.NO_COLOR);",
+          "access": "private"
+        },
+        {
+          "type": "property",
+          "name": "onInterrupt",
+          "line_start": 86,
+          "line_end": 86,
+          "signature": "onInterrupt: (() => void) | null = null;"
+        },
+        {
+          "type": "method",
+          "name": "constructor",
+          "line_start": 88,
+          "line_end": 102,
+          "signature": "constructor() {"
+        },
+        {
+          "type": "method",
+          "name": "ask",
+          "line_start": 104,
+          "line_end": 106,
+          "signature": "ask(prompt: string): Promise<string> {"
+        },
+        {
+          "type": "method",
+          "name": "confirmCommand",
+          "line_start": 109,
+          "line_end": 120,
+          "signature": "async confirmCommand(command: string, reason?: string): Promise<\"yes\" | \"no\" | \"always\"> {",
+          "async": true,
+          "doc": "y / n / a(lways allow this program for the session)"
+        },
+        {
+          "type": "method",
+          "name": "startSpinner",
+          "line_start": 122,
+          "line_end": 146,
+          "signature": "startSpinner(label: string): void {"
+        },
+        {
+          "type": "method",
+          "name": "stopSpinner",
+          "line_start": 148,
+          "line_end": 157,
+          "signature": "stopSpinner(): void {"
+        },
+        {
+          "type": "method",
+          "name": "ensureLine",
+          "line_start": 159,
+          "line_end": 164,
+          "signature": "private ensureLine(): void {",
+          "access": "private"
+        },
+        {
+          "type": "method",
+          "name": "meta",
+          "line_start": 168,
+          "line_end": 172,
+          "signature": "private meta(s: string): void {",
+          "access": "private",
+          "doc": "Meta output (tool lines, status, warnings) goes to stderr so headless"
+        },
+        {
+          "type": "method",
+          "name": "token",
+          "line_start": 175,
+          "line_end": 179,
+          "signature": "token(text: string): void {",
+          "doc": "Streamed model text goes straight to stdout."
+        },
+        {
+          "type": "method",
+          "name": "thinking",
+          "line_start": 182,
+          "line_end": 182,
+          "signature": "thinking(_text: string): void {}",
+          "doc": "Headless mode: reasoning noise is suppressed \u2014 automations want the answer."
+        },
+        {
+          "type": "method",
+          "name": "toolCall",
+          "line_start": 184,
+          "line_end": 187,
+          "signature": "toolCall(name: string, args: Record<string, any>): void {"
+        },
+        {
+          "type": "method",
+          "name": "toolResult",
+          "line_start": 189,
+          "line_end": 197,
+          "signature": "toolResult(result: string): void {"
+        },
+        {
+          "type": "method",
+          "name": "println",
+          "line_start": 199,
+          "line_end": 204,
+          "signature": "println(s = \"\"): void {"
+        },
+        {
+          "type": "method",
+          "name": "status",
+          "line_start": 206,
+          "line_end": 208,
+          "signature": "status(s: string): void {"
+        },
+        {
+          "type": "method",
+          "name": "turnEnd",
+          "line_start": 210,
+          "line_end": 213,
+          "signature": "turnEnd(label: string): void {"
+        },
+        {
+          "type": "method",
+          "name": "planUpdated",
+          "line_start": 215,
+          "line_end": 217,
+          "signature": "planUpdated(plan: Plan): void {"
+        },
+        {
+          "type": "method",
+          "name": "subagent",
+          "line_start": 219,
+          "line_end": 221,
+          "signature": "subagent(phase: \"start\" | \"done\", label: string): void {"
+        },
+        {
+          "type": "method",
+          "name": "warn",
+          "line_start": 223,
+          "line_end": 225,
+          "signature": "warn(s: string): void {"
+        },
+        {
+          "type": "method",
+          "name": "error",
+          "line_start": 227,
+          "line_end": 230,
+          "signature": "error(s: string): void {"
+        },
+        {
+          "type": "method",
+          "name": "close",
+          "line_start": 232,
+          "line_end": 235,
+          "signature": "close(): void {"
+        }
+      ]
+    },
+    {
+      "type": "function",
+      "name": "summarizeArgs",
+      "line_start": 238,
+      "line_end": 272,
+      "signature": "function summarizeArgs(name: string, args: Record<string, any>): string {"
+    }
+  ]
+}

@@ -143,6 +143,9 @@ smolcoder sends your code and prompts to the server you choose, and runs the too
 - **Sessions survive restarts.** Past sessions stay in the sidebar and resume with a click. Transcripts live under `~/.smolcoder/sessions/`.
 - **Paste screenshots and files.** Paste an image with `ctrl+v` or right-click and choose Paste, drop files onto the chat, or click the paperclip. Images go to the model when it can see them, and the chip warns you when it cannot. Text files are added to your message.
 - **Browser and terminal panels.** Preview the dev server the agent started, or open a shell in the workspace, next to the chat.
+- **Search code in the project.** Open the files panel and enter a phrase to find it across source files. Choose a result to jump to that line. `Ctrl+Shift+F` opens project search. Generated folders, hidden files, binaries and very large files are skipped.
+- **Keep several files open.** The web and desktop editors use tabs with separate unsaved buffers. Close a changed tab or switch project only after confirming; saves also detect changes made by another program.
+- **Code editing keys.** `Tab` indents, `Shift+Tab` removes indentation, `Enter` keeps indentation (and indents inside `{}`, `[]` and `()`), `Ctrl+G` jumps to a line, and the editor shows the current line and column.
 - **One server for everything.** Running `smol --web` in another folder adds it to the UI that is already open.
 - **Desktop app mode.** `smol --web --app` opens the UI in its own window (no browser tab) when Chrome or Edge is installed — same hub, same sessions.
 

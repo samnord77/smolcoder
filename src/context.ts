@@ -31,6 +31,8 @@ import { abortableDelay } from "./providers/transport";
 import { isHistoryPlaceholder } from "./history";
 import { IMAGE_TOKENS } from "./attachments";
 
+// Protection anti-timeout Cloudflare (100s) et saturation GPU
+const MAX_SAFE_TUNNEL_WINDOW = 28000;
 const MSG_OVERHEAD_TOKENS = 8;
 const EVICT_KEEP_RECENT = 6; // never evict tool results in the last N messages
 const EVICT_STUB = "[old output removed to save space — run the tool again if you need it]";
@@ -147,7 +149,9 @@ export class ContextManager {
   }
 
   usableWindow(): number {
-    return Math.max(0, this.window - this.reserve - Math.min(256, Math.floor(this.window * 0.05)));
+    const raw = Math.max(0, this.window - this.reserve - Math.min(256, Math.floor(this.window * 0.05)));
+    // Plafond strict anti-524 : compresse automatiquement avant d'approcher la limite de temps Cloudflare
+    return Math.min(raw, MAX_SAFE_TUNNEL_WINDOW);
   }
 
   /** Leave room for several related reads, their calls, and the next edit.
@@ -212,7 +216,8 @@ export class ContextManager {
   }
 
   needsAttention(messages: Msg[], tools: ToolSpec[]): boolean {
-    if (this.estimatePrompt(messages, tools) <= 0.8 * this.usableWindow()) {
+    const curPrompt = this.estimatePrompt(messages, tools);
+    if (curPrompt <= 0.8 * this.usableWindow() && curPrompt <= 22000) {
       this.floorWarned = false; // healthy again — re-arm the floor warning
       return false;
     }
@@ -262,7 +267,7 @@ export class ContextManager {
     opts: { force?: boolean; signal?: AbortSignal; deterministic?: boolean } = {}
   ): Promise<{ messages: Msg[]; report: CompactionReport }> {
     const before = this.estimatePrompt(messages, tools);
-    if (!opts.force && before <= 0.8 * this.usableWindow()) {
+    if (!opts.force && before <= 0.8 * this.usableWindow() && before <= 22000) {
       return { messages, report: { action: "none", before, after: before } };
     }
 
@@ -343,7 +348,7 @@ export class ContextManager {
       }
     }
     let after = this.estimatePrompt(messages, tools);
-    if (!opts.force && after <= 0.8 * this.usableWindow()) {
+    if (!opts.force && after <= 0.8 * this.usableWindow() && after <= 22000) {
       return { messages, report: { action: "evicted", before, after } };
     }
 

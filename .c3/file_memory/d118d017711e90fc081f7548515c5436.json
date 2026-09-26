@@ -1,0 +1,48 @@
+{
+  "path": "test/app.test.js",
+  "content_hash": "79aedeeaecabfbf06d972143544f4dc5",
+  "updated_at": "2026-09-24T22:55:36",
+  "lines": 29,
+  "size_bytes": 1335,
+  "mtime_ns": 1790286886284474900,
+  "language": "javascript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "constant",
+      "name": "test",
+      "line_start": 3,
+      "line_end": 3,
+      "signature": "const test = require(\"node:test\");"
+    },
+    {
+      "type": "constant",
+      "name": "assert",
+      "line_start": 4,
+      "line_end": 4,
+      "signature": "const assert = require(\"node:assert/strict\");"
+    },
+    {
+      "type": "constant",
+      "name": "fs",
+      "line_start": 5,
+      "line_end": 5,
+      "signature": "const fs = require(\"node:fs\");"
+    },
+    {
+      "type": "constant",
+      "name": "os",
+      "line_start": 6,
+      "line_end": 6,
+      "signature": "const os = require(\"node:os\");"
+    },
+    {
+      "type": "constant",
+      "name": "path",
+      "line_start": 7,
+      "line_end": 7,
+      "signature": "const path = require(\"node:path\");"
+    }
+  ]
+}

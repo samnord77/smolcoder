@@ -105,6 +105,12 @@ const sendSlash = (rec, text) => withLiveSid(rec, (sid) => api(rec, "POST", "/ms
 const cycleMode = (rec) => withLiveSid(rec, (sid) => api(rec, "POST", "/cycle", { sid }));
 const cancelTurn = (rec) => withLiveSid(rec, (sid) => api(rec, "POST", "/cancel", { sid }));
 const openTerminal = (rec) => withLiveSid(rec, (sid) => api(rec, "POST", "/term/open", { sid }));
+/** Ouvre un terminal et y tape une commande (ex: build). */
+const runInTerminal = (rec, text) => withLiveSid(rec, async (sid) => {
+  const t = await api(rec, "POST", "/term/open", { sid });
+  await api(rec, "POST", "/term/input", { sid, tid: t.tid, text: text.endsWith("\n") ? text : text + "\n" });
+  return t;
+});
 const openTerminalSid = (rec, sid) => api(rec, "POST", "/term/open", { sid });
 
 /** Reprend la session la plus recente, sinon en ouvre une neuve. Retourne son sid. */
@@ -135,11 +141,16 @@ async function ping(rec) {
 async function ensureHub({ projectDir, distIndex }) {
   let rec = readHubRecord();
   if (rec && (await ping(rec))) return { rec, url: hubUrl(rec) };
+  const env = { ...process.env };
+  if (process.versions && process.versions.electron) {
+    env.ELECTRON_RUN_AS_NODE = "1";
+  }
   const child = spawn(process.execPath, [distIndex, "--web"], {
     cwd: projectDir,
     detached: true,
     stdio: "ignore",
     windowsHide: true,
+    env,
   });
   child.unref();
   for (let i = 0; i < 40; i++) {
@@ -154,4 +165,4 @@ function hubUrl(rec) {
   return `http://127.0.0.1:${rec.port}/?k=${rec.token}`;
 }
 
-module.exports = { dataDir, readHubRecord, api, snapshot, withLiveSid, sendSlash, cycleMode, cancelTurn, openTerminal, openTerminalSid, ensureSession, ping, ensureHub, hubUrl };
+module.exports = { dataDir, readHubRecord, api, snapshot, withLiveSid, sendSlash, cycleMode, cancelTurn, openTerminal, openTerminalSid, runInTerminal, ensureSession, ping, ensureHub, hubUrl };

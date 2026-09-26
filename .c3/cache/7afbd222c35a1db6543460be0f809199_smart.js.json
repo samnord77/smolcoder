@@ -1,0 +1,9 @@
+{
+  "original_tokens": 1586,
+  "compressed_tokens": 276,
+  "saved_tokens": 1310,
+  "savings_pct": 82.6,
+  "compressed": "# hub-client.js (.js) \u2014 163 lines\nconst fs = require(\"fs\");\nconst http = require(\"http\");\nconst os = require(\"os\");\nconst path = require(\"path\");\nfunction dataDir()\nfunction readHubRecord()\nfunction api(rec, method, p, body)\nfunction snapshot(rec)\nfunction sessionIdsByRecency(snap)\nasync function withLiveSid(rec, fn)\nconst sendSlash = (rec, text) => withLiveSid(rec, (sid) => api(rec, \"POST\", \"/msg\", { sid, text }));\nconst cycleMode = (rec) => withLiveSid(rec, (sid) => api(rec, \"POST\", \"/cycle\", { sid }));\nconst cancelTurn = (rec) => withLiveSid(rec, (sid) => api(rec, \"POST\", \"/cancel\", { sid }));\nconst openTerminal = (rec) => withLiveSid(rec, (sid) => api(rec, \"POST\", \"/term/open\", { sid }));\nconst runInTerminal = (rec, text) => withLiveSid(rec, async (sid) =>\nconst openTerminalSid = (rec, sid) => api(rec, \"POST\", \"/term/open\", { sid });\nasync function ensureSession(rec, workspace)\nasync function ping(rec)\nasync function ensureHub({ projectDir, distIndex })\nfunction hubUrl(rec)",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\desktop\\hub-client.js"
+}

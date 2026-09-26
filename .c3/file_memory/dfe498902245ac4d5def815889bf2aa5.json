@@ -1,0 +1,69 @@
+{
+  "path": "test/plugins.test.js",
+  "content_hash": "1de1436bfe6a551d61a1207835d4b14f",
+  "updated_at": "2026-09-25T16:03:43",
+  "lines": 73,
+  "size_bytes": 3200,
+  "mtime_ns": 1790348606296497300,
+  "language": "javascript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "constant",
+      "name": "test",
+      "line_start": 2,
+      "line_end": 2,
+      "signature": "const test = require(\"node:test\");"
+    },
+    {
+      "type": "constant",
+      "name": "assert",
+      "line_start": 3,
+      "line_end": 3,
+      "signature": "const assert = require(\"node:assert/strict\");"
+    },
+    {
+      "type": "constant",
+      "name": "fs",
+      "line_start": 4,
+      "line_end": 4,
+      "signature": "const fs = require(\"node:fs\");"
+    },
+    {
+      "type": "constant",
+      "name": "os",
+      "line_start": 5,
+      "line_end": 5,
+      "signature": "const os = require(\"node:os\");"
+    },
+    {
+      "type": "constant",
+      "name": "path",
+      "line_start": 6,
+      "line_end": 6,
+      "signature": "const path = require(\"node:path\");"
+    },
+    {
+      "type": "function",
+      "name": "scratch",
+      "line_start": 12,
+      "line_end": 14,
+      "signature": "function scratch() {"
+    },
+    {
+      "type": "function",
+      "name": "writePlugin",
+      "line_start": 16,
+      "line_end": 20,
+      "signature": "function writePlugin(ws, name, content) {"
+    },
+    {
+      "type": "function",
+      "name": "makeCtx",
+      "line_start": 22,
+      "line_end": 24,
+      "signature": "function makeCtx(ws, plugins) {"
+    }
+  ]
+}

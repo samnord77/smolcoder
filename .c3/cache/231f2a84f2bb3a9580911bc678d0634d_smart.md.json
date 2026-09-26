@@ -1,0 +1,9 @@
+{
+  "original_tokens": 346,
+  "compressed_tokens": 99,
+  "saved_tokens": 247,
+  "savings_pct": 71.4,
+  "compressed": "# kaggle.md (.md) \u2014 26 lines\n# Gros mod\u00e8les sur Kaggle GPU (sans Nvidia local)  smolcoder pilote n'importe quel serveur Ollama ou LM Studio joignable par\n## Recette (10 minutes)  1. Sur Kaggle, lancez un notebook GPU qui sert Ollama\n## Notes  - Le trafic quitte votre PC vers Kaggle : pr\u00e9voyez `https://`, jamais",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\docs\\kaggle.md"
+}

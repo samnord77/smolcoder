@@ -1,0 +1,134 @@
+{
+  "path": "src/attachments.ts",
+  "content_hash": "2037f9a1a468ef4ea419e7fca8430496",
+  "updated_at": "2026-09-24T17:24:23",
+  "lines": 143,
+  "size_bytes": 5560,
+  "mtime_ns": 1790260569927872300,
+  "language": "typescript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "import",
+      "name": "import * as fs from \"fs\";",
+      "line_start": 7,
+      "line_end": 7,
+      "signature": "import * as fs from \"fs\";"
+    },
+    {
+      "type": "import",
+      "name": "import { ImageRef } from \"./providers/types\";",
+      "line_start": 8,
+      "line_end": 8,
+      "signature": "import { ImageRef } from \"./providers/types\";"
+    },
+    {
+      "type": "interface",
+      "name": "Attachment",
+      "line_start": 10,
+      "line_end": 19,
+      "signature": "interface Attachment {",
+      "children": []
+    },
+    {
+      "type": "interface",
+      "name": "UserInput",
+      "line_start": 23,
+      "line_end": 26,
+      "signature": "interface UserInput {",
+      "children": []
+    },
+    {
+      "type": "constant",
+      "name": "MAX_UPLOAD_BYTES",
+      "line_start": 29,
+      "line_end": 29,
+      "signature": "const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;"
+    },
+    {
+      "type": "constant",
+      "name": "MAX_TEXT_BYTES",
+      "line_start": 32,
+      "line_end": 32,
+      "signature": "const MAX_TEXT_BYTES = 48 * 1024;"
+    },
+    {
+      "type": "constant",
+      "name": "IMAGE_TOKENS",
+      "line_start": 35,
+      "line_end": 35,
+      "signature": "const IMAGE_TOKENS = 1500;"
+    },
+    {
+      "type": "constant",
+      "name": "IMAGE_MIMES",
+      "line_start": 37,
+      "line_end": 43,
+      "signature": "const IMAGE_MIMES: Record<string, string> = {"
+    },
+    {
+      "type": "function",
+      "name": "safeName",
+      "line_start": 46,
+      "line_end": 50,
+      "signature": "function safeName(name: unknown): string {"
+    },
+    {
+      "type": "function",
+      "name": "extOf",
+      "line_start": 54,
+      "line_end": 60,
+      "signature": "function extOf(name: string, mime: string): string {"
+    },
+    {
+      "type": "function",
+      "name": "mimeForExt",
+      "line_start": 64,
+      "line_end": 66,
+      "signature": "function mimeForExt(ext: string): string {"
+    },
+    {
+      "type": "function",
+      "name": "looksLikeText",
+      "line_start": 68,
+      "line_end": 72,
+      "signature": "function looksLikeText(bytes: Buffer): boolean {"
+    },
+    {
+      "type": "function",
+      "name": "classifyUpload",
+      "line_start": 75,
+      "line_end": 92,
+      "signature": "function classifyUpload("
+    },
+    {
+      "type": "function",
+      "name": "imageBase64",
+      "line_start": 96,
+      "line_end": 102,
+      "signature": "function imageBase64(ref: ImageRef): string | null {"
+    },
+    {
+      "type": "function",
+      "name": "imageDataUrl",
+      "line_start": 104,
+      "line_end": 107,
+      "signature": "function imageDataUrl(ref: ImageRef): string | null {"
+    },
+    {
+      "type": "constant",
+      "name": "FENCE",
+      "line_start": 109,
+      "line_end": 109,
+      "signature": "const FENCE = \"```\";"
+    },
+    {
+      "type": "function",
+      "name": "renderAttachmentsForModel",
+      "line_start": 114,
+      "line_end": 143,
+      "signature": "function renderAttachmentsForModel("
+    }
+  ]
+}

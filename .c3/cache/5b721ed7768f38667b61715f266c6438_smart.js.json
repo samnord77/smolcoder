@@ -1,0 +1,9 @@
+{
+  "original_tokens": 760,
+  "compressed_tokens": 36,
+  "saved_tokens": 724,
+  "savings_pct": 95.3,
+  "compressed": "# delegate-ui.test.js (.js) \u2014 86 lines\nconst test = require(\"node:test\");\nconst assert = require(\"node:assert/strict\");\nfunction makeParent()",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\delegate-ui.test.js"
+}

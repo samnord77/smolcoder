@@ -1,0 +1,9 @@
+{
+  "original_tokens": 283,
+  "compressed_tokens": 85,
+  "saved_tokens": 198,
+  "savings_pct": 70.0,
+  "compressed": "# events.ts (.ts) \u2014 39 lines\nexport type LifecycleEvent = | \"session_start\" | \"pre_request\"\ntype Handler = (payload?: unknown) => void | Promise<void>;\n\nexport class EventBus\n  private handlers = new Map<LifecycleEvent, Handler[]>();\n  on(event: LifecycleEvent, handler: Handler): void\n  async emit(event: LifecycleEvent, payload?: unknown): Promise<void>",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\events.ts"
+}

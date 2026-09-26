@@ -1,0 +1,9 @@
+{
+  "original_tokens": 560,
+  "compressed_tokens": 127,
+  "saved_tokens": 433,
+  "savings_pct": 77.3,
+  "compressed": "# plugins.md (.md) \u2014 35 lines\n# Plugins smolcoder \u2014 gratuits, sans abonnement  smolcoder ne vend rien : tout ce qui est dedans est gratuit et tourne sur votre\n## Dedans (rien \u00e0 installer)  | Domaine | Outil / skill | Co\u00fbt |\n## Dehors (optionnel, \u00e0 installer vous-m\u00eame)  V\u00e9rifi\u00e9s le 2026-09-24, licences et \u00e9toiles GitHub \u00e0 cette date\n## Ajouter votre plugin (2 minutes)  1. Faites la recette une fois \u00e0 la main.",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\docs\\plugins.md"
+}

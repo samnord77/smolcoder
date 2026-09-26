@@ -1,0 +1,193 @@
+{
+  "path": "src/tools/cowork.ts",
+  "content_hash": "a83f7d6f03d1a33d1203d3d35212954c",
+  "updated_at": "2026-09-26T17:56:05",
+  "lines": 177,
+  "size_bytes": 8635,
+  "mtime_ns": 1790424902807066200,
+  "language": "typescript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "import",
+      "name": "import * as fs from \"fs\";",
+      "line_start": 1,
+      "line_end": 1,
+      "signature": "import * as fs from \"fs\";"
+    },
+    {
+      "type": "import",
+      "name": "import * as path from \"path\";",
+      "line_start": 2,
+      "line_end": 2,
+      "signature": "import * as path from \"path\";"
+    },
+    {
+      "type": "import",
+      "name": "import { randomUUID } from \"crypto\";",
+      "line_start": 3,
+      "line_end": 3,
+      "signature": "import { randomUUID } from \"crypto\";"
+    },
+    {
+      "type": "import",
+      "name": "import { resolveInWorkspace } from \"../sandbox\";",
+      "line_start": 4,
+      "line_end": 4,
+      "signature": "import { resolveInWorkspace } from \"../sandbox\";"
+    },
+    {
+      "type": "type",
+      "name": "WorkStatus",
+      "line_start": 6,
+      "line_end": 6,
+      "signature": "type WorkStatus = \"open\" | \"completed\" | \"archived\";",
+      "children": []
+    },
+    {
+      "type": "type",
+      "name": "WorkPriority",
+      "line_start": 7,
+      "line_end": 7,
+      "signature": "type WorkPriority = \"low\" | \"normal\" | \"high\" | \"urgent\";",
+      "children": []
+    },
+    {
+      "type": "interface",
+      "name": "WorkItem",
+      "line_start": 9,
+      "line_end": 19,
+      "signature": "interface WorkItem {",
+      "children": []
+    },
+    {
+      "type": "constant",
+      "name": "MAX_FILE_BYTES",
+      "line_start": 21,
+      "line_end": 21,
+      "signature": "const MAX_FILE_BYTES = 512 * 1024;"
+    },
+    {
+      "type": "constant",
+      "name": "MAX_ITEMS",
+      "line_start": 22,
+      "line_end": 22,
+      "signature": "const MAX_ITEMS = 1000;"
+    },
+    {
+      "type": "constant",
+      "name": "PRIORITIES",
+      "line_start": 23,
+      "line_end": 23,
+      "signature": "const PRIORITIES: WorkPriority[] = [\"low\", \"normal\", \"high\", \"urgent\"];"
+    },
+    {
+      "type": "constant",
+      "name": "STATUSES",
+      "line_start": 24,
+      "line_end": 24,
+      "signature": "const STATUSES: WorkStatus[] = [\"open\", \"completed\", \"archived\"];"
+    },
+    {
+      "type": "function",
+      "name": "boundedText",
+      "line_start": 26,
+      "line_end": 32,
+      "signature": "function boundedText(value: unknown, max: number, required = false): string | null {"
+    },
+    {
+      "type": "function",
+      "name": "validDate",
+      "line_start": 34,
+      "line_end": 38,
+      "signature": "function validDate(value: unknown): value is string {"
+    },
+    {
+      "type": "function",
+      "name": "isItem",
+      "line_start": 40,
+      "line_end": 49,
+      "signature": "function isItem(value: unknown): value is WorkItem {"
+    },
+    {
+      "type": "class",
+      "name": "CoworkBoard",
+      "line_start": 52,
+      "line_end": 177,
+      "signature": "class CoworkBoard {",
+      "children": [
+        {
+          "type": "property",
+          "name": "file",
+          "line_start": 53,
+          "line_end": 53,
+          "signature": "private readonly file: string;",
+          "access": "private"
+        },
+        {
+          "type": "method",
+          "name": "constructor",
+          "line_start": 55,
+          "line_end": 57,
+          "signature": "constructor(private readonly workspace: string) {"
+        },
+        {
+          "type": "method",
+          "name": "run",
+          "line_start": 59,
+          "line_end": 73,
+          "signature": "run(args: Record<string, unknown>): string {"
+        },
+        {
+          "type": "method",
+          "name": "load",
+          "line_start": 75,
+          "line_end": 86,
+          "signature": "private load(): WorkItem[] {",
+          "access": "private"
+        },
+        {
+          "type": "method",
+          "name": "save",
+          "line_start": 88,
+          "line_end": 99,
+          "signature": "private save(items: WorkItem[]): void {",
+          "access": "private"
+        },
+        {
+          "type": "method",
+          "name": "list",
+          "line_start": 101,
+          "line_end": 112,
+          "signature": "private list(items: WorkItem[], args: Record<string, unknown>): string {",
+          "access": "private"
+        },
+        {
+          "type": "method",
+          "name": "create",
+          "line_start": 114,
+          "line_end": 132,
+          "signature": "private create(items: WorkItem[], args: Record<string, unknown>): string {",
+          "access": "private"
+        },
+        {
+          "type": "method",
+          "name": "update",
+          "line_start": 134,
+          "line_end": 166,
+          "signature": "private update(items: WorkItem[], args: Record<string, unknown>): string {",
+          "access": "private"
+        },
+        {
+          "type": "method",
+          "name": "changeStatus",
+          "line_start": 168,
+          "line_end": 176,
+          "signature": "private changeStatus(items: WorkItem[], args: Record<string, unknown>, status: \"completed\" | \"archived\"): string {",
+          "access": "private"
+        }
+      ]
+    }
+  ]
+}

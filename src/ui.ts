@@ -6,6 +6,7 @@ import * as readline from "readline";
 import { UserInput } from "./attachments";
 import { Plan } from "./plan";
 import { c } from "./util";
+import { createCodeStreamColorizer } from "./highlight";
 
 /** What the agent loop needs from a UI — implemented by the plain UI (used in
  * -p / non-TTY mode) and by the interactive Tui. */
@@ -30,6 +31,8 @@ export interface AgentUI {
   planUpdated(plan: Plan): void;
   /** Sub-agent progress (delegate tool). Optional so older UIs keep working. */
   subagent?(phase: "start" | "done", label: string): void;
+  /** Skills that auto-loaded into the turn that is starting. Optional. */
+  skills?(names: string[]): void;
 }
 
 export interface SlashCommand {
@@ -62,14 +65,14 @@ export interface SessionUI extends AgentUI {
   refresh(): void;
 }
 
-/** Shared checklist renderer: ✔ done (dim) · ▶ current (cyan) · ○ pending. */
+/** Shared checklist renderer: ☑ done (dim, struck) · ◉ current (cyan) · ☐ pending. */
 export function renderPlan(plan: Plan, indent = "  "): string {
   const cur = plan.currentIndex;
-  const header = `${indent}${c.bold("Plan")} ${c.dim(`${plan.doneCount}/${plan.steps.length}`)}`;
+  const header = `${indent}${c.bold("Plan")} ${c.dim(`${plan.doneCount} tâches sur ${plan.steps.length} terminées`)}`;
   const rows = plan.steps.map((s, i) => {
-    if (s.done) return `${indent}${c.dim("✔ " + s.text)}`;
-    if (i === cur) return `${indent}${c.cyan("▶ " + s.text)}`;
-    return `${indent}${c.gray("○ " + s.text)}`;
+    if (s.done) return `${indent}${c.dim("☑ " + s.text)}`;
+    if (i === cur) return `${indent}${c.cyan("◉ " + s.text)}`;
+    return `${indent}${c.gray("☐ " + s.text)}`;
   });
   return [header, ...rows].join("\n");
 }
@@ -79,6 +82,7 @@ export class UI implements AgentUI {
   private spinnerTimer: NodeJS.Timeout | null = null;
   private spinnerActive = false;
   private atLineStart = true;
+  private codeColorizer = createCodeStreamColorizer((text) => process.stdout.write(text), process.stdout.isTTY && !process.env.NO_COLOR);
   onInterrupt: (() => void) | null = null;
 
   constructor() {
@@ -170,7 +174,7 @@ export class UI implements AgentUI {
   /** Streamed model text goes straight to stdout. */
   token(text: string): void {
     this.stopSpinner();
-    process.stdout.write(text);
+    this.codeColorizer.push(text);
     this.atLineStart = text.endsWith("\n");
   }
 
@@ -204,6 +208,7 @@ export class UI implements AgentUI {
   }
 
   turnEnd(label: string): void {
+    this.codeColorizer.flush();
     this.meta(c.dim(`■ ${label}`));
   }
 
@@ -220,6 +225,7 @@ export class UI implements AgentUI {
   }
 
   error(s: string): void {
+    this.codeColorizer.flush();
     this.meta(c.red(s));
   }
 

@@ -1,0 +1,77 @@
+{
+  "path": "src/verification.ts",
+  "content_hash": "d70ed4832c69cc0b79e0f856beb182cf",
+  "updated_at": "2026-09-26T18:01:05",
+  "lines": 144,
+  "size_bytes": 5952,
+  "mtime_ns": 1790427299644511500,
+  "language": "typescript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "import",
+      "name": "import * as fs from \"fs\";",
+      "line_start": 1,
+      "line_end": 1,
+      "signature": "import * as fs from \"fs\";"
+    },
+    {
+      "type": "import",
+      "name": "import * as path from \"path\";",
+      "line_start": 2,
+      "line_end": 2,
+      "signature": "import * as path from \"path\";"
+    },
+    {
+      "type": "import",
+      "name": "import { resolveInWorkspace } from \"./sandbox\";",
+      "line_start": 3,
+      "line_end": 3,
+      "signature": "import { resolveInWorkspace } from \"./sandbox\";"
+    },
+    {
+      "type": "function",
+      "name": "failureSignature",
+      "line_start": 7,
+      "line_end": 9,
+      "signature": "function failureSignature(output: string): string {"
+    },
+    {
+      "type": "function",
+      "name": "workspaceEntry",
+      "line_start": 11,
+      "line_end": 20,
+      "signature": "function workspaceEntry(workspace: string, relative: string, kind: \"file\" | \"directory\" = \"file\"): string | null {"
+    },
+    {
+      "type": "function",
+      "name": "hasPythonTests",
+      "line_start": 24,
+      "line_end": 35,
+      "signature": "function hasPythonTests(workspace: string, relative: string, depth = 2): boolean {",
+      "doc": "Look for conventional Python test files without traversing symlinks or"
+    },
+    {
+      "type": "function",
+      "name": "projectVerification",
+      "line_start": 39,
+      "line_end": 94,
+      "signature": "function projectVerification(workspace: string): string | undefined {"
+    },
+    {
+      "type": "function",
+      "name": "splitVerification",
+      "line_start": 98,
+      "line_end": 128,
+      "signature": "function splitVerification(command: string): string[] {"
+    },
+    {
+      "type": "function",
+      "name": "mergeVerificationCommands",
+      "line_start": 131,
+      "line_end": 144,
+      "signature": "function mergeVerificationCommands(...cmds: (string | undefined)[]): string {"
+    }
+  ]
+}

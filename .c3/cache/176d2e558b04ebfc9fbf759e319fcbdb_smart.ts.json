@@ -1,0 +1,9 @@
+{
+  "original_tokens": 729,
+  "compressed_tokens": 76,
+  "saved_tokens": 653,
+  "savings_pct": 89.6,
+  "compressed": "# verification.ts (.ts) \u2014 79 lines\nimport * as fs from \"fs\";\nimport { resolveInWorkspace } from \"./sandbox\";\n\nexport function failureSignature(output: string): string\nexport function projectVerification(workspace: string): string | undefined\nexport function splitVerification(command: string): string[]\nexport function mergeVerificationCommands(...cmds: (string | undefined)[]): string",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\verification.ts"
+}

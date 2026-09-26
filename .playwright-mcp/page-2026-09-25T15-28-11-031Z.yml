@@ -1,0 +1,32 @@
+- generic [ref=e1]:
+  - complementary [ref=e2]:
+    - generic [ref=e3]:
+      - img "smolcoder" [ref=e4]: ███████╗ ███╗ ███╗ ██████╗ ██╗ ██╔════╝ ████╗ ████║ ██╔═══██╗ ██║ ███████╗ ██╔████╔██║ ██║ ██║ ██║ ╚════██║ ██║╚██╔╝██║ ██║ ██║ ██║ ███████║ ██║ ╚═╝ ██║ ╚██████╔╝ ███████╗ ╚══════╝ ╚═╝ ╚═╝ ╚═════╝ ╚══════╝
+      - button "«" [ref=e5] [cursor=pointer]
+    - button "+ Open folder…" [ref=e6] [cursor=pointer]
+    - generic [ref=e8]:
+      - generic "C:\\Users\\DELL\\smolcoder-source" [ref=e9]: smolcoder-source
+      - generic [ref=e11]:
+        - generic "new session · starting" [ref=e12] [cursor=pointer]: new session
+        - generic "new session · qwen3.8:27b · waiting" [ref=e15] [cursor=pointer]: new session
+        - generic "tes la · qwen3.8:27b · saved — click to resume" [ref=e18] [cursor=pointer]: tes la
+    - generic [ref=e21]:
+      - generic [ref=e22]: v0.7.1
+      - button "Keyboard shortcuts" [ref=e23] [cursor=pointer]: "?"
+  - generic [ref=e24]:
+    - generic [ref=e25]:
+      - generic "C:\\Users\\DELL\\smolcoder-source" [ref=e26]: smolcoder-source›new session
+      - 'button "browser panel: preview a dev server next to the chat" [ref=e27] [cursor=pointer]'
+      - 'button "terminal panel (ctrl+`)" [ref=e31] [cursor=pointer]'
+    - region "Session messages" [ref=e34]:
+      - generic [ref=e35]: ███████╗ ███╗ ███╗ ██████╗ ██╗ ██╔════╝ ████╗ ████║ ██╔═══██╗ ██║ ███████╗ ██╔████╔██║ ██║ ██║ ██║ ╚════██║ ██║╚██╔╝██║ ██║ ██║ ██║ ███████║ ██║ ╚═╝ ██║ ╚██████╔╝ ███████╗ ╚══════╝ ╚═╝ ╚═╝ ╚═════╝ ╚══════╝ What are we building?
+      - generic [ref=e38]:
+        - generic [ref=e39]: ⠋
+        - text: loading qwen3.8:27b…
+    - generic [ref=e42]:
+      - generic [ref=e43]:
+        - textbox "Message" [active] [ref=e44]:
+          - /placeholder: Describe a change…
+        - button "Attach a file" [ref=e45] [cursor=pointer]
+        - button "■ stop" [ref=e48] [cursor=pointer]
+      - generic [ref=e49]: starting…

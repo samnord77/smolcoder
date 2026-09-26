@@ -1,0 +1,9 @@
+{
+  "original_tokens": 409,
+  "compressed_tokens": 54,
+  "saved_tokens": 355,
+  "savings_pct": 86.8,
+  "compressed": "# editor-file-service.test.js (.js) \u2014 27 lines\nconst test = require(\"node:test\");\nconst assert = require(\"node:assert/strict\");\nconst fs = require(\"fs\");\nconst os = require(\"os\");\nconst path = require(\"path\");",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\editor-file-service.test.js"
+}

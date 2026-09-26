@@ -1,0 +1,9 @@
+{
+  "original_tokens": 1061,
+  "compressed_tokens": 112,
+  "saved_tokens": 949,
+  "savings_pct": 89.4,
+  "compressed": "# prompt.ts (.ts) \u2014 87 lines\nimport * as fs from \"fs\";\nimport * as path from \"path\";\nimport { Mode } from \"./tools/index\";\n\nconst AGENTS_MD_CAP_CHARS = 8000; // ~2k tokens \u2014 small-context friendly\nconst MEMORY_MD_CAP_CHARS = 4000; // ~1k tokens \u2014 long-term memory stays cheap\nexport function loadAgentsMd(workspace: string): string | null\nexport function loadMemoryMd(workspace: string): string | null\nexport function buildSystemPrompt(opts:",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\prompt.ts"
+}

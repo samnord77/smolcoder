@@ -12,6 +12,7 @@ import { spawn, ChildProcess } from "child_process";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
+import { shellEnv } from "./tools/shell";
 
 export interface McpServerConfig {
   name: string;
@@ -33,21 +34,66 @@ const NAME_RE = /^[A-Za-z0-9_-]{1,40}$/;
 const DEFAULT_TIMEOUT_MS = 60_000;
 const MAX_TOOLS = 50;
 
+/** Folders where Node/npm (and a few common tools) live, tried after PATH so
+ * MCP servers keep starting when smolcoder is launched from a shell, an IDE or
+ * a shortcut whose PATH is missing Node entirely. */
+function fallbackBinDirs(): string[] {
+  const out: string[] = [];
+  const push = (p: string | undefined) => {
+    if (p && p.trim()) out.push(p.trim());
+  };
+  push(path.dirname(process.execPath)); // node.exe's own folder
+  const pf = process.env.ProgramFiles ?? "C:\\Program Files";
+  const pf86 = process.env["ProgramFiles(x86)"] ?? "C:\\Program Files (x86)";
+  const local = process.env.LOCALAPPDATA ?? path.join(os.homedir(), "AppData", "Local");
+  const roaming = process.env.APPDATA ?? path.join(os.homedir(), "AppData", "Roaming");
+  push(path.join(pf, "nodejs"));
+  push(path.join(pf86, "nodejs"));
+  push(path.join(local, "Programs", "nodejs"));
+  push(path.join(local, "Programs", "node"));
+  push(path.join(local, "fnm"));
+  push(path.join(roaming, "npm")); // global npm bin (npx.cmd, npm.cmd)
+  push(path.join(roaming, "nvm"));
+  push(path.join(local, "pnpm"));
+  push(path.join(local, "Yarn", "bin"));
+  push(path.join(local, "Microsoft", "WindowsApps")); // winget/store shims
+  push(path.join(roaming, "Python", "Scripts"));
+  push(path.join(local, "Programs", "Python", "Scripts"));
+  return out;
+}
+
+/** True when `full` is an existing regular file we may try to spawn. */
+function isRunnableFile(full: string): boolean {
+  try {
+    return fs.statSync(full).isFile();
+  } catch {
+    return false;
+  }
+}
+
 /** Windows cannot spawn `npx` directly (it is `npx.cmd` on PATH). Resolve
- * extension-less commands against PATH so configured servers just work.
- * Exported for tests. */
+ * extension-less commands against PATH, the caller's PATH separator rules and
+ * the usual install folders, in that order. Exported for tests. */
 export function resolveCommand(cmd: string): string {
   if (process.platform !== "win32" || /[\\/]/.test(cmd) || /\.[A-Za-z0-9]+$/.test(cmd)) return cmd;
-  const dirs = (process.env.PATH ?? "").split(";").filter(Boolean);
-  for (const ext of [".cmd", ".exe", ".bat", ".ps1"]) {
+  const fromExt = (process.env.PATHEXT ?? ".COM;.EXE;.BAT;.CMD")
+    .split(";")
+    .map((e) => e.trim().toLowerCase())
+    .filter((e) => /^\.[a-z0-9]+$/.test(e));
+  // .cmd first: npx/npm/yarn wrappers are .cmd, the tests and real configs rely on it.
+  const exts = [".cmd", ".exe", ".bat", ".ps1", ...fromExt].filter((e, i, all) => all.indexOf(e) === i);
+  const inheritedPath = process.env.PATH ?? process.env.Path ?? "";
+  const dirs = [...inheritedPath.split(path.delimiter), ...fallbackBinDirs()]
+    .map((d) => d.trim().replace(/^"|"$/g, ""))
+    .filter(Boolean);
+  const seen = new Set<string>();
+  for (const ext of exts) {
     for (const dir of dirs) {
-      try {
-        const full = path.join(dir, cmd + ext);
-        fs.accessSync(full, fs.constants.X_OK);
-        return full;
-      } catch {
-        /* try next */
-      }
+      const full = path.join(dir, cmd + ext);
+      const key = full.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      if (isRunnableFile(full)) return full;
     }
   }
   return cmd;
@@ -189,7 +235,7 @@ export class McpClient {
         const resolved = resolveCommand(command);
         const args = this.cfg.args ?? [];
         const opts = {
-          env: { ...process.env, ...(this.cfg.env ?? {}) },
+          env: { ...shellEnv(), ...(this.cfg.env ?? {}) },
           stdio: ["pipe", "pipe", "ignore"] as ["pipe", "pipe", "ignore"],
           windowsHide: true,
           // Relative paths in args (like ".") resolve in the workspace.

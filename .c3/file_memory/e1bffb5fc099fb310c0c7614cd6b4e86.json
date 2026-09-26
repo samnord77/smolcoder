@@ -1,0 +1,61 @@
+{
+  "path": "src/events.ts",
+  "content_hash": "ca627ace49e85e0a2b969b5c01bc3e52",
+  "updated_at": "2026-09-24T23:41:38",
+  "lines": 39,
+  "size_bytes": 1212,
+  "mtime_ns": 1790289655707616800,
+  "language": "typescript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "type",
+      "name": "LifecycleEvent",
+      "line_start": 6,
+      "line_end": 15,
+      "signature": "type LifecycleEvent =",
+      "children": []
+    },
+    {
+      "type": "type",
+      "name": "Handler",
+      "line_start": 17,
+      "line_end": 17,
+      "signature": "type Handler = (payload?: unknown) => void | Promise<void>;",
+      "children": []
+    },
+    {
+      "type": "class",
+      "name": "EventBus",
+      "line_start": 19,
+      "line_end": 39,
+      "signature": "class EventBus {",
+      "children": [
+        {
+          "type": "property",
+          "name": "handlers",
+          "line_start": 20,
+          "line_end": 20,
+          "signature": "private handlers = new Map<LifecycleEvent, Handler[]>();",
+          "access": "private"
+        },
+        {
+          "type": "method",
+          "name": "on",
+          "line_start": 22,
+          "line_end": 26,
+          "signature": "on(event: LifecycleEvent, handler: Handler): void {"
+        },
+        {
+          "type": "method",
+          "name": "emit",
+          "line_start": 28,
+          "line_end": 38,
+          "signature": "async emit(event: LifecycleEvent, payload?: unknown): Promise<void> {",
+          "async": true
+        }
+      ]
+    }
+  ]
+}

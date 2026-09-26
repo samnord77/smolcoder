@@ -1,0 +1,9 @@
+{
+  "original_tokens": 1486,
+  "compressed_tokens": 134,
+  "saved_tokens": 1352,
+  "savings_pct": 91.0,
+  "compressed": "# shell.ts (.ts) \u2014 160 lines\nimport { spawn, spawnSync } from \"child_process\";\nimport * as fs from \"fs\";\nimport * as path from \"path\";\nimport { truncateMiddle } from \"../util\";\n\nexport interface ShellInfo\nlet cached: ShellInfo | null = null;\nexport function pickShell(): ShellInfo\nexport function killTree(pid: number): void\nconst OUTPUT_CAP = 8000;\nconst DEFAULT_TIMEOUT_MS = 120_000;\nexport function managedCommand(shell: ShellInfo, command: string): string\nexport function runCommand(command: string, cwd: string, signal?: AbortSignal): Promise<string>",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\tools\\shell.ts"
+}

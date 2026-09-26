@@ -1,0 +1,12 @@
+{
+  "path": "desktop/preload-git.js",
+  "content_hash": "d4ce456a1b7c24f630a0257dfc16bdd1",
+  "updated_at": "2026-09-26T17:56:05",
+  "lines": 9,
+  "size_bytes": 424,
+  "mtime_ns": 1790420538273405600,
+  "language": "javascript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": []
+}

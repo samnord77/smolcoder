@@ -1,0 +1,166 @@
+{
+  "path": "src/netscan.ts",
+  "content_hash": "3405b2a250e3af105b398397a496f5de",
+  "updated_at": "2026-09-24T17:24:23",
+  "lines": 146,
+  "size_bytes": 6132,
+  "mtime_ns": 1790260569948451300,
+  "language": "typescript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "import",
+      "name": "import * as dns from \"dns\";",
+      "line_start": 6,
+      "line_end": 6,
+      "signature": "import * as dns from \"dns\";"
+    },
+    {
+      "type": "import",
+      "name": "import * as net from \"net\";",
+      "line_start": 7,
+      "line_end": 7,
+      "signature": "import * as net from \"net\";"
+    },
+    {
+      "type": "import",
+      "name": "import * as os from \"os\";",
+      "line_start": 8,
+      "line_end": 8,
+      "signature": "import * as os from \"os\";"
+    },
+    {
+      "type": "import",
+      "name": "import { BackendKind, identifyServer } from \"./detect\";",
+      "line_start": 9,
+      "line_end": 9,
+      "signature": "import { BackendKind, identifyServer } from \"./detect\";"
+    },
+    {
+      "type": "import",
+      "name": "import { LMSTUDIO_PORT, OLLAMA_PORT } from \"./hosts\";",
+      "line_start": 10,
+      "line_end": 10,
+      "signature": "import { LMSTUDIO_PORT, OLLAMA_PORT } from \"./hosts\";"
+    },
+    {
+      "type": "interface",
+      "name": "Subnet",
+      "line_start": 12,
+      "line_end": 17,
+      "signature": "interface Subnet {",
+      "children": []
+    },
+    {
+      "type": "interface",
+      "name": "FoundServer",
+      "line_start": 19,
+      "line_end": 23,
+      "signature": "interface FoundServer {",
+      "children": []
+    },
+    {
+      "type": "interface",
+      "name": "FoundHost",
+      "line_start": 25,
+      "line_end": 30,
+      "signature": "interface FoundHost {",
+      "children": []
+    },
+    {
+      "type": "constant",
+      "name": "CONNECT_TIMEOUT_MS",
+      "line_start": 32,
+      "line_end": 32,
+      "signature": "const CONNECT_TIMEOUT_MS = 350;"
+    },
+    {
+      "type": "constant",
+      "name": "CONCURRENCY",
+      "line_start": 34,
+      "line_end": 34,
+      "signature": "const CONCURRENCY = 64;"
+    },
+    {
+      "type": "constant",
+      "name": "MIN_PREFIX",
+      "line_start": 36,
+      "line_end": 36,
+      "signature": "const MIN_PREFIX = 22;"
+    },
+    {
+      "type": "constant",
+      "name": "CLAMPED_PREFIX",
+      "line_start": 37,
+      "line_end": 37,
+      "signature": "const CLAMPED_PREFIX = 24;"
+    },
+    {
+      "type": "constant",
+      "name": "VIRTUAL_IFACE",
+      "line_start": 40,
+      "line_end": 40,
+      "signature": "const VIRTUAL_IFACE = /^(vEthernet \\((WSL|Default Switch)|docker\\d*$|br-[0-9a-f]+$|veth[0-9a-f]+$|virbr\\d*$)/i;"
+    },
+    {
+      "type": "function",
+      "name": "toInt",
+      "line_start": 42,
+      "line_end": 42,
+      "signature": "const toInt = (ip: string) => ip.split(\".\").reduce((n, part) => n * 256 + Number(part), 0);"
+    },
+    {
+      "type": "function",
+      "name": "toIp",
+      "line_start": 43,
+      "line_end": 43,
+      "signature": "const toIp = (n: number) => [24, 16, 8, 0].map((shift) => Math.floor(n / 2 ** shift) % 256).join(\".\");"
+    },
+    {
+      "type": "function",
+      "name": "isPrivateV4",
+      "line_start": 45,
+      "line_end": 48,
+      "signature": "function isPrivateV4(ip: string): boolean {"
+    },
+    {
+      "type": "function",
+      "name": "localSubnets",
+      "line_start": 52,
+      "line_end": 76,
+      "signature": "function localSubnets(ifaces: NodeJS.Dict<os.NetworkInterfaceInfo[]> = os.networkInterfaces()): Subnet[] {"
+    },
+    {
+      "type": "function",
+      "name": "canConnect",
+      "line_start": 78,
+      "line_end": 89,
+      "signature": "function canConnect(ip: string, port: number, timeoutMs: number): Promise<boolean> {"
+    },
+    {
+      "type": "function",
+      "name": "stableName",
+      "line_start": 93,
+      "line_end": 107,
+      "signature": "function stableName(ip: string): Promise<string | undefined> {",
+      "doc": "A name for the machine, but only one that leads back to the same address \u2014"
+    },
+    {
+      "type": "interface",
+      "name": "ScanOptions",
+      "line_start": 109,
+      "line_end": 114,
+      "signature": "interface ScanOptions {",
+      "children": []
+    },
+    {
+      "type": "function",
+      "name": "scanSubnets",
+      "line_start": 117,
+      "line_end": 146,
+      "signature": "async function scanSubnets(subnets: Subnet[], opts: ScanOptions = {}): Promise<FoundHost[]> {",
+      "async": true
+    }
+  ]
+}

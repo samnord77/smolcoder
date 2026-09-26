@@ -50,7 +50,6 @@ test("channel: a message resolves readInput, is echoed with the session id, and 
   assert.ok(ch.replay.some((e) => e.t === "user"), "user events are replayed");
   assert.ok(!ch.replay.some((e) => e.t === "state"), "state events are not replayed");
 });
-
 test("channel: messages sent while busy queue up and a slash command does not become the title", async () => {
   const { ch } = makeChannel();
   ch.handleMessage("/models");
@@ -123,9 +122,30 @@ test("channel: the state event carries the busy label so a reconnecting page res
   const { ch } = makeChannel();
   ch.getState = () => ({ mode: "edit" });
   ch.startSpinner("thinking");
-  assert.deepEqual(ch.stateEvent().s, { mode: "edit", busy: "thinking", title: "" });
+  assert.deepEqual(ch.stateEvent().s, {
+    mode: "edit",
+    busy: "thinking",
+    title: "",
+    subagent: null,
+    subagentRuns: 0,
+    skills: [],
+  });
   ch.stopSpinner();
   assert.equal(ch.stateEvent().s.busy, null);
+});
+
+test("channel: the status view sees live sub-agents and auto-loaded skills", () => {
+  const { ch, sent } = makeChannel();
+  ch.subagent("start", "explore login flow");
+  assert.equal(ch.stateEvent().s.subagent, "explore login flow");
+  assert.equal(ch.stateEvent().s.subagentRuns, 1);
+  ch.subagent("done", "4 actions");
+  assert.equal(ch.stateEvent().s.subagent, null);
+  assert.equal(ch.stateEvent().s.subagentRuns, 1);
+  ch.skills(["impeccable-design", 42, "  "]);
+  assert.deepEqual(ch.stateEvent().s.skills, ["impeccable-design"]);
+  assert.ok(sent.some((e) => e.t === "skills" && e.names[0] === "impeccable-design"));
+  assert.ok(sent.some((e) => e.t === "sub" && e.phase === "start"));
 });
 
 // ---- stores ------------------------------------------------------------------
@@ -221,11 +241,13 @@ test("terminal: runs commands in a persistent shell, reports exit codes and trac
 
 /** A stand-in for Session: echoes each input back, honours /exit. */
 function fakeFactory(log) {
-  return async (ui, workspace, prefs) => {
-    log.push({ workspace, prefs });
+  return async (ui, workspace, prefs, planKey) => {
+    log.push({ workspace, prefs, planKey });
     const session = {
       chosen: { id: "fake-model", backend: "ollama" },
       workspace,
+      agent: { mode: prefs.mode || "edit" },
+      toolCtx: { filesTouched: new Set() },
       onExit: null,
       restored: null,
       taskManager: { killAll() {}, runningSummary: () => [], recentUrls: () => ["http://localhost:5173"] },
@@ -338,6 +360,7 @@ test("hub: sessions start, echo, save, close, resume, delete; workspaces add and
     assert.ok(id);
     await until(() => calls.length === 1, 2000, "factory call");
     assert.equal(calls[0].prefs.effort, "off");
+    assert.equal(calls[0].planKey, id, "each web conversation gets an isolated durable plan key");
     await until(() => hub.snapshot().workspaces[0].sessions[0].status === "idle", 2000, "idle session");
     await request(hub, "POST", "/msg" + k, { sid: id, text: "hello there" });
     await until(() => hub.snapshot().workspaces[0].sessions[0].title === "hello there", 2000, "verbatim title");
@@ -369,6 +392,7 @@ test("hub: sessions start, echo, save, close, resume, delete; workspaces add and
     await request(hub, "POST", "/sessions/resume" + k, { id });
     await until(() => calls.length === 2, 2000, "second factory call");
     assert.equal(calls[1].prefs.model, "fake-model");
+    assert.equal(calls[1].planKey, id, "resuming a conversation reuses its plan key");
     await until(() => hub.snapshot().workspaces[0].sessions[0].status === "idle", 2000, "resumed idle");
     const events2 = await readEvents(hub, (e) => e.t === "state" && e.sid === id);
     assert.ok(events2.some((e) => e.t === "user" && e.s === "hello there"), "old transcript replays after resume");
@@ -459,6 +483,82 @@ test("hub: a session that fails to start shows the error and can be retried", as
     await request(hub, "POST", "/sessions/resume" + k, { id });
     await until(() => hub.snapshot().workspaces[0].sessions[0].status === "idle", 2000, "retried");
     assert.equal(attempts, 2);
+  } finally {
+    hub.close();
+  }
+});
+
+test("hub: workspace file explorer lists, reads and safely saves files", async () => {
+  const dataDir = tmpdir("smol-hub-files-");
+  const ws = path.join(dataDir, "proj");
+  fs.mkdirSync(path.join(ws, "src"), { recursive: true });
+  fs.writeFileSync(path.join(ws, "src", "app.js"), "const answer = 42;\n");
+  const hub = new WebHub({ port: 0, prefs: {}, help: "help", version: "9.9.9", dataDir, factory: fakeFactory([]), quiet: true });
+  await hub.start();
+  const k = "?k=" + hub.authToken;
+  try {
+    const { id } = JSON.parse((await request(hub, "POST", "/sessions/new" + k, { workspace: ws })).body);
+    await until(() => hub.snapshot().workspaces[0].sessions[0].status === "idle", 2000, "idle");
+    const tree = JSON.parse((await request(hub, "GET", "/workspace/tree" + k + "&sid=" + id + "&path=.")).body);
+    assert.equal(tree.entries.find((e) => e.name === "src").dir, true);
+    const found = JSON.parse((await request(hub, "GET", "/workspace/search" + k + "&sid=" + id + "&q=answer")).body);
+    assert.equal(found.matches[0].path, "src/app.js");
+    assert.equal(found.matches[0].line, 1);
+    const file = JSON.parse((await request(hub, "GET", "/workspace/file" + k + "&sid=" + id + "&path=src%2Fapp.js")).body);
+    assert.match(file.content, /answer = 42/);
+    const saved = JSON.parse((await request(hub, "POST", "/workspace/file" + k, {
+      sid: id, path: "src/app.js", content: "const answer = 43;\n", expectedMtimeMs: file.mtimeMs,
+    })).body);
+    assert.equal(saved.path, "src/app.js");
+    assert.match(fs.readFileSync(path.join(ws, "src", "app.js"), "utf8"), /43/);
+    const conflict = await request(hub, "POST", "/workspace/file" + k, {
+      sid: id, path: "src/app.js", content: "stale", expectedMtimeMs: file.mtimeMs,
+    });
+    assert.match(conflict.body, /changed on disk/);
+    const invalidVersion = await request(hub, "POST", "/workspace/file" + k, {
+      sid: id, path: "src/app.js", content: "must reject", expectedMtimeMs: "not-a-version",
+    });
+    assert.match(invalidVersion.body, /invalid file version/i);
+    fs.unlinkSync(path.join(ws, "src", "app.js"));
+    const removed = await request(hub, "POST", "/workspace/file" + k, {
+      sid: id, path: "src/app.js", content: "must not recreate", expectedMtimeMs: fs.statSync(path.join(ws, "src")).mtimeMs,
+    });
+    assert.match(removed.body, /removed from disk/i);
+  } finally {
+    hub.close();
+  }
+});
+
+test("hub: /status is the control centre report and /agents/draft writes a bounded delegation", async () => {
+  const dataDir = tmpdir("smol-status-");
+  const ws = tmpdir("smol-status-ws-");
+  const hub = new WebHub({ port: 0, prefs: {}, help: "help", version: "9.9.9", dataDir, factory: fakeFactory([]), quiet: true });
+  await hub.start();
+  const k = "?k=" + hub.authToken;
+  try {
+    const opened = JSON.parse((await request(hub, "POST", "/sessions/new" + k, { workspace: ws })).body);
+    const status = JSON.parse((await request(hub, "GET", "/status" + k + "&sid=" + opened.id)).body);
+    assert.equal(status.sid, opened.id);
+    assert.ok(Array.isArray(status.tools), "tools list is always present");
+    assert.ok(
+      status.skills.some((s) => s.builtin && s.name === "impeccable-design"),
+      "built-in skills show up: " + JSON.stringify(status.skills)
+    );
+    const roles = status.subagents.roles.map((r) => r.name);
+    assert.ok(roles.includes("architect") && roles.includes("quality_reviewer") && roles.includes("office_assistant"), roles.join(","));
+    assert.equal(status.subagents.running, null);
+    assert.deepEqual(status.skillsActive, []);
+    assert.match(status.runtime.node, /^v\d+/);
+    assert.equal(status.version, "9.9.9");
+    assert.match((await request(hub, "GET", "/status" + k + "&sid=nope")).body, /no such session/);
+
+    const draft = JSON.parse((await request(hub, "POST", "/agents/draft" + k, { sid: opened.id, role: "architect", task: "map the login flow" })).body);
+    assert.equal(draft.role, "architect");
+    assert.match(draft.text, /map the login flow/);
+    assert.match(draft.text, /delegate/);
+    assert.match(draft.text, /role="architect"/);
+    assert.match((await request(hub, "POST", "/agents/draft" + k, { sid: opened.id, role: "nobody", task: "x" })).body, /inconnu/);
+    assert.match((await request(hub, "POST", "/agents/draft" + k, { sid: opened.id, role: "architect", task: "   " })).body, /tâche/);
   } finally {
     hub.close();
   }

@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "updatedAt": "2026-09-26T21:38:30.438Z",
+  "steps": [
+    {
+      "text": "Carte globale du dépôt (arborescence, package.json, README/docs)",
+      "done": true
+    },
+    {
+      "text": "Cœur : boucle agent, session, providers",
+      "done": true
+    },
+    {
+      "text": "Système d'outils + sécurité (modes, sandbox, vérification auto-réparation)",
+      "done": true,
+      "note": "Analyse en lecture seule (aucune édition). Fait: package.json (v0.7.1, bin smol→dist/index.js, npm test=build+scripts/test.cjs), README complet, docs/how-it-works.md complet, agent.ts 965l (boucle, verify/acceptance, guards anti-boucles, delegate ChildUI max12), session.ts 1059l (Session, slash cmds, undo/redo, switchModel, effort par backend), providers types+transport+ollama(267l)+lmstudio(mapEffort)+scheduler(filet par serveur), context.ts 524l (tiers 0/1/2, prepared bg handover, floor), prompt.ts (AGENTS.md 8k/MEMORY.md 4k caps), plan.ts (persistence .smol/plans). À faire: tools/index.ts reste (194-539), sandbox, verification, shell, tasks, mcp, skills, subagents, plugins, detect, network; UI: tui/, ui.ts, web/(hub,page,store,diff,terminal,channel,notify,app,client), desktop/ Electron; config.ts, events, history, lsp, editor-tools/tabs, workspace-search/diagnostics, attachments, highlight; tests list. Sortie finale: synthèse FR simple structurée."
+    },
+    {
+      "text": "Les 3 interfaces : TUI/CLI, hub web, app Electron + assets front",
+      "done": false
+    },
+    {
+      "text": "Capacités annexes : contexte/compaction, plan, skills, sous-agents, MCP, plugins, LSP/éditeurs",
+      "done": false
+    },
+    {
+      "text": "Tests et état du dépôt",
+      "done": false
+    },
+    {
+      "text": "Synthèse finale en français simple",
+      "done": false
+    },
+    {
+      "text": "Nouveau périmètre demandé: (a) confirmer que les changements codex sont présents/appliqués, (b) vérifier fraîcheur dist/ vs src/, (c) confirmer capacité à lancer npm run build et le faire pour mettre à jour Electron, (d) répondre au 524 Cloudflare/Ollama. À lire: nouveaux fichiers (editor-tools/tabs/highlight/workspace-search/diagnostics/git-service), câblage web+desktop+tui des nouvelles features, config.ts.",
+      "done": false
+    }
+  ]
+}

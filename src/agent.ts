@@ -24,7 +24,8 @@ import { truncateMiddle } from "./util";
 import { createHash } from "crypto";
 import { runCommand } from "./tools/shell";
 import { failureSignature, mergeVerificationCommands, projectVerification } from "./verification";
-import { recordDelegateStats, relevantSkills, saveAutoRepairLesson } from "./skills";
+import { recordDelegateStats, relevantSkillNames, relevantSkills, saveAutoRepairLesson } from "./skills";
+import { loadSubagentRoles } from "./subagents";
 
 /** Supplied by the caller, never generated or changed by a model tool. */
 export interface Verification {
@@ -141,7 +142,7 @@ export class Agent {
     this.verification = callerVerification;
     if (callerVerification && (!callerVerification.command.trim() || (callerVerification.maxAttempts !== undefined && (!Number.isSafeInteger(callerVerification.maxAttempts) || callerVerification.maxAttempts < 1)))) throw new Error("Verification needs a command and a positive attempt limit.");
     this.messages = [{ role: "system", content: systemPrompt }];
-    this.tools = buildToolSpecs(mode, { allowDelegate: (toolCtx.depth ?? 0) < 1 });
+    this.tools = this.toolsFor(mode);
     this.toolCtx.canWrite = mode !== "ro";
     this.ctxMgr.setReplayThinking(provider.replaysThinking !== false);
     this.wireDelegate();
@@ -155,7 +156,13 @@ export class Agent {
       this.toolCtx.delegate = undefined;
       return;
     }
-    this.toolCtx.delegate = async (task: string, signal?: AbortSignal): Promise<string> => {
+    this.toolCtx.delegate = async (task: string, signal?: AbortSignal, requestedRole?: string): Promise<string> => {
+      const roleName = (requestedRole || "expert").trim().toLowerCase();
+      const role = loadSubagentRoles(this.toolCtx.workspace).find((candidate) => candidate.name === roleName);
+      if (!role) {
+        const available = loadSubagentRoles(this.toolCtx.workspace).map((candidate) => candidate.name).join(", ");
+        return `Error: unknown sub-agent role "${roleName}". Available roles: ${available}.`;
+      }
       const childCtx: ToolContext = {
         workspace: this.toolCtx.workspace,
         taskManager: this.toolCtx.taskManager,
@@ -164,6 +171,8 @@ export class Agent {
         commandsRun: this.toolCtx.commandsRun,
         resultCharLimit: this.toolCtx.resultCharLimit,
         depth: (this.toolCtx.depth ?? 0) + 1,
+        allowedTools: new Set(role.tools),
+        role: role.name,
         canWrite: this.mode !== "ro",
         mcp: this.toolCtx.mcp,
         plugins: this.toolCtx.plugins,
@@ -173,16 +182,16 @@ export class Agent {
       const child = new Agent(
         this.provider,
         this.mode,
-        this.messages[0]?.content ?? "",
+        `${this.messages[0]?.content ?? ""}\n\nSub-agent role: ${role.role} (${role.name}). ${role.instructions}\nAllowed tools are enforced by the harness; do not try to use any other tool.`,
         childCtx,
         childMgr,
         this.bus,
         new ChildUI(this.ui),
-        false,
+        this.interactive,
         12
       );
-      this.ui.status("· sous-agent : travail délégué (max 12 actions)");
-      this.ui.subagent?.("start", task.slice(0, 120));
+      this.ui.status(`· sous-agent ${role.name} : travail délégué (max 12 actions)`);
+      this.ui.subagent?.("start", `${role.name}: ${task}`.slice(0, 120));
       try {
         await child.runTurn(`Subtask (answer with a short report: what you found or changed, files + line numbers, what remains):\n${task}`);
       } catch (err: any) {
@@ -209,11 +218,16 @@ export class Agent {
     };
   }
 
+  private toolsFor(mode: Mode): ToolSpec[] {
+    const available = buildToolSpecs(mode, { allowDelegate: (this.toolCtx.depth ?? 0) < 1 });
+    return this.toolCtx.allowedTools ? available.filter((tool) => this.toolCtx.allowedTools!.has(tool.name)) : available;
+  }
+
   setMode(mode: Mode, systemPrompt: string): void {
     this.ctxMgr.cancelBackground(true);
     this.ctxMgr.resetAnchor();
     this.mode = mode;
-    this.tools = buildToolSpecs(mode, { allowDelegate: (this.toolCtx.depth ?? 0) < 1 });
+    this.tools = this.toolsFor(mode);
     this.toolCtx.canWrite = mode !== "ro";
     this.messages[0] = { role: "system", content: systemPrompt };
     this.wireDelegate();
@@ -402,14 +416,29 @@ export class Agent {
     const request = userInput || (attachments.length ? `See the attached ${attachments.length === 1 ? "file" : "files"}.` : "");
     // Compaction keeps the request text, so the file names ride along with it.
     const requestNote = attachments.length ? `${request} [attached: ${attachments.map((a) => a.name).join(", ")}]` : request;
+    if (!this.originalRequest && this.toolCtx.plan.exists) {
+      this.messages.push({
+        role: "user",
+        historyNote: true,
+        content: `[Saved project plan from an earlier session — resume it only if it matches the current request; otherwise leave it available for later.\n${this.toolCtx.plan.modelView()}]`,
+      });
+    }
     if (!this.originalRequest) this.originalRequest = requestNote;
     this.currentRequest = requestNote; // the task compaction must never lose
     // Auto-evolution: skills matching the task ride along without being asked.
     let autoSkills = "";
+    let autoSkillNames: string[] = [];
     try {
       autoSkills = relevantSkills(this.toolCtx.workspace, requestNote);
+      autoSkillNames = relevantSkillNames(this.toolCtx.workspace, requestNote);
     } catch {
       autoSkills = "";
+      autoSkillNames = [];
+    }
+    try {
+      this.ui.skills?.(autoSkillNames);
+    } catch {
+      /* a status view must never break a turn */
     }
     if (autoSkills) {
       this.messages.push({
@@ -592,7 +621,9 @@ export class Agent {
             // HARD mode enforcement. The schemas sent to the model are only
             // advisory — a hallucinated or injected write_file/run_command in
             // read-only mode must be rejected here, at execution time.
-            output = `Error: the tool "${call.name}" is not available in ${MODE_LABELS[this.mode]} mode. Available tools: ${this.tools.map((t) => t.name).join(", ")}.`;
+            output = this.toolCtx.allowedTools && !this.toolCtx.allowedTools.has(call.name)
+              ? `Error: ${call.name} is not allowed for the ${this.toolCtx.role ?? "restricted"} role. Available tools: ${this.tools.map((t) => t.name).join(", ")}.`
+              : `Error: the tool "${call.name}" is not available in ${MODE_LABELS[this.mode]} mode. Available tools: ${this.tools.map((t) => t.name).join(", ")}.`;
           } else {
             this.toolCtx.resultCharLimit = this.ctxMgr.toolResultCharLimit();
             if (call.name === "run_command") {
@@ -857,7 +888,11 @@ export class Agent {
       }
     }
     if (signal?.aborted) throw signal.reason;
-    if (!this.tools.some((t) => t.name === name)) return `Error: ${name} is no longer available in ${MODE_LABELS[this.mode]} mode.`;
+    if (!this.tools.some((t) => t.name === name)) {
+      return this.toolCtx.allowedTools && !this.toolCtx.allowedTools.has(name)
+        ? `Error: ${name} is unavailable for the ${this.toolCtx.role ?? "restricted"} role. Use only the tools assigned to this sub-agent.`
+        : `Error: ${name} is no longer available in ${MODE_LABELS[this.mode]} mode.`;
+    }
     return executeTool(name, args, this.toolCtx, signal);
   }
 

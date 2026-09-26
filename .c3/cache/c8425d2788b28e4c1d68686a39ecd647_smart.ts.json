@@ -1,0 +1,9 @@
+{
+  "original_tokens": 4725,
+  "compressed_tokens": 389,
+  "saved_tokens": 4336,
+  "savings_pct": 91.8,
+  "compressed": "# index.ts (.ts) \u2014 478 lines\nimport * as fs from \"fs\";\nimport * as os from \"os\";\nimport * as path from \"path\";\nimport { Agent } from \"./agent\";\nimport { loadConfig } from \"./config\";\nimport { ContextManager } from \"./context\";\nimport { EventBus } from \"./events\";\nimport { terminalLogo } from \"./logo\";\nimport { Plan } from \"./plan\";\nimport { buildSystemPrompt, loadAgentsMd, loadMemoryMd } from \"./prompt\";\nimport { Effort } from \"./providers/types\";\nimport {\nimport { Mode, ToolContext } from \"./tools/index\";\nimport { createMcpBridge } from \"./mcp\";\nimport { loadPlugins } from \"./plugins\";\nimport { pickShell } from \"./tools/shell\";\nimport { TaskManager } from \"./tools/tasks\";\nimport { Tui } from \"./tui/tui\";\nimport { UI } from \"./ui\";\nimport { c } from \"./util\";\nimport { askHubToOpen, pingHub, readHubRecord, WebHub } from \"./web/hub\";\nimport { launchApp } from \"./web/app\";\n\nconst VERSION = require(\"../package.json\").version as string;\nconst DEFAULT_WEB_PORT = 7433;\ninterface CliArgs\nfunction parseArgs(argv: string[]): CliArgs\nconst HELP = ` ${c.bold(\"smolcoder\")} v${VERSION} \u2014 a smol, zero-config coding agent for local models.\nfunction installSignalCleanup(cleanup: () => void): void\nfunction printLogo(): void\nfunction prefsOf(args: CliArgs): SessionPrefs\nasync function main(): Promise<void>\nasync function runHeadless(args: CliArgs): Promise<void>\nasync function runInteractive(args: CliArgs): Promise<void>\nfunction isHomeOrRoot(p: string): boolean\nasync function runWeb(args: CliArgs): Promise<void>\nfunction openAppWindow(url: string): void",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\index.ts"
+}

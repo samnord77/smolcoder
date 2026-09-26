@@ -1,0 +1,140 @@
+{
+  "path": "src/providers/types.ts",
+  "content_hash": "7db4bb0cb5ac90babbc1286f47822b63",
+  "updated_at": "2026-09-24T17:24:24",
+  "lines": 168,
+  "size_bytes": 6792,
+  "mtime_ns": 1790260569959725100,
+  "language": "typescript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "import",
+      "name": "import { randomBytes } from \"crypto\";",
+      "line_start": 2,
+      "line_end": 2,
+      "signature": "import { randomBytes } from \"crypto\";"
+    },
+    {
+      "type": "interface",
+      "name": "ToolCall",
+      "line_start": 4,
+      "line_end": 11,
+      "signature": "interface ToolCall {",
+      "children": []
+    },
+    {
+      "type": "interface",
+      "name": "ImageRef",
+      "line_start": 15,
+      "line_end": 19,
+      "signature": "interface ImageRef {",
+      "children": []
+    },
+    {
+      "type": "interface",
+      "name": "Msg",
+      "line_start": 21,
+      "line_end": 38,
+      "signature": "interface Msg {",
+      "children": []
+    },
+    {
+      "type": "interface",
+      "name": "ToolSpec",
+      "line_start": 40,
+      "line_end": 48,
+      "signature": "interface ToolSpec {",
+      "children": []
+    },
+    {
+      "type": "interface",
+      "name": "ChatResult",
+      "line_start": 50,
+      "line_end": 72,
+      "signature": "interface ChatResult {",
+      "children": []
+    },
+    {
+      "type": "interface",
+      "name": "ChatOptions",
+      "line_start": 74,
+      "line_end": 90,
+      "signature": "interface ChatOptions {",
+      "children": []
+    },
+    {
+      "type": "type",
+      "name": "Effort",
+      "line_start": 95,
+      "line_end": 95,
+      "signature": "type Effort = \"off\" | \"low\" | \"medium\" | \"high\";",
+      "children": []
+    },
+    {
+      "type": "constant",
+      "name": "EFFORT_RANK",
+      "line_start": 99,
+      "line_end": 108,
+      "signature": "const EFFORT_RANK: Record<string, number> = {"
+    },
+    {
+      "type": "interface",
+      "name": "Provider",
+      "line_start": 110,
+      "line_end": 127,
+      "signature": "interface Provider {",
+      "children": []
+    },
+    {
+      "type": "constant",
+      "name": "MAX_OUTPUT_TOKENS",
+      "line_start": 129,
+      "line_end": 129,
+      "signature": "const MAX_OUTPUT_TOKENS = 2048;"
+    },
+    {
+      "type": "variable",
+      "name": "callCounter",
+      "line_start": 131,
+      "line_end": 131,
+      "signature": "let callCounter = 0;"
+    },
+    {
+      "type": "constant",
+      "name": "callPrefix",
+      "line_start": 132,
+      "line_end": 132,
+      "signature": "const callPrefix = randomBytes(6).toString(\"hex\");"
+    },
+    {
+      "type": "function",
+      "name": "nextCallId",
+      "line_start": 133,
+      "line_end": 135,
+      "signature": "function nextCallId(): string {"
+    },
+    {
+      "type": "function",
+      "name": "parseArgs",
+      "line_start": 137,
+      "line_end": 149,
+      "signature": "function parseArgs(raw: unknown): Pick<ToolCall, \"args\" | \"rawArgs\" | \"parseError\"> {"
+    },
+    {
+      "type": "function",
+      "name": "estimateReplayTokens",
+      "line_start": 153,
+      "line_end": 157,
+      "signature": "function estimateReplayTokens(content: string, toolCalls: ToolCall[]): number {"
+    },
+    {
+      "type": "function",
+      "name": "lastUserIndex",
+      "line_start": 163,
+      "line_end": 168,
+      "signature": "function lastUserIndex(messages: Msg[]): number {"
+    }
+  ]
+}

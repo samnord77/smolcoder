@@ -25,13 +25,16 @@ function fakeUi() {
 
 function scriptedProvider(replies) {
   const seen = [];
+  const toolsets = [];
   let i = 0;
   return {
     seen,
+    toolsets,
     label: "fake", modelId: "fake", contextWindow: 8000, maxOutputTokens: 2000,
     setEffort() {}, effortLabel() { return null; },
-    async chat(messages) {
+    async chat(messages, tools) {
       seen.push(messages.map((m) => ({ role: m.role, content: m.content })));
+      toolsets.push((tools ?? []).map((t) => t.name));
       const r = replies[Math.min(i++, replies.length - 1)];
       return { content: "", toolCalls: [], generatedTokens: 100, genTokPerSec: 50, promptTokens: 500, completionTokens: 20, ...r };
     },
@@ -234,4 +237,54 @@ test("delegate announces sub-agent start and done to the UI", async () => {
   assert.equal(subs[subs.length - 1][0], "done");
   const toolMsg = provider.seen.flat().find((m) => m.role === "tool" && /Sub-agent did/.test(m.content));
   assert.ok(toolMsg, "delegate result carries the sub-agent report");
+});
+
+test("delegated role tool permissions are enforced, not just suggested", async () => {
+  const provider = scriptedProvider([
+    { toolCalls: [{ id: "d1", name: "delegate", args: { role: "architect", task: "inspect the design" } }] },
+    { toolCalls: [{ id: "w1", name: "write_file", args: { path: "forbidden.txt", content: "no" } }] },
+    { content: "Architecture report", toolCalls: [] },
+    { content: "Done", toolCalls: [] },
+  ]);
+  const ui = fakeUi();
+  const agent = makeAgent(provider, ui, "bypass", true);
+  await agent.runTurn("Review architecture");
+  assert.ok(!provider.toolsets[1].includes("write_file"));
+  assert.match(JSON.stringify(provider.seen[2]), /write_file is not allowed for the architect role/);
+  assert.equal(fs.existsSync(path.join(agent.toolCtx.workspace, "forbidden.txt")), false);
+});
+
+test("an interactive office sub-agent relays MCP approval to the user", async () => {
+  const provider = scriptedProvider([
+    { toolCalls: [{ id: "d1", name: "delegate", args: { role: "office_assistant", task: "prepare a Word report" } }] },
+    { toolCalls: [{ id: "m1", name: "mcp", args: { server: "word", tool: "create_document" } }] },
+    { content: "Report created", toolCalls: [] },
+    { content: "Done", toolCalls: [] },
+  ]);
+  const ui = fakeUi();
+  const approvals = [];
+  ui.confirmCommand = async (...args) => { approvals.push(args); return "yes"; };
+  const agent = makeAgent(provider, ui, "edit", true);
+  let calls = 0;
+  agent.toolCtx.mcp = { call: async () => { calls++; return "Document created"; } };
+  await agent.runTurn("Prepare a report using Word");
+  assert.equal(calls, 1);
+  assert.equal(approvals.length, 1);
+  assert.match(approvals[0][0], /word create_document/);
+  assert.ok(provider.toolsets[1].includes("mcp"));
+});
+
+test("a fresh coding turn receives the saved project plan as context", async () => {
+  const provider = scriptedProvider([{ content: "I will continue the saved checklist.", toolCalls: [] }]);
+  const agent = makeAgent(provider, fakeUi());
+  const plan = new Plan(agent.toolCtx.workspace, "cli");
+  plan.set("Inspect the API\nImplement the repair\nRun verification");
+  plan.markDone();
+  plan.checkpoint("next: adjust src/service.ts");
+  agent.toolCtx.plan = new Plan(agent.toolCtx.workspace, "cli");
+  await agent.runTurn("Continue the repair");
+  const sent = JSON.stringify(provider.seen[0]);
+  assert.match(sent, /Saved project plan from an earlier session/);
+  assert.match(sent, /Implement the repair/);
+  assert.match(sent, /adjust src\/service.ts/);
 });

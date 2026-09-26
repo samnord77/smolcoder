@@ -1,0 +1,9 @@
+{
+  "original_tokens": 437,
+  "compressed_tokens": 61,
+  "saved_tokens": 376,
+  "savings_pct": 86.0,
+  "compressed": "# prompt.test.js (.js) \u2014 38 lines\nconst test = require(\"node:test\");\nconst assert = require(\"node:assert/strict\");\nconst fs = require(\"node:fs\");\nconst os = require(\"node:os\");\nconst path = require(\"node:path\");\nfunction scratch(files)",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\prompt.test.js"
+}

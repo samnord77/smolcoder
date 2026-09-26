@@ -1,0 +1,164 @@
+{
+  "path": "src/tools/tasks.ts",
+  "content_hash": "472ae43d6d7400ab521919e1441365bd",
+  "updated_at": "2026-09-26T17:59:05",
+  "lines": 170,
+  "size_bytes": 6156,
+  "mtime_ns": 1790374012118598500,
+  "language": "typescript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "import",
+      "name": "import { ChildProcess, spawn } from \"child_process\";",
+      "line_start": 7,
+      "line_end": 7,
+      "signature": "import { ChildProcess, spawn } from \"child_process\";"
+    },
+    {
+      "type": "import",
+      "name": "import { pickShell, killTree, managedCommand, shellEnv } from \"./shell\";",
+      "line_start": 8,
+      "line_end": 8,
+      "signature": "import { pickShell, killTree, managedCommand, shellEnv } from \"./shell\";"
+    },
+    {
+      "type": "interface",
+      "name": "Task",
+      "line_start": 10,
+      "line_end": 18,
+      "signature": "interface Task {",
+      "children": []
+    },
+    {
+      "type": "constant",
+      "name": "RING_SIZE",
+      "line_start": 20,
+      "line_end": 20,
+      "signature": "const RING_SIZE = 300;"
+    },
+    {
+      "type": "class",
+      "name": "TaskManager",
+      "line_start": 22,
+      "line_end": 170,
+      "signature": "class TaskManager {",
+      "children": [
+        {
+          "type": "property",
+          "name": "tasks",
+          "line_start": 23,
+          "line_end": 23,
+          "signature": "private tasks = new Map<string, Task>();",
+          "access": "private"
+        },
+        {
+          "type": "property",
+          "name": "counter",
+          "line_start": 24,
+          "line_end": 24,
+          "signature": "private counter = 0;",
+          "access": "private"
+        },
+        {
+          "type": "property",
+          "name": "MAX_KEPT",
+          "line_start": 25,
+          "line_end": 25,
+          "signature": "private static readonly MAX_KEPT = 50;",
+          "access": "private"
+        },
+        {
+          "type": "method",
+          "name": "constructor",
+          "line_start": 27,
+          "line_end": 27,
+          "signature": "constructor(private cwd: string) {}"
+        },
+        {
+          "type": "method",
+          "name": "prune",
+          "line_start": 29,
+          "line_end": 35,
+          "signature": "private prune(): void {",
+          "access": "private"
+        },
+        {
+          "type": "method",
+          "name": "start",
+          "line_start": 37,
+          "line_end": 79,
+          "signature": "start(command: string): string {"
+        },
+        {
+          "type": "method",
+          "name": "startWithEarlyOutput",
+          "line_start": 82,
+          "line_end": 92,
+          "signature": "async startWithEarlyOutput(command: string): Promise<string> {",
+          "async": true,
+          "doc": "Wait briefly after start so early output (or an instant crash) is visible."
+        },
+        {
+          "type": "method",
+          "name": "logs",
+          "line_start": 94,
+          "line_end": 100,
+          "signature": "logs(taskId: string, lineCount = 50): string {"
+        },
+        {
+          "type": "method",
+          "name": "stop",
+          "line_start": 102,
+          "line_end": 115,
+          "signature": "stop(taskId: string): string {"
+        },
+        {
+          "type": "method",
+          "name": "list",
+          "line_start": 117,
+          "line_end": 125,
+          "signature": "list(): string {"
+        },
+        {
+          "type": "method",
+          "name": "hasRunning",
+          "line_start": 127,
+          "line_end": 129,
+          "signature": "hasRunning(): boolean {"
+        },
+        {
+          "type": "method",
+          "name": "runningSummary",
+          "line_start": 131,
+          "line_end": 135,
+          "signature": "runningSummary(): string[] {"
+        },
+        {
+          "type": "method",
+          "name": "recentUrls",
+          "line_start": 139,
+          "line_end": 149,
+          "signature": "recentUrls(): string[] {",
+          "doc": "http://localhost-style URLs printed by running tasks \u2014 what a dev server"
+        },
+        {
+          "type": "method",
+          "name": "killAll",
+          "line_start": 151,
+          "line_end": 164,
+          "signature": "killAll(): void {"
+        },
+        {
+          "type": "method",
+          "name": "unknownTask",
+          "line_start": 166,
+          "line_end": 169,
+          "signature": "private unknownTask(taskId: string): string {",
+          "access": "private"
+        }
+      ]
+    }
+  ]
+}

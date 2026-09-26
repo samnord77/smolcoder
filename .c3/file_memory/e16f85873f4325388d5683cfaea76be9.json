@@ -1,0 +1,146 @@
+{
+  "path": "docs/evidence/unattended-2026-09-13.json",
+  "content_hash": "88c2bd96986150cc20e0d0fe4615b325",
+  "updated_at": "2026-09-24T17:24:23",
+  "lines": 5013,
+  "size_bytes": 170439,
+  "mtime_ns": 1790260569912724000,
+  "language": "json",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "property",
+      "name": "date",
+      "line_start": 2,
+      "line_end": 2,
+      "signature": "date"
+    },
+    {
+      "type": "property",
+      "name": "method",
+      "line_start": 3,
+      "line_end": 3,
+      "signature": "method"
+    },
+    {
+      "type": "property",
+      "name": "scope",
+      "line_start": 4,
+      "line_end": 4,
+      "signature": "scope"
+    },
+    {
+      "type": "property",
+      "name": "machine",
+      "line_start": 5,
+      "line_end": 10,
+      "signature": "machine"
+    },
+    {
+      "type": "property",
+      "name": "harnessTests",
+      "line_start": 11,
+      "line_end": 17,
+      "signature": "harnessTests"
+    },
+    {
+      "type": "property",
+      "name": "meshObserverFixtures",
+      "line_start": 18,
+      "line_end": 20,
+      "signature": "meshObserverFixtures"
+    },
+    {
+      "type": "property",
+      "name": "hudFixtures",
+      "line_start": 21,
+      "line_end": 23,
+      "signature": "hudFixtures"
+    },
+    {
+      "type": "property",
+      "name": "runs",
+      "line_start": 24,
+      "line_end": 3617,
+      "signature": "runs"
+    },
+    {
+      "type": "property",
+      "name": "rejectedEarlierArtifact",
+      "line_start": 3618,
+      "line_end": 3673,
+      "signature": "rejectedEarlierArtifact"
+    },
+    {
+      "type": "property",
+      "name": "rejectedHUDArtifact",
+      "line_start": 3674,
+      "line_end": 3729,
+      "signature": "rejectedHUDArtifact"
+    },
+    {
+      "type": "property",
+      "name": "consoleDiagnosticRegression",
+      "line_start": 3730,
+      "line_end": 3875,
+      "signature": "consoleDiagnosticRegression"
+    },
+    {
+      "type": "property",
+      "name": "consoleFixtures",
+      "line_start": 3876,
+      "line_end": 3883,
+      "signature": "consoleFixtures"
+    },
+    {
+      "type": "property",
+      "name": "directViewRegression",
+      "line_start": 3884,
+      "line_end": 4510,
+      "signature": "directViewRegression"
+    },
+    {
+      "type": "property",
+      "name": "renderedWorldRegression",
+      "line_start": 4511,
+      "line_end": 4748,
+      "signature": "renderedWorldRegression"
+    },
+    {
+      "type": "property",
+      "name": "renderUpdateFixtures",
+      "line_start": 4749,
+      "line_end": 4759,
+      "signature": "renderUpdateFixtures"
+    },
+    {
+      "type": "property",
+      "name": "movementRegression",
+      "line_start": 4760,
+      "line_end": 4945,
+      "signature": "movementRegression"
+    },
+    {
+      "type": "property",
+      "name": "movementFixtures",
+      "line_start": 4946,
+      "line_end": 4953,
+      "signature": "movementFixtures"
+    },
+    {
+      "type": "property",
+      "name": "diagnosticsRevision",
+      "line_start": 4954,
+      "line_end": 4954,
+      "signature": "diagnosticsRevision"
+    },
+    {
+      "type": "property",
+      "name": "installedCLI",
+      "line_start": 4955,
+      "line_end": 5012,
+      "signature": "installedCLI"
+    }
+  ]
+}

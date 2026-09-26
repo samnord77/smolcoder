@@ -1,0 +1,121 @@
+- generic [ref=e1]:
+  - complementary "Workspaces and sessions" [ref=e2]:
+    - generic [ref=e3]:
+      - img "smolcoder" [ref=e4]: ███████╗ ███╗ ███╗ ██████╗ ██╗ ██╔════╝ ████╗ ████║ ██╔═══██╗ ██║ ███████╗ ██╔████╔██║ ██║ ██║ ██║ ╚════██║ ██║╚██╔╝██║ ██║ ██║ ██║ ███████║ ██║ ╚═╝ ██║ ╚██████╔╝ ███████╗ ╚══════╝ ╚═╝ ╚═╝ ╚═════╝ ╚══════╝
+      - button "«" [ref=e5] [cursor=pointer]
+    - button "+ Open folder…" [ref=e6] [cursor=pointer]
+    - generic [ref=e8]:
+      - generic "E:\\logiciel de gestion de stocks entrprise" [ref=e9]: logiciel de gestion de stocks entrprise
+      - generic "bonjour · hf.co/empero-ai/Qwen3.8-2B-Distill-GGUF:latest · idle" [ref=e12] [cursor=pointer]: bonjour
+    - generic [ref=e15]:
+      - generic [ref=e16]: v0.7.1
+      - button "Keyboard shortcuts" [ref=e17] [cursor=pointer]: "?"
+  - main [ref=e18]:
+    - toolbar "Session toolbar" [ref=e19]:
+      - generic "E:\\logiciel de gestion de stocks entrprise" [ref=e20]: logiciel de gestion de stocks entrprise›bonjour
+      - 'button "browser panel: preview a dev server next to the chat" [ref=e21] [cursor=pointer]'
+      - 'button "terminal panel (ctrl+`)" [ref=e25] [cursor=pointer]'
+    - region "Session messages" [ref=e28]:
+      - generic [ref=e30]:
+        - generic [ref=e31]: context window unknown (older LM Studio) — assuming 4096 to be safe.
+        - generic [ref=e32]:
+          - text: /models
+          - generic [ref=e33]:
+            - generic "25/09/2026 19:13:40" [ref=e34]: 19:13
+            - button "⧉" [ref=e35] [cursor=pointer]
+        - generic [ref=e36]: ● ollama · hf.co/empero-ai/Qwen3.8-2B-Distill-GGUF:latest · ctx 16 384 · edit mode
+        - generic [ref=e37]:
+          - text: bonjour
+          - generic [ref=e38]:
+            - generic "25/09/2026 19:13:40" [ref=e39]: 19:13
+            - button "⧉" [ref=e40] [cursor=pointer]
+        - group [ref=e41]:
+          - generic "› ✦ thought for 0.0s Expand" [ref=e42] [cursor=pointer]:
+            - text: ›
+            - generic [ref=e43]: ✦ thought for 0.0s
+            - generic [ref=e44]: Expand
+        - generic [ref=e45]:
+          - generic [ref=e46]:
+            - paragraph [ref=e47]: Bonjour ! 👋
+            - paragraph [ref=e48]: Comment puis-je vous aider aujourd'hui ?
+          - generic [ref=e49]:
+            - generic "25/09/2026 19:13:40" [ref=e50]: 19:13
+            - button "⧉" [ref=e51] [cursor=pointer]
+        - generic [ref=e52]: ■ 29.2s · 50 tok @ 9 tok/s
+        - generic [ref=e53]: · session resumed — earlier command approvals are not remembered
+        - generic [ref=e54]:
+          - text: /models
+          - generic [ref=e55]:
+            - generic "25/09/2026 19:13:40" [ref=e56]: 19:13
+            - button "⧉" [ref=e57] [cursor=pointer]
+        - generic [ref=e58]: cancelled — Select model
+        - generic [ref=e59]:
+          - text: tu sais faire cois
+          - generic [ref=e60]:
+            - generic "25/09/2026 19:13:40" [ref=e61]: 19:13
+            - button "⧉" [ref=e62] [cursor=pointer]
+        - group [ref=e63]:
+          - generic "› ✦ thought for 0.0s Expand" [ref=e64] [cursor=pointer]:
+            - text: ›
+            - generic [ref=e65]: ✦ thought for 0.0s
+            - generic [ref=e66]: Expand
+        - generic [ref=e67]:
+          - generic [ref=e68]:
+            - paragraph [ref=e69]: Bonjour ! 👋
+            - paragraph [ref=e70]: Comment puis-je vous aider ?
+            - paragraph [ref=e71]: "Je suis une IA qui peux vous aider avec beaucoup de tâches. Par exemple :"
+            - list [ref=e72]:
+              - listitem [ref=e73]:
+                - text: 📝
+                - strong [ref=e74]: Écrire
+                - text: des documents, des e-mails, des comptes-rendus
+              - listitem [ref=e75]:
+                - text: 📐
+                - strong [ref=e76]: Calculer
+                - text: des formules mathématiques, des calculs
+              - listitem [ref=e77]:
+                - text: 📚
+                - strong [ref=e78]: Résumer
+                - text: un texte ou un document
+              - listitem [ref=e79]:
+                - text: 💬
+                - strong [ref=e80]: Traduire
+                - text: du texte
+              - listitem [ref=e81]:
+                - text: 🗺️
+                - strong [ref=e82]: Generer
+                - text: des itérations de code
+              - listitem [ref=e83]:
+                - text: 📸
+                - strong [ref=e84]: Extraire
+                - text: des informations depuis des documents
+              - listitem [ref=e85]:
+                - text: 📊
+                - strong [ref=e86]: Créer
+                - text: des graphiques ou des tableaux
+              - listitem [ref=e87]:
+                - text: 📝
+                - strong [ref=e88]: Corriger
+                - text: du texte
+            - paragraph [ref=e89]: Est-ce que vous avez un besoin précis en tête ?
+          - generic [ref=e90]:
+            - generic "25/09/2026 19:13:40" [ref=e91]: 19:13
+            - button "⧉" [ref=e92] [cursor=pointer]
+        - generic [ref=e93]: ■ 44.7s · 203 tok @ 10 tok/s
+        - generic [ref=e94]: · session resumed — earlier command approvals are not remembered
+    - generic [ref=e97]:
+      - button "Scroll to bottom" [ref=e98] [cursor=pointer]: ↓ Latest messages
+      - generic [ref=e99]:
+        - generic [ref=e100]:
+          - textbox "Message" [active] [ref=e101]:
+            - /placeholder: Describe a change…
+          - button "Attach a file" [ref=e102] [cursor=pointer]
+          - button "send" [ref=e105] [cursor=pointer]
+        - status [ref=e106]:
+          - button "edit" [ref=e107] [cursor=pointer]
+          - button "hf.co/empero-ai/Qwen3.8-2B-Distill-GGUF:latest ▾" [ref=e108] [cursor=pointer]
+          - button "high → thinking on" [ref=e109] [cursor=pointer]
+          - button "🔕" [ref=e110] [cursor=pointer]
+          - button [ref=e111] [cursor=pointer]:
+            - meter "Context used" [ref=e112]
+            - text: 15%

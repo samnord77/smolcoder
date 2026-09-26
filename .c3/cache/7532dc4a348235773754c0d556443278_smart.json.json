@@ -1,0 +1,9 @@
+{
+  "original_tokens": 12388,
+  "compressed_tokens": 46,
+  "saved_tokens": 12342,
+  "savings_pct": 99.6,
+  "compressed": "# package-lock.json (.json) \u2014 872 lines\n\"name\": \"smolcoder-desktop\",\n\"version\": \"0.1.0\",\n\"lockfileVersion\": 3,\n\"requires\": true,\n\"packages\":",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\desktop\\package-lock.json"
+}

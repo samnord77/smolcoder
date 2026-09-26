@@ -1,0 +1,9 @@
+{
+  "original_tokens": 1620,
+  "compressed_tokens": 178,
+  "saved_tokens": 1442,
+  "savings_pct": 89.0,
+  "compressed": "# types.ts (.ts) \u2014 168 lines\nimport { randomBytes } from \"crypto\";\n\nexport interface ToolCall\nexport interface ImageRef\nexport interface Msg\nexport interface ToolSpec\nexport interface ChatResult\nexport interface ChatOptions\nexport type Effort = \"off\" | \"low\" | \"medium\" | \"high\";\nexport const EFFORT_RANK: Record<string, number> =\nexport interface Provider\nexport const MAX_OUTPUT_TOKENS = 2048;\nlet callCounter = 0;\nconst callPrefix = randomBytes(6).toString(\"hex\");\nexport function nextCallId(): string\nexport function parseArgs(raw: unknown): Pick<ToolCall, \"args\" | \"rawArgs\" | \"parseError\">\nexport function estimateReplayTokens(content: string, toolCalls: ToolCall[]): number\nexport function lastUserIndex(messages: Msg[]): number",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\providers\\types.ts"
+}

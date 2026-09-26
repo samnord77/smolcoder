@@ -9,7 +9,7 @@ import { Attachment } from "./attachments";
 import * as os from "os";
 import * as path from "path";
 import { Agent } from "./agent";
-import { Config, loadConfig, updateConfig } from "./config";
+import { Config, effortForBackend, loadConfig, updateConfig } from "./config";
 import { ContextManager } from "./context";
 import { detectAll, DetectedModel, resolveContextWindow } from "./detect";
 import { EventBus } from "./events";
@@ -59,6 +59,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { name: "editor", desc: "Write your message in $EDITOR" },
   { name: "export", desc: "Export the conversation to markdown" },
   { name: "copy", desc: "Copy the last assistant reply to the clipboard" },
+  { name: "fetch", desc: "Read a public web page, no key — /fetch https://…" },
   { name: "help", desc: "Show help" },
   { name: "exit", desc: "Quit smolcoder (web: close this session)" },
 ];
@@ -314,11 +315,15 @@ export interface SessionSnapshot {
 
 export interface SessionOptions {
   workspace: string;
+  /** Stable key for per-session plan persistence (CLI uses "cli"). */
+  planKey?: string;
   chosen: DetectedModel;
   prefs: SessionPrefs;
   cfg: Config;
   /** Text printed by /help. */
   help: string;
+  /** Hub record for the web/desktop hub (used for /build command). */
+  hubRec?: any;
 }
 
 export class Session {
@@ -341,6 +346,7 @@ export class Session {
   private readonly memoryMd: string | null;
   private readonly prefs: SessionPrefs;
   private readonly help: string;
+  private readonly hubRec: any;
   private ended = false;
 
   constructor(
@@ -353,7 +359,7 @@ export class Session {
     this.prefs = prefs;
     this.help = opts.help;
     const mode0 = prefs.mode ?? cfg.lastMode ?? "edit";
-    this.effort = prefs.effort !== undefined ? prefs.effort : (cfg.effort ?? null);
+    this.effort = effortForBackend(cfg, chosen.backend, prefs.effort);
 
     const provider = makeProvider(chosen);
     provider.setEffort(this.effort);
@@ -367,7 +373,7 @@ export class Session {
     this.toolCtx = {
       workspace,
       taskManager: this.taskManager,
-      plan: new Plan(),
+      plan: new Plan(workspace, opts.planKey ?? "cli"),
       filesTouched: new Set(),
       commandsRun: [],
       undoStack: [],
@@ -376,6 +382,7 @@ export class Session {
       plugins,
     };
     this.ctxMgr = new ContextManager(chosen.contextWindow, provider.maxOutputTokens);
+    if (this.toolCtx.plan.loadError) ui.warn(`· ${this.toolCtx.plan.loadError}`);
     this.agentsMd = loadAgentsMd(workspace);
     this.memoryMd = loadMemoryMd(workspace);
     // The step cap is a runaway-loop backstop, not a work limit — esc/ctrl+c
@@ -402,7 +409,14 @@ export class Session {
   }
 
   private persist(): void {
-    updateConfig({ lastModel: this.chosen.id, lastModelUrl: this.chosen.baseUrl, lastMode: this.agent.mode, effort: this.effort });
+    const current = loadConfig();
+    updateConfig({
+      lastModel: this.chosen.id,
+      lastModelUrl: this.chosen.baseUrl,
+      lastMode: this.agent.mode,
+      effort: this.effort,
+      effortByBackend: { ...current.effortByBackend, [this.chosen.backend]: this.effort },
+    });
   }
 
   /** The TUI's status row: mode · model · effort · context · plan · tasks. */
@@ -449,6 +463,7 @@ export class Session {
         : null,
       plan: plan.exists ? { steps: plan.steps, current: plan.currentIndex } : null,
       tasks: this.taskManager.runningSummary().length,
+      tools: this.agent.tools.map((t) => t.name),
       workspace: this.workspace,
       commands: SLASH_COMMANDS,
       urls: this.taskManager.recentUrls(),
@@ -489,8 +504,10 @@ export class Session {
    * current mode/workspace; approvals are deliberately not restored). */
   restore(s: SessionSnapshot): void {
     this.agent.restoreTranscript(s.messages ?? [], s.originalRequest ?? "", s.currentRequest ?? "");
-    this.toolCtx.plan.steps = (s.plan ?? []).map((p) => ({ text: String(p.text), done: !!p.done,
-      ...(typeof p.note === "string" ? { note: p.note.slice(0, 1000) } : {}) }));
+    if (s.plan?.length) {
+      const error = this.toolCtx.plan.restoreSteps(s.plan);
+      if (error) this.ui.warn(`· ${error}`);
+    }
     for (const f of s.filesTouched ?? []) this.toolCtx.filesTouched.add(f);
     this.toolCtx.commandsRun.push(...(s.commandsRun ?? []));
   }
@@ -834,10 +851,30 @@ export class Session {
               `Context ${budget.prompt.toLocaleString()} / ${budget.window.toLocaleString()} tokens (${budget.source})\nReply reserve ${budget.reserve.toLocaleString()} · available ${budget.available.toLocaleString()} · ${agent.messages.length} messages · ${agent.tools.length} tools`
             );
             break;
+          case "fetch": {
+            const target = rest.join(" ").trim();
+            if (!target) {
+              ui.warn("Usage: /fetch https://example.com — lit une page web sans clé");
+              break;
+            }
+            ui.startSpinner("fetching page");
+            try {
+              const { fetchUrl } = await import("./tools/web");
+              ui.println(await fetchUrl(this.workspace, { url: target }));
+            } catch (err: any) {
+              ui.error(`· /fetch failed (${err?.message ?? err})`);
+            } finally {
+              ui.stopSpinner();
+            }
+            break;
+          }
           case "clear":
             agent.resetTranscript();
-            toolCtx.plan.reset();
-            ui.status("· conversation cleared");
+            {
+              const error = toolCtx.plan.reset();
+              if (error) ui.warn(`· ${error}`);
+              else ui.status("· conversation cleared");
+            }
             break;
           case "undo":
             this.undoEdit();
@@ -858,6 +895,16 @@ export class Session {
           case "export":
             this.exportTranscript();
             break;
+          case "build": {
+            if (!this.hubRec) {
+              ui.status("· /build only works with --web (no hub in TUI mode)");
+              break;
+            }
+            const hubClient = require("../desktop/hub-client.js");
+            const res = await hubClient.runInTerminal(this.hubRec, "npm run build");
+            ui.println(res);
+            break;
+          }
           case "copy":
             this.copyLastReply();
             break;
@@ -930,7 +977,11 @@ export class Session {
     } finally {
       ui.stopSpinner();
     }
+    const previousBackend = this.chosen.backend;
     this.chosen = next;
+    if (next.backend !== previousBackend && this.prefs.effort === undefined) {
+      this.effort = effortForBackend(loadConfig(), next.backend);
+    }
     const p = makeProvider(next);
     p.setEffort(this.effort);
     agent.setProvider(p);

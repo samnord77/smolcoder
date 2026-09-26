@@ -1,0 +1,48 @@
+{
+  "path": "test/context.test.js",
+  "content_hash": "84e8de908db9b0ca84afec68f73069c3",
+  "updated_at": "2026-09-24T17:36:22",
+  "lines": 226,
+  "size_bytes": 13392,
+  "mtime_ns": 1790260570016269100,
+  "language": "javascript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "constant",
+      "name": "test",
+      "line_start": 3,
+      "line_end": 3,
+      "signature": "const test = require(\"node:test\");"
+    },
+    {
+      "type": "constant",
+      "name": "assert",
+      "line_start": 4,
+      "line_end": 4,
+      "signature": "const assert = require(\"node:assert/strict\");"
+    },
+    {
+      "type": "constant",
+      "name": "tools",
+      "line_start": 26,
+      "line_end": 26,
+      "signature": "const tools = [{ name: \"t\", description: \"d\", parameters: { type: \"object\", properties: {} } }];"
+    },
+    {
+      "type": "function",
+      "name": "readCall",
+      "line_start": 109,
+      "line_end": 111,
+      "signature": "function readCall(id, path) {"
+    },
+    {
+      "type": "function",
+      "name": "toolResult",
+      "line_start": 112,
+      "line_end": 114,
+      "signature": "function toolResult(id, name, content) {"
+    }
+  ]
+}

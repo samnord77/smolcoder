@@ -1,0 +1,9 @@
+{
+  "original_tokens": 679,
+  "compressed_tokens": 80,
+  "saved_tokens": 599,
+  "savings_pct": 88.2,
+  "compressed": "# transport.ts (.ts) \u2014 70 lines\nimport { ChatOptions } from \"./types\";\n\nexport async function withDeadline<T>(opts: ChatOptions, run: (signal: AbortSignal, activity: () => void) => Promise<T>): Promise<T>\nexport function streamJson(line: string): any\nexport function abortableDelay(ms: number, signal: AbortSignal): Promise<void>",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\providers\\transport.ts"
+}

@@ -1,0 +1,9 @@
+{
+  "original_tokens": 1664,
+  "compressed_tokens": 199,
+  "saved_tokens": 1465,
+  "savings_pct": 88.0,
+  "compressed": "# plugins.md (.md) \u2014 99 lines\n# Plugins smolcoder \u2014 gratuits, sans abonnement  smolcoder ne vend rien : tout ce qui est dedans est gratuit et tourne sur votre\n## Dedans (rien \u00e0 installer)  | Domaine | Outil / skill | Co\u00fbt |\n## Brancher vos MCP (les m\u00eames que vos autres assistants)  Ce projet est d\u00e9j\u00e0 branch\u00e9 : `.smol/mcp.json` liste les 6 serveurs\n## Install\u00e9s et test\u00e9s ici le 2026-09-24 (copiez `docs/mcp.json`)  Projet (`.smol/mcp.json`)\n## Dehors (optionnel, \u00e0 installer vous-m\u00eame)  V\u00e9rifi\u00e9s le 2026-09-24, licences et \u00e9toiles GitHub \u00e0 cette date\n## Ajouter votre plugin (2 minutes)  1. Faites la recette une fois \u00e0 la main.",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\docs\\plugins.md"
+}

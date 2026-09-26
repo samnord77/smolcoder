@@ -1,0 +1,34 @@
+{
+  "path": "docs/kaggle.md",
+  "content_hash": "231f2a84f2bb3a9580911bc678d0634d",
+  "updated_at": "2026-09-24T22:55:36",
+  "lines": 26,
+  "size_bytes": 1222,
+  "mtime_ns": 1790286896685737600,
+  "language": "markdown",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "heading",
+      "name": "h1: Gros mod\u00e8les sur Kaggle GPU (sans Nvidia local)",
+      "line_start": 1,
+      "line_end": 26,
+      "signature": "# Gros mod\u00e8les sur Kaggle GPU (sans Nvidia local)"
+    },
+    {
+      "type": "heading",
+      "name": "h2: Recette (10 minutes)",
+      "line_start": 7,
+      "line_end": 18,
+      "signature": "## Recette (10 minutes)"
+    },
+    {
+      "type": "heading",
+      "name": "h2: Notes",
+      "line_start": 19,
+      "line_end": 26,
+      "signature": "## Notes"
+    }
+  ]
+}

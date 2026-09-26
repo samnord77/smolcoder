@@ -1,0 +1,144 @@
+{
+  "path": "src/editor-tools.ts",
+  "content_hash": "ed30005d598f0b895dbc1fb3a1337570",
+  "updated_at": "2026-09-26T17:51:05",
+  "lines": 304,
+  "size_bytes": 9551,
+  "mtime_ns": 1790428939937572100,
+  "language": "typescript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "interface",
+      "name": "TextEditResult",
+      "line_start": 1,
+      "line_end": 5,
+      "signature": "interface TextEditResult {",
+      "children": []
+    },
+    {
+      "type": "interface",
+      "name": "TextMatch",
+      "line_start": 7,
+      "line_end": 10,
+      "signature": "interface TextMatch {",
+      "children": []
+    },
+    {
+      "type": "interface",
+      "name": "FindMatchesResult",
+      "line_start": 11,
+      "line_end": 14,
+      "signature": "interface FindMatchesResult {",
+      "children": []
+    },
+    {
+      "type": "interface",
+      "name": "FindOptions",
+      "line_start": 15,
+      "line_end": 18,
+      "signature": "interface FindOptions {",
+      "children": []
+    },
+    {
+      "type": "interface",
+      "name": "ReplaceResult",
+      "line_start": 19,
+      "line_end": 23,
+      "signature": "interface ReplaceResult {",
+      "children": []
+    },
+    {
+      "type": "constant",
+      "name": "MAX_FIND_TEXT_CHARS",
+      "line_start": 25,
+      "line_end": 25,
+      "signature": "const MAX_FIND_TEXT_CHARS = 4 * 1024 * 1024;"
+    },
+    {
+      "type": "constant",
+      "name": "MAX_FIND_RESULTS",
+      "line_start": 26,
+      "line_end": 26,
+      "signature": "const MAX_FIND_RESULTS = 1000;"
+    },
+    {
+      "type": "constant",
+      "name": "MAX_REPLACED_CHARS",
+      "line_start": 27,
+      "line_end": 27,
+      "signature": "const MAX_REPLACED_CHARS = 1024 * 1024;"
+    },
+    {
+      "type": "constant",
+      "name": "MAX_REPLACEMENTS",
+      "line_start": 28,
+      "line_end": 28,
+      "signature": "const MAX_REPLACEMENTS = 50_000;"
+    },
+    {
+      "type": "function",
+      "name": "literalPattern",
+      "line_start": 30,
+      "line_end": 34,
+      "signature": "function literalPattern(query: string, caseSensitive: boolean): RegExp | null {"
+    },
+    {
+      "type": "function",
+      "name": "findMatches",
+      "line_start": 38,
+      "line_end": 61,
+      "signature": "function findMatches("
+    },
+    {
+      "type": "function",
+      "name": "findNextMatch",
+      "line_start": 64,
+      "line_end": 112,
+      "signature": "function findNextMatch("
+    },
+    {
+      "type": "function",
+      "name": "replaceAllLiteral",
+      "line_start": 116,
+      "line_end": 179,
+      "signature": "function replaceAllLiteral("
+    },
+    {
+      "type": "function",
+      "name": "cursorPosition",
+      "line_start": 181,
+      "line_end": 192,
+      "signature": "function cursorPosition("
+    },
+    {
+      "type": "function",
+      "name": "offsetForPosition",
+      "line_start": 194,
+      "line_end": 209,
+      "signature": "function offsetForPosition("
+    },
+    {
+      "type": "function",
+      "name": "changeIndent",
+      "line_start": 211,
+      "line_end": 268,
+      "signature": "function changeIndent("
+    },
+    {
+      "type": "function",
+      "name": "insertNewlineWithIndent",
+      "line_start": 270,
+      "line_end": 302,
+      "signature": "function insertNewlineWithIndent("
+    },
+    {
+      "type": "constant",
+      "name": "editorToolsBrowserSource",
+      "line_start": 304,
+      "line_end": 304,
+      "signature": "const editorToolsBrowserSource = `(() => { const MAX_FIND_TEXT_CHARS=${MAX_FIND_TEXT_CHARS}, MAX_FIND_RESULTS=${MAX_FIND_RESULTS}, MAX_REPLACED_CHARS=${MAX_REPLACED_CHARS}, MAX_REPLACEMENTS=${MAX_REPLACEMENTS}; const literalPattern=${literalPattern.toString()}; return ({cursorPosition:${cursorPosition.toString()},offsetForPosition:${offsetForPosition.toString()},changeIndent:${changeIndent.toStrin"
+    }
+  ]
+}

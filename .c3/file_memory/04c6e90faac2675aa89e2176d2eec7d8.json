@@ -1,0 +1,132 @@
+{
+  "path": "README.md",
+  "content_hash": "bac60af4209860d8fd105481f0311a68",
+  "updated_at": "2026-09-26T17:53:04",
+  "lines": 180,
+  "size_bytes": 12638,
+  "mtime_ns": 1790424178017755500,
+  "language": "markdown",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "heading",
+      "name": "h1: smolcoder",
+      "line_start": 1,
+      "line_end": 180,
+      "signature": "# smolcoder"
+    },
+    {
+      "type": "heading",
+      "name": "h2: Setup",
+      "line_start": 12,
+      "line_end": 34,
+      "signature": "## Setup"
+    },
+    {
+      "type": "heading",
+      "name": "h2: Using it",
+      "line_start": 35,
+      "line_end": 91,
+      "signature": "## Using it"
+    },
+    {
+      "type": "heading",
+      "name": "h3: Commands",
+      "line_start": 48,
+      "line_end": 63,
+      "signature": "### Commands"
+    },
+    {
+      "type": "heading",
+      "name": "h3: Permission modes",
+      "line_start": 64,
+      "line_end": 75,
+      "signature": "### Permission modes"
+    },
+    {
+      "type": "heading",
+      "name": "h3: Options",
+      "line_start": 76,
+      "line_end": 91,
+      "signature": "### Options"
+    },
+    {
+      "type": "heading",
+      "name": "h2: Using models on another machine",
+      "line_start": 92,
+      "line_end": 137,
+      "signature": "## Using models on another machine"
+    },
+    {
+      "type": "heading",
+      "name": "h3: 1. Let the other machine accept connections",
+      "line_start": 96,
+      "line_end": 107,
+      "signature": "### 1. Let the other machine accept connections"
+    },
+    {
+      "type": "heading",
+      "name": "h3: 2. Find it from smolcoder",
+      "line_start": 108,
+      "line_end": 116,
+      "signature": "### 2. Find it from smolcoder"
+    },
+    {
+      "type": "heading",
+      "name": "h3: 3. Use it like any other model",
+      "line_start": 117,
+      "line_end": 126,
+      "signature": "### 3. Use it like any other model"
+    },
+    {
+      "type": "heading",
+      "name": "h3: Before you add a machine",
+      "line_start": 127,
+      "line_end": 130,
+      "signature": "### Before you add a machine"
+    },
+    {
+      "type": "heading",
+      "name": "h3: If nothing is found",
+      "line_start": 131,
+      "line_end": 137,
+      "signature": "### If nothing is found"
+    },
+    {
+      "type": "heading",
+      "name": "h2: The web UI",
+      "line_start": 138,
+      "line_end": 151,
+      "signature": "## The web UI"
+    },
+    {
+      "type": "heading",
+      "name": "h2: Why it works well with local models",
+      "line_start": 152,
+      "line_end": 164,
+      "signature": "## Why it works well with local models"
+    },
+    {
+      "type": "heading",
+      "name": "h2: Tips",
+      "line_start": 165,
+      "line_end": 173,
+      "signature": "## Tips"
+    },
+    {
+      "type": "heading",
+      "name": "h2: Contributing",
+      "line_start": 174,
+      "line_end": 177,
+      "signature": "## Contributing"
+    },
+    {
+      "type": "heading",
+      "name": "h2: License",
+      "line_start": 178,
+      "line_end": 180,
+      "signature": "## License"
+    }
+  ]
+}

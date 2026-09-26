@@ -1,0 +1,9 @@
+{
+  "original_tokens": 122,
+  "compressed_tokens": 75,
+  "saved_tokens": 47,
+  "savings_pct": 38.5,
+  "compressed": "# package.json (.json) \u2014 17 lines\n\"name\": \"smolcoder-desktop\",\n\"version\": \"0.1.0\",\n\"description\": \"IDE bureau Electron pour smolcoder (editeur, terminal, chat, taches).\",\n\"license\": \"MIT\",\n\"main\": \"main.js\",\n\"scripts\":\n\"devDependencies\":\n\"allowScripts\":",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\desktop\\package.json"
+}

@@ -1,0 +1,11 @@
+{
+  "response_tokens": 1107,
+  "call_count": 1,
+  "peak_tokens": 1107,
+  "by_tool": {
+    "c3_read": 1107
+  },
+  "c3_calls": 18,
+  "native_calls": 0,
+  "auto_snapshot_fired": false
+}

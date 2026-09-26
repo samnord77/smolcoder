@@ -1,0 +1,27 @@
+{
+  "path": "test/diff.test.js",
+  "content_hash": "5ece78797c2d984717bce8dcef7be93c",
+  "updated_at": "2026-09-24T22:50:35",
+  "lines": 35,
+  "size_bytes": 1462,
+  "mtime_ns": 1790286347414491300,
+  "language": "javascript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "constant",
+      "name": "test",
+      "line_start": 2,
+      "line_end": 2,
+      "signature": "const test = require(\"node:test\");"
+    },
+    {
+      "type": "constant",
+      "name": "assert",
+      "line_start": 3,
+      "line_end": 3,
+      "signature": "const assert = require(\"node:assert/strict\");"
+    }
+  ]
+}

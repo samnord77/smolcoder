@@ -1,0 +1,9 @@
+{
+  "original_tokens": 1491,
+  "compressed_tokens": 287,
+  "saved_tokens": 1204,
+  "savings_pct": 80.8,
+  "compressed": "# store.ts (.ts) \u2014 213 lines\nimport * as fs from \"fs\";\nimport * as path from \"path\";\nimport { SessionSnapshot } from \"../session\";\n\nexport type Event = Record<string, any>;\nexport interface SessionMeta\nexport interface SessionBody\nfunction writeAtomic(file: string, data: string): void\nfunction assertValidId(id: string): void\nasync function writeAtomicAsync(file: string, data: string): Promise<void>\n\nexport class SessionStore\n  readonly dir: string;\n  constructor(dataDir: string)\n  private metaPath(id: string): string\n  private bodyPath(id: string): string\n  listMetas(): SessionMeta[]\n  saveMeta(meta: SessionMeta): void\n  saveBody(id: string, body: SessionBody): Promise<void>\n  saveBodySync(id: string, body: SessionBody): void\n  loadBody(id: string): SessionBody | null\n  delete(id: string): void\nexport interface WorkspaceEntry\nexport function workspaceKey(p: string): string\n\nexport class WorkspaceStore\n  private readonly file: string;\n  private entries: WorkspaceEntry[] = [];\n  constructor(dataDir: string)\n  list(): WorkspaceEntry[]\n  has(p: string): boolean\n  add(p: string): WorkspaceEntry\n  touch(p: string): void\n  remove(p: string): void\n  private save(): void",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\web\\store.ts"
+}

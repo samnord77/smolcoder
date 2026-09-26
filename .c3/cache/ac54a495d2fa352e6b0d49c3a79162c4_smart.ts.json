@@ -1,0 +1,9 @@
+{
+  "original_tokens": 503,
+  "compressed_tokens": 61,
+  "saved_tokens": 442,
+  "savings_pct": 87.9,
+  "compressed": "# workspace-diagnostics.ts (.ts) \u2014 69 lines\nimport { querySymbols } from \"./lsp\";\nimport { resolveInWorkspace } from \"./sandbox\";\n\nexport interface WorkspaceDiagnostic\nexport interface WorkspaceDiagnosticsResult\nexport async function workspaceDiagnostics( root: string, relativePath: unknown,",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\workspace-diagnostics.ts"
+}

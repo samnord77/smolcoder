@@ -1,0 +1,9 @@
+{
+  "original_tokens": 2112,
+  "compressed_tokens": 364,
+  "saved_tokens": 1748,
+  "savings_pct": 82.8,
+  "compressed": "# sandbox.ts (.ts) \u2014 177 lines\nimport * as fs from \"fs\";\nimport * as path from \"path\";\n\n\nexport class SandboxError extends Error {}\nconst isWin = process.platform === \"win32\";\nfunction normalizeForCompare(p: string): string\nfunction deepestExisting(abs: string): string\nexport function resolveInWorkspace(root: string, userPath: string): string\nexport function relPath(root: string, abs: string): string\nconst HOME_TOKENS = /^(~|\\$HOME|\\$\\{HOME\\}|\\$env:HOME|%USERPROFILE%|%HOMEPATH%)([\\\\/]|$)/i;\nconst TEMP_TOKENS = /^(\\$TMPDIR|\\$\\{TMPDIR\\}|\\$TEMP|\\$TMP|%TEMP%|%TMP%|\\$\\{TEMP\\}|\\$\\{TMP\\}|\\$env:TMPDIR|\\$env:TEMP|\\$env:TMP)([\\\\/]|$)/i;\nconst POWERSHELL_ENV = /^\\$env:[A-Za-z_][A-Za-z0-9_]*/i;\nconst GLOBAL_INSTALL = /\\b(npm|pnpm|yarn|bun)\\b[^;&|]*\\s(-g|--global|global)(\\s|$)/;\nconst MSYS_ROOTS = /^\\/(tmp|usr|etc|bin|home|mnt|dev|proc|var|opt|root)(\\/|$)/i;\nfunction pathCandidates(command: string): string[]\nfunction fromMsys(tok: string): string\nfunction isAbsoluteLike(tok: string): boolean\nfunction realPathOf(abs: string): string\nfunction insideWorkspace(root: string, abs: string): boolean\nexport function commandEscapesWorkspace(command: string, root: string): string | null",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\sandbox.ts"
+}

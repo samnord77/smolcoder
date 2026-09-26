@@ -1,0 +1,12 @@
+{
+  "path": ".playwright-mcp/page-2026-09-24T19-52-18-561Z.yml",
+  "content_hash": "38d4e51a1b014ee8cfe880bfea6a0ef1",
+  "updated_at": "2026-09-24T20:53:28",
+  "lines": 6,
+  "size_bytes": 315,
+  "mtime_ns": 1790279538577265800,
+  "language": "yaml",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": []
+}

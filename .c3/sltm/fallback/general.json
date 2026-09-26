@@ -1,0 +1,28 @@
+[
+  {
+    "id": "faca6eebe13b",
+    "text": "Session summary (20260924): Files (modified): src/skills.ts, src/builtin-skills.ts, test/skills.test.js, src/tools/web.ts, test/fetch.test.js, docs/plugins.md, src/mcp.ts, test/mcp.test.js, src/lsp.ts, docs/mcp-cli.md",
+    "metadata": {
+      "fact_id": "faca6eebe13b",
+      "source_session": "20260924_162416_494dc8bf028e",
+      "source": "memory_store",
+      "timestamp": "2026-09-24T23:01:36.051010+00:00",
+      "category": "general"
+    },
+    "timestamp": "2026-09-24T23:01:36.051010+00:00",
+    "category": "general"
+  },
+  {
+    "id": "d43460e2e2f0",
+    "text": "Session summary (20260925): Files (modified): src/web/client.ts, desktop/preload-git.js, desktop/git.html, desktop/main.js",
+    "metadata": {
+      "fact_id": "d43460e2e2f0",
+      "source_session": "20260925_112127_7665d46da88a",
+      "source": "memory_store",
+      "timestamp": "2026-09-25T20:11:42.245707+00:00",
+      "category": "general"
+    },
+    "timestamp": "2026-09-25T20:11:42.245707+00:00",
+    "category": "general"
+  }
+]

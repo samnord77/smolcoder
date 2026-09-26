@@ -1,0 +1,58 @@
+[
+  {
+    "session_id": "20260924_162416_494dc8bf028e",
+    "files": [
+      "docs/kaggle.md",
+      "docs/mcp-cli.md",
+      "docs/plugins.md",
+      "scripts/vram-check.cjs",
+      "src/builtin-skills.ts",
+      "src/lsp.ts",
+      "src/mcp.ts",
+      "src/skills.ts",
+      "src/tools/web.ts",
+      "src/web/app.ts",
+      "src/web/diff.ts",
+      "src/web/notify.ts",
+      "test/app.test.js",
+      "test/diff.test.js",
+      "test/fetch.test.js",
+      "test/http-mcp.test.js",
+      "test/lsp.test.js",
+      "test/mcp.test.js",
+      "test/notify.test.js",
+      "test/prompt.test.js",
+      "test/skills.test.js",
+      "test/vram.test.js"
+    ],
+    "facts_recalled": [],
+    "decisions": [],
+    "timestamp": "2026-09-24T23:01:36.060018+00:00"
+  },
+  {
+    "session_id": "20260925_105117_a82319890397",
+    "files": [],
+    "facts_recalled": [],
+    "decisions": [],
+    "timestamp": "2026-09-25T11:20:27.298011+00:00"
+  },
+  {
+    "session_id": "20260925_112127_7665d46da88a",
+    "files": [
+      "desktop/git.html",
+      "desktop/main.js",
+      "desktop/preload-git.js",
+      "src/web/client.ts"
+    ],
+    "facts_recalled": [],
+    "decisions": [],
+    "timestamp": "2026-09-25T20:11:42.263270+00:00"
+  },
+  {
+    "session_id": "20260926_165058_a45b205b7e07",
+    "files": [],
+    "facts_recalled": [],
+    "decisions": [],
+    "timestamp": "2026-09-26T17:48:16.322589+00:00"
+  }
+]

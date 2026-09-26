@@ -1,0 +1,42 @@
+{
+  "path": "src/providers/transport.ts",
+  "content_hash": "7957a92a28db1931e8f008cf093478e0",
+  "updated_at": "2026-09-24T17:24:24",
+  "lines": 70,
+  "size_bytes": 3044,
+  "mtime_ns": 1790260569958568600,
+  "language": "typescript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "import",
+      "name": "import { ChatOptions } from \"./types\";",
+      "line_start": 1,
+      "line_end": 1,
+      "signature": "import { ChatOptions } from \"./types\";"
+    },
+    {
+      "type": "function",
+      "name": "withDeadline",
+      "line_start": 4,
+      "line_end": 26,
+      "signature": "async function withDeadline<T>(opts: ChatOptions, run: (signal: AbortSignal, activity: () => void) => Promise<T>): Promise<T> {",
+      "async": true
+    },
+    {
+      "type": "function",
+      "name": "streamJson",
+      "line_start": 55,
+      "line_end": 61,
+      "signature": "function streamJson(line: string): any {"
+    },
+    {
+      "type": "function",
+      "name": "abortableDelay",
+      "line_start": 63,
+      "line_end": 70,
+      "signature": "function abortableDelay(ms: number, signal: AbortSignal): Promise<void> {"
+    }
+  ]
+}

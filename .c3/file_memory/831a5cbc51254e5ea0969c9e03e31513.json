@@ -1,0 +1,162 @@
+{
+  "path": "desktop/hub-client.js",
+  "content_hash": "de0538eda7844b877b15b999dd677ff5",
+  "updated_at": "2026-09-26T17:53:04",
+  "lines": 168,
+  "size_bytes": 5802,
+  "mtime_ns": 1790370415831429700,
+  "language": "javascript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "constant",
+      "name": "fs",
+      "line_start": 3,
+      "line_end": 3,
+      "signature": "const fs = require(\"fs\");"
+    },
+    {
+      "type": "constant",
+      "name": "http",
+      "line_start": 4,
+      "line_end": 4,
+      "signature": "const http = require(\"http\");"
+    },
+    {
+      "type": "constant",
+      "name": "os",
+      "line_start": 5,
+      "line_end": 5,
+      "signature": "const os = require(\"os\");"
+    },
+    {
+      "type": "constant",
+      "name": "path",
+      "line_start": 6,
+      "line_end": 6,
+      "signature": "const path = require(\"path\");"
+    },
+    {
+      "type": "function",
+      "name": "dataDir",
+      "line_start": 9,
+      "line_end": 11,
+      "signature": "function dataDir() {"
+    },
+    {
+      "type": "function",
+      "name": "readHubRecord",
+      "line_start": 13,
+      "line_end": 19,
+      "signature": "function readHubRecord() {"
+    },
+    {
+      "type": "function",
+      "name": "api",
+      "line_start": 21,
+      "line_end": 50,
+      "signature": "function api(rec, method, p, body) {"
+    },
+    {
+      "type": "function",
+      "name": "snapshot",
+      "line_start": 53,
+      "line_end": 78,
+      "signature": "function snapshot(rec) {",
+      "doc": "First SSE message on /events is the full hub snapshot."
+    },
+    {
+      "type": "function",
+      "name": "sessionIdsByRecency",
+      "line_start": 80,
+      "line_end": 86,
+      "signature": "function sessionIdsByRecency(snap) {"
+    },
+    {
+      "type": "function",
+      "name": "withLiveSid",
+      "line_start": 89,
+      "line_end": 102,
+      "signature": "async function withLiveSid(rec, fn) {",
+      "async": true,
+      "doc": "Run fn(sid) on the most recently used LIVE session (tries each in turn)."
+    },
+    {
+      "type": "function",
+      "name": "sendSlash",
+      "line_start": 104,
+      "line_end": 104,
+      "signature": "const sendSlash = (rec, text) => withLiveSid(rec, (sid) => api(rec, \"POST\", \"/msg\", { sid, text }));"
+    },
+    {
+      "type": "function",
+      "name": "cycleMode",
+      "line_start": 105,
+      "line_end": 105,
+      "signature": "const cycleMode = (rec) => withLiveSid(rec, (sid) => api(rec, \"POST\", \"/cycle\", { sid }));"
+    },
+    {
+      "type": "function",
+      "name": "cancelTurn",
+      "line_start": 106,
+      "line_end": 106,
+      "signature": "const cancelTurn = (rec) => withLiveSid(rec, (sid) => api(rec, \"POST\", \"/cancel\", { sid }));"
+    },
+    {
+      "type": "function",
+      "name": "openTerminal",
+      "line_start": 107,
+      "line_end": 107,
+      "signature": "const openTerminal = (rec) => withLiveSid(rec, (sid) => api(rec, \"POST\", \"/term/open\", { sid }));"
+    },
+    {
+      "type": "function",
+      "name": "runInTerminal",
+      "line_start": 109,
+      "line_end": 113,
+      "signature": "const runInTerminal = (rec, text) => withLiveSid(rec, async (sid) => {",
+      "doc": "Ouvre un terminal et y tape une commande (ex: build)."
+    },
+    {
+      "type": "function",
+      "name": "openTerminalSid",
+      "line_start": 114,
+      "line_end": 114,
+      "signature": "const openTerminalSid = (rec, sid) => api(rec, \"POST\", \"/term/open\", { sid });"
+    },
+    {
+      "type": "function",
+      "name": "ensureSession",
+      "line_start": 117,
+      "line_end": 129,
+      "signature": "async function ensureSession(rec, workspace) {",
+      "async": true,
+      "doc": "Reprend la session la plus recente, sinon en ouvre une neuve. Retourne son sid."
+    },
+    {
+      "type": "function",
+      "name": "ping",
+      "line_start": 131,
+      "line_end": 138,
+      "signature": "async function ping(rec) {",
+      "async": true
+    },
+    {
+      "type": "function",
+      "name": "ensureHub",
+      "line_start": 141,
+      "line_end": 162,
+      "signature": "async function ensureHub({ projectDir, distIndex }) {",
+      "async": true,
+      "doc": "Start the hub if none answers, then return its record + base URL."
+    },
+    {
+      "type": "function",
+      "name": "hubUrl",
+      "line_start": 164,
+      "line_end": 166,
+      "signature": "function hubUrl(rec) {"
+    }
+  ]
+}

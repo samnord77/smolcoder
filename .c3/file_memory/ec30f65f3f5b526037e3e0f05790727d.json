@@ -1,0 +1,90 @@
+{
+  "path": "desktop/hl-check.js",
+  "content_hash": "d666eaac767e54bb972549e7e2b229a2",
+  "updated_at": "2026-09-25T16:25:52",
+  "lines": 32,
+  "size_bytes": 1797,
+  "mtime_ns": 1790349708794132500,
+  "language": "javascript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "constant",
+      "name": "fs",
+      "line_start": 2,
+      "line_end": 2,
+      "signature": "const fs = require(\"fs\");"
+    },
+    {
+      "type": "constant",
+      "name": "src",
+      "line_start": 3,
+      "line_end": 3,
+      "signature": "const src = fs.readFileSync(require(\"path\").join(__dirname, \"..\", \"dist\", \"web\", \"client.js\"), \"utf8\");"
+    },
+    {
+      "type": "constant",
+      "name": "m",
+      "line_start": 4,
+      "line_end": 4,
+      "signature": "const m = /const HL_KEYWORDS = (\".*?\")\\s*\\.\\s*split/s.exec(src);"
+    },
+    {
+      "type": "constant",
+      "name": "HL_KEYWORDS",
+      "line_start": 6,
+      "line_end": 6,
+      "signature": "const HL_KEYWORDS = eval(m[1]).split(\" \");"
+    },
+    {
+      "type": "constant",
+      "name": "HL_RE",
+      "line_start": 7,
+      "line_end": 9,
+      "signature": "const HL_RE = new RegExp("
+    },
+    {
+      "type": "function",
+      "name": "highlightCode",
+      "line_start": 10,
+      "line_end": 17,
+      "signature": "function highlightCode(code) {"
+    },
+    {
+      "type": "function",
+      "name": "esc",
+      "line_start": 18,
+      "line_end": 18,
+      "signature": "const esc = (s) => s.replace(/&/g, \"&amp;\").replace(/</g, \"&lt;\").replace(/>/g, \"&gt;\").replace(/\"/g, \"&quot;\");"
+    },
+    {
+      "type": "constant",
+      "name": "sample",
+      "line_start": 19,
+      "line_end": 19,
+      "signature": "const sample = 'const x = 42; // compte\\nif (x > 1) { return \"fini <b>\"; }\\n# commentaire';"
+    },
+    {
+      "type": "constant",
+      "name": "out",
+      "line_start": 20,
+      "line_end": 20,
+      "signature": "const out = highlightCode(esc(sample));"
+    },
+    {
+      "type": "constant",
+      "name": "checks",
+      "line_start": 21,
+      "line_end": 28,
+      "signature": "const checks = ["
+    },
+    {
+      "type": "variable",
+      "name": "ok",
+      "line_start": 29,
+      "line_end": 29,
+      "signature": "let ok = true;"
+    }
+  ]
+}

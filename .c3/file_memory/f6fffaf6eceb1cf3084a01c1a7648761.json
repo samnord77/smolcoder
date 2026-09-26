@@ -1,0 +1,48 @@
+{
+  "path": "docs/backend-notes.md",
+  "content_hash": "7f9bb5559dba305add98235192d616a8",
+  "updated_at": "2026-09-25T13:07:34",
+  "lines": 118,
+  "size_bytes": 7472,
+  "mtime_ns": 1790338035727309500,
+  "language": "markdown",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "heading",
+      "name": "h1: Backend notes and benchmarks",
+      "line_start": 1,
+      "line_end": 118,
+      "signature": "# Backend notes and benchmarks"
+    },
+    {
+      "type": "heading",
+      "name": "h2: Backend notes: Ollama vs LM Studio",
+      "line_start": 5,
+      "line_end": 50,
+      "signature": "## Backend notes: Ollama vs LM Studio"
+    },
+    {
+      "type": "heading",
+      "name": "h2: End-to-end: the same Minecraft build on both backends",
+      "line_start": 51,
+      "line_end": 118,
+      "signature": "## End-to-end: the same Minecraft build on both backends"
+    },
+    {
+      "type": "heading",
+      "name": "h3: The same build with reasoning on (`--effort high`)",
+      "line_start": 80,
+      "line_end": 99,
+      "signature": "### The same build with reasoning on (`--effort high`)"
+    },
+    {
+      "type": "heading",
+      "name": "h3: Forcing compaction",
+      "line_start": 100,
+      "line_end": 118,
+      "signature": "### Forcing compaction"
+    }
+  ]
+}

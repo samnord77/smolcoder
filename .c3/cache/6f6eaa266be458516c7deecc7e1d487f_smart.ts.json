@@ -1,0 +1,9 @@
+{
+  "original_tokens": 686,
+  "compressed_tokens": 42,
+  "saved_tokens": 644,
+  "savings_pct": 93.9,
+  "compressed": "# editor-tabs.ts (.ts) \u2014 61 lines\nexport interface EditorTab\nexport function makeEditorTabStore()\nexport const editorTabStoreBrowserSource = `(${makeEditorTabStore.toString()})`;",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\editor-tabs.ts"
+}

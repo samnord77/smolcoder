@@ -9,6 +9,7 @@
 import { Plan } from "../plan";
 import { SelectOption, SessionUI, SlashCommand, summarizeArgs } from "../ui";
 import { c } from "../util";
+import { createCodeStreamColorizer } from "../highlight";
 import { LineEditor, layoutBuffer } from "./editor";
 import { Key, KeyDecoder } from "./keys";
 
@@ -68,6 +69,7 @@ export class Tui implements SessionUI {
   hintLeft = "";
 
   private ed = new LineEditor();
+  private codeColorizer = createCodeStreamColorizer((text) => this.out(text), process.stdout.isTTY && !process.env.NO_COLOR);
   private decoder = new KeyDecoder();
   private state: State = "hidden";
   private prevLines = 0;
@@ -631,7 +633,7 @@ export class Tui implements SessionUI {
   token(text: string): void {
     this.stopSpinner();
     this.lastKind = "content";
-    this.out(text);
+    this.codeColorizer.push(text);
     this.atLineStart = text.endsWith("\n");
   }
 
@@ -684,6 +686,7 @@ export class Tui implements SessionUI {
   }
 
   resetResponse(): void {
+    this.codeColorizer.flush();
     this.ensureLine();
     this.out(c.dim("[Interrupted response discarded]\n"));
   }
@@ -701,6 +704,7 @@ export class Tui implements SessionUI {
   }
 
   turnEnd(label: string): void {
+    this.codeColorizer.flush();
     this.ensureLine();
     this.lastKind = null;
     const n = new Date();
@@ -737,6 +741,7 @@ export class Tui implements SessionUI {
   }
 
   error(s: string): void {
+    this.codeColorizer.flush();
     this.println(c.red(s));
     this.bell();
   }

@@ -1,0 +1,41 @@
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
+const { execFile } = require("node:child_process");
+const { promisify } = require("node:util");
+const { status, diff, commit } = require("../desktop/git-service");
+const run = promisify(execFile);
+
+test("Git panel stays in the chosen workspace and commits only the selected file", async (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "smol-git-service-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const workspace = path.join(root, "project");
+  const sibling = path.join(root, "private.txt");
+  fs.mkdirSync(workspace, { recursive: true });
+  await run("git", ["init", "-q", root]);
+  await run("git", ["-C", root, "config", "user.name", "Smolcoder Test"]);
+  await run("git", ["-C", root, "config", "user.email", "smol-test@example.invalid"]);
+  fs.writeFileSync(path.join(workspace, "chosen.txt"), "before\n");
+  fs.writeFileSync(path.join(workspace, "other.txt"), "before\n");
+  fs.writeFileSync(sibling, "outside\n");
+  await run("git", ["-C", root, "add", "-A"]);
+  await run("git", ["-C", root, "commit", "-qm", "initial"]);
+  fs.writeFileSync(path.join(workspace, "chosen.txt"), "after\n");
+  fs.writeFileSync(path.join(workspace, "other.txt"), "pending\n");
+  fs.mkdirSync(path.join(workspace, ".c3"));
+  fs.writeFileSync(path.join(workspace, ".c3", "internal.json"), "{}\n");
+  fs.mkdirSync(path.join(workspace, ".playwright-mcp"));
+  fs.writeFileSync(path.join(workspace, ".playwright-mcp", "trace.json"), "{}\n");
+
+  const listed = await status(workspace);
+  assert.deepEqual(listed.files.map((file) => file.path).sort(), ["chosen.txt", "other.txt"]);
+  assert.match(await diff(workspace, "chosen.txt"), /after/);
+  await assert.rejects(diff(workspace, "../private.txt"), /outside the workspace/i);
+  const result = await commit(workspace, "chosen.txt", "commit selected file");
+  assert.match(result.summary, /commit selected file/);
+  assert.deepEqual((await status(workspace)).files.map((file) => file.path), ["other.txt"]);
+  const committed = await run("git", ["-C", root, "show", "--format=", "--name-only", "HEAD"]);
+  assert.equal(committed.stdout.trim(), "project/chosen.txt");
+});

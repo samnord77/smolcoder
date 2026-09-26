@@ -1,0 +1,196 @@
+{
+  "path": "src/providers/lmstudio.ts",
+  "content_hash": "71b26777d5ee61a40f178146808cbe59",
+  "updated_at": "2026-09-24T17:24:23",
+  "lines": 345,
+  "size_bytes": 14044,
+  "mtime_ns": 1790260569954405500,
+  "language": "typescript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "import",
+      "name": "import {",
+      "line_start": 14,
+      "line_end": 27,
+      "signature": "import {"
+    },
+    {
+      "type": "import",
+      "name": "import { responseLines, streamJson, withDeadline } from \"./transport\";",
+      "line_start": 28,
+      "line_end": 28,
+      "signature": "import { responseLines, streamJson, withDeadline } from \"./transport\";"
+    },
+    {
+      "type": "import",
+      "name": "import { scheduleInference } from \"./scheduler\";",
+      "line_start": 29,
+      "line_end": 29,
+      "signature": "import { scheduleInference } from \"./scheduler\";"
+    },
+    {
+      "type": "import",
+      "name": "import { imageDataUrl } from \"../attachments\";",
+      "line_start": 30,
+      "line_end": 30,
+      "signature": "import { imageDataUrl } from \"../attachments\";"
+    },
+    {
+      "type": "import",
+      "name": "import { tryFetchJson } from \"../util\";",
+      "line_start": 31,
+      "line_end": 31,
+      "signature": "import { tryFetchJson } from \"../util\";"
+    },
+    {
+      "type": "interface",
+      "name": "ReasoningInfo",
+      "line_start": 33,
+      "line_end": 38,
+      "signature": "interface ReasoningInfo {",
+      "children": []
+    },
+    {
+      "type": "function",
+      "name": "toWire",
+      "line_start": 41,
+      "line_end": 68,
+      "signature": "function toWire(messages: Msg[]): any[] {"
+    },
+    {
+      "type": "function",
+      "name": "toWireTools",
+      "line_start": 70,
+      "line_end": 75,
+      "signature": "function toWireTools(tools: ToolSpec[]): any[] {"
+    },
+    {
+      "type": "function",
+      "name": "mapEffort",
+      "line_start": 80,
+      "line_end": 102,
+      "signature": "function mapEffort(effort: Effort | null, info: ReasoningInfo | undefined): string | undefined {"
+    },
+    {
+      "type": "class",
+      "name": "LmStudioProvider",
+      "line_start": 104,
+      "line_end": 345,
+      "signature": "class LmStudioProvider implements Provider {",
+      "children": [
+        {
+          "type": "property",
+          "name": "replaysThinking",
+          "line_start": 105,
+          "line_end": 105,
+          "signature": "readonly replaysThinking = false;"
+        },
+        {
+          "type": "property",
+          "name": "label",
+          "line_start": 106,
+          "line_end": 106,
+          "signature": "readonly label: string;"
+        },
+        {
+          "type": "property",
+          "name": "maxOutputTokens",
+          "line_start": 107,
+          "line_end": 107,
+          "signature": "readonly maxOutputTokens: number;"
+        },
+        {
+          "type": "property",
+          "name": "effort",
+          "line_start": 108,
+          "line_end": 108,
+          "signature": "private effort: Effort | null = null;",
+          "access": "private"
+        },
+        {
+          "type": "property",
+          "name": "effortUnsupported",
+          "line_start": 109,
+          "line_end": 109,
+          "signature": "private effortUnsupported = false;",
+          "access": "private"
+        },
+        {
+          "type": "method",
+          "name": "constructor",
+          "line_start": 111,
+          "line_end": 122,
+          "signature": "constructor("
+        },
+        {
+          "type": "method",
+          "name": "setEffort",
+          "line_start": 124,
+          "line_end": 127,
+          "signature": "setEffort(effort: Effort | null): void {"
+        },
+        {
+          "type": "method",
+          "name": "loadedContextWindow",
+          "line_start": 129,
+          "line_end": 137,
+          "signature": "async loadedContextWindow(): Promise<number | undefined> {",
+          "async": true
+        },
+        {
+          "type": "method",
+          "name": "effortLabel",
+          "line_start": 139,
+          "line_end": 147,
+          "signature": "effortLabel(): string | null {"
+        },
+        {
+          "type": "method",
+          "name": "chat",
+          "line_start": 149,
+          "line_end": 151,
+          "signature": "async chat(messages: Msg[], tools: ToolSpec[], opts: ChatOptions = {}): Promise<ChatResult> {",
+          "async": true
+        },
+        {
+          "type": "method",
+          "name": "chatScheduled",
+          "line_start": 153,
+          "line_end": 193,
+          "signature": "private async chatScheduled(messages: Msg[], tools: ToolSpec[], opts: ChatOptions): Promise<ChatResult> {",
+          "async": true,
+          "access": "private"
+        },
+        {
+          "type": "method",
+          "name": "chain",
+          "line_start": 195,
+          "line_end": 220,
+          "signature": "private async chain(base: any, opts: ChatOptions, started: { streaming: boolean }): Promise<ChatResult> {",
+          "async": true,
+          "access": "private"
+        },
+        {
+          "type": "method",
+          "name": "request",
+          "line_start": 222,
+          "line_end": 224,
+          "signature": "private async request(body: any, opts: ChatOptions, started?: { streaming: boolean }): Promise<ChatResult> {",
+          "async": true,
+          "access": "private"
+        },
+        {
+          "type": "method",
+          "name": "readResponse",
+          "line_start": 226,
+          "line_end": 344,
+          "signature": "private async readResponse(body: any, opts: ChatOptions, activity: () => void, started?: { streaming: boolean }): Promise<ChatResult> {",
+          "async": true,
+          "access": "private"
+        }
+      ]
+    }
+  ]
+}

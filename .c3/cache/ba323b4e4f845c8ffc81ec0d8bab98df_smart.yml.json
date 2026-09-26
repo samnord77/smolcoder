@@ -1,0 +1,9 @@
+{
+  "original_tokens": 167,
+  "compressed_tokens": 19,
+  "saved_tokens": 148,
+  "savings_pct": 88.6,
+  "compressed": "# test.yml (.yml) \u2014 28 lines\nname: test\non\njobs",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\.github\\workflows\\test.yml"
+}

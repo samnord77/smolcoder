@@ -12,7 +12,7 @@ const path = require("node:path");
 const CONFIG = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "smol-net-")), "config.json");
 process.env.SMOLCODER_CONFIG = CONFIG;
 
-const { loadConfig, saveConfig, updateConfig } = require("../dist/config");
+const { loadConfig, saveConfig, updateConfig, effortForBackend } = require("../dist/config");
 const { addHost, hostLabel, hostUrls, isPrivateHost, parseAddress, removeHost, renameHost } = require("../dist/hosts");
 const { localSubnets, scanSubnets } = require("../dist/netscan");
 const { findModelsOnNetwork, manageHosts, notFoundHelp } = require("../dist/network");
@@ -112,6 +112,16 @@ test("remembering the model never forgets the hosts, and old configs still load"
   assert.deepEqual(loadConfig().hosts, [{ address: "10.0.0.2" }]);
   fs.writeFileSync(CONFIG, JSON.stringify({ lastModel: "x" }));
   assert.deepEqual(loadConfig().hosts, []);
+});
+
+test("reasoning effort is remembered independently for Ollama and LM Studio", () => {
+  saveConfig({ effort: "high", effortByBackend: { ollama: "off", lmstudio: null } });
+  assert.equal(effortForBackend(loadConfig(), "ollama"), "off");
+  assert.equal(effortForBackend(loadConfig(), "lmstudio"), null, "explicit default is retained");
+  assert.equal(effortForBackend(loadConfig(), "lmstudio", "high"), "high", "an explicit launch override wins");
+  assert.equal(effortForBackend({ effort: "medium" }, "ollama"), "medium", "old configs remain the fallback");
+  saveConfig({ effortByBackend: { ollama: "invalid", lmstudio: "low" } });
+  assert.deepEqual(loadConfig().effortByBackend, { lmstudio: "low" });
 });
 
 // ---- subnets ---------------------------------------------------------------

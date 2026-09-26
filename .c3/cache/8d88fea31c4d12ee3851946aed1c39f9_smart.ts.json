@@ -1,0 +1,9 @@
+{
+  "original_tokens": 2384,
+  "compressed_tokens": 296,
+  "saved_tokens": 2088,
+  "savings_pct": 87.6,
+  "compressed": "# network.ts (.ts) \u2014 200 lines\nimport { loadConfig, SavedHost, updateConfig } from \"./config\";\nimport { identifyServer, probeHosts, ServerInfo } from \"./detect\";\nimport { addHost, hostLabel, isPrivateHost, parseAddress, removeHost, renameHost } from \"./hosts\";\nimport { FoundHost, localSubnets, scanSubnets, Subnet } from \"./netscan\";\nimport { SelectOption } from \"./ui\";\nimport { plural } from \"./util\";\n\nexport interface FlowUI\nconst BACKEND_NAMES = { ollama: \"Ollama\", lmstudio: \"LM Studio\" } as const;\nfunction describeServers(servers: { backend: keyof typeof BACKEND_NAMES; models: number }[]): string\nexport function notFoundHelp(platform: NodeJS.Platform = process.platform): string\nfunction save(hosts: SavedHost[]): SavedHost[]\nasync function confirmOutsideNetwork(ui: FlowUI, hostname: string, url: string): Promise<boolean>\nasync function enterAddress(ui: FlowUI, replace?: SavedHost): Promise<boolean>\nfunction savedAddressesOf(found: FoundHost, hosts: SavedHost[]): boolean\nasync function searchNetwork(ui: FlowUI, subnets: Subnet[], replace?: SavedHost): Promise<boolean>\nexport async function findModelsOnNetwork(ui: FlowUI, replace?: SavedHost): Promise<boolean>\nexport async function manageHosts(ui: FlowUI): Promise<boolean>",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\network.ts"
+}

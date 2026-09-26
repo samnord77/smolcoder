@@ -12,7 +12,7 @@ import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 import { Agent } from "./agent";
-import { loadConfig } from "./config";
+import { effortForBackend, loadConfig } from "./config";
 import { ContextManager } from "./context";
 import { EventBus } from "./events";
 import { terminalLogo } from "./logo";
@@ -188,16 +188,18 @@ ${c.bold("Keys:")}
   esc         cancel a running turn · clear the input
   ctrl+c ×2   quit
 
- ${c.bold("Slash commands:")}
-   /models     switch model         /tasks        background tasks
-   /mode       set mode             /logs <id>    task output
-   /effort     reasoning effort     /stop <id>    kill a task
-   /context    context usage        /mcp          MCP server lights
-   /compact    compact now          /skills       saved skills
-   /plan       show the plan        /clear        reset conversation
-   /undo       undo last write      /redo         redo undone write
+${c.bold("Slash commands:")}
+    /models     switch model         /tasks        background tasks
+    /mode       set mode             /logs <id>    task output
+    /effort     reasoning effort     /stop <id>    kill a task
+    /context    context usage        /mcp          MCP server lights
+    /compact    compact now          /skills       saved skills
+    /plan       show the plan        /clear        reset conversation
+    /undo       undo last write      /redo         redo undone write
     /editor     message via $EDITOR  /export       export to markdown
     /copy       copy last reply      /exit         quit
+    /fetch <url> read a web page, no key
+    /build      run npm run build in a terminal
 
  ${c.bold("Input tricks:")}
    @path       inline a file (e.g. @src/app.js, max 9000 chars)
@@ -275,7 +277,7 @@ async function runHeadless(args: CliArgs): Promise<void> {
 
   const shell = pickShell();
   const provider = makeProvider(chosen);
-  provider.setEffort(args.effort !== undefined ? args.effort : (cfg.effort ?? null));
+  provider.setEffort(effortForBackend(cfg, chosen.backend, args.effort));
   const taskManager = new TaskManager(args.workspace);
   let headlessPlugins: ToolContext["plugins"] = [];
   try {
@@ -286,7 +288,7 @@ async function runHeadless(args: CliArgs): Promise<void> {
   const toolCtx: ToolContext = {
     workspace: args.workspace,
     taskManager,
-    plan: new Plan(),
+    plan: new Plan(args.workspace, "cli"),
     filesTouched: new Set(),
     commandsRun: [],
     mcp: createMcpBridge(args.workspace),
@@ -315,7 +317,7 @@ async function runHeadless(args: CliArgs): Promise<void> {
   ui.println(sessionLine(chosen, mode));
   if (mode === "bypass") ui.warn(`  ${yoloBanner()}`);
   if (chosen.note) ui.warn(`  ${chosen.note}`);
-  const effortSetting = args.effort !== undefined ? args.effort : (cfg.effort ?? null);
+  const effortSetting = effortForBackend(cfg, chosen.backend, args.effort);
   ui.status(`  effort ${provider.effortLabel() ?? effortSetting ?? "default"}`);
   const advice = effortAdvice(chosen, effortSetting);
   if (advice) ui.warn(`  ${advice}`);
@@ -386,7 +388,7 @@ async function runInteractive(args: CliArgs): Promise<void> {
     }
   }
 
-  const session = new Session(tui, { workspace: args.workspace, chosen, prefs: prefsOf(args), cfg, help: HELP });
+  const session = new Session(tui, { workspace: args.workspace, chosen, prefs: prefsOf(args), cfg, help: HELP, hubRec: null });
   session.onExit = () => process.exit(0);
   process.on("exit", () => session.taskManager.killAll());
   installSignalCleanup(() => {

@@ -1,0 +1,34 @@
+{
+  "path": ".markdownlint.json",
+  "content_hash": "a50e1e0f8c858f603a52ebecfefdc1dd",
+  "updated_at": "2026-09-25T13:07:35",
+  "lines": 1,
+  "size_bytes": 49,
+  "mtime_ns": 1790338012507081400,
+  "language": "json",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "property",
+      "name": "default",
+      "line_start": 1,
+      "line_end": 1,
+      "signature": "default"
+    },
+    {
+      "type": "property",
+      "name": "MD013",
+      "line_start": 1,
+      "line_end": 1,
+      "signature": "MD013"
+    },
+    {
+      "type": "property",
+      "name": "MD033",
+      "line_start": 1,
+      "line_end": 1,
+      "signature": "MD033"
+    }
+  ]
+}

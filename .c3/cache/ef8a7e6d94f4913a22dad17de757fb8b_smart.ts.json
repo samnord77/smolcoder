@@ -1,0 +1,9 @@
+{
+  "original_tokens": 310,
+  "compressed_tokens": 72,
+  "saved_tokens": 238,
+  "savings_pct": 76.8,
+  "compressed": "# notify.ts (.ts) \u2014 36 lines\nexport type NoticeKind = \"confirm\" | \"turnend\" | \"error\";\nexport interface NoticeInput\nexport interface Notice\nconst TITLE: Record<NoticeKind, string> =\nexport function decideNotice(input: NoticeInput): Notice | null\nexport const NOTIFY_KEY = \"smol-notify\";",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\web\\notify.ts"
+}

@@ -29,7 +29,16 @@ export interface Config {
   lastModelUrl?: string;
   lastMode?: Mode;
   effort?: Effort | null;
+  /** Backend-specific reasoning defaults, with legacy `effort` as fallback. */
+  effortByBackend?: Partial<Record<"ollama" | "lmstudio", Effort | null>>;
   hosts?: SavedHost[];
+}
+
+export function effortForBackend(cfg: Config, backend: "ollama" | "lmstudio", override?: Effort | null): Effort | null {
+  if (override !== undefined) return override;
+  const saved = cfg.effortByBackend;
+  if (saved && Object.prototype.hasOwnProperty.call(saved, backend)) return saved[backend] ?? null;
+  return cfg.effort ?? null;
 }
 
 export function loadConfig(): Config {
@@ -67,6 +76,20 @@ export function loadConfig(): Config {
   }
   if (cfg.effort !== undefined && cfg.effort !== null && !["off", "low", "medium", "high"].includes(cfg.effort)) {
     delete cfg.effort;
+  }
+  if (cfg.effortByBackend && typeof cfg.effortByBackend === "object" && !Array.isArray(cfg.effortByBackend)) {
+    const saved: Config["effortByBackend"] = {};
+    for (const backend of ["ollama", "lmstudio"] as const) {
+      if (!Object.prototype.hasOwnProperty.call(cfg.effortByBackend, backend)) continue;
+      const value = cfg.effortByBackend[backend];
+      if (value === null || (typeof value === "string" && ["off", "low", "medium", "high"].includes(value))) {
+        saved[backend] = value as Effort | null;
+      }
+    }
+    if (Object.keys(saved).length) cfg.effortByBackend = saved;
+    else delete cfg.effortByBackend;
+  } else {
+    delete cfg.effortByBackend;
   }
   if (typeof cfg.lastModel !== "string" || !cfg.lastModel.trim()) {
     delete cfg.lastModel;

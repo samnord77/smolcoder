@@ -1,0 +1,9 @@
+{
+  "original_tokens": 162,
+  "compressed_tokens": 11,
+  "saved_tokens": 151,
+  "savings_pct": 93.2,
+  "compressed": "# preload.js (.js) \u2014 12 lines\n",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\desktop\\preload.js"
+}

@@ -1,0 +1,105 @@
+{
+  "path": "src/subagents.ts",
+  "content_hash": "1ee5f9b3b2ed02954944ce6e4dd876cc",
+  "updated_at": "2026-09-26T17:51:05",
+  "lines": 173,
+  "size_bytes": 8954,
+  "mtime_ns": 1790425667206424600,
+  "language": "typescript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "import",
+      "name": "import * as fs from \"fs\";",
+      "line_start": 6,
+      "line_end": 6,
+      "signature": "import * as fs from \"fs\";"
+    },
+    {
+      "type": "import",
+      "name": "import * as os from \"os\";",
+      "line_start": 7,
+      "line_end": 7,
+      "signature": "import * as os from \"os\";"
+    },
+    {
+      "type": "import",
+      "name": "import * as path from \"path\";",
+      "line_start": 8,
+      "line_end": 8,
+      "signature": "import * as path from \"path\";"
+    },
+    {
+      "type": "interface",
+      "name": "SubagentRole",
+      "line_start": 10,
+      "line_end": 20,
+      "signature": "interface SubagentRole {",
+      "children": []
+    },
+    {
+      "type": "constant",
+      "name": "ROLE_NAME_RE",
+      "line_start": 22,
+      "line_end": 22,
+      "signature": "const ROLE_NAME_RE = /^[A-Za-z0-9_-]{1,40}$/;"
+    },
+    {
+      "type": "constant",
+      "name": "MAX_ROLES",
+      "line_start": 23,
+      "line_end": 23,
+      "signature": "const MAX_ROLES = 30;"
+    },
+    {
+      "type": "constant",
+      "name": "BUILTIN_ROLES",
+      "line_start": 26,
+      "line_end": 99,
+      "signature": "const BUILTIN_ROLES: SubagentRole[] = ["
+    },
+    {
+      "type": "function",
+      "name": "rolesDir",
+      "line_start": 101,
+      "line_end": 103,
+      "signature": "function rolesDir(workspace: string): string {"
+    },
+    {
+      "type": "function",
+      "name": "machineDirs",
+      "line_start": 105,
+      "line_end": 108,
+      "signature": "function machineDirs(): string[] {"
+    },
+    {
+      "type": "function",
+      "name": "parseRole",
+      "line_start": 110,
+      "line_end": 127,
+      "signature": "function parseRole(raw: string, fallbackName: string, source: SubagentRole[\"source\"]): SubagentRole | null {"
+    },
+    {
+      "type": "function",
+      "name": "readDirRoles",
+      "line_start": 129,
+      "line_end": 147,
+      "signature": "function readDirRoles(dir: string, source: SubagentRole[\"source\"]): SubagentRole[] {"
+    },
+    {
+      "type": "function",
+      "name": "loadSubagentRoles",
+      "line_start": 151,
+      "line_end": 159,
+      "signature": "function loadSubagentRoles(workspace: string): SubagentRole[] {"
+    },
+    {
+      "type": "function",
+      "name": "delegatePrompt",
+      "line_start": 163,
+      "line_end": 173,
+      "signature": "function delegatePrompt(role: SubagentRole, task: string): string {"
+    }
+  ]
+}

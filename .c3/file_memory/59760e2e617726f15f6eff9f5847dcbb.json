@@ -1,0 +1,58 @@
+{
+  "path": "src/web/notify.ts",
+  "content_hash": "ef8a7e6d94f4913a22dad17de757fb8b",
+  "updated_at": "2026-09-24T23:03:36",
+  "lines": 36,
+  "size_bytes": 1265,
+  "mtime_ns": 1790287384480133100,
+  "language": "typescript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "type",
+      "name": "NoticeKind",
+      "line_start": 5,
+      "line_end": 5,
+      "signature": "type NoticeKind = \"confirm\" | \"turnend\" | \"error\";",
+      "children": []
+    },
+    {
+      "type": "interface",
+      "name": "NoticeInput",
+      "line_start": 7,
+      "line_end": 15,
+      "signature": "interface NoticeInput {",
+      "children": []
+    },
+    {
+      "type": "interface",
+      "name": "Notice",
+      "line_start": 17,
+      "line_end": 20,
+      "signature": "interface Notice {",
+      "children": []
+    },
+    {
+      "type": "constant",
+      "name": "TITLE",
+      "line_start": 22,
+      "line_end": 26,
+      "signature": "const TITLE: Record<NoticeKind, string> = {"
+    },
+    {
+      "type": "function",
+      "name": "decideNotice",
+      "line_start": 29,
+      "line_end": 33,
+      "signature": "function decideNotice(input: NoticeInput): Notice | null {"
+    },
+    {
+      "type": "constant",
+      "name": "NOTIFY_KEY",
+      "line_start": 36,
+      "line_end": 36,
+      "signature": "const NOTIFY_KEY = \"smol-notify\";"
+    }
+  ]
+}

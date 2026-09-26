@@ -1,0 +1,42 @@
+{
+  "path": "src/providers/scheduler.ts",
+  "content_hash": "3572073975e963ba0b4697be4d4b75aa",
+  "updated_at": "2026-09-24T17:24:23",
+  "lines": 45,
+  "size_bytes": 2036,
+  "mtime_ns": 1790260569956822900,
+  "language": "typescript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "import",
+      "name": "import { ChatOptions } from \"./types\";",
+      "line_start": 1,
+      "line_end": 1,
+      "signature": "import { ChatOptions } from \"./types\";"
+    },
+    {
+      "type": "interface",
+      "name": "Job",
+      "line_start": 3,
+      "line_end": 7,
+      "signature": "interface Job {",
+      "children": []
+    },
+    {
+      "type": "constant",
+      "name": "servers",
+      "line_start": 8,
+      "line_end": 8,
+      "signature": "const servers = new Map<string, { active?: Job; queue: Job[] }>();"
+    },
+    {
+      "type": "function",
+      "name": "scheduleInference",
+      "line_start": 12,
+      "line_end": 45,
+      "signature": "function scheduleInference<T>(server: string, opts: ChatOptions, run: (opts: ChatOptions) => Promise<T>): Promise<T> {"
+    }
+  ]
+}

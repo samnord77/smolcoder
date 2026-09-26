@@ -1,0 +1,65 @@
+{
+  "path": "src/plugins.ts",
+  "content_hash": "9e19089f98fa1936ead7f0bdd99316e2",
+  "updated_at": "2026-09-25T15:59:42",
+  "lines": 81,
+  "size_bytes": 2532,
+  "mtime_ns": 1790348365724439800,
+  "language": "typescript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "import",
+      "name": "import * as fs from \"fs\";",
+      "line_start": 13,
+      "line_end": 13,
+      "signature": "import * as fs from \"fs\";"
+    },
+    {
+      "type": "import",
+      "name": "import * as path from \"path\";",
+      "line_start": 14,
+      "line_end": 14,
+      "signature": "import * as path from \"path\";"
+    },
+    {
+      "type": "type",
+      "name": "PluginBeforeTool",
+      "line_start": 16,
+      "line_end": 19,
+      "signature": "type PluginBeforeTool = (",
+      "children": []
+    },
+    {
+      "type": "type",
+      "name": "PluginAfterTool",
+      "line_start": 21,
+      "line_end": 24,
+      "signature": "type PluginAfterTool = (",
+      "children": []
+    },
+    {
+      "type": "interface",
+      "name": "LoadedPlugin",
+      "line_start": 26,
+      "line_end": 32,
+      "signature": "interface LoadedPlugin {",
+      "children": []
+    },
+    {
+      "type": "constant",
+      "name": "PLUGINS_DIR",
+      "line_start": 34,
+      "line_end": 34,
+      "signature": "const PLUGINS_DIR = \".smol/plugins\";"
+    },
+    {
+      "type": "function",
+      "name": "loadPlugins",
+      "line_start": 36,
+      "line_end": 81,
+      "signature": "function loadPlugins(workspace: string): LoadedPlugin[] {"
+    }
+  ]
+}

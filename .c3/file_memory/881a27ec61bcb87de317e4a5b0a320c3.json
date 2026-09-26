@@ -1,0 +1,107 @@
+{
+  "path": "test/web.test.js",
+  "content_hash": "7c0d6e5095592a69c128459c625e04b5",
+  "updated_at": "2026-09-26T18:05:05",
+  "lines": 565,
+  "size_bytes": 28563,
+  "mtime_ns": 1790426360913468300,
+  "language": "javascript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "constant",
+      "name": "test",
+      "line_start": 5,
+      "line_end": 5,
+      "signature": "const test = require(\"node:test\");"
+    },
+    {
+      "type": "constant",
+      "name": "assert",
+      "line_start": 6,
+      "line_end": 6,
+      "signature": "const assert = require(\"node:assert/strict\");"
+    },
+    {
+      "type": "constant",
+      "name": "fs",
+      "line_start": 7,
+      "line_end": 7,
+      "signature": "const fs = require(\"fs\");"
+    },
+    {
+      "type": "constant",
+      "name": "http",
+      "line_start": 8,
+      "line_end": 8,
+      "signature": "const http = require(\"http\");"
+    },
+    {
+      "type": "constant",
+      "name": "os",
+      "line_start": 9,
+      "line_end": 9,
+      "signature": "const os = require(\"os\");"
+    },
+    {
+      "type": "constant",
+      "name": "path",
+      "line_start": 10,
+      "line_end": 10,
+      "signature": "const path = require(\"path\");"
+    },
+    {
+      "type": "function",
+      "name": "sleep",
+      "line_start": 17,
+      "line_end": 17,
+      "signature": "const sleep = (ms) => new Promise((r) => setTimeout(r, ms));"
+    },
+    {
+      "type": "function",
+      "name": "until",
+      "line_start": 18,
+      "line_end": 26,
+      "signature": "async function until(fn, ms = 4000, label = \"condition\") {",
+      "async": true
+    },
+    {
+      "type": "function",
+      "name": "tmpdir",
+      "line_start": 27,
+      "line_end": 29,
+      "signature": "function tmpdir(prefix) {"
+    },
+    {
+      "type": "function",
+      "name": "makeChannel",
+      "line_start": 33,
+      "line_end": 38,
+      "signature": "function makeChannel(id = \"s1\") {"
+    },
+    {
+      "type": "function",
+      "name": "fakeFactory",
+      "line_start": 243,
+      "line_end": 274,
+      "signature": "function fakeFactory(log) {",
+      "doc": "A stand-in for Session: echoes each input back, honours /exit."
+    },
+    {
+      "type": "function",
+      "name": "request",
+      "line_start": 276,
+      "line_end": 290,
+      "signature": "function request(hub, method, p, body) {"
+    },
+    {
+      "type": "function",
+      "name": "readEvents",
+      "line_start": 293,
+      "line_end": 312,
+      "signature": "function readEvents(hub, stopWhen) {",
+      "doc": "Read SSE events from /events until one satisfies `stopWhen` (or 3s pass)."
+    }
+  ]
+}

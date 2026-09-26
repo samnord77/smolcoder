@@ -1,0 +1,55 @@
+{
+  "path": "docs/plugins.md",
+  "content_hash": "f1ff24f15acde9317600a5fc7e10ef91",
+  "updated_at": "2026-09-25T15:59:43",
+  "lines": 116,
+  "size_bytes": 6323,
+  "mtime_ns": 1790348324581278900,
+  "language": "markdown",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "heading",
+      "name": "h1: Plugins smolcoder \u2014 gratuits, sans abonnement",
+      "line_start": 1,
+      "line_end": 116,
+      "signature": "# Plugins smolcoder \u2014 gratuits, sans abonnement"
+    },
+    {
+      "type": "heading",
+      "name": "h2: Dedans (rien \u00e0 installer)",
+      "line_start": 7,
+      "line_end": 16,
+      "signature": "## Dedans (rien \u00e0 installer)"
+    },
+    {
+      "type": "heading",
+      "name": "h2: Brancher vos MCP (les m\u00eames que vos autres assistants)",
+      "line_start": 17,
+      "line_end": 54,
+      "signature": "## Brancher vos MCP (les m\u00eames que vos autres assistants)"
+    },
+    {
+      "type": "heading",
+      "name": "h2: Install\u00e9s et test\u00e9s ici le 2026-09-24 (copiez `docs/mcp.json",
+      "line_start": 55,
+      "line_end": 96,
+      "signature": "## Install\u00e9s et test\u00e9s ici le 2026-09-24 (copiez `docs/mcp.json`)"
+    },
+    {
+      "type": "heading",
+      "name": "h2: Dehors (optionnel, \u00e0 installer vous-m\u00eame)",
+      "line_start": 97,
+      "line_end": 111,
+      "signature": "## Dehors (optionnel, \u00e0 installer vous-m\u00eame)"
+    },
+    {
+      "type": "heading",
+      "name": "h2: Ajouter votre plugin (2 minutes)",
+      "line_start": 112,
+      "line_end": 116,
+      "signature": "## Ajouter votre plugin (2 minutes)"
+    }
+  ]
+}

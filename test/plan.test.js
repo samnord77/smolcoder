@@ -36,3 +36,42 @@ test('working checkpoints survive a JSON session round trip and do not complete 
   assert.doesNotMatch(restored.modelView(), /replacement checkpoint/);
   assert.equal(restored.steps[0].note, 'replacement checkpoint');
 });
+
+test('a workspace plan and its checkpoint survive a fresh CLI session without mixing session plans', () => {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'smol-plan-'));
+  const cli = new Plan(workspace, 'cli');
+  cli.set('Inspect the project\nImplement the fix\nVerify everything');
+  cli.markDone();
+  cli.checkpoint('src/app.ts: update handler; next: run build');
+
+  const resumedCli = new Plan(workspace, 'cli');
+  assert.equal(resumedCli.doneCount, 1);
+  assert.match(resumedCli.modelView(), /update handler/);
+  assert.equal(new Plan(workspace, 'web-session-2').exists, false);
+});
+
+test('invalid plan updates do not corrupt the last persisted plan', () => {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'smol-plan-'));
+  const plan = new Plan(workspace, 'cli');
+  plan.set('Keep this plan');
+  const before = fs.readFileSync(path.join(workspace, '.smol', 'plans', 'cli.json'), 'utf8');
+  assert.match(plan.set('   '), /^Error:/);
+  assert.equal(fs.readFileSync(path.join(workspace, '.smol', 'plans', 'cli.json'), 'utf8'), before);
+});
+
+test('clearing a workspace plan survives another CLI launch', () => {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'smol-plan-'));
+  const plan = new Plan(workspace, 'cli');
+  plan.set('A task');
+  assert.equal(plan.reset(), null);
+  assert.equal(new Plan(workspace, 'cli').exists, false);
+});

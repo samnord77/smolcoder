@@ -1,0 +1,84 @@
+{
+  "path": "src/web/app.ts",
+  "content_hash": "c3a0cfac4aeb1d82ede635f563ac1974",
+  "updated_at": "2026-09-24T22:54:36",
+  "lines": 94,
+  "size_bytes": 3136,
+  "mtime_ns": 1790286823305321500,
+  "language": "typescript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "import",
+      "name": "import { spawn } from \"child_process\";",
+      "line_start": 5,
+      "line_end": 5,
+      "signature": "import { spawn } from \"child_process\";"
+    },
+    {
+      "type": "import",
+      "name": "import * as fs from \"fs\";",
+      "line_start": 6,
+      "line_end": 6,
+      "signature": "import * as fs from \"fs\";"
+    },
+    {
+      "type": "import",
+      "name": "import * as os from \"os\";",
+      "line_start": 7,
+      "line_end": 7,
+      "signature": "import * as os from \"os\";"
+    },
+    {
+      "type": "import",
+      "name": "import * as path from \"path\";",
+      "line_start": 8,
+      "line_end": 8,
+      "signature": "import * as path from \"path\";"
+    },
+    {
+      "type": "interface",
+      "name": "AppEnv",
+      "line_start": 10,
+      "line_end": 12,
+      "signature": "interface AppEnv {",
+      "children": []
+    },
+    {
+      "type": "function",
+      "name": "findAppBrowser",
+      "line_start": 16,
+      "line_end": 46,
+      "signature": "function findAppBrowser(platform: string = process.platform, env: AppEnv = process.env): string | null {"
+    },
+    {
+      "type": "function",
+      "name": "appProfileDir",
+      "line_start": 49,
+      "line_end": 51,
+      "signature": "function appProfileDir(): string {"
+    },
+    {
+      "type": "function",
+      "name": "buildAppArgs",
+      "line_start": 54,
+      "line_end": 56,
+      "signature": "function buildAppArgs(url: string): string[] {"
+    },
+    {
+      "type": "function",
+      "name": "openUrl",
+      "line_start": 59,
+      "line_end": 78,
+      "signature": "function openUrl(url: string, platform: string = process.platform): boolean {"
+    },
+    {
+      "type": "function",
+      "name": "launchApp",
+      "line_start": 82,
+      "line_end": 94,
+      "signature": "function launchApp(url: string): \"app\" | \"browser\" | \"printed\" {"
+    }
+  ]
+}

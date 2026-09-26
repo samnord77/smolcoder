@@ -5,7 +5,7 @@
 // visibility. All tasks are killed when smolcoder exits.
 
 import { ChildProcess, spawn } from "child_process";
-import { pickShell, killTree, managedCommand } from "./shell";
+import { pickShell, killTree, managedCommand, shellEnv } from "./shell";
 
 interface Task {
   id: string;
@@ -39,7 +39,7 @@ export class TaskManager {
     const id = `t${++this.counter}`;
     const proc = spawn(shell.exe, shell.argsFor(managedCommand(shell, command)), {
       cwd: this.cwd,
-      env: process.env,
+      env: shellEnv(),
       detached: process.platform !== "win32",
       windowsHide: true,
       stdio: ["ignore", "pipe", "pipe"],

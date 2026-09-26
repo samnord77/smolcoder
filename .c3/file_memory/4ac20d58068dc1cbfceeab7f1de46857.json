@@ -1,0 +1,98 @@
+{
+  "path": "src/hosts.ts",
+  "content_hash": "f2cda4bab93fd4ef777284964e211c1e",
+  "updated_at": "2026-09-24T23:44:45",
+  "lines": 112,
+  "size_bytes": 5547,
+  "mtime_ns": 1790289881941166900,
+  "language": "typescript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "import",
+      "name": "import { SavedHost } from \"./config\";",
+      "line_start": 6,
+      "line_end": 6,
+      "signature": "import { SavedHost } from \"./config\";"
+    },
+    {
+      "type": "constant",
+      "name": "OLLAMA_PORT",
+      "line_start": 8,
+      "line_end": 8,
+      "signature": "const OLLAMA_PORT = 11434;"
+    },
+    {
+      "type": "constant",
+      "name": "LMSTUDIO_PORT",
+      "line_start": 9,
+      "line_end": 9,
+      "signature": "const LMSTUDIO_PORT = 1234;"
+    },
+    {
+      "type": "interface",
+      "name": "ParsedAddress",
+      "line_start": 11,
+      "line_end": 19,
+      "signature": "interface ParsedAddress {",
+      "children": []
+    },
+    {
+      "type": "function",
+      "name": "parseAddress",
+      "line_start": 23,
+      "line_end": 59,
+      "signature": "function parseAddress(input: string): ParsedAddress {"
+    },
+    {
+      "type": "function",
+      "name": "hostUrls",
+      "line_start": 62,
+      "line_end": 68,
+      "signature": "function hostUrls(host: SavedHost): string[] {"
+    },
+    {
+      "type": "function",
+      "name": "hostLabel",
+      "line_start": 70,
+      "line_end": 77,
+      "signature": "function hostLabel(host: SavedHost): string {"
+    },
+    {
+      "type": "function",
+      "name": "sameAddress",
+      "line_start": 79,
+      "line_end": 81,
+      "signature": "function sameAddress(a: string, b: string): boolean {"
+    },
+    {
+      "type": "function",
+      "name": "addHost",
+      "line_start": 84,
+      "line_end": 88,
+      "signature": "function addHost(hosts: SavedHost[], host: SavedHost): SavedHost[] {"
+    },
+    {
+      "type": "function",
+      "name": "removeHost",
+      "line_start": 90,
+      "line_end": 92,
+      "signature": "function removeHost(hosts: SavedHost[], address: string): SavedHost[] {"
+    },
+    {
+      "type": "function",
+      "name": "renameHost",
+      "line_start": 94,
+      "line_end": 97,
+      "signature": "function renameHost(hosts: SavedHost[], address: string, name: string): SavedHost[] {"
+    },
+    {
+      "type": "function",
+      "name": "isPrivateHost",
+      "line_start": 102,
+      "line_end": 112,
+      "signature": "function isPrivateHost(hostname: string): boolean {"
+    }
+  ]
+}

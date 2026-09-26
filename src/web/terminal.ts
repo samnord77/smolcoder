@@ -5,7 +5,7 @@
 // no colors from most tools and no interactive programs — the panel says so.
 
 import { ChildProcess, spawn } from "child_process";
-import { killTree, pickShell, ShellInfo } from "../tools/shell";
+import { killTree, pickShell, ShellInfo, shellEnv } from "../tools/shell";
 import { commandEscapesWorkspace } from "../sandbox";
 
 const RS = "\x1e"; // record separator — never appears in normal output
@@ -49,13 +49,15 @@ export class Terminal {
   }
 
   private spawn(): void {
-    const args = this.kind === "posix" ? ["-l"] : ["-NoProfile", "-NonInteractive", "-Command", "-"];
+    // Do not load the user's login profile here. On Windows Git Bash
+    // profiles frequently replace PATH and hide node/npm from the IDE.
+    const args = this.kind === "posix" ? ["--noprofile", "--norc", "-s"] : ["-NoProfile", "-NonInteractive", "-Command", "-"];
     this.spawnedAt = Date.now();
     let proc: ChildProcess;
     try {
       proc = spawn(this.shell.exe, args, {
         cwd: this.cwd,
-        env: { ...process.env, TERM: "dumb" },
+        env: { ...shellEnv(), TERM: "dumb" },
         detached: process.platform !== "win32",
         windowsHide: true,
         stdio: ["pipe", "pipe", "pipe"],

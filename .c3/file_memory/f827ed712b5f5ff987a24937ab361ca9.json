@@ -1,0 +1,34 @@
+{
+  "path": "desktop/sse-check.js",
+  "content_hash": "19de14edf9fc1041aeb97f143f018012",
+  "updated_at": "2026-09-25T16:47:59",
+  "lines": 30,
+  "size_bytes": 994,
+  "mtime_ns": 1790350360791497900,
+  "language": "javascript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "constant",
+      "name": "http",
+      "line_start": 2,
+      "line_end": 2,
+      "signature": "const http = require(\"http\");"
+    },
+    {
+      "type": "constant",
+      "name": "token",
+      "line_start": 3,
+      "line_end": 3,
+      "signature": "const token = process.argv[2];"
+    },
+    {
+      "type": "constant",
+      "name": "req",
+      "line_start": 4,
+      "line_end": 26,
+      "signature": "const req = http.get("
+    }
+  ]
+}

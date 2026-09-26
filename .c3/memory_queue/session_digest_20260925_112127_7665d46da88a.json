@@ -1,0 +1,56 @@
+{
+  "job_id": "309932a3d8fe",
+  "kind": "session_digest",
+  "session_id": "20260925_112127_7665d46da88a",
+  "created_at": "2026-09-25T20:11:42.257942+00:00",
+  "updated_at": "2026-09-26T16:54:04.846225+00:00",
+  "attempts": 2,
+  "status": "done_degraded",
+  "last_error": "no LLM tier available",
+  "tier_used": "mechanical",
+  "payload": {
+    "session_file": "C:\\Users\\DELL\\smolcoder-source\\.c3\\sessions\\session_20260925_112127_7665d46da88a.json",
+    "started_at": "2026-09-25T11:21:27.089791+00:00",
+    "ended_at": "2026-09-25T20:11:42.257942+00:00",
+    "description": "MCP server session",
+    "decisions": [],
+    "files_touched": [
+      {
+        "file": "src/web/client.ts",
+        "type": "modified",
+        "summary": "",
+        "timestamp": "2026-09-25T14:06:54.147205+00:00"
+      },
+      {
+        "file": "desktop/preload-git.js",
+        "type": "modified",
+        "summary": "",
+        "timestamp": "2026-09-25T17:47:05.053649+00:00"
+      },
+      {
+        "file": "desktop/git.html",
+        "type": "modified",
+        "summary": "",
+        "timestamp": "2026-09-25T17:48:09.745276+00:00"
+      },
+      {
+        "file": "src/web/client.ts",
+        "type": "modified",
+        "summary": "",
+        "timestamp": "2026-09-25T17:48:10.848242+00:00"
+      },
+      {
+        "file": "desktop/main.js",
+        "type": "modified",
+        "summary": "",
+        "timestamp": "2026-09-25T17:48:58.730616+00:00"
+      },
+      {
+        "file": "desktop/main.js",
+        "type": "modified",
+        "summary": "",
+        "timestamp": "2026-09-25T17:49:36.878522+00:00"
+      }
+    ]
+  }
+}

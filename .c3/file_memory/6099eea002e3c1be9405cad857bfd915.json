@@ -1,0 +1,67 @@
+{
+  "path": "src/tui/keys.ts",
+  "content_hash": "fd0812b5ec75449a64487a08b563e5c7",
+  "updated_at": "2026-09-24T17:24:23",
+  "lines": 131,
+  "size_bytes": 3784,
+  "mtime_ns": 1790260569977422700,
+  "language": "typescript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "type",
+      "name": "KeyType",
+      "line_start": 5,
+      "line_end": 25,
+      "signature": "type KeyType =",
+      "children": []
+    },
+    {
+      "type": "interface",
+      "name": "Key",
+      "line_start": 27,
+      "line_end": 30,
+      "signature": "interface Key {",
+      "children": []
+    },
+    {
+      "type": "constant",
+      "name": "CSI_MAP",
+      "line_start": 32,
+      "line_end": 45,
+      "signature": "const CSI_MAP: Record<string, KeyType> = {"
+    },
+    {
+      "type": "function",
+      "name": "normalizePaste",
+      "line_start": 47,
+      "line_end": 53,
+      "signature": "function normalizePaste(s: string): string {"
+    },
+    {
+      "type": "class",
+      "name": "KeyDecoder",
+      "line_start": 55,
+      "line_end": 131,
+      "signature": "class KeyDecoder {",
+      "children": [
+        {
+          "type": "property",
+          "name": "pasteBuf",
+          "line_start": 56,
+          "line_end": 56,
+          "signature": "private pasteBuf: string | null = null;",
+          "access": "private"
+        },
+        {
+          "type": "method",
+          "name": "decode",
+          "line_start": 58,
+          "line_end": 130,
+          "signature": "decode(s: string): Key[] {"
+        }
+      ]
+    }
+  ]
+}

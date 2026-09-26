@@ -17,6 +17,7 @@ import { listSkills, readSkill, saveSkill } from "../skills";
 import { syntaxCheck } from "./check";
 import { runCommand } from "./shell";
 import { TaskManager } from "./tasks";
+import { CoworkBoard } from "./cowork";
 import { resolveInWorkspace, SandboxError } from "../sandbox";
 import { truncateMiddle } from "../util";
 import { searchFilesBounded } from "./search-worker";
@@ -31,6 +32,30 @@ export const MODE_LABELS: Record<Mode, string> = {
 };
 
 const TOOL_RESULT_CAP = 10000; // chars — final safety net over per-tool caps
+
+function workTool(canWrite: boolean): ToolSpec {
+  const actions = canWrite ? ["list", "create", "update", "complete", "archive"] : ["list"];
+  return {
+    name: "work",
+    description: canWrite
+      ? 'Keep durable personal and work tasks in this project. List: {"action":"list","status":"open"}. Create: {"action":"create","title":"Prepare report","area":"work","due":"2026-10-02","priority":"high","notes":"Use Excel figures"}. Update or complete by task_id from the list. Data stays in .smol/work-items.json.'
+      : 'Read the durable personal and work task list for this project. Example: {"action":"list","status":"open","area":"work"}.',
+    parameters: {
+      type: "object",
+      properties: {
+        action: { type: "string", enum: actions },
+        task_id: { type: "string", description: "ID from the work list" },
+        title: { type: "string", description: "Task title (up to 200 characters)" },
+        area: { type: "string", description: "Work or life area, such as work, personal, family, or study" },
+        due: { type: "string", description: "Optional due date, YYYY-MM-DD; empty clears it when updating" },
+        priority: { type: "string", enum: ["low", "normal", "high", "urgent"] },
+        notes: { type: "string", description: "Short task notes (up to 2,000 characters)" },
+        status: { type: "string", enum: ["open", "completed", "archived"], description: "Optional list filter" },
+      },
+      required: ["action"],
+    },
+  };
+}
 
 export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): ToolSpec[] {
   const read: ToolSpec[] = [
@@ -75,7 +100,7 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
     {
       name: "plan",
       description:
-        'Plan runnable increments, kept across compaction. Create: {"action":"set","steps":"wire entry point; run build; add movement and test"}. Finish current step: {"action":"done"} (or supply step). Save exact APIs, error and next edit before a long investigation: {"action":"checkpoint","text":"..."} (max 1000 chars, replaces current step notes). Append: {"action":"add","text":"..."}. Show: {"action":"show"}.',
+        'Plan runnable increments, kept across compaction and saved sessions. Create: {"action":"set","steps":"wire entry point; run build; add movement and test"}. Finish current step: {"action":"done"} (or supply step). Save exact APIs, error and next edit before a long investigation: {"action":"checkpoint","text":"..."} (max 1000 chars, replaces current step notes). Append: {"action":"add","text":"..."}. Show: {"action":"show"}.',
       parameters: {
         type: "object",
         properties: {
@@ -174,7 +199,7 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
     },
   ];
 
-  if (mode === "ro") return read;
+  if (mode === "ro") return [...read, workTool(false)];
   const mcp: ToolSpec[] = [
     {
       name: "mcp",
@@ -197,12 +222,13 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
       : [
           {
             name: "delegate",
-            description:
-              'Hand a small subtask to a bounded sub-agent and get back its summary. Example: {"task": "find where login validation lives and report files + line numbers"}. Max 12 tool calls, no nested delegates. Use for complex tasks: explore, then implement yourself from its report.',
+      description:
+        'Hand a small subtask to a bounded, role-scoped sub-agent. Example: {"role":"architect","task":"map the login flow and report files + line numbers"}. Choose a role shown in the IDE control centre; omit role for expert. Its tool allowlist is enforced. Max 12 tool calls, no nested delegates.',
             parameters: {
               type: "object",
-              properties: {
-                task: { type: "string", description: "The small concrete subtask" },
+          properties: {
+            task: { type: "string", description: "The small concrete subtask" },
+            role: { type: "string", description: 'Optional specialist role from the IDE roles panel (default: "expert")' },
               },
               required: ["task"],
             },
@@ -225,7 +251,7 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
       },
     },
   ];
-  return [...read, ...write, ...exec, ...mcp, ...symbols, ...delegate];
+  return [...read, workTool(true), ...write, ...exec, ...mcp, ...symbols, ...delegate];
 }
 
 /** One undoable file write: absolute path, full previous content (null when
@@ -298,11 +324,14 @@ export interface ToolContext {
   /** Nesting depth of sub-agents (0 = main agent). The delegate tool is
    * hidden at depth >= 1 so sub-agents cannot spawn their own. */
   depth?: number;
+  /** Child-agent capability boundary, owned by the harness, never model input. */
+  allowedTools?: ReadonlySet<string>;
+  role?: string;
   /** False in read-only mode: skill "save" is refused. Defaults to true so
    * older callers and tests keep working. */
   canWrite?: boolean;
-  /** Wired by the Agent: runs one bounded sub-turn. Never set by the model. */
-  delegate?: (task: string, signal?: AbortSignal) => Promise<string>;
+  /** Wired by the Agent: runs one bounded role-scoped sub-turn. Never set by the model. */
+  delegate?: (task: string, signal?: AbortSignal, role?: string) => Promise<string>;
   /** Lazy MCP bridge (external servers from `.smol/mcp.json`). Never set by the model. */
   mcp?: McpBridge;
   /** Workspace tool plugins (.smol/plugins/*.cjs). Never set by the model. */
@@ -316,6 +345,9 @@ export async function executeTool(
   signal?: AbortSignal
 ): Promise<string> {
   try {
+    if (ctx.allowedTools && !ctx.allowedTools.has(name)) {
+      return `Error: ${name} is unavailable for the ${ctx.role ?? "restricted"} role. Use only the tools assigned to this sub-agent.`;
+    }
     try {
       for (const p of ctx.plugins ?? []) {
         if (!p || !p.ok || typeof p.beforeTool !== "function") continue;
@@ -358,6 +390,14 @@ export async function executeTool(
         else if (action === "show") result = ctx.plan.modelView();
         else
           return 'Error: action must be one of "set", "done", "add", "show", "checkpoint". Example: {"action": "done"}';
+        break;
+      }
+      case "work": {
+        if (args.action !== "list" && ctx.canWrite === false) {
+          return "Error: creating or changing work items is unavailable in read-only mode. Switch to edit mode to make changes.";
+        }
+        result = new CoworkBoard(ctx.workspace).run(args);
+        if (!result.startsWith("Error") && args.action !== "list") ctx.filesTouched.add(".smol/work-items.json");
         break;
       }
       case "write_file": {
@@ -418,7 +458,8 @@ export async function executeTool(
         if (!ctx.delegate) {
           return "Error: sub-agents are unavailable at this depth. Do the step yourself with read/search.";
         }
-        result = await ctx.delegate(task, signal);
+        const role = typeof args.role === "string" ? args.role.trim() : undefined;
+        result = await ctx.delegate(task, signal, role);
         break;
       }
       case "skill": {

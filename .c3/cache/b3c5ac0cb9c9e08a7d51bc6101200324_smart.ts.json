@@ -1,0 +1,9 @@
+{
+  "original_tokens": 522,
+  "compressed_tokens": 26,
+  "saved_tokens": 496,
+  "savings_pct": 95.0,
+  "compressed": "# builtin-skills.ts (.ts) \u2014 33 lines\nexport const BUILTIN_SKILLS: Record<string, string> =",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\builtin-skills.ts"
+}

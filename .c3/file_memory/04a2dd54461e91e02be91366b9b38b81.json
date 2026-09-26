@@ -1,0 +1,62 @@
+{
+  "path": "docs/lifecycle-2026-09-13.md",
+  "content_hash": "c44788b9c3a7353b13b30408db80529a",
+  "updated_at": "2026-09-25T13:07:34",
+  "lines": 85,
+  "size_bytes": 9842,
+  "mtime_ns": 1790338035843915500,
+  "language": "markdown",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "heading",
+      "name": "h1: Complex local-model lifecycle test \u2014 13 September 2026",
+      "line_start": 1,
+      "line_end": 85,
+      "signature": "# Complex local-model lifecycle test \u2014 13 September 2026"
+    },
+    {
+      "type": "heading",
+      "name": "h2: Setup and attribution",
+      "line_start": 5,
+      "line_end": 12,
+      "signature": "## Setup and attribution"
+    },
+    {
+      "type": "heading",
+      "name": "h2: What the larger task exposed",
+      "line_start": 13,
+      "line_end": 20,
+      "signature": "## What the larger task exposed"
+    },
+    {
+      "type": "heading",
+      "name": "h2: Harness changes driven by the run",
+      "line_start": 21,
+      "line_end": 38,
+      "signature": "## Harness changes driven by the run"
+    },
+    {
+      "type": "heading",
+      "name": "h2: Final validation",
+      "line_start": 39,
+      "line_end": 47,
+      "signature": "## Final validation"
+    },
+    {
+      "type": "heading",
+      "name": "h2: Reproduce and inspect",
+      "line_start": 48,
+      "line_end": 82,
+      "signature": "## Reproduce and inspect"
+    },
+    {
+      "type": "heading",
+      "name": "h2: Limits",
+      "line_start": 83,
+      "line_end": 85,
+      "signature": "## Limits"
+    }
+  ]
+}
