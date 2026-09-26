@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-26T21:38:30.438Z",
+  "updatedAt": "2026-09-26T23:06:34.279Z",
   "steps": [
     {
       "text": "Carte globale du dépôt (arborescence, package.json, README/docs)",
@@ -17,15 +17,16 @@
     },
     {
       "text": "Les 3 interfaces : TUI/CLI, hub web, app Electron + assets front",
-      "done": false
+      "done": true
     },
     {
       "text": "Capacités annexes : contexte/compaction, plan, skills, sous-agents, MCP, plugins, LSP/éditeurs",
-      "done": false
+      "done": true
     },
     {
       "text": "Tests et état du dépôt",
-      "done": false
+      "done": false,
+      "note": "ACCEPTANCE BLOCKER: `npm run build && npm run test` fails on flaky test test/verification.test.js:101 'recovery from failed edits uses known project failures without spending final acceptance attempts' (passes in isolation, ~50% fail in full suite; error \"Acceptance checks still fail after 1 attempts\", verify.cjs exit 42 = ready.txt missing at verify time). Test expects progressChecks=2, verificationResult.attempts=1, outcome completed. dist is FRESH-OK; build exit 0. Next: read agent.ts recovery/progress-check code (runAcceptance ~line 450, Agent.verify ~350) to find race, fix deterministically in src/, rebuild, rerun full suite until green."
     },
     {
       "text": "Synthèse finale en français simple",
