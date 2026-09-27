@@ -86,12 +86,14 @@ function openMainWindow() {
         const r = await hub.ensureHub({ projectDir: currentProjectDir || ROOT, distIndex: DIST_INDEX });
         hubRec = r.rec;
         hubBase = r.url;
-        if (!win.isDestroyed()) await win.loadURL(activeSid ? hubBase + "#" + activeSid : hubBase);
+        if (!win.isDestroyed()) await   win.webContents.session.clearCache().catch(() => {});
+  win.loadURL(activeSid ? hubBase + "#" + activeSid : hubBase);
         return;
       } catch { /* tombe sur l'errBox ci-dessous */ }
     }
     errBox(`Impossible de joindre le serveur Smolcoder.\nCopiez cette URL dans un navigateur quand il tourne :\n${hubBase || "(serveur arrêté)"}`);
   });
+    win.webContents.session.clearCache().catch(() => {});
   win.loadURL(activeSid ? hubBase + "#" + activeSid : hubBase);
   startHubWatchdog(win);
   win.on("closed", () => {
