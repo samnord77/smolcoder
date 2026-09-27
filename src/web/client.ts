@@ -1,6 +1,7 @@
 import { editorTabStoreBrowserSource } from "../editor-tabs";
 import { editorToolsBrowserSource } from "../editor-tools";
 import { browserHighlighterSource } from "../highlight";
+import { browserCrdtSource } from "../crdt";
 // The browser-side script for the web page. Plain JS in a raw template string
 // (no build step, no dependencies). Rules: no template literals in here, and
 // a literal backtick is written as \` — String.raw hands it through as-is.
@@ -13,6 +14,7 @@ import { browserHighlighterSource } from "../highlight";
 export const CLIENT_JS = String.raw`
 "use strict";
 ${browserHighlighterSource}
+${browserCrdtSource}
 const makeEditorTabStore = ${editorTabStoreBrowserSource};
 const editorTools = ${editorToolsBrowserSource};
 const k = new URLSearchParams(location.search).get("k") || "";
@@ -543,6 +545,29 @@ function handle(m) {
       break;
     }
       case "plan": endThought(v); v.curText = null; renderPlan(v, m); v.planCache = m; { const pt = v.tabs.find((t) => t.kind === "plan"); if (pt && pt.renderSteps) { try { pt.renderSteps(m); } catch (e) {} } } break;
+      case "editop": {
+        const ft = v.tabs.find((x) => x.kind === "files");
+        if (!ft || !ft.collab || !ft.collab.doc || ft.collab.path !== m.file) break;
+        let changed = false;
+        for (const op of m.ops || []) { try { if (applyOp(ft.collab.doc, op)) changed = true; } catch (e) {} }
+        if (!changed) break;
+        const pos = ft.editor.selectionStart, end = ft.editor.selectionEnd;
+        ft.editor.value = docText(ft.collab.doc);
+        ft.collab.shadow = ft.editor.value;
+        try { ft.editor.setSelectionRange(Math.min(pos, ft.editor.value.length), Math.min(end, ft.editor.value.length)); } catch (e) {}
+        try { ft.refreshEditor(); } catch (e) {}
+        break;
+      }
+      case "editrebase": {
+        const ft = v.tabs.find((x) => x.kind === "files");
+        if (!ft || !ft.collab || ft.collab.path !== m.file) break;
+        const cur = ft.tabStore.active();
+        if (cur && cur.path === m.file && cur.dirty) { ft.collab = null; break; }
+        ft.tabStore.close(m.file, true);
+        ft.collab = null;
+        if (ft.filePath === m.file) void ft.loadFile(m.file);
+        break;
+      }
       case "sub": endThought(v); v.curText = null;
         if (m.phase === "start") {
           const d = el("details", "subagent"); d.open = true;
@@ -637,6 +662,16 @@ function onHub(m) {
   for (const w of m.workspaces) for (const s of w.sessions) sessInfo.set(s.id, Object.assign({ workspace: w.path, wsname: w.name }, s));
   for (const v of views.values()) reconcileTerms(v);
   $("ver").textContent = "v" + m.version;
+  if (m.startedAt) {
+    const when = new Date(m.startedAt);
+    let hh = "?", mm = "?";
+    try {
+      hh = String(when.getHours()).padStart(2, "0");
+      mm = String(when.getMinutes()).padStart(2, "0");
+    } catch (e) {}
+    $("ver").textContent += " · hub " + hh + ":" + mm;
+    $("ver").title = "Hub started " + when.toLocaleString() + " — if this predates your latest npm run build, stop the old hub (Ctrl+C in its terminal) and start it again, then reload this page";
+  }
   if (pendingSelect && sessInfo.has(pendingSelect)) { const id = pendingSelect; pendingSelect = null; show(id); }
   else if (!active) {
     const h = location.hash.slice(1);
@@ -1194,22 +1229,98 @@ function buildFilesTab(v, t) {
     }
     return iconSvg + '<span class="fileitem-name" style="color:' + nameColor + ';">' + safeName + '</span>';
   }
-  const renderTree = (entries, base) => {
+  // Nested tree: folders expand in place (▸/▾), files open as editor tabs.
+  // Children load once and stay cached; refresh re-fetches open folders.
+  t.treeCache = new Map();
+  t.expanded = new Set(["."]);
+  const treeKey = (p) => (p && p !== "." ? p : ".");
+  const ensureKids = (rel) => {
+    const key = treeKey(rel);
+    if (t.treeCache.has(key)) return Promise.resolve();
+    t.treeCache.set(key, null);
+    renderNestedTree();
+    return fetch("/workspace/tree?k=" + k + "&sid=" + encodeURIComponent(v.sid) + "&path=" + encodeURIComponent(rel))
+      .then((r) => r.json()).then((d) => {
+        if (d.error) throw new Error(d.error);
+        t.treeCache.set(treeKey(d.path || rel), d.entries || []);
+      }).catch((e) => { t.treeCache.set(key, { error: String(e.message || e) }); })
+      .finally(() => renderNestedTree());
+  };
+  const renderNestedTree = () => {
     tree.innerHTML = "";
-    const parent = base && base !== "." ? base.split("/").slice(0, -1).join("/") || "." : null;
-    if (parent) {
-      const d = el("button", "fileitem parent");
-      d.innerHTML = '<span class="fileitem-icon" style="display:inline-flex;align-items:center;justify-content:center;width:20px;font-size:13px;margin-right:6px;flex-shrink:0;">📁</span><span class="fileitem-name" style="color:#94a3b8;font-weight:600;">..</span>';
-      d.onclick = () => t.loadDir(parent);
-      tree.appendChild(d);
+    const paint = (container, rel, depth) => {
+      const kids = t.treeCache.get(treeKey(rel));
+      if (kids === undefined || kids === null) {
+        const w = el("div", "filediagnostic-note", "Loading…");
+        w.style.paddingLeft = (depth * 14 + 6) + "px";
+        container.appendChild(w);
+        return;
+      }
+      if (kids.error) {
+        container.appendChild(el("div", "filediagnostic-note error", kids.error));
+        return;
+      }
+      for (const item of kids) {
+        const row = el("div", "treerow");
+        row.style.paddingLeft = (depth * 14) + "px";
+        if (item.dir) {
+          const open = t.expanded.has(item.path);
+          const tg = el("button", "treetoggle", open ? "▾" : "▸");
+          tg.type = "button"; tg.title = open ? "collapse" : "expand";
+          tg.onclick = (e) => { e.stopPropagation(); toggleFolder(item.path); };
+          const b = el("button", "fileitem folder");
+          b.title = item.path;
+          b.innerHTML = getFileItemHtml(item.name, true);
+          b.onclick = () => toggleFolder(item.path);
+          row.appendChild(tg); row.appendChild(b);
+          container.appendChild(row);
+          if (open) {
+            const sub = el("div", "treesub");
+            container.appendChild(sub);
+            paint(sub, item.path, depth + 1);
+          }
+        } else {
+          row.appendChild(el("span", "treespacer"));
+          const b = el("button", "fileitem");
+          b.title = item.path;
+          b.innerHTML = getFileItemHtml(item.name, false);
+          b.onclick = () => t.loadFile(item.path);
+          row.appendChild(b);
+          container.appendChild(row);
+        }
+      }
+    };
+    paint(tree, ".", 0);
+  };
+  const toggleFolder = (rel) => {
+    if (t.expanded.has(rel)) {
+      t.expanded.delete(rel);
+      const drop = [];
+      t.expanded.forEach((p) => { if (p !== rel && p.startsWith(rel + "/")) drop.push(p); });
+      drop.forEach((p) => t.expanded.delete(p));
+    } else {
+      t.expanded.add(rel);
+      t.rel = rel;
+      pathInput.value = rel;
     }
-    for (const item of entries || []) {
-      const b = el("button", "fileitem" + (item.dir ? " folder" : ""));
-      b.title = item.path;
-      b.innerHTML = getFileItemHtml(item.name, !!item.dir);
-      b.onclick = () => item.dir ? t.loadDir(item.path) : t.loadFile(item.path);
-      tree.appendChild(b);
+    if (t.expanded.has(rel)) void ensureKids(rel).catch((e) => showError(e.message));
+    renderNestedTree();
+  };
+  t.loadDir = (rel) => {
+    rel = rel || ".";
+    const parts = rel === "." ? [] : String(rel).split("/");
+    let acc = "";
+    const chain = ["."];
+    for (const p of parts) { acc = acc ? acc + "/" + p : p; chain.push(acc); }
+    chain.forEach((c) => t.expanded.add(c));
+    t.rel = rel;
+    pathInput.value = rel;
+    renderNestedTree();
+    let seq = Promise.resolve();
+    for (const c of chain) {
+      if (!t.treeCache.has(treeKey(c))) seq = seq.then(() => ensureKids(c));
     }
+    seq.catch((e) => showError(e.message));
   };
   const renderTabs = () => {
     tabsBar.replaceChildren();
@@ -1233,7 +1344,45 @@ function buildFilesTab(v, t) {
     meta.classList.remove("error"); pathInput.value = tab ? tab.path : (t.rel || ".");
     renderTabs();
     void analyzeFile(t.filePath);
+    openCollab(tab && !tab.dirty ? tab.path : "");
   };
+  // Live collaboration: the open clean file joins a shared CRDT doc; local
+  // edits stream as ops, remote ops patch the textarea. Saves and agent
+  // writes re-bootstrap everyone from disk (authoritative file wins).
+  t.refreshEditor = () => { paint(); renderTabs(); updatePosition(); };
+  t.collab = null;
+  const openCollab = (rel) => {
+    t.collab = null;
+    if (!rel) return;
+    const cur = t.tabStore.active();
+    if (!cur || cur.path !== rel || cur.dirty) return;
+    post("/edit/open", { sid: v.sid, path: rel }).then((r) => {
+      if (!r || r.error || typeof r.text !== "string") return;
+      if (t.filePath !== rel) return;
+      const still = t.tabStore.active();
+      if (!still || still.path !== rel || still.dirty) return;
+      const doc = docFromText(r.text);
+      doc.site = "w" + v.sid + t.id;
+      doc.counter = 0;
+      t.collab = { path: rel, doc, shadow: r.text, version: r.version || 0 };
+    }).catch(() => {});
+  };
+  const syncCollab = () => {
+    const c = t.collab;
+    if (!c || !c.doc || c.path !== t.filePath) return;
+    let d;
+    try { d = diffForSync(c.shadow, editor.value); } catch (e) { return; }
+    if (!d.del && !d.ins) return;
+    const ops = [];
+    try {
+      if (d.del) ops.push(...localDelete(c.doc, d.at, d.del));
+      if (d.ins) ops.push(...localInsert(c.doc, d.at, d.ins));
+    } catch (e) { return; }
+    c.shadow = editor.value;
+    if (!ops.length) return;
+    post("/edit/op", { sid: v.sid, path: c.path, ops }).catch(() => {});
+  };
+  editor.addEventListener("input", () => { try { syncCollab(); } catch (e) {} });
   let lastCursorKey = "";
   let lastCursorAt = 0;
   const broadcastCursor = (line) => {
@@ -1352,17 +1501,6 @@ function buildFilesTab(v, t) {
     const result = t.tabStore.close(filePath, tab.dirty);
     if (result.closed) displayTab(result.active);
   };
-  t.loadDir = (rel) => {
-    rel = rel || ".";
-    fetch("/workspace/tree?k=" + k + "&sid=" + encodeURIComponent(v.sid) + "&path=" + encodeURIComponent(rel))
-      .then((r) => r.json()).then((d) => {
-        if (d.error) throw new Error(d.error);
-        t.rel = d.path || ".";
-        pathInput.value = t.rel;
-        renderTree(d.entries, t.rel);
-        showError((d.entries || []).length + " éléments · " + shortPath(d.workspace || ""));
-      }).catch((e) => showError(e.message));
-  };
   t.loadFile = async (rel) => {
     if (t.filePath) t.tabStore.update(t.filePath, editor.value);
     const existing = t.tabStore.activate(rel);
@@ -1413,7 +1551,16 @@ function buildFilesTab(v, t) {
     const p = t.rel && t.rel !== "." ? t.rel.split("/").slice(0, -1).join("/") || "." : ".";
     t.loadDir(p);
   };
-  refresh.onclick = () => t.loadDir(t.rel || ".");
+  refresh.onclick = () => {
+    const wanted = [];
+    t.treeCache.forEach((_, kk) => { if (kk === "." || t.expanded.has(kk)) wanted.push(kk); });
+    if (!wanted.includes(".")) wanted.unshift(".");
+    t.treeCache.clear();
+    renderNestedTree();
+    let seq = Promise.resolve();
+    for (const c of wanted) seq = seq.then(() => ensureKids(c));
+    seq.catch((e) => showError(e.message));
+  };
   editor.oninput = () => {
     const tab = t.filePath && t.tabStore.update(t.filePath, editor.value);
     editor.dataset.dirty = tab && tab.dirty ? "1" : "0"; paint(); renderTabs();
@@ -1452,6 +1599,7 @@ function buildFilesTab(v, t) {
       renderTabs();
       t.loadDir(t.rel || ".");
       if (!tab || !tab.dirty) void analyzeFile(filePath);
+      if (t.filePath === filePath && (!tab || !tab.dirty)) openCollab(filePath);
     }).catch((e) => showError(e.message)).finally(() => t.refreshMode(v.state.mode !== "ro"));
   };
   t.refreshMode(v.state.mode !== "ro");

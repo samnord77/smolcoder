@@ -1,0 +1,34 @@
+{
+  "path": "test/crdt.test.js",
+  "content_hash": "ea96ec825a647c6fb63b3ac816318dc5",
+  "updated_at": "2026-09-27T22:24:39",
+  "lines": 88,
+  "size_bytes": 3171,
+  "mtime_ns": 1790543735304190100,
+  "language": "javascript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "constant",
+      "name": "test",
+      "line_start": 4,
+      "line_end": 4,
+      "signature": "const test = require(\"node:test\");"
+    },
+    {
+      "type": "constant",
+      "name": "assert",
+      "line_start": 5,
+      "line_end": 5,
+      "signature": "const assert = require(\"node:assert/strict\");"
+    },
+    {
+      "type": "constant",
+      "name": "vm",
+      "line_start": 6,
+      "line_end": 6,
+      "signature": "const vm = require(\"node:vm\");"
+    }
+  ]
+}

@@ -1,46 +1,56 @@
 {
   "schema_version": 1,
-  "fencing": 83,
+  "fencing": 90,
   "locks": [
     {
       "relpath": "src/web/hub.ts",
       "agent_id": "claude-code:20260927",
       "session_id": "20260927_164838_0239733e7ab3",
       "fencing_token": 80,
-      "intent": "Transtypage justifi\u00e9 apr\u00e8s validation",
+      "intent": "Amor\u00e7age hub sans site propre",
       "acquired_at": 1790540484.976682,
-      "expires_at": 1790542366.5133133,
+      "expires_at": 1790544265.4623919,
       "lock_id": "206a04b8e28140e7beee52b99df3f26e"
     },
     {
       "relpath": "src/web/client.ts",
       "agent_id": "claude-code:20260927",
       "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 81,
-      "intent": "Curseur diffus\u00e9 aux autres fen\u00eatres (co-\u00e9dition)",
-      "acquired_at": 1790540670.8777745,
-      "expires_at": 1790542039.599741,
-      "lock_id": "772fdd7eb95147d48c0b2099bd1e04fb"
+      "fencing_token": 84,
+      "intent": "Site unique par onglet apr\u00e8s amor\u00e7age",
+      "acquired_at": 1790542191.7837996,
+      "expires_at": 1790544314.9777615,
+      "lock_id": "055d5049841847da8c6895b88986442f"
     },
     {
-      "relpath": "scripts/install-smolcoder.ps1",
+      "relpath": "src/crdt.ts",
       "agent_id": "claude-code:20260927",
       "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 82,
-      "intent": "Installateur Windows 1-clic (Node, build, smol, raccourcis)",
-      "acquired_at": 1790541220.7789915,
-      "expires_at": 1790542120.7789915,
-      "lock_id": "1d4a8c7c742e422da44b5aba8adf1144"
+      "fencing_token": 88,
+      "intent": "Amor\u00e7age \u00e0 site partag\u00e9 pour suppressions convergentes",
+      "acquired_at": 1790542577.1126533,
+      "expires_at": 1790544263.994762,
+      "lock_id": "ffb9c37fa6894374bcc3730e21bc57da"
     },
     {
       "relpath": "test/code-api.test.js",
       "agent_id": "claude-code:20260927",
       "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 83,
-      "intent": "Branche la vraie planLine sur le stub (bout en bout)",
-      "acquired_at": 1790541250.4513948,
-      "expires_at": 1790542504.304649,
-      "lock_id": "6e6b5b81f80c4da9b29419e27e96d6f6"
+      "fencing_token": 89,
+      "intent": "Signature docFromText \u00e0 jour dans le test hub",
+      "acquired_at": 1790543223.6551127,
+      "expires_at": 1790544431.353274,
+      "lock_id": "d53927796336465994776ecbcda12997"
+    },
+    {
+      "relpath": "test/crdt.test.js",
+      "agent_id": "claude-code:20260927",
+      "session_id": "20260927_164838_0239733e7ab3",
+      "fencing_token": 90,
+      "intent": "Compare via JSON (prototypes inter-contextes)",
+      "acquired_at": 1790543223.7758715,
+      "expires_at": 1790544635.2717788,
+      "lock_id": "c18eb243f4ea4b0bb4e5dfa2d48783b7"
     }
   ]
 }

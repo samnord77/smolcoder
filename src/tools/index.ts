@@ -146,7 +146,7 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
     {
       name: "index_symbols",
       description:
-        'Find where a function, class or type is defined (offline code index, instant). Search: {"action": "search", "query": "Agent"}. All symbols of one file: {"action": "file", "path": "src/agent.ts"}. Index info: {"action": "stats"}. Rebuild after adding files: {"action": "refresh"} (edit modes only).',
+        'Instant offline symbol search. Find {"action": "search", "query": "Agent"}, one file {"action": "file", "path": "src/a.ts"}, info {"action": "stats"}, rebuild {"action": "refresh"} (edit only).',
       parameters: {
         type: "object",
         properties: {
@@ -161,7 +161,7 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
     {
       name: "git",
       description:
-        'Read the git repository (works in read-only mode). Status: {"action": "status"}. Uncommitted changes: {"action": "diff"}. Hunk review: {"action": "review"}. History: {"action": "log", "count": 10}. Who wrote a line: {"action": "blame", "path": "src/agent.ts", "line": 42}. Branches: {"action": "branch"}. Stage (edit only): {"action": "stage", "path": "src/agent.ts"} — use "." for everything. Stage one hunk (edit only): {"action": "stage_hunk", "path": "src/a.ts", "hunk": 0}. Revert one hunk, undoable (edit only): {"action": "revert_hunk", "path": "src/a.ts", "hunk": 1}. Commit (edit only): {"action": "commit", "message": "Fix login retry"}.',
+        'Git: status {"action": "status"}, diff {"action": "diff"}, hunk review {"action": "review"}. History {"action": "log", "count": 10}, blame {"action": "blame", "path": "src/a.ts", "line": 42}, branches {"action": "branch"}. Edit only: stage {"action": "stage", "path": "."}, stage one hunk {"action": "stage_hunk", "path": "src/a.ts", "hunk": 0}, revert one hunk {"action": "revert_hunk", ...} (undoable), commit {"action": "commit", "message": "Fix x"}. Reads work in read-only mode.',
       parameters: {
         type: "object",
         properties: {
@@ -316,7 +316,7 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
     {
       name: "symbols",
       description:
-        'Ask a language server about code (TypeScript, JavaScript, Python, Rust, Go). Hover: {"action": "hover", "path": "src/agent.ts", "line": 10, "col": 15}. Definition: {"action": "def", ...}. References: {"action": "refs", ...}. Diagnostics: {"action": "diag", "path": "src/agent.ts"}. Rename preview: {"action": "rename", "path": "...", "line": 3, "col": 5, "new_text": "total"}. Completions: {"action": "completion", ...}. Signature: {"action": "signature", ...}. Quick fixes: {"action": "quickfix", ...}. Whole-workspace symbol: {"action": "wsymbol", "query": "Agent"}. Install a server: {"action": "setup", "lang": "python"} (or "all", edit modes only). Lines and columns start at 1.',
+        'Code intelligence (TypeScript, JavaScript, Python, Rust, Go). Hover {"action": "hover", "path": "src/a.ts", "line": 10, "col": 15}, definition {"action": "def", ...}, diagnostics {"action": "diag", "path": "src/a.ts"}. Rename preview {"action": "rename", "path": "...", "line": 3, "col": 5, "new_text": "total"}; completions, signature, quickfix and refs take line+col. Workspace search {"action": "wsymbol", "query": "Agent"}. Install a server {"action": "setup", "lang": "python"} (edit only). Lines and columns start at 1.',
       parameters: {
         type: "object",
         properties: {

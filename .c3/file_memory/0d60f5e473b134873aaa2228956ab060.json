@@ -1,0 +1,128 @@
+{
+  "path": "src/crdt.ts",
+  "content_hash": "257de04dd1dad6b4e6d768cc9408058e",
+  "updated_at": "2026-09-27T22:11:37",
+  "lines": 184,
+  "size_bytes": 6756,
+  "mtime_ns": 1790543364073480600,
+  "language": "typescript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "interface",
+      "name": "CrdtChar",
+      "line_start": 10,
+      "line_end": 15,
+      "signature": "interface CrdtChar {",
+      "children": []
+    },
+    {
+      "type": "interface",
+      "name": "CrdOp",
+      "line_start": 17,
+      "line_end": 24,
+      "signature": "interface CrdOp {",
+      "children": []
+    },
+    {
+      "type": "constant",
+      "name": "BASE",
+      "line_start": 26,
+      "line_end": 26,
+      "signature": "const BASE = 65536;"
+    },
+    {
+      "type": "function",
+      "name": "posBetween",
+      "line_start": 31,
+      "line_end": 48,
+      "signature": "function posBetween(a: number[] | null, b: number[] | null): number[] {"
+    },
+    {
+      "type": "function",
+      "name": "comparePos",
+      "line_start": 51,
+      "line_end": 59,
+      "signature": "function comparePos(a: number[], b: number[]): number {"
+    },
+    {
+      "type": "interface",
+      "name": "CrdtDoc",
+      "line_start": 61,
+      "line_end": 66,
+      "signature": "interface CrdtDoc {",
+      "children": []
+    },
+    {
+      "type": "function",
+      "name": "emptyDoc",
+      "line_start": 68,
+      "line_end": 70,
+      "signature": "function emptyDoc(site: string): CrdtDoc {"
+    },
+    {
+      "type": "function",
+      "name": "docFromText",
+      "line_start": 77,
+      "line_end": 86,
+      "signature": "function docFromText(text: string): CrdtDoc {"
+    },
+    {
+      "type": "function",
+      "name": "docText",
+      "line_start": 88,
+      "line_end": 93,
+      "signature": "function docText(doc: CrdtDoc): string {"
+    },
+    {
+      "type": "function",
+      "name": "sortDoc",
+      "line_start": 95,
+      "line_end": 99,
+      "signature": "function sortDoc(doc: CrdtDoc): void {"
+    },
+    {
+      "type": "function",
+      "name": "liveChars",
+      "line_start": 101,
+      "line_end": 103,
+      "signature": "function liveChars(doc: CrdtDoc): CrdtChar[] {"
+    },
+    {
+      "type": "function",
+      "name": "localInsert",
+      "line_start": 106,
+      "line_end": 121,
+      "signature": "function localInsert(doc: CrdtDoc, visibleIndex: number, text: string): CrdOp[] {"
+    },
+    {
+      "type": "function",
+      "name": "localDelete",
+      "line_start": 124,
+      "line_end": 136,
+      "signature": "function localDelete(doc: CrdtDoc, visibleIndex: number, count: number): CrdOp[] {"
+    },
+    {
+      "type": "function",
+      "name": "applyOp",
+      "line_start": 140,
+      "line_end": 158,
+      "signature": "function applyOp(doc: CrdtDoc, op: CrdOp): boolean {"
+    },
+    {
+      "type": "function",
+      "name": "diffForSync",
+      "line_start": 163,
+      "line_end": 175,
+      "signature": "function diffForSync(before: string, after: string): { at: number; del: number; ins: string } {"
+    },
+    {
+      "type": "constant",
+      "name": "browserCrdtSource",
+      "line_start": 179,
+      "line_end": 184,
+      "signature": "const browserCrdtSource = ["
+    }
+  ]
+}

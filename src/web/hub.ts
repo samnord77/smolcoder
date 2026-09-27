@@ -30,6 +30,7 @@ import { searchWorkspace } from "../workspace-search";
 import { workspaceDiagnostics } from "../workspace-diagnostics";
 import { queryCode, lspAvailability, queryDiagStructured } from "../lsp-pro";
 import { queryIndex } from "../codeindex";
+import { applyOp, CrdOp, docFromText } from "../crdt";
 import { gitApplyHunk, gitDiffFiles } from "../git";
 
 export type SessionFactory = (ui: SessionChannel, workspace: string, prefs: SessionPrefs, planKey?: string) => Promise<Session>;
@@ -87,6 +88,9 @@ export interface HubRecord {
   token: string;
   pid: number;
   startedAt: number;
+  /** Code version that started it — a second `smol --web` warns instead of
+   * silently attaching new folders to an outdated hub. */
+  version?: string;
 }
 
 const HUB_FILE = "web.json";
@@ -127,6 +131,20 @@ function clearHubRecord(pid: number, dataDir: string): void {
 export async function pingHub(rec: HubRecord): Promise<boolean> {
   const r = await tryFetchJson(`http://127.0.0.1:${rec.port}/ping?k=${rec.token}`, undefined, 1500);
   return !!r?.ok;
+}
+
+/** Version + boot time of the running hub (null when unreachable). */
+export async function hubVersion(rec: HubRecord): Promise<{ version: string; startedAt: number } | null> {
+  try {
+    const r = await tryFetchJson(`http://127.0.0.1:${rec.port}/ping?k=${rec.token}`, undefined, 1500);
+    if (!r?.ok) return null;
+    return {
+      version: typeof r.version === "string" ? r.version : "?",
+      startedAt: typeof r.startedAt === "number" ? r.startedAt : 0,
+    };
+  } catch {
+    return null;
+  }
 }
 
 /** Ask a running hub to add a workspace (and optionally start a session). */
@@ -251,6 +269,8 @@ export class WebHub {
   private viewers = new Map<string, Map<string, number>>();
   /** Live cursors: session id -> name -> file + line (30s expiry, no persist). */
   private cursors = new Map<string, Map<string, { name: string; path: string; line: number; at: number }>>();
+  /** Collab docs: workspace + path -> CRDT chars (rebuilt from disk on open). */
+  private editDocs = new Map<string, { chars: any[]; seen: string[]; version: number; at: number }>();
   private live = new Map<string, Live>();
   private metas = new Map<string, SessionMeta>();
   private store: SessionStore;
@@ -259,6 +279,8 @@ export class WebHub {
   private hubTimer: NodeJS.Timeout | null = null;
   private termCounter = 0;
   private stopped = false;
+  /** Wall-clock boot time, exposed so the UI can show staleness. */
+  private bootedAt = Date.now();
 
   constructor(private opts: HubOptions) {
     this.port = opts.port;
@@ -293,7 +315,7 @@ export class WebHub {
       server.listen(this.opts.port, this.opts.host || "127.0.0.1", () => {
         const addr = server.address();
         if (addr && typeof addr === "object") this.port = addr.port;
-        writeHubRecord({ port: this.port, token: this.authToken, pid: process.pid, startedAt: Date.now() }, this.dataDir);
+        writeHubRecord({ port: this.port, token: this.authToken, pid: process.pid, startedAt: this.bootedAt, version: this.opts.version }, this.dataDir);
         resolve();
       });
     });
@@ -712,7 +734,7 @@ export class WebHub {
         return { path: g.path, name: path.basename(g.path) || g.path, display: tilde(g.path), last, sessions: g.sessions };
       })
       .sort((a, b) => b.last - a.last);
-    return { t: "hub", home: os.homedir(), sep: path.sep, version: this.opts.version, workspaces };
+    return { t: "hub", home: os.homedir(), sep: path.sep, version: this.opts.version, startedAt: this.bootedAt, workspaces };
   }
 
   /** Names watching a session right now (pings older than 60s are pruned). */
@@ -783,7 +805,7 @@ export class WebHub {
           res.end(PAGE_HTML);
           return;
         case "/ping":
-          json(200, { ok: true, pid: process.pid, version: this.opts.version });
+          json(200, { ok: true, pid: process.pid, version: this.opts.version, startedAt: this.bootedAt });
           return;
         case "/events":
           this.sse(req, res);
@@ -891,6 +913,18 @@ export class WebHub {
           if (!live) { json(404, { error: "no such session" }); return; }
           try {
             json(200, this.planView(live));
+          } catch (err: any) { json(400, { error: String(err?.message ?? err).slice(0, 500) }); }
+          return;
+        }
+        case "/edit/doc": {
+          const sid = String(url.searchParams.get("sid") ?? "");
+          const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
+          if (!live) { json(404, { error: "no such session" }); return; }
+          try {
+            const rel = String(url.searchParams.get("path") ?? "");
+            const rec = this.editDocs.get(this.editKey(live.workspace, rel));
+            if (!rec) throw new Error("open the file for collaboration first (open it in the editor)");
+            json(200, { version: rec.version, chars: rec.chars });
           } catch (err: any) { json(400, { error: String(err?.message ?? err).slice(0, 500) }); }
           return;
         }
@@ -1249,6 +1283,14 @@ export class WebHub {
         this.changed();
         return {};
       }
+      case "/edit/open": {
+        const l = live();
+        return this.openEditDoc(l.workspace, String(d.path ?? ""));
+      }
+      case "/edit/op": {
+        const l = live();
+        return this.applyEditOps(l.workspace, String(d.path ?? ""), d.ops);
+      }
       case "/code/diff/hunk": {
         const l = live();
         const action = String(d.action ?? "");
@@ -1435,6 +1477,82 @@ export class WebHub {
     live.session.toolCtx.filesTouched.add(rel);
     live.channel.status(`· deleted ${rel}`);
     return {};
+  }
+
+  /** Collab document key: one live doc per workspace file. */
+  private editKey(workspace: string, rel: string): string {
+    return `${workspace}\n${rel}`;
+  }
+
+  private readEditFile(workspace: string, rel: string): { abs: string; text: string } {
+    if (!rel || rel === "." || rel === "/") throw new Error("path is required");
+    let abs: string;
+    try {
+      abs = resolveInWorkspace(workspace, rel);
+    } catch (err: any) {
+      throw new Error(err instanceof SandboxError ? err.message : String(err?.message ?? err));
+    }
+    let stat: fs.Stats;
+    try {
+      stat = fs.statSync(abs);
+    } catch {
+      throw new Error(`"${rel}" does not exist`);
+    }
+    if (!stat.isFile()) throw new Error(`"${rel}" is a folder, not a file`);
+    if (stat.size > 256 * 1024) throw new Error(`"${rel}" is too large for live collaboration (256 KB limit)`);
+    let buf: Buffer;
+    try {
+      buf = fs.readFileSync(abs);
+    } catch {
+      throw new Error(`could not read "${rel}"`);
+    }
+    for (let i = 0; i < Math.min(buf.length, 4096); i++) {
+      if (buf[i] === 0) throw new Error(`"${rel}" looks binary — live collaboration needs text`);
+    }
+    return { abs, text: buf.toString("utf8") };
+  }
+
+  /** (Re)bootstrap the shared doc from disk. The file stays authoritative:
+   * saves and agent writes converge everyone here. Never throws (route
+   * translates Error strings). */
+  private openEditDoc(workspace: string, rel: string): { text: string; version: number } {
+    const { text } = this.readEditFile(workspace, rel);
+    const key = this.editKey(workspace, rel);
+    const prev = this.editDocs.get(key);
+    const doc = docFromText(text);
+    this.editDocs.set(key, { chars: doc.chars, seen: [], version: (prev?.version ?? 0) + 1, at: Date.now() });
+    if (this.editDocs.size > 20) {
+      const first = this.editDocs.keys().next();
+      if (!first.done) this.editDocs.delete(first.value);
+    }
+    const rec = this.editDocs.get(key)!;
+    this.send({ t: "editrebase", file: rel, version: rec.version });
+    return { text, version: rec.version };
+  }
+
+  /** Apply broadcast ops to the shared doc and relay the accepted ones.
+   * Ops are order-independent (fractional positions), so no version gating. */
+  private applyEditOps(workspace: string, rel: string, rawOps: unknown): { version: number; applied: number } {
+    const key = this.editKey(workspace, rel);
+    const rec = this.editDocs.get(key);
+    if (!rec) throw new Error("open the file for collaboration first (open it in the editor)");
+    if (!Array.isArray(rawOps) || !rawOps.length) throw new Error("ops must be a non-empty array");
+    const doc = { chars: rec.chars, seen: rec.seen, counter: 0, site: "hub" };
+    const accepted: CrdOp[] = [];
+    for (const raw of (rawOps as unknown[]).slice(0, 200)) {
+      const op = raw as CrdOp;
+      if (!op || (op.op !== "ins" && op.op !== "del")) continue;
+      try {
+        if (applyOp(doc, op)) accepted.push(op);
+      } catch {
+        /* malformed op — skip */
+      }
+    }
+    rec.at = Date.now();
+    if (!accepted.length) return { version: rec.version, applied: 0 };
+    rec.version++;
+    this.send({ t: "editop", file: rel, ops: accepted, version: rec.version });
+    return { version: rec.version, applied: accepted.length };
   }
 
   /** Serializable plan for the checklist tab. Never throws. */

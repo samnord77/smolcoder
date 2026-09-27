@@ -41,7 +41,7 @@ import { TaskManager } from "./tools/tasks";
 import { Tui } from "./tui/tui";
 import { UI } from "./ui";
 import { c } from "./util";
-import { askHubToOpen, pingHub, readHubRecord, WebHub } from "./web/hub";
+import { askHubToOpen, hubVersion, pingHub, readHubRecord, WebHub } from "./web/hub";
 import { launchApp } from "./web/app";
 
 const VERSION = require("../package.json").version as string;
@@ -439,6 +439,13 @@ async function runWeb(args: CliArgs): Promise<void> {
   // A hub is already running: hand it this folder instead of starting another.
   const rec = readHubRecord();
   if (rec && (args.webPort === undefined || rec.port === port) && (await pingHub(rec))) {
+    const running = await hubVersion(rec);
+    if (running && running.version !== VERSION) {
+      console.error(
+        `\n  ⚠ the running hub serves v${running.version} (since ${new Date(running.startedAt || Date.now()).toLocaleString()}), this smol is v${VERSION}.` +
+          `\n  New buttons and endpoints will be MISSING until you restart it: stop the old hub (Ctrl+C in its terminal, PID ${rec.pid}) and run smol --web again.\n`
+      );
+    }
     const r = await askHubToOpen(rec, workspace, autoStart);
     if (r) {
       const url = `http://127.0.0.1:${rec.port}/?k=${rec.token}${r.id ? "#" + r.id : ""}`;

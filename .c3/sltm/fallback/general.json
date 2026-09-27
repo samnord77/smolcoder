@@ -63,5 +63,18 @@
     },
     "timestamp": "2026-09-27T20:41:17.541760+00:00",
     "category": "general"
+  },
+  {
+    "id": "86f3db0818b4",
+    "text": "smolcoder phase visibilit\u00e9 (2026-09-27) : cause invisibilit\u00e9 = vieux hub tournant qui capte les lancements \u2192 alerte version dans runWeb + tampon 'hub HH:MM' pied de page + version record. Arbre fichiers d\u00e9pliable (cache, paresseux). Prompt outils -8% (descriptions git/symbols/index compress\u00e9es). CRDT positions fractionnaires + relais hub (/edit/open/op/doc) + bundle navigateur, convergence test\u00e9e. Preuve visuelle : capture hub local OK (bouton \u0394 visible, aucun crash).",
+    "metadata": {
+      "fact_id": "86f3db0818b4",
+      "source_session": "20260927_164838_0239733e7ab3",
+      "source": "memory_store",
+      "timestamp": "2026-09-27T21:25:02.057672+00:00",
+      "category": "general"
+    },
+    "timestamp": "2026-09-27T21:25:02.057672+00:00",
+    "category": "general"
   }
 ]

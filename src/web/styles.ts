@@ -248,6 +248,12 @@ export const STYLES = String.raw`
   .filefindbar button { min-height: 28px; padding: 4px 8px; }
   .filefind-count { min-width: 92px; color: var(--dim); font-size: 11px; }
   .filetree { width: 38%; min-width: 150px; overflow: auto; border-right: 1px solid var(--line); padding: 6px; }
+  .treerow { display: flex; align-items: center; min-width: 0; }
+  .treetoggle { border: 0; background: transparent; color: var(--dim); cursor: pointer; font: inherit; font-size: 9px; width: 18px; flex: none; padding: 2px 0; }
+  .treetoggle:hover { color: var(--fg); }
+  .treespacer { width: 18px; flex: none; }
+  .treerow .fileitem { flex: 1; min-width: 0; }
+  .treesub { min-width: 0; }
   .fileitem { display: flex; align-items: center; width: 100%; text-align: left; border: 0; background: transparent; color: var(--fg); padding: 4px 7px; border-radius: 3px; cursor: pointer; font: inherit; font-size: 12px; white-space: nowrap; overflow: hidden; }
     .fileitem:hover { background: rgba(255,255,255,.06); }
     .fileitem-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 16px; padding: 0 4px; font-size: 9.5px; font-weight: 700; font-family: Consolas, monospace; border-radius: 3px; margin-right: 6px; flex-shrink: 0; line-height: 1; }

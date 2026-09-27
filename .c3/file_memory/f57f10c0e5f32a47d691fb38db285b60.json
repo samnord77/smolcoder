@@ -1,10 +1,10 @@
 {
   "path": "src/web/styles.ts",
-  "content_hash": "3b4d339e2a4c6d06982152b4fe9cddaf",
-  "updated_at": "2026-09-27T21:18:20",
-  "lines": 774,
-  "size_bytes": 52925,
-  "mtime_ns": 1790540286167346200,
+  "content_hash": "99a05f9430cd934fe639ea901d79bb56",
+  "updated_at": "2026-09-27T21:54:29",
+  "lines": 780,
+  "size_bytes": 53314,
+  "mtime_ns": 1790542389731247500,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -27,7 +27,7 @@
       "type": "constant",
       "name": "STYLES",
       "line_start": 9,
-      "line_end": 774,
+      "line_end": 780,
       "signature": "const STYLES = String.raw`"
     }
   ]

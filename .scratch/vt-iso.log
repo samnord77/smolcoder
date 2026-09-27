@@ -1,14 +1,14 @@
-✔ a repeated acceptance failure refreshes facts and discards stale hypotheses without another inference (3990.4859ms)
-✔ progress to a different acceptance failure retains the working context (5244.2129ms)
-✔ repeated failures never discard summaries containing earlier user decisions (5519.6101ms)
-✔ private acceptance command stays in the host instead of becoming an inaccessible model instruction (2017.2774ms)
-✖ recovery from failed edits uses known project failures without spending final acceptance attempts (6941.4597ms)
-✔ failed acceptance returns real feedback and repairs within a single runTurn (1979.8768ms)
-✔ repeated claims of completion cannot bypass a failing acceptance command (2091.8654ms)
-✔ cancellation during acceptance terminates the command and does not start a repair (1296.9757ms)
-✔ reads evicted by the harness do not count as retained unchanged-read loops (89.9989ms)
-✔ stalled reads trigger acceptance feedback and an automatic repair (3735.3299ms)
-✔ sustained investigation triggers real checks even when compaction evicts every read (2418.8564ms)
+✔ a repeated acceptance failure refreshes facts and discards stale hypotheses without another inference (857.3605ms)
+✔ progress to a different acceptance failure retains the working context (931.8924ms)
+✔ repeated failures never discard summaries containing earlier user decisions (1115.3247ms)
+✔ private acceptance command stays in the host instead of becoming an inaccessible model instruction (703.416ms)
+✖ recovery from failed edits uses known project failures without spending final acceptance attempts (1873.7506ms)
+✔ failed acceptance returns real feedback and repairs within a single runTurn (653.6921ms)
+✔ repeated claims of completion cannot bypass a failing acceptance command (569.8203ms)
+✔ cancellation during acceptance terminates the command and does not start a repair (716.1487ms)
+✔ reads evicted by the harness do not count as retained unchanged-read loops (54.7428ms)
+✔ stalled reads trigger acceptance feedback and an automatic repair (560.3591ms)
+✔ sustained investigation triggers real checks even when compaction evicts every read (693.7362ms)
 [events] post_progress_check handler failed: The input did not match the regular expression /Last project check failure/. Input:
 
 '[The conversation so far was compacted to save context. Continue the task from these notes — do not start over, and do not redo finished steps.]\n' +
@@ -17,28 +17,28 @@
   'Caller-owned acceptance checks must pass before completion. The harness runs them automatically and returns failures for repair. Use project files and returned failures to fix the application. Do not weaken or bypass acceptance checks.\n' +
   'Files created/modified so far: app.txt\n'
 
-✖ periodic project checks break API investigation cycles with edits without spending acceptance attempts (5730.7404ms)
-✔ after acceptance fails, periodic checks use that oracle and a final summary reuses its pass (2543.8293ms)
-✔ acceptance commands cannot run after switching to read-only (14.9372ms)
-✔ short commands preempt background summaries before any model request (1.9935ms)
-✔ project checks run automatically after edits in the shared UI agent (4266.6451ms)
-✔ project check discovery never interpolates package script bodies (159.778ms)
-✔ project check discovery recognizes common non-Node test runners with fixed commands (81.3156ms)
-✔ Java builds prefer checked-in wrappers and Python without tests is not guessed (87.1933ms)
-✔ automatic repairs discover added checks and cannot bypass a required script by deleting it (22022.4478ms)
+✔ periodic project checks break API investigation cycles with edits without spending acceptance attempts (1798.0236ms)
+✔ after acceptance fails, periodic checks use that oracle and a final summary reuses its pass (964.7128ms)
+✔ acceptance commands cannot run after switching to read-only (13.9842ms)
+✔ short commands preempt background summaries before any model request (1.5258ms)
+✔ project checks run automatically after edits in the shared UI agent (1331.93ms)
+✔ project check discovery never interpolates package script bodies (99.2867ms)
+✔ project check discovery recognizes common non-Node test runners with fixed commands (52.293ms)
+✔ Java builds prefer checked-in wrappers and Python without tests is not guessed (73.9766ms)
+✔ automatic repairs discover added checks and cannot bypass a required script by deleting it (6193.1513ms)
 ℹ tests 20
 ℹ suites 0
-ℹ pass 18
-ℹ fail 2
+ℹ pass 19
+ℹ fail 1
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 71320.7292
+ℹ duration_ms 19494.5793
 
 ✖ failing tests:
 
 test at test\verification.test.js:101:1
-✖ recovery from failed edits uses known project failures without spending final acceptance attempts (6941.4597ms)
+✖ recovery from failed edits uses known project failures without spending final acceptance attempts (1873.7506ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   
   1 !== 2
@@ -51,24 +51,6 @@ test at test\verification.test.js:101:1
     code: 'ERR_ASSERTION',
     actual: 1,
     expected: 2,
-    operator: 'strictEqual',
-    diff: 'simple'
-  }
-
-test at test\verification.test.js:193:1
-✖ periodic project checks break API investigation cycles with edits without spending acceptance attempts (5730.7404ms)
-  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
-  
-  27 !== 26
-  
-      at TestContext.<anonymous> (C:\Users\DELL\smolcoder-source\test\verification.test.js:212:41)
-      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
-      at async Test.run (node:internal/test_runner/test:1389:7)
-      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
-    generatedMessage: true,
-    code: 'ERR_ASSERTION',
-    actual: 27,
-    expected: 26,
     operator: 'strictEqual',
     diff: 'simple'
   }

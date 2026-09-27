@@ -1,10 +1,10 @@
 {
   "path": "src/index.ts",
-  "content_hash": "16d30c4e311fbe152f405c9b7bccdb28",
-  "updated_at": "2026-09-27T21:06:18",
-  "lines": 494,
-  "size_bytes": 19274,
-  "mtime_ns": 1790539401372273400,
+  "content_hash": "e4d90e0a62d7fa4705fb20122afe366e",
+  "updated_at": "2026-09-27T21:50:28",
+  "lines": 501,
+  "size_bytes": 19748,
+  "mtime_ns": 1790542227590148900,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -165,10 +165,10 @@
     },
     {
       "type": "import",
-      "name": "import { askHubToOpen, pingHub, readHubRecord, WebHub } from \"./web/hub\";",
+      "name": "import { askHubToOpen, hubVersion, pingHub, readHubRecord, WebHub } from \"./web/hub\";",
       "line_start": 44,
       "line_end": 44,
-      "signature": "import { askHubToOpen, pingHub, readHubRecord, WebHub } from \"./web/hub\";"
+      "signature": "import { askHubToOpen, hubVersion, pingHub, readHubRecord, WebHub } from \"./web/hub\";"
     },
     {
       "type": "import",
@@ -272,15 +272,15 @@
       "type": "function",
       "name": "runWeb",
       "line_start": 433,
-      "line_end": 477,
+      "line_end": 484,
       "signature": "async function runWeb(args: CliArgs): Promise<void> {",
       "async": true
     },
     {
       "type": "function",
       "name": "openAppWindow",
-      "line_start": 480,
-      "line_end": 489,
+      "line_start": 487,
+      "line_end": 496,
       "signature": "function openAppWindow(url: string): void {",
       "doc": "Open the hub like a desktop app and say what happened. Never throws."
     }

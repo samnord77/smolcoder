@@ -270,3 +270,39 @@ test("code api: file ops, plan checklist, and cursor presence", async () => {
     hub.close();
   }
 });
+
+test("code api: collaborative editing relay", async () => {
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "smol-codeapi4-"));
+  const ws = path.join(dataDir, "proj");
+  fs.mkdirSync(ws);
+  fs.writeFileSync(path.join(ws, "note.txt"), "hi\n");
+  const calls = [];
+  const hub = new WebHub({ port: 0, prefs: {}, help: "help", version: "9.9.9", dataDir, factory: stubFactory(calls), quiet: true });
+  await hub.start();
+  const k = "?k=" + hub.authToken;
+  try {
+    const { id } = JSON.parse((await request(hub, "POST", "/sessions/new" + k, { workspace: ws })).body);
+    await until(() => calls.length === 1, 3000, "factory call");
+
+    const opened = JSON.parse((await request(hub, "POST", "/edit/open" + k, { sid: id, path: "note.txt" })).body);
+    assert.equal(opened.text, "hi\n");
+    assert.equal(opened.version, 1);
+    assert.match((await request(hub, "POST", "/edit/open" + k, { sid: id, path: "missing.txt" })).body, /does not exist/);
+
+    const { docFromText, localInsert } = require("../dist/crdt");
+    const d = docFromText("hi\n");
+    d.site = "t";
+    const ops = localInsert(d, 3, "!");
+    const applied = JSON.parse((await request(hub, "POST", "/edit/op" + k, { sid: id, path: "note.txt", ops })).body);
+    assert.deepEqual(applied, { version: 2, applied: 1 });
+    const again = JSON.parse((await request(hub, "POST", "/edit/op" + k, { sid: id, path: "note.txt", ops })).body);
+    assert.equal(again.applied, 0);
+    const doc = JSON.parse((await request(hub, "GET", `/edit/doc${k}&sid=${id}&path=note.txt`)).body);
+    assert.equal(doc.version, 2);
+    assert.equal(doc.chars.filter((c) => !c.dead).map((c) => c.ch).join(""), "hi\n!");
+    assert.match((await request(hub, "POST", "/edit/op" + k, { sid: id, path: "other.txt", ops })).body, /open the file/);
+    assert.match((await request(hub, "POST", "/edit/op" + k, { sid: id, path: "note.txt", ops: [] })).body, /non-empty array/);
+  } finally {
+    hub.close();
+  }
+});
