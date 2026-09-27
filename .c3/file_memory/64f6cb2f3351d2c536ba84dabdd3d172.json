@@ -1,0 +1,71 @@
+{
+  "path": "extras/secondary-agent-tools/test-visual-tester.js",
+  "content_hash": "c246f68adb022a2daafe1f32cb70b0ff",
+  "updated_at": "2026-09-27T18:37:49",
+  "lines": 125,
+  "size_bytes": 3219,
+  "mtime_ns": 1790362458907774400,
+  "language": "javascript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "constant",
+      "name": "assert",
+      "line_start": 6,
+      "line_end": 6,
+      "signature": "const assert = require(\"node:assert\");"
+    },
+    {
+      "type": "constant",
+      "name": "fs",
+      "line_start": 7,
+      "line_end": 7,
+      "signature": "const fs = require(\"node:fs\");"
+    },
+    {
+      "type": "constant",
+      "name": "path",
+      "line_start": 8,
+      "line_end": 8,
+      "signature": "const path = require(\"node:path\");"
+    },
+    {
+      "type": "constant",
+      "name": "visualTester",
+      "line_start": 9,
+      "line_end": 9,
+      "signature": "const visualTester = require(\"./visual-tester.js\");"
+    },
+    {
+      "type": "variable",
+      "name": "passed",
+      "line_start": 15,
+      "line_end": 15,
+      "signature": "let passed = 0;"
+    },
+    {
+      "type": "variable",
+      "name": "failed",
+      "line_start": 16,
+      "line_end": 16,
+      "signature": "let failed = 0;"
+    },
+    {
+      "type": "function",
+      "name": "runTest",
+      "line_start": 18,
+      "line_end": 27,
+      "signature": "async function runTest(name, fn) {",
+      "async": true
+    },
+    {
+      "type": "function",
+      "name": "main",
+      "line_start": 29,
+      "line_end": 120,
+      "signature": "async function main() {",
+      "async": true
+    }
+  ]
+}

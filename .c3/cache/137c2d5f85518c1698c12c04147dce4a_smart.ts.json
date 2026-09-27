@@ -1,0 +1,9 @@
+{
+  "original_tokens": 2427,
+  "compressed_tokens": 380,
+  "saved_tokens": 2047,
+  "savings_pct": 84.3,
+  "compressed": "# ui.ts (.ts) \u2014 272 lines\nimport * as readline from \"readline\";\nimport { UserInput } from \"./attachments\";\nimport { Plan } from \"./plan\";\nimport { c } from \"./util\";\nimport { createCodeStreamColorizer } from \"./highlight\";\n\nexport interface AgentUI\nexport interface SlashCommand\nexport interface SelectOption\nexport interface SessionUI extends AgentUI\nexport function renderPlan(plan: Plan, indent = \"  \"): string\n\nexport class UI implements AgentUI\n  private rl: readline.Interface;\n  private spinnerTimer: NodeJS.Timeout | null = null;\n  private spinnerActive = false;\n  private atLineStart = true;\n  private codeColorizer = createCodeStreamColorizer((text) => process.stdout.write(text), process.stdout.isTTY && !process.env.NO_COLOR);\n  onInterrupt: (() => void) | null = null;\n  constructor()\n  ask(prompt: string): Promise<string>\n  async confirmCommand(command: string, reason?: string): Promise<\"yes\" | \"no\" | \"always\">\n  startSpinner(label: string): void\n  stopSpinner(): void\n  private ensureLine(): void\n  private meta(s: string): void\n  token(text: string): void\n  thinking(_text: string): void {}\n  toolCall(name: string, args: Record<string, any>): void\n  toolResult(result: string): void\n  println(s = \"\"): void\n  status(s: string): void\n  turnEnd(label: string): void\n  planUpdated(plan: Plan): void\n  subagent(phase: \"start\" | \"done\", label: string): void\n  warn(s: string): void\n  error(s: string): void\n  close(): void\nexport function summarizeArgs(name: string, args: Record<string, any>): string",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\ui.ts"
+}

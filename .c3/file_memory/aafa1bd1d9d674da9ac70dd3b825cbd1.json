@@ -1,0 +1,34 @@
+{
+  "path": ".smol/plans/f593b42a.json",
+  "content_hash": "c7c63123f27d6a3295b20aa288bba720",
+  "updated_at": "2026-09-27T17:30:43",
+  "lines": 31,
+  "size_bytes": 1768,
+  "mtime_ns": 1790515974530786200,
+  "language": "json",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "property",
+      "name": "version",
+      "line_start": 2,
+      "line_end": 2,
+      "signature": "version"
+    },
+    {
+      "type": "property",
+      "name": "updatedAt",
+      "line_start": 3,
+      "line_end": 3,
+      "signature": "updatedAt"
+    },
+    {
+      "type": "property",
+      "name": "steps",
+      "line_start": 4,
+      "line_end": 30,
+      "signature": "steps"
+    }
+  ]
+}

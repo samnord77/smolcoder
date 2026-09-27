@@ -1143,7 +1143,9 @@ export class WebHub {
     try {
       const bridge = session?.toolCtx?.mcp;
       if (bridge) {
-        const rows = await bridge.status(6000);
+        // Cold starts for npx/uvx and office bridges routinely exceed six
+        // seconds. Keep the UI from marking a usable server offline.
+        const rows = await bridge.status(20000);
         mcp = rows.map((r) => ({
           name: r.name,
           ok: !!r.ok,
@@ -1183,6 +1185,12 @@ export class WebHub {
         memFreeMb: Math.round(os.freemem() / 1048576),
         pid: process.pid,
         uptimeSec: Math.round(process.uptime()),
+      },
+      c3: {
+        enabled: fs.existsSync(path.join(live.workspace, ".c3")) || fs.existsSync(path.join(os.homedir(), ".c3")),
+        workspace: fs.existsSync(path.join(live.workspace, ".c3")),
+        artifacts: fs.existsSync(path.join(live.workspace, ".c3", "agent_artifacts")),
+        memory: fs.existsSync(path.join(live.workspace, ".c3", "file_memory")),
       },
     };
   }

@@ -1,0 +1,48 @@
+{
+  "path": "extras/secondary-agent-tools/test-voice-commander.js",
+  "content_hash": "183b39a9a8dfefb4fc7e4eb693db1e9e",
+  "updated_at": "2026-09-27T18:37:48",
+  "lines": 97,
+  "size_bytes": 2979,
+  "mtime_ns": 1790363488699748600,
+  "language": "javascript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "constant",
+      "name": "assert",
+      "line_start": 6,
+      "line_end": 6,
+      "signature": "const assert = require(\"node:assert\");"
+    },
+    {
+      "type": "constant",
+      "name": "voiceCommander",
+      "line_start": 7,
+      "line_end": 7,
+      "signature": "const voiceCommander = require(\"./voice-commander.js\");"
+    },
+    {
+      "type": "variable",
+      "name": "passed",
+      "line_start": 13,
+      "line_end": 13,
+      "signature": "let passed = 0;"
+    },
+    {
+      "type": "variable",
+      "name": "failed",
+      "line_start": 14,
+      "line_end": 14,
+      "signature": "let failed = 0;"
+    },
+    {
+      "type": "function",
+      "name": "runTest",
+      "line_start": 16,
+      "line_end": 25,
+      "signature": "function runTest(name, fn) {"
+    }
+  ]
+}

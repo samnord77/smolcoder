@@ -1,10 +1,10 @@
 {
   "path": "src/session.ts",
-  "content_hash": "efce5c37d352ebe8d454d300c1f398e5",
-  "updated_at": "2026-09-26T17:57:05",
-  "lines": 1058,
-  "size_bytes": 42301,
-  "mtime_ns": 1790426774136908700,
+  "content_hash": "d19682ba3e19f39d53c5f15fe6316d8b",
+  "updated_at": "2026-09-27T17:30:44",
+  "lines": 1061,
+  "size_bytes": 42462,
+  "mtime_ns": 1790508683194338800,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -355,7 +355,7 @@
       "type": "class",
       "name": "Session",
       "line_start": 329,
-      "line_end": 1058,
+      "line_end": 1061,
       "signature": "class Session {",
       "children": [
         {
@@ -520,46 +520,46 @@
           "type": "method",
           "name": "state",
           "line_start": 445,
-          "line_end": 471,
+          "line_end": 474,
           "signature": "state(): Record<string, any> {",
           "doc": "Structured status for the web page's status bar."
         },
         {
           "type": "method",
           "name": "announce",
-          "line_start": 474,
-          "line_end": 480,
+          "line_start": 477,
+          "line_end": 483,
           "signature": "announce(): void {",
           "doc": "The opening lines: backend \u00b7 model \u00b7 mode, workspace, AGENTS.md, advice."
         },
         {
           "type": "method",
           "name": "snapshot",
-          "line_start": 482,
-          "line_end": 496,
+          "line_start": 485,
+          "line_end": 499,
           "signature": "snapshot(): SessionSnapshot {"
         },
         {
           "type": "method",
           "name": "suggestTitle",
-          "line_start": 499,
-          "line_end": 501,
+          "line_start": 502,
+          "line_end": 504,
           "signature": "suggestTitle(): Promise<string | null> {",
           "doc": "A model-written name for this session, or null to keep the fallback."
         },
         {
           "type": "method",
           "name": "restore",
-          "line_start": 505,
-          "line_end": 513,
+          "line_start": 508,
+          "line_end": 516,
           "signature": "restore(s: SessionSnapshot): void {",
           "doc": "Bring a saved transcript back (the system message is rebuilt for the"
         },
         {
           "type": "method",
           "name": "handleUserMessage",
-          "line_start": 518,
-          "line_end": 546,
+          "line_start": 521,
+          "line_end": 549,
           "signature": "private async handleUserMessage(input: string, attachments: Attachment[]): Promise<void> {",
           "async": true,
           "access": "private",
@@ -568,8 +568,8 @@
         {
           "type": "method",
           "name": "expandMentions",
-          "line_start": 550,
-          "line_end": 562,
+          "line_start": 553,
+          "line_end": 565,
           "signature": "private expandMentions(text: string): string {",
           "access": "private",
           "doc": "Replace each @path with the file's content (cap 9000 chars). A failure"
@@ -577,8 +577,8 @@
         {
           "type": "method",
           "name": "undoEdit",
-          "line_start": 565,
-          "line_end": 593,
+          "line_start": 568,
+          "line_end": 596,
           "signature": "private undoEdit(): void {",
           "access": "private",
           "doc": "Restore the last file write (prev null = the file was created \u2192 delete)."
@@ -586,8 +586,8 @@
         {
           "type": "method",
           "name": "redoEdit",
-          "line_start": 597,
-          "line_end": 631,
+          "line_start": 600,
+          "line_end": 634,
           "signature": "private redoEdit(): void {",
           "access": "private",
           "doc": "Re-apply the last undone write. Edits replay old_text -> next on the"
@@ -595,8 +595,8 @@
         {
           "type": "method",
           "name": "openEditor",
-          "line_start": 636,
-          "line_end": 698,
+          "line_start": 639,
+          "line_end": 701,
           "signature": "private async openEditor(draft: string): Promise<string | null> {",
           "async": true,
           "access": "private",
@@ -605,8 +605,8 @@
         {
           "type": "method",
           "name": "exportTranscript",
-          "line_start": 701,
-          "line_end": 717,
+          "line_start": 704,
+          "line_end": 720,
           "signature": "private exportTranscript(): void {",
           "access": "private",
           "doc": "Write the transcript as timestamped markdown under .smol/exports/."
@@ -614,8 +614,8 @@
         {
           "type": "method",
           "name": "copyLastReply",
-          "line_start": 720,
-          "line_end": 750,
+          "line_start": 723,
+          "line_end": 753,
           "signature": "private copyLastReply(): void {",
           "access": "private",
           "doc": "Copy the last assistant reply to the OS clipboard (best effort)."
@@ -623,8 +623,8 @@
         {
           "type": "method",
           "name": "run",
-          "line_start": 754,
-          "line_end": 923,
+          "line_start": 757,
+          "line_end": 926,
           "signature": "async run(): Promise<void> {",
           "async": true,
           "doc": "The input loop. Returns after /exit (or after the host asked the UI to"
@@ -632,8 +632,8 @@
         {
           "type": "method",
           "name": "shutdown",
-          "line_start": 927,
-          "line_end": 944,
+          "line_start": 930,
+          "line_end": 947,
           "signature": "async shutdown(): Promise<void> {",
           "async": true,
           "doc": "Idempotent: end-of-session hook, kill background tasks, close the UI,"
@@ -641,8 +641,8 @@
         {
           "type": "method",
           "name": "switchModel",
-          "line_start": 946,
-          "line_end": 994,
+          "line_start": 949,
+          "line_end": 997,
           "signature": "private async switchModel(): Promise<void> {",
           "async": true,
           "access": "private"
@@ -650,8 +650,8 @@
         {
           "type": "method",
           "name": "setMode",
-          "line_start": 996,
-          "line_end": 1025,
+          "line_start": 999,
+          "line_end": 1028,
           "signature": "private async setMode(arg?: string): Promise<void> {",
           "async": true,
           "access": "private"
@@ -659,8 +659,8 @@
         {
           "type": "method",
           "name": "setEffort",
-          "line_start": 1027,
-          "line_end": 1057,
+          "line_start": 1030,
+          "line_end": 1060,
           "signature": "private async setEffort(arg?: string): Promise<void> {",
           "async": true,
           "access": "private"

@@ -1,0 +1,9 @@
+{
+  "original_tokens": 440,
+  "compressed_tokens": 133,
+  "saved_tokens": 307,
+  "savings_pct": 69.8,
+  "compressed": "# fix_page_html.js (.js) \u2014 29 lines\nconst fs = require('fs');\nconst file = 'smolcoder-core/src/web/page.ts';\nlet content = fs.readFileSync(file, 'utf8');\nconst target = `<div id=\"main\"> <button class=\"iconbtn\" id=\"sidetoggle\" title=\"show sidebar (ctrl+b)\" hidden>\u2630</button> <div id=\"crumb\"></div>\nconst replacement = `<div id=\"main\"> <div id=\"top\"> <button class=\"iconbtn\" id=\"sidetoggle\" title=\"show sidebar (ctrl+b)\" hidden>\u2630</button>",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\extras\\secondary-agent-tools\\fix_page_html.js"
+}

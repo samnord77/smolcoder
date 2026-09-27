@@ -1,0 +1,34 @@
+{
+  "path": "AGENTS.md",
+  "content_hash": "79d617052e1ee9e76e588cccf8acc162",
+  "updated_at": "2026-09-27T17:30:43",
+  "lines": 15,
+  "size_bytes": 1037,
+  "mtime_ns": 1790448491058554500,
+  "language": "markdown",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "heading",
+      "name": "h1: Instructions du Projet Smolcoder (R\u00e8gles Autonomes)",
+      "line_start": 1,
+      "line_end": 15,
+      "signature": "# Instructions du Projet Smolcoder (R\u00e8gles Autonomes)"
+    },
+    {
+      "type": "heading",
+      "name": "h2: R\u00e8gle Autonome de Compilation Obligatoire :",
+      "line_start": 3,
+      "line_end": 12,
+      "signature": "## R\u00e8gle Autonome de Compilation Obligatoire :"
+    },
+    {
+      "type": "heading",
+      "name": "h2: Commandes Shell sous Windows :",
+      "line_start": 13,
+      "line_end": 15,
+      "signature": "## Commandes Shell sous Windows :"
+    }
+  ]
+}

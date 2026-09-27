@@ -1,0 +1,55 @@
+{
+  "path": "extras/secondary-agent-tools/update-profile.js",
+  "content_hash": "f5b36c231851244dce3f806142b4f11f",
+  "updated_at": "2026-09-27T18:37:48",
+  "lines": 39,
+  "size_bytes": 1423,
+  "mtime_ns": 1790381638975585400,
+  "language": "javascript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "constant",
+      "name": "fs",
+      "line_start": 1,
+      "line_end": 1,
+      "signature": "const fs = require(\"fs\");"
+    },
+    {
+      "type": "constant",
+      "name": "path",
+      "line_start": 2,
+      "line_end": 2,
+      "signature": "const path = require(\"path\");"
+    },
+    {
+      "type": "constant",
+      "name": "smolSnippet",
+      "line_start": 4,
+      "line_end": 10,
+      "signature": "const smolSnippet = `"
+    },
+    {
+      "type": "constant",
+      "name": "ps7Path",
+      "line_start": 12,
+      "line_end": 12,
+      "signature": "const ps7Path = path.join(\"C:\", \"Users\", \"DELL\", \"Documents\", \"PowerShell\", \"Microsoft.PowerShell_profile.ps1\");"
+    },
+    {
+      "type": "constant",
+      "name": "winPsDir",
+      "line_start": 23,
+      "line_end": 23,
+      "signature": "const winPsDir = path.join(\"C:\", \"Users\", \"DELL\", \"Documents\", \"WindowsPowerShell\");"
+    },
+    {
+      "type": "constant",
+      "name": "winPsPath",
+      "line_start": 27,
+      "line_end": 27,
+      "signature": "const winPsPath = path.join(winPsDir, \"Microsoft.PowerShell_profile.ps1\");"
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+{
+  "path": ".c3/MAP.md",
+  "content_hash": "b31aac5431fc6785cd6a7b4d1e0a4889",
+  "updated_at": "2026-09-27T17:51:15",
+  "lines": 116,
+  "size_bytes": 2162,
+  "mtime_ns": 1790343642514309300,
+  "language": "markdown",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "heading",
+      "name": "h1: Repo Map \u2014 smolcoder-source",
+      "line_start": 5,
+      "line_end": 116,
+      "signature": "# Repo Map \u2014 smolcoder-source"
+    },
+    {
+      "type": "heading",
+      "name": "h2: Commands",
+      "line_start": 7,
+      "line_end": 12,
+      "signature": "## Commands"
+    },
+    {
+      "type": "heading",
+      "name": "h2: Entry points",
+      "line_start": 13,
+      "line_end": 16,
+      "signature": "## Entry points"
+    },
+    {
+      "type": "heading",
+      "name": "h2: Modules",
+      "line_start": 17,
+      "line_end": 24,
+      "signature": "## Modules"
+    },
+    {
+      "type": "heading",
+      "name": "h2: Tree",
+      "line_start": 25,
+      "line_end": 111,
+      "signature": "## Tree"
+    },
+    {
+      "type": "heading",
+      "name": "h2: Key files",
+      "line_start": 112,
+      "line_end": 116,
+      "signature": "## Key files"
+    }
+  ],
+  "shape": {
+    "minified": false,
+    "generated": true,
+    "oversized": false,
+    "longest_line": 69,
+    "bytes": 2144
+  }
+}

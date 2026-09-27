@@ -29,8 +29,8 @@
       "test/notify.test.js"
     ],
     "timestamp": "2026-09-24T23:01:36.050007+00:00",
-    "last_accessed_at": "2026-09-25T20:11:42.238426+00:00",
-    "relevance_count": 10,
+    "last_accessed_at": "2026-09-27T18:06:47.376718+00:00",
+    "relevance_count": 28,
     "confidence": 1.0,
     "source_quality": "user",
     "lifecycle": "active",
@@ -51,8 +51,8 @@
       "desktop/main.js"
     ],
     "timestamp": "2026-09-25T20:11:42.244708+00:00",
-    "last_accessed_at": null,
-    "relevance_count": 0,
+    "last_accessed_at": "2026-09-27T18:06:47.376718+00:00",
+    "relevance_count": 15,
     "confidence": 1.0,
     "source_quality": "user",
     "lifecycle": "active",

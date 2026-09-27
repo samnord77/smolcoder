@@ -1,0 +1,48 @@
+{
+  "path": "extras/secondary-agent-tools/fix_page_html.js",
+  "content_hash": "b21f78952b71f7fa6c08ea9822317608",
+  "updated_at": "2026-09-27T18:37:48",
+  "lines": 29,
+  "size_bytes": 1542,
+  "mtime_ns": 1790372011227177700,
+  "language": "javascript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "constant",
+      "name": "fs",
+      "line_start": 1,
+      "line_end": 1,
+      "signature": "const fs = require('fs');"
+    },
+    {
+      "type": "constant",
+      "name": "file",
+      "line_start": 2,
+      "line_end": 2,
+      "signature": "const file = 'smolcoder-core/src/web/page.ts';"
+    },
+    {
+      "type": "variable",
+      "name": "content",
+      "line_start": 3,
+      "line_end": 3,
+      "signature": "let content = fs.readFileSync(file, 'utf8');"
+    },
+    {
+      "type": "constant",
+      "name": "target",
+      "line_start": 5,
+      "line_end": 12,
+      "signature": "const target = `<div id=\"main\">"
+    },
+    {
+      "type": "constant",
+      "name": "replacement",
+      "line_start": 14,
+      "line_end": 20,
+      "signature": "const replacement = `<div id=\"main\">"
+    }
+  ]
+}

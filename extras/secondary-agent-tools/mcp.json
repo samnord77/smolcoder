@@ -1,0 +1,133 @@
+[
+  {
+    "name": "memory",
+    "command": "node",
+    "args": [
+      "C:\\Users\\DELL\\AppData\\Roaming\\npm\\node_modules\\@modelcontextprotocol\\server-memory\\dist\\index.js"
+    ],
+    "timeoutMs": 60000
+  },
+  {
+    "name": "sqlite",
+    "command": "C:\\Users\\DELL\\.local\\bin\\mcp-server-sqlite.exe",
+    "args": [
+      "--db-path",
+      "C:\\Users\\DELL\\.opencode\\opencode.db"
+    ],
+    "timeoutMs": 60000
+  },
+  {
+    "name": "windows",
+    "command": "node",
+    "args": [
+      "C:\\Users\\DELL\\AppData\\Roaming\\npm\\node_modules\\@wonderwhy-er\\desktop-commander\\dist\\index.js"
+    ],
+    "timeoutMs": 60000
+  },
+  {
+    "name": "excel",
+    "command": "node",
+    "args": [
+      "C:\\Users\\DELL\\AppData\\Roaming\\npm\\node_modules\\@negokaz\\excel-mcp-server\\dist\\launcher.js"
+    ],
+    "timeoutMs": 60000,
+    "env": {
+      "EXCEL_FILES_PATH": "C:\\Users\\DELL\\Documents"
+    }
+  },
+  {
+    "name": "word",
+    "command": "C:\\Users\\DELL\\.local\\bin\\word_mcp_server.exe",
+    "args": [],
+    "timeoutMs": 60000
+  },
+  {
+    "name": "powerbi",
+    "command": "node",
+    "args": [
+      "C:\\Users\\DELL\\AppData\\Roaming\\npm\\node_modules\\@microsoft\\powerbi-modeling-mcp\\index.js",
+      "--start"
+    ],
+    "timeoutMs": 60000
+  },
+  {
+    "name": "n8n",
+    "command": "npx",
+    "args": [
+      "-y",
+      "n8n-mcp"
+    ],
+    "timeoutMs": 60000,
+    "env": {
+      "N8N_API_URL": "http://localhost:5678/api/v1"
+    }
+  },
+  {
+    "name": "firecrawl",
+    "command": "node",
+    "args": [
+      "C:\\Users\\DELL\\AppData\\Roaming\\npm\\node_modules\\firecrawl-mcp\\dist\\index.js"
+    ],
+    "timeoutMs": 60000
+  },
+  {
+    "name": "websearch",
+    "command": "node",
+    "args": [
+      "C:\\Users\\DELL\\AppData\\Roaming\\npm\\node_modules\\duckduckgo-mcp-server\\build\\index.js"
+    ],
+    "timeoutMs": 60000
+  },
+  {
+    "name": "context7",
+    "command": "node",
+    "args": [
+      "C:\\Users\\DELL\\AppData\\Roaming\\npm\\node_modules\\@upstash\\context7-mcp\\dist\\index.js"
+    ],
+    "timeoutMs": 60000
+  },
+  {
+    "name": "chrome-devtools",
+    "command": "node",
+    "args": [
+      "C:\\Users\\DELL\\AppData\\Roaming\\npm\\node_modules\\chrome-devtools-mcp\\build\\src\\bin\\chrome-devtools-mcp.js"
+    ],
+    "timeoutMs": 60000
+  },
+  {
+    "name": "scrapling",
+    "command": "C:\\Python314\\Scripts\\scrapling-mcp.exe",
+    "args": [],
+    "timeoutMs": 60000
+  },
+  {
+    "name": "youtube-transcripts",
+    "command": "C:\\Python314\\python.exe",
+    "args": [
+      "C:\\Users\\DELL\\.opencode\\mcp-youtube\\server.py"
+    ],
+    "timeoutMs": 60000
+  },
+  {
+    "name": "laya",
+    "command": "C:\\Python314\\python.exe",
+    "args": [
+      "C:\\Users\\DELL\\AppData\\Roaming\\Python\\Python314\\Scripts\\mcp_laya.py"
+    ],
+    "timeoutMs": 60000
+  },
+  {
+    "name": "code-context-control",
+    "command": "C:\\Users\\DELL\\.local\\bin\\c3-mcp.exe",
+    "args": [],
+    "timeoutMs": 60000
+  },
+  {
+    "name": "zapier",
+    "url": "https://mcp.zapier.com/api/v1/connect",
+    "timeoutMs": 60000,
+    "headers": {
+      "Authorization": "Bearer ${ZAPIER_MCP_KEY}"
+    }
+  }
+]

@@ -1,0 +1,9 @@
+{
+  "original_tokens": 858,
+  "compressed_tokens": 76,
+  "saved_tokens": 782,
+  "savings_pct": 91.1,
+  "compressed": "# test-visual-tester.js (.js) \u2014 125 lines\nconst assert = require(\"node:assert\");\nconst fs = require(\"node:fs\");\nconst path = require(\"node:path\");\nconst visualTester = require(\"./visual-tester.js\");\nlet passed = 0;\nlet failed = 0;\nasync function runTest(name, fn)\nasync function main()",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\extras\\secondary-agent-tools\\test-visual-tester.js"
+}

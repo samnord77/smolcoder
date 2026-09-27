@@ -187,6 +187,13 @@ export const STYLES = String.raw`
   #status .mode.bypass { color: var(--red); background: rgba(244, 63, 94, 0.1); border: 1px solid rgba(244, 63, 94, 0.2); }
   #status .mode.ro { color: var(--magenta); background: rgba(168, 85, 247, 0.1); border: 1px solid rgba(168, 85, 247, 0.2); }
   #status .eff { color: var(--yellow); } #status .plan-chip { color: var(--accent); } #status .plan-chip.done { color: var(--green); }
+  #status .files-chip.active { color: var(--yellow); }
+  .validation-rail { display: inline-flex; align-items: center; gap: 5px; min-height: 20px; padding: 1px 7px 1px 5px; border-left: 3px solid var(--accent); border-radius: 2px; font-size: 11px; white-space: nowrap; }
+  .validation-rail.ok { color: var(--green); border-left-color: var(--green); background: rgba(16,185,129,.08); }
+  .validation-rail.bad { color: var(--red); border-left-color: var(--red); background: rgba(244,63,94,.08); }
+  .validation-rail.pending { color: var(--yellow); border-left-color: var(--yellow); background: rgba(245,158,11,.08); }
+  .validation-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: 0 0 8px currentColor; }
+  .validation-rail.pending .validation-dot { animation: pulse 1s infinite; }
   #hintrow { font-size: 12px; color: var(--gray); margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   /* ---- right panel: browser + terminal tabs ---- */
@@ -410,6 +417,12 @@ export const STYLES = String.raw`
 
   /* Suivi de tâches : liste à cases + progression fine. */
   .plan { scroll-margin-top: 8px; }
+  .plan > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+  .plan > summary::-webkit-details-marker { display: none; }
+  .plan > summary::before { content: "›"; color: var(--accent); font-size: 16px; font-weight: 700; }
+  .plan[open] > summary::before { content: "⌄"; }
+  .plan-toggle { margin-left: auto; color: var(--dim); font-size: 10px; text-transform: uppercase; }
+  .plan[open] .plan-toggle { color: var(--accent); }
   .planbar { height: 3px; background: var(--line); border-radius: 2px; overflow: hidden; margin: 6px 0 8px; }
   .planbar span { display: block; height: 100%; background: var(--accent); border-radius: 2px; }
   .pdone { color: var(--gray); text-decoration: line-through; }

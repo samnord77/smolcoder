@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "lib": [
+      "ES2022",
+      "DOM"
+    ],
+    "skipLibCheck": true,
+    "allowJs": true,
+    "checkJs": false,
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "*": [
+        "smolcoder-core/node_modules/*"
+      ]
+    }
+  },
+  "include": [
+    "*.js"
+  ],
+  "exclude": [
+    "node_modules",
+    ".impeccable-repo",
+    ".venv",
+    "chroma_db",
+    "smolcoder-core"
+  ]
+}

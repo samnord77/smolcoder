@@ -405,12 +405,27 @@ function renderState(v) {
     const done = s.plan.steps.filter((x) => x.done).length;
     st.appendChild(el("span", "plan-chip" + (s.plan.current < 0 ? " done" : ""), "plan " + done + "/" + s.plan.steps.length));
   }
+  const touched = Number.isFinite(s.filesTouchedCount) ? s.filesTouchedCount : (Array.isArray(s.filesTouched) ? s.filesTouched.length : 0);
+  const filesChip = el("button", "statusbtn files-chip" + (touched ? " active" : ""), "fichiers " + touched);
+  filesChip.title = touched ? (s.filesTouched || []).join("\n") : "Aucun fichier modifié par cette session";
+  filesChip.onclick = () => openFilesTab(v, false);
+  st.appendChild(filesChip);
+  if (s.commandsRun && s.commandsRun.length) {
+    const cmdChip = el("span", "task-chip", "commandes " + s.commandsRun.length);
+    cmdChip.title = s.commandsRun.join("\n");
+    st.appendChild(cmdChip);
+  }
   if (s.tasks) st.appendChild(el("span", "task-chip", s.tasks + " running"));
   if (s.verification && (s.outcome === "running" || s.outcome === "idle")) {
     const vchip = el("span", "task-chip", s.verification.passed ? "vérifié ✓" : "réparation auto " + s.verification.attempts);
     vchip.title = "Contrôles automatiques en cours";
     st.appendChild(vchip);
   }
+  const validation = el("span", "validation-rail " + (s.verification?.passed ? "ok" : s.outcome === "error" ? "bad" : "pending"));
+  validation.title = s.verification?.passed ? "Validation du code passée" : s.outcome === "error" ? (s.lastError || "Validation en erreur") : "Validation en attente";
+  validation.appendChild(el("span", "validation-dot"));
+  validation.appendChild(document.createTextNode(s.verification?.passed ? "code validé" : s.outcome === "error" ? "problèmes détectés" : "validation en cours"));
+  st.appendChild(validation);
   if (s.subagent) {
     const chip = el("span", "task-chip sub-chip live");
     chip.appendChild(el("span", "dot"));
@@ -439,12 +454,17 @@ function renderState(v) {
 }
 
 function renderPlan(v, p) {
-  const box = el("div", "plan");
+  const box = document.createElement("details");
+  box.className = "plan";
+  box.open = true;
   const total = p.steps.length;
   const done = p.steps.filter((x) => x.done).length;
   const pct = total ? Math.round((done / total) * 100) : 0;
-  const hdr = el("div", "hdr", done + " tâches sur " + total + " terminées");
-  box.appendChild(hdr);
+  const summary = document.createElement("summary");
+  summary.className = "hdr";
+  summary.appendChild(document.createTextNode(done + " tâches sur " + total + " terminées"));
+  summary.appendChild(el("span", "plan-toggle", "plier"));
+  box.appendChild(summary);
   const bar = el("div", "planbar");
   const fill = el("span", "");
   fill.style.width = pct + "%";
@@ -1764,6 +1784,15 @@ function ccOverview(d) {
   grid.appendChild(ccCard("Skills", (d.skills || []).length + " skills utilisables (projet + intégrées).", "Parcourir", () => ccGoTab("skills")));
   grid.appendChild(ccCard("Outils", (d.tools || []).length + " outils disponibles dans ce mode.", "Lister", () => ccGoTab("tools")));
   grid.appendChild(ccCard("Serveurs MCP", (d.mcp || []).filter((x) => x.ok).length + "/" + (d.mcp || []).length + " joignables.", "Diagnostiquer", () => ccGoTab("mcp")));
+  const c3 = d.c3 || {};
+  grid.appendChild(ccCard(
+    "C3 / mémoire projet",
+    c3.enabled
+      ? (c3.workspace ? "Contrôle C3 actif dans cet espace." : "C3 global détecté, sans index workspace.")
+      : "C3 non détecté dans cet espace.",
+    c3.enabled ? "Rafraîchir" : null,
+    () => loadCC()
+  ));
   wrap.appendChild(ccSection("Raccourcis", grid));
   return wrap;
 }

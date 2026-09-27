@@ -1,0 +1,9 @@
+{
+  "original_tokens": 1373,
+  "compressed_tokens": 80,
+  "saved_tokens": 1293,
+  "savings_pct": 94.2,
+  "compressed": "# test-self-healing.js (.js) \u2014 166 lines\nconst assert = require(\"node:assert\");\nconst fs = require(\"node:fs\");\nconst os = require(\"node:os\");\nconst path = require(\"node:path\");\nconst selfHealing = require(\"./self-healing.js\");\nlet passed = 0;\nlet failed = 0;\nfunction runTest(name, fn)",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\extras\\secondary-agent-tools\\test-self-healing.js"
+}

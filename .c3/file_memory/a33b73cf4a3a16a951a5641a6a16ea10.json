@@ -1,0 +1,76 @@
+{
+  "path": "extras/secondary-agent-tools/inject-native-tools.js",
+  "content_hash": "cd09e643f33befa388e87964ab0a64e5",
+  "updated_at": "2026-09-27T18:37:48",
+  "lines": 507,
+  "size_bytes": 22814,
+  "mtime_ns": 1790363938219722800,
+  "language": "javascript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "constant",
+      "name": "fs",
+      "line_start": 18,
+      "line_end": 18,
+      "signature": "const fs = require(\"node:fs\");"
+    },
+    {
+      "type": "constant",
+      "name": "_path",
+      "line_start": 19,
+      "line_end": 19,
+      "signature": "const _path = require(\"node:path\");"
+    },
+    {
+      "type": "constant",
+      "name": "TARGET_FILES",
+      "line_start": 21,
+      "line_end": 25,
+      "signature": "const TARGET_FILES = ["
+    },
+    {
+      "type": "constant",
+      "name": "readToolsSchema",
+      "line_start": 28,
+      "line_end": 77,
+      "signature": "const readToolsSchema = `"
+    },
+    {
+      "type": "constant",
+      "name": "execToolsSchema",
+      "line_start": 80,
+      "line_end": 145,
+      "signature": "const execToolsSchema = `"
+    },
+    {
+      "type": "constant",
+      "name": "executionLogic",
+      "line_start": 148,
+      "line_end": 387,
+      "signature": "const executionLogic = `"
+    },
+    {
+      "type": "constant",
+      "name": "switchCases",
+      "line_start": 389,
+      "line_end": 417,
+      "signature": "const switchCases = `"
+    },
+    {
+      "type": "constant",
+      "name": "newAfterWrite",
+      "line_start": 419,
+      "line_end": 448,
+      "signature": "const newAfterWrite = `function afterWrite(workspace, relPath) {"
+    },
+    {
+      "type": "function",
+      "name": "injectInTarget",
+      "line_start": 450,
+      "line_end": 499,
+      "signature": "function injectInTarget(targetFile) {"
+    }
+  ]
+}

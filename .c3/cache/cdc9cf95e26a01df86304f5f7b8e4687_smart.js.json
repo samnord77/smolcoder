@@ -1,0 +1,9 @@
+{
+  "original_tokens": 1352,
+  "compressed_tokens": 92,
+  "saved_tokens": 1260,
+  "savings_pct": 93.2,
+  "compressed": "# smol-orchestrator.js (.js) \u2014 148 lines\nconst _fs = require(\"node:fs\");\nconst _path = require(\"node:path\");\nconst selfHealing = require(\"./self-healing.js\");\nconst modelRouter = require(\"./model-router.js\");\nfunction runSmol(prompt, options = {})\nasync function orchestrate(taskDescription, options = {})\nconst args = process.argv.slice(2);\nconst task = args[0];",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\extras\\secondary-agent-tools\\smol-orchestrator.js"
+}

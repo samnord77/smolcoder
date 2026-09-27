@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "updatedAt": "2026-09-27T17:39:01.433Z",
+  "steps": [
+    {
+      "text": "Analyse: carte globale, cœur agent/session/providers, outils+sécurité, 3 interfaces, capacités annexes (TOUT FAIT - notes retrouvées dans git)",
+      "done": true
+    },
+    {
+      "text": "Vérifier cohérence localisation \"1 Mo\" : src/editor-tools.ts vs test modifié ; build + tests ciblés",
+      "done": true
+    },
+    {
+      "text": "Fixer le flaky test verification.test.js:101 (race ready.txt, échec ~50% en suite complète) - lire runAcceptance/Agent.verify dans agent.ts",
+      "done": false,
+      "note": "Échec réel capturé (.scratch/vt-once.log): test:101 'recovery from failed edits...' → runTurn REJECT \"Acceptance checks still fail after 1 attempts / command exited with code 42\" (verify.cjs = if(!existsSync('ready.txt'))process.exit(42)). Trace: Agent.verify dist/agent.js:350 ← runAcceptance :450 ← runTurn :576. Modèle fake: batch1=24 write_file app.txt, batch2=6 edit_file ÉCHOUÉS (not in file), batch3=write ready.txt, batch4=answer() → acceptance finale ne voit PAS ready.txt (exit 42). Hypothèse race flush/visibilité Windows entre writeFileSync du tool et spawn du child verify.cjs. PROCHAIN: lire implémentation write_file + runCommand + Agent.verify pour localiser le vrai gap; vérifier si d'autres tests partagent le pattern ready.txt"
+    },
+    {
+      "text": "Lancer npm run build && npm run test jusqu'à vert",
+      "done": false
+    },
+    {
+      "text": "Nouveau périmètre : confirmer changements codex présents, dist/ frais vs src/, répondre au 524 Cloudflare/Ollama (config.ts, nouveaux fichiers editor-*/workspace-*)",
+      "done": false
+    },
+    {
+      "text": "Synthèse finale en français simple pour l'utilisateur",
+      "done": false
+    }
+  ]
+}

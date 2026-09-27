@@ -1,0 +1,15 @@
+[
+  {
+    "session_id": "codex_e41a24489259e13d2af70d77f57a9a4a",
+    "title": "<environment_context>   <cwd>C:\\Users\\DELL\\smolcoder-source</cwd>   <shell>powershell</shell>   <cur",
+    "source": "codex",
+    "source_file": "C:\\Users\\DELL\\.skywork\\sessions\\2026\\09\\25\\rollout-2026-09-25T22-53-43-01a0da8f-47ce-7eb3-ac28-42fd0ad60574.jsonl",
+    "source_mtime": 1790507152374654600,
+    "started": 1790373231.792,
+    "ended": 1790507152.183,
+    "turns": 64,
+    "user_tokens": 1842,
+    "assistant_tokens": 14551,
+    "compressed": false
+  }
+]

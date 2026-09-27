@@ -1,0 +1,9 @@
+{
+  "original_tokens": 1118,
+  "compressed_tokens": 189,
+  "saved_tokens": 929,
+  "savings_pct": 83.1,
+  "compressed": "# chroma-memory.py (.py) \u2014 113 lines\nimport json\nimport os\nimport sys\nimport urllib.request\nimport chromadb  # noqa: E402\nfrom chromadb.api.types import Documents, EmbeddingFunction, Embeddings  # noqa: E402\n\nCHROMA_PATH = \"C:/Users/DELL/.smolcoder/chroma_db\"\nOLLAMA_EMBED_URL = \"http://127.0.0.1:11434/api/embeddings\"\nEMBED_MODEL = \"all-minilm\"\n\nclass LocalOllamaEmbeddingFunction(EmbeddingFunction)\n  def __init__(self, **kwargs)\n  def __call__(self, input: Documents) -> Embeddings\ndef get_collection()\ndef store_memory(mem_id: str, text: str, category: str = \"general\")\ndef recall_memory(query: str, n_results: int = 3)\ndef stats_memory()",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\extras\\secondary-agent-tools\\chroma-memory.py"
+}

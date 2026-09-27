@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "updatedAt": "2026-09-27T12:19:22.235Z",
+  "steps": [
+    {
+      "text": "Audit état global (fichiers, git, build, tests)",
+      "done": false
+    },
+    {
+      "text": "Corriger le test flaky verification.test.js:101",
+      "done": false
+    },
+    {
+      "text": "Vérifier fraîcheur dist/ vs src/",
+      "done": false
+    },
+    {
+      "text": "Panneau MCP avec relance individuelle des serveurs en erreur",
+      "done": false
+    },
+    {
+      "text": "Connecter C3 à ses actions mémoire/indexation réelles",
+      "done": false
+    },
+    {
+      "text": "Cowork enrichi avec actions métier pilotées par les MCP disponibles",
+      "done": false
+    },
+    {
+      "text": "Ajouter un vrai aperçu local du workspace (pas seulement URL externe)",
+      "done": false
+    },
+    {
+      "text": "Build final + tests complets + synthèse FR",
+      "done": false
+    }
+  ]
+}

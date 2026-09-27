@@ -1,0 +1,14 @@
+{
+  "include": [
+    "chroma-memory.py"
+  ],
+  "exclude": [
+    "**/node_modules",
+    "**/.venv",
+    "**/chroma_db",
+    "**/dist",
+    "**/.impeccable-repo",
+    "**/smolcoder-core"
+  ],
+  "pythonPlatform": "Windows"
+}

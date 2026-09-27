@@ -1,0 +1,33 @@
+run 1: FAIL (status=0)
+
+run 2: FAIL (status=0)
+
+run 3: FAIL (status=1)
+
+run 4: FAIL (status=0)
+
+run 5: FAIL (status=1)
+
+run 6: FAIL (status=0)
+
+run 7: FAIL (status=0)
+
+run 8: FAIL (status=0)
+
+run 9: FAIL (status=0)
+
+run 10: FAIL (status=0)
+
+run 11: FAIL (status=0)
+
+run 12: FAIL (status=0)
+
+run 13: FAIL (status=0)
+
+run 14: FAIL (status=0)
+
+run 15: FAIL (status=1)
+
+
+RESULTAT: 0/15 OK — échecs sur les runs 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
+MEASURE_EXIT=0

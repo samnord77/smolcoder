@@ -1,10 +1,10 @@
 {
   "path": "src/context.ts",
-  "content_hash": "b7494017cc87aad3272751c8942142e0",
-  "updated_at": "2026-09-24T17:24:23",
-  "lines": 523,
-  "size_bytes": 25852,
-  "mtime_ns": 1790260569931468600,
+  "content_hash": "0552d39a23c60c2b493c51c0216c1dd6",
+  "updated_at": "2026-09-27T17:30:43",
+  "lines": 528,
+  "size_bytes": 26212,
+  "mtime_ns": 1790463245731428700,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -46,289 +46,296 @@
     },
     {
       "type": "constant",
+      "name": "MAX_SAFE_TUNNEL_WINDOW",
+      "line_start": 35,
+      "line_end": 35,
+      "signature": "const MAX_SAFE_TUNNEL_WINDOW = 28000;"
+    },
+    {
+      "type": "constant",
       "name": "MSG_OVERHEAD_TOKENS",
-      "line_start": 34,
-      "line_end": 34,
+      "line_start": 36,
+      "line_end": 36,
       "signature": "const MSG_OVERHEAD_TOKENS = 8;"
     },
     {
       "type": "constant",
       "name": "EVICT_KEEP_RECENT",
-      "line_start": 35,
-      "line_end": 35,
+      "line_start": 37,
+      "line_end": 37,
       "signature": "const EVICT_KEEP_RECENT = 6; // never evict tool results in the last N messages"
     },
     {
       "type": "constant",
       "name": "EVICT_STUB",
-      "line_start": 36,
-      "line_end": 36,
+      "line_start": 38,
+      "line_end": 38,
       "signature": "const EVICT_STUB = \"[old output removed to save space \u2014 run the tool again if you need it]\";"
     },
     {
       "type": "constant",
       "name": "STALE_READ_STUB",
-      "line_start": 37,
-      "line_end": 37,
+      "line_start": 39,
+      "line_end": 39,
       "signature": "const STALE_READ_STUB = \"[this read is out of date \u2014 the file was rewritten afterwards. Call read_file again if you need its current content.]\";"
     },
     {
       "type": "constant",
       "name": "STALE_READ_MIN_CHARS",
-      "line_start": 38,
-      "line_end": 38,
+      "line_start": 40,
+      "line_end": 40,
       "signature": "const STALE_READ_MIN_CHARS = 1500; // small reads are cheaper to keep than to re-prefill around"
     },
     {
       "type": "interface",
       "name": "CompactionReport",
-      "line_start": 40,
-      "line_end": 44,
+      "line_start": 42,
+      "line_end": 46,
       "signature": "interface CompactionReport {",
       "children": []
     },
     {
       "type": "interface",
       "name": "CompactState",
-      "line_start": 46,
-      "line_end": 53,
+      "line_start": 48,
+      "line_end": 55,
       "signature": "interface CompactState {",
       "children": []
     },
     {
       "type": "function",
       "name": "callFor",
-      "line_start": 57,
-      "line_end": 67,
+      "line_start": 59,
+      "line_end": 69,
       "signature": "function callFor(messages: Msg[], toolMsgIndex: number): { name: string; args: Record<string, any> } | null {",
       "doc": "Tool-call args for a tool-result message (the call lives on the preceding"
     },
     {
       "type": "class",
       "name": "ContextManager",
-      "line_start": 69,
-      "line_end": 492,
+      "line_start": 71,
+      "line_end": 497,
       "signature": "class ContextManager {",
       "children": [
         {
           "type": "property",
           "name": "lastPromptTokens",
-          "line_start": 70,
-          "line_end": 70,
+          "line_start": 72,
+          "line_end": 72,
           "signature": "private lastPromptTokens = 0;",
           "access": "private"
         },
         {
           "type": "property",
           "name": "lastCompletionTokens",
-          "line_start": 71,
-          "line_end": 71,
+          "line_start": 73,
+          "line_end": 73,
           "signature": "private lastCompletionTokens = 0;",
           "access": "private"
         },
         {
           "type": "property",
           "name": "anchorIndex",
-          "line_start": 72,
-          "line_end": 72,
+          "line_start": 74,
+          "line_end": 74,
           "signature": "private anchorIndex = 0; // messages.length at the time usage was reported",
           "access": "private"
         },
         {
           "type": "property",
           "name": "floorWarned",
-          "line_start": 73,
-          "line_end": 73,
+          "line_start": 75,
+          "line_end": 75,
           "signature": "private floorWarned = false;",
           "access": "private"
         },
         {
           "type": "property",
           "name": "calibration",
-          "line_start": 74,
-          "line_end": 74,
+          "line_start": 76,
+          "line_end": 76,
           "signature": "private calibration = 1;",
           "access": "private"
         },
         {
           "type": "property",
           "name": "replaysThinking",
-          "line_start": 75,
-          "line_end": 75,
+          "line_start": 77,
+          "line_end": 77,
           "signature": "private replaysThinking = true;",
           "access": "private"
         },
         {
           "type": "property",
           "name": "background",
-          "line_start": 76,
-          "line_end": 76,
+          "line_start": 78,
+          "line_end": 78,
           "signature": "private background: { controller: AbortController; work: Promise<void> } | null = null;",
           "access": "private"
         },
         {
           "type": "property",
           "name": "prepared",
-          "line_start": 77,
-          "line_end": 77,
+          "line_start": 79,
+          "line_end": 79,
           "signature": "private prepared: { source: string; count: number; messages: Msg[] } | null = null;",
           "access": "private"
         },
         {
           "type": "property",
           "name": "preparedAt",
-          "line_start": 78,
-          "line_end": 78,
+          "line_start": 80,
+          "line_end": 80,
           "signature": "private preparedAt = 0;",
           "access": "private"
         },
         {
           "type": "method",
           "name": "constructor",
-          "line_start": 80,
-          "line_end": 83,
+          "line_start": 82,
+          "line_end": 85,
           "signature": "constructor("
         },
         {
           "type": "method",
           "name": "setWindow",
-          "line_start": 86,
-          "line_end": 92,
+          "line_start": 88,
+          "line_end": 94,
           "signature": "setWindow(window: number, reserve?: number): void {",
           "doc": "Model switches mid-session change the window we budget against."
         },
         {
           "type": "method",
           "name": "recordUsage",
-          "line_start": 96,
-          "line_end": 102,
+          "line_start": 98,
+          "line_end": 104,
           "signature": "recordUsage(promptTokens: number | undefined, completionTokens: number | undefined, messageCount: number): void {",
           "doc": "Invariant: lastPromptTokens + lastCompletionTokens cover exactly the"
         },
         {
           "type": "method",
           "name": "resetAnchor",
-          "line_start": 105,
-          "line_end": 110,
+          "line_start": 107,
+          "line_end": 112,
           "signature": "resetAnchor(): void {",
           "doc": "Drop the usage anchor (transcript replaced/cleared behind it)."
         },
         {
           "type": "method",
           "name": "estimateMessages",
-          "line_start": 112,
-          "line_end": 129,
+          "line_start": 114,
+          "line_end": 131,
           "signature": "estimateMessages(messages: Msg[]): number {"
         },
         {
           "type": "method",
           "name": "estimateTools",
-          "line_start": 131,
-          "line_end": 133,
+          "line_start": 133,
+          "line_end": 135,
           "signature": "estimateTools(tools: ToolSpec[]): number {"
         },
         {
           "type": "method",
           "name": "setReplayThinking",
-          "line_start": 135,
-          "line_end": 135,
+          "line_start": 137,
+          "line_end": 137,
           "signature": "setReplayThinking(value: boolean): void { this.replaysThinking = value; this.resetAnchor(); }"
         },
         {
           "type": "method",
           "name": "estimatePrompt",
-          "line_start": 138,
-          "line_end": 147,
+          "line_start": 140,
+          "line_end": 149,
           "signature": "estimatePrompt(messages: Msg[], tools: ToolSpec[]): number {",
           "doc": "Best estimate of the next request's prompt size in tokens."
         },
         {
           "type": "method",
           "name": "usableWindow",
-          "line_start": 149,
-          "line_end": 151,
+          "line_start": 151,
+          "line_end": 155,
           "signature": "usableWindow(): number {"
         },
         {
           "type": "method",
           "name": "toolResultCharLimit",
-          "line_start": 155,
-          "line_end": 157,
+          "line_start": 159,
+          "line_end": 161,
           "signature": "toolResultCharLimit(): number {",
           "doc": "Leave room for several related reads, their calls, and the next edit."
         },
         {
           "type": "method",
           "name": "calibrate",
-          "line_start": 160,
-          "line_end": 164,
+          "line_start": 164,
+          "line_end": 168,
           "signature": "calibrate(promptTokens: number | undefined, input: Msg[], tools: ToolSpec[]): void {",
           "doc": "Learn conservative tokenizer overhead without adding a tokenizer dependency."
         },
         {
           "type": "method",
           "name": "budget",
-          "line_start": 166,
-          "line_end": 169,
+          "line_start": 170,
+          "line_end": 173,
           "signature": "budget(messages: Msg[], tools: ToolSpec[]) {"
         },
         {
           "type": "method",
           "name": "assertFits",
-          "line_start": 171,
-          "line_end": 176,
+          "line_start": 175,
+          "line_end": 180,
           "signature": "assertFits(messages: Msg[], tools: ToolSpec[]): void {"
         },
         {
           "type": "method",
           "name": "prepareBackground",
-          "line_start": 179,
-          "line_end": 197,
+          "line_start": 183,
+          "line_end": 201,
           "signature": "prepareBackground(messages: Msg[], tools: ToolSpec[], provider: Provider, state: CompactState, delayMs = 750): void {",
           "doc": "Only run while a command is using the CPU/shell. Never queue behind coding."
         },
         {
           "type": "method",
           "name": "cancelBackground",
-          "line_start": 199,
-          "line_end": 202,
+          "line_start": 203,
+          "line_end": 206,
           "signature": "cancelBackground(discard = false): void {"
         },
         {
           "type": "method",
           "name": "foreground",
-          "line_start": 204,
-          "line_end": 208,
+          "line_start": 208,
+          "line_end": 212,
           "signature": "async foreground(): Promise<void> {",
           "async": true
         },
         {
           "type": "method",
           "name": "fillPercent",
-          "line_start": 210,
-          "line_end": 212,
+          "line_start": 214,
+          "line_end": 216,
           "signature": "fillPercent(messages: Msg[], tools: ToolSpec[]): number {"
         },
         {
           "type": "method",
           "name": "needsAttention",
-          "line_start": 214,
-          "line_end": 222,
+          "line_start": 218,
+          "line_end": 227,
           "signature": "needsAttention(messages: Msg[], tools: ToolSpec[]): boolean {"
         },
         {
           "type": "method",
           "name": "evictStaleReads",
-          "line_start": 230,
-          "line_end": 251,
+          "line_start": 235,
+          "line_end": 256,
           "signature": "evictStaleReads(messages: Msg[], filePath: string): number {",
           "doc": "Tier 0: a file was just completely rewritten \u2014 every earlier read_file"
         },
         {
           "type": "method",
           "name": "manage",
-          "line_start": 257,
-          "line_end": 376,
+          "line_start": 262,
+          "line_end": 381,
           "signature": "async manage(",
           "async": true,
           "doc": "Bring the transcript back under budget. Mutates and/or replaces `messages`;"
@@ -336,8 +343,8 @@
         {
           "type": "method",
           "name": "compact",
-          "line_start": 378,
-          "line_end": 491,
+          "line_start": 383,
+          "line_end": 496,
           "signature": "private async compact(",
           "async": true,
           "access": "private"
@@ -347,8 +354,8 @@
     {
       "type": "function",
       "name": "renderForDigest",
-      "line_start": 498,
-      "line_end": 523,
+      "line_start": 503,
+      "line_end": 528,
       "signature": "function renderForDigest(messages: Msg[], budgetChars: number): string {"
     }
   ]

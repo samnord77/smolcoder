@@ -89,5 +89,5 @@ test("replace all is literal, bounded, and leaves the original untouched on over
 	const overflow = tools.replaceAllLiteral("x", "x", "y".repeat(1_048_577));
 	assert.equal(overflow.text, "x");
 	assert.equal(overflow.count, 0);
-	assert.match(overflow.error, /1 MB/i);
+	assert.match(overflow.error, /1 Mo/i);
 });

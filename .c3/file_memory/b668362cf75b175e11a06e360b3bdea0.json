@@ -1,10 +1,10 @@
 {
   "path": "src/web/hub.ts",
-  "content_hash": "926f1ffdd44c49a6ac006331c1bd1b91",
-  "updated_at": "2026-09-26T18:01:05",
-  "lines": 1201,
-  "size_bytes": 44529,
-  "mtime_ns": 1790427683177118900,
+  "content_hash": "fc6c1e1aacc5af65ba1eb8aa665b2a66",
+  "updated_at": "2026-09-27T17:30:45",
+  "lines": 1209,
+  "size_bytes": 45041,
+  "mtime_ns": 1790508683196339600,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -305,7 +305,7 @@
       "type": "class",
       "name": "WebHub",
       "line_start": 236,
-      "line_end": 1201,
+      "line_end": 1209,
       "signature": "class WebHub {",
       "children": [
         {
@@ -724,7 +724,7 @@
           "type": "method",
           "name": "statusReport",
           "line_start": 1131,
-          "line_end": 1188,
+          "line_end": 1196,
           "signature": "private async statusReport(url: URL): Promise<any> {",
           "async": true,
           "access": "private",
@@ -733,8 +733,8 @@
         {
           "type": "method",
           "name": "agentDraft",
-          "line_start": 1192,
-          "line_end": 1199,
+          "line_start": 1200,
+          "line_end": 1207,
           "signature": "private agentDraft(workspace: string, roleName: string, task: string): any {",
           "access": "private",
           "doc": "The delegation message for a role. subagents.ts stays the single source of"

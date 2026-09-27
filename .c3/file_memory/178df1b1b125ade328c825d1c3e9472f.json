@@ -1,0 +1,70 @@
+{
+  "path": "extras/secondary-agent-tools/smol-orchestrator.js",
+  "content_hash": "cdc9cf95e26a01df86304f5f7b8e4687",
+  "updated_at": "2026-09-27T18:37:50",
+  "lines": 148,
+  "size_bytes": 4948,
+  "mtime_ns": 1790362347821586400,
+  "language": "javascript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "constant",
+      "name": "_fs",
+      "line_start": 10,
+      "line_end": 10,
+      "signature": "const _fs = require(\"node:fs\");"
+    },
+    {
+      "type": "constant",
+      "name": "_path",
+      "line_start": 11,
+      "line_end": 11,
+      "signature": "const _path = require(\"node:path\");"
+    },
+    {
+      "type": "constant",
+      "name": "selfHealing",
+      "line_start": 12,
+      "line_end": 12,
+      "signature": "const selfHealing = require(\"./self-healing.js\");"
+    },
+    {
+      "type": "constant",
+      "name": "modelRouter",
+      "line_start": 13,
+      "line_end": 13,
+      "signature": "const modelRouter = require(\"./model-router.js\");"
+    },
+    {
+      "type": "function",
+      "name": "runSmol",
+      "line_start": 15,
+      "line_end": 48,
+      "signature": "function runSmol(prompt, options = {}) {"
+    },
+    {
+      "type": "function",
+      "name": "orchestrate",
+      "line_start": 50,
+      "line_end": 137,
+      "signature": "async function orchestrate(taskDescription, options = {}) {",
+      "async": true
+    },
+    {
+      "type": "constant",
+      "name": "args",
+      "line_start": 139,
+      "line_end": 139,
+      "signature": "const args = process.argv.slice(2);"
+    },
+    {
+      "type": "constant",
+      "name": "task",
+      "line_start": 147,
+      "line_end": 147,
+      "signature": "const task = args[0];"
+    }
+  ]
+}

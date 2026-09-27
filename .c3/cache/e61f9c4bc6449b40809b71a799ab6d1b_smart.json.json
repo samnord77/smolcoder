@@ -1,0 +1,9 @@
+{
+  "original_tokens": 269,
+  "compressed_tokens": 46,
+  "saved_tokens": 223,
+  "savings_pct": 82.9,
+  "compressed": "# 947d10b7.json (.json) \u2014 38 lines\n\"version\": 1,\n\"updatedAt\": \"2026-09-27T12:19:22.235Z\",\n\"steps\": [",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\.smol\\plans\\947d10b7.json"
+}

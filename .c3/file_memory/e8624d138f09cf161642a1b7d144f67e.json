@@ -1,0 +1,55 @@
+{
+  "path": "extras/secondary-agent-tools/test-ast-indexer.js",
+  "content_hash": "eadddfe393081e67ac16d72de0575576",
+  "updated_at": "2026-09-27T18:37:50",
+  "lines": 120,
+  "size_bytes": 3940,
+  "mtime_ns": 1790361994051702700,
+  "language": "javascript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "constant",
+      "name": "assert",
+      "line_start": 6,
+      "line_end": 6,
+      "signature": "const assert = require(\"node:assert\");"
+    },
+    {
+      "type": "constant",
+      "name": "path",
+      "line_start": 7,
+      "line_end": 7,
+      "signature": "const path = require(\"node:path\");"
+    },
+    {
+      "type": "constant",
+      "name": "astIndexer",
+      "line_start": 8,
+      "line_end": 8,
+      "signature": "const astIndexer = require(\"./ast-indexer.js\");"
+    },
+    {
+      "type": "variable",
+      "name": "passed",
+      "line_start": 14,
+      "line_end": 14,
+      "signature": "let passed = 0;"
+    },
+    {
+      "type": "variable",
+      "name": "failed",
+      "line_start": 15,
+      "line_end": 15,
+      "signature": "let failed = 0;"
+    },
+    {
+      "type": "function",
+      "name": "runTest",
+      "line_start": 17,
+      "line_end": 26,
+      "signature": "function runTest(name, fn) {"
+    }
+  ]
+}

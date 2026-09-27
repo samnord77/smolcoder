@@ -1,7 +1,7 @@
 {
  "schema_version": 1,
- "updated_at": "2026-09-26T18:47:05",
- "last_scan": "2026-09-26T18:47:05",
+ "updated_at": "2026-09-27T19:06:48",
+ "last_scan": "2026-09-27T19:06:48",
  "artifacts": {
   "instructions:AGENTS.md": {
    "id": "instructions:AGENTS.md",
@@ -26,18 +26,33 @@
        "binary": false
       }
      ]
+    },
+    {
+     "v": 2,
+     "ts": "2026-09-27T12:06:08",
+     "unit_hash": "6e438255eb775d167c6052b5ffa79617ef8ef6b110f19ded4495bb51d1b23c64",
+     "event_id": "art_20260927_120608_001_2011",
+     "source": "scan",
+     "members": [
+      {
+       "path": "AGENTS.md",
+       "blob": "7833dc031cb37d6782dca77af9dc7051198dc250c66c012ebfb84cc9a2280337",
+       "size": 1037,
+       "binary": false
+      }
+     ]
     }
    ],
    "exists": true,
-   "unit_hash": "b675527152f514cf02f25ba47e821ee290364c2c32ce0cc258b8d2ced7e2e2f9",
-   "current_version": 1,
-   "last_changed": "2026-09-26T18:43:05",
+   "unit_hash": "6e438255eb775d167c6052b5ffa79617ef8ef6b110f19ded4495bb51d1b23c64",
+   "current_version": 2,
+   "last_changed": "2026-09-27T12:06:08",
    "members": [
     {
      "path": "AGENTS.md",
-     "sha256": "490b76298f362281d744ecace30278d9bcc70f270cefac4b2dc3783d6a89073f",
-     "size": 691,
-     "mtime": 1790444458.8958468,
+     "sha256": "7833dc031cb37d6782dca77af9dc7051198dc250c66c012ebfb84cc9a2280337",
+     "size": 1037,
+     "mtime": 1790448491.0585544,
      "binary": false
     }
    ]

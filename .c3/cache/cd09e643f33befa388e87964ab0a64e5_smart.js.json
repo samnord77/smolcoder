@@ -1,0 +1,9 @@
+{
+  "original_tokens": 5346,
+  "compressed_tokens": 147,
+  "saved_tokens": 5199,
+  "savings_pct": 97.3,
+  "compressed": "# inject-native-tools.js (.js) \u2014 507 lines\nconst fs = require(\"node:fs\");\nconst _path = require(\"node:path\");\nconst TARGET_FILES = [ \"C:\\\\npm-global\\\\node_modules\\\\smolcoder\\\\dist\\\\tools\\\\index.js\", \"C:\\\\Users\\\\DELL\\\\smolcoder-source\\\\dist\\\\tools\\\\index.js\",\nconst readToolsSchema = `\nconst execToolsSchema = `\nconst executionLogic = ` /* NATIVE_SKILLS_MCP_SUBAGENTS_CHROMA_INJECTED */ const fsSync = require(\"fs\");\nconst switchCases = ` case \"skill\"\nconst newAfterWrite = `function afterWrite(workspace, relPath)\nfunction injectInTarget(targetFile)",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\extras\\secondary-agent-tools\\inject-native-tools.js"
+}

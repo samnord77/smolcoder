@@ -104,3 +104,44 @@
 {"timestamp": "2026-09-25T17:50:25.430586+00:00", "type": "tool_call", "tool": "c3_read", "args": {"file": "desktop/main.js", "symbols": null}, "result_summary": "5390->1107tok", "ok": true, "session_id": "20260925_112127_7665d46da88a"}
 {"timestamp": "2026-09-25T21:26:18.918894+00:00", "type": "session_start", "session_id": "20260925_212618_b05954130cf3", "source_system": "claude"}
 {"timestamp": "2026-09-26T16:50:59.793165+00:00", "type": "session_start", "session_id": "20260926_165058_a45b205b7e07", "source_system": "claude"}
+{"timestamp": "2026-09-27T11:06:10.148000+00:00", "type": "session_start", "session_id": "20260927_110602_05e102f88317", "source_system": "codex", "host_session_id": "01a0da8f-47ce-7eb3-ac28-42fd0ad60574"}
+{"timestamp": "2026-09-27T16:27:36.163041+00:00", "type": "session_start", "session_id": "20260927_162734_f0778521dcaa", "source_system": "claude"}
+{"timestamp": "2026-09-27T16:48:40.303294+00:00", "type": "session_start", "session_id": "20260927_164838_0239733e7ab3", "source_system": "claude"}
+{"timestamp": "2026-09-27T16:51:15.007258+00:00", "type": "tool_call", "tool": "c3_search", "args": {"action": "files"}, "result_summary": "2f", "ok": true, "session_id": "20260927_164838_0239733e7ab3"}
+{"timestamp": "2026-09-27T16:51:15.093991+00:00", "type": "tool_call", "tool": "c3_read", "args": {"file": ".c3/MAP.md"}, "result_summary": "657->103tok", "ok": true, "session_id": "20260927_164838_0239733e7ab3"}
+{"timestamp": "2026-09-27T16:51:24.164799+00:00", "type": "tool_call", "tool": "c3_read", "args": {"file": ".c3/MAP.md", "symbols": null}, "result_summary": "315tok", "ok": true, "session_id": "20260927_164838_0239733e7ab3"}
+{"timestamp": "2026-09-27T16:51:24.403525+00:00", "type": "tool_call", "tool": "c3_read", "args": {"file": "package.json"}, "result_summary": "420->155tok", "ok": true, "session_id": "20260927_164838_0239733e7ab3"}
+{"timestamp": "2026-09-27T16:51:32.959321+00:00", "type": "tool_call", "tool": "c3_read", "args": {"file": "package.json", "symbols": null}, "result_summary": "420tok", "ok": true, "session_id": "20260927_164838_0239733e7ab3"}
+{"timestamp": "2026-09-27T16:51:35.040613+00:00", "type": "tool_call", "tool": "c3_read", "args": {"file": "desktop/package.json"}, "result_summary": "122->93tok", "ok": true, "session_id": "20260927_164838_0239733e7ab3"}
+{"timestamp": "2026-09-27T16:51:35.302688+00:00", "type": "tool_call", "tool": "c3_read", "args": {"file": "src/index.ts"}, "result_summary": "4753->237tok", "ok": true, "session_id": "20260927_164838_0239733e7ab3"}
+{"timestamp": "2026-09-27T16:52:00.020296+00:00", "type": "tool_call", "tool": "c3_read", "args": {"file": "src/providers"}, "result_summary": "dir:5files->150tok", "ok": true, "session_id": "20260927_164838_0239733e7ab3"}
+{"timestamp": "2026-09-27T16:52:00.194886+00:00", "type": "tool_call", "tool": "c3_read", "args": {"file": "src/tools"}, "result_summary": "dir:8files->239tok", "ok": true, "session_id": "20260927_164838_0239733e7ab3"}
+{"timestamp": "2026-09-27T16:52:00.342887+00:00", "type": "tool_call", "tool": "c3_read", "args": {"file": "src/tui"}, "result_summary": "dir:3files->102tok", "ok": true, "session_id": "20260927_164838_0239733e7ab3"}
+{"timestamp": "2026-09-27T16:52:01.302905+00:00", "type": "tool_call", "tool": "c3_read", "args": {"file": "src/web"}, "result_summary": "dir:10files->288tok", "ok": true, "session_id": "20260927_164838_0239733e7ab3"}
+{"timestamp": "2026-09-27T16:52:35.929685+00:00", "type": "budget_auto_reset", "gap_seconds": 35}
+{"timestamp": "2026-09-27T16:52:35.934679+00:00", "type": "tool_call", "tool": "c3_read", "args": {"file": "README.md"}, "result_summary": "3003->226tok", "ok": true, "session_id": "20260927_164838_0239733e7ab3"}
+{"timestamp": "2026-09-27T16:52:36.283323+00:00", "type": "tool_call", "tool": "c3_read", "args": {"file": "desktop/package.json", "symbols": null}, "result_summary": "122tok", "ok": true, "session_id": "20260927_164838_0239733e7ab3"}
+{"timestamp": "2026-09-27T16:53:04.506381+00:00", "type": "tool_call", "tool": "c3_read", "args": {"file": "src/index.ts", "symbols": null}, "result_summary": "4753->1536tok", "ok": true, "session_id": "20260927_164838_0239733e7ab3"}
+{"timestamp": "2026-09-27T16:53:04.802178+00:00", "type": "tool_call", "tool": "c3_read", "args": {"file": "src/providers/types.ts"}, "result_summary": "1620->238tok", "ok": true, "session_id": "20260927_164838_0239733e7ab3"}
+{"timestamp": "2026-09-27T16:53:05.054193+00:00", "type": "tool_call", "tool": "c3_read", "args": {"file": "src/tools/index.ts"}, "result_summary": "5661->217tok", "ok": true, "session_id": "20260927_164838_0239733e7ab3"}
+{"timestamp": "2026-09-27T16:53:32.498987+00:00", "type": "tool_call", "tool": "c3_read", "args": {"file": "src/agent.ts"}, "result_summary": "11067->1058tok", "ok": true, "session_id": "20260927_164838_0239733e7ab3"}
+{"timestamp": "2026-09-27T16:53:32.597348+00:00", "type": "tool_call", "tool": "c3_read", "args": {"file": "src/session.ts"}, "result_summary": "10281->952tok", "ok": true, "session_id": "20260927_164838_0239733e7ab3"}
+{"timestamp": "2026-09-27T16:53:32.930319+00:00", "type": "tool_call", "tool": "c3_read", "args": {"file": "src/config.ts"}, "result_summary": "1312->222tok", "ok": true, "session_id": "20260927_164838_0239733e7ab3"}
+{"timestamp": "2026-09-27T16:53:33.547005+00:00", "type": "tool_call", "tool": "c3_read", "args": {"file": "src/context.ts"}, "result_summary": "6284->815tok", "ok": true, "session_id": "20260927_164838_0239733e7ab3"}
+{"timestamp": "2026-09-27T16:54:06.854073+00:00", "type": "budget_auto_reset", "gap_seconds": 33}
+{"timestamp": "2026-09-27T16:54:06.864643+00:00", "type": "tool_call", "tool": "c3_read", "args": {"file": "src/providers/ollama.ts"}, "result_summary": "2533->518tok", "ok": true, "session_id": "20260927_164838_0239733e7ab3"}
+{"timestamp": "2026-09-27T16:54:07.463283+00:00", "type": "tool_call", "tool": "c3_read", "args": {"file": "src/providers/lmstudio.ts"}, "result_summary": "3411->541tok", "ok": true, "session_id": "20260927_164838_0239733e7ab3"}
+{"timestamp": "2026-09-27T16:54:07.556199+00:00", "type": "tool_call", "tool": "c3_read", "args": {"file": "src/web/hub.ts"}, "result_summary": "10853->1357tok", "ok": true, "session_id": "20260927_164838_0239733e7ab3"}
+{"timestamp": "2026-09-27T16:54:40.459445+00:00", "type": "budget_auto_reset", "gap_seconds": 33}
+{"timestamp": "2026-09-27T16:54:40.463966+00:00", "type": "tool_call", "tool": "c3_read", "args": {"file": "scripts/test.cjs"}, "result_summary": "182->29tok", "ok": true, "session_id": "20260927_164838_0239733e7ab3"}
+{"timestamp": "2026-09-27T16:55:29.915143+00:00", "type": "budget_auto_reset", "gap_seconds": 49}
+{"timestamp": "2026-09-27T16:55:29.919145+00:00", "type": "tool_call", "tool": "c3_read", "args": {"file": "desktop/main.js"}, "result_summary": "5213->306tok", "ok": true, "session_id": "20260927_164838_0239733e7ab3"}
+{"timestamp": "2026-09-27T16:55:30.250156+00:00", "type": "tool_call", "tool": "c3_read", "args": {"file": "scripts/test.cjs", "symbols": null}, "result_summary": "182tok", "ok": true, "session_id": "20260927_164838_0239733e7ab3"}
+{"timestamp": "2026-09-27T18:05:30.175549+00:00", "type": "shell_exec", "cmd": "git status --short && git log --oneline -3", "cwd": "C:\\Users\\DELL\\smolcoder-source", "exit_code": 0, "duration_ms": 3954, "timed_out": false, "touched_files": [], "creds": []}
+{"timestamp": "2026-09-27T18:05:30.195681+00:00", "type": "budget_auto_reset", "gap_seconds": 4200}
+{"timestamp": "2026-09-27T18:05:30.198702+00:00", "type": "tool_call", "tool": "c3_shell", "args": {"cmd": "git status --short && git log --oneline -3", "cwd": "C:\\Users\\DELL\\smolcoder-source"}, "result_summary": "shell OK in 3954ms", "ok": true, "session_id": "20260927_164838_0239733e7ab3"}
+{"timestamp": "2026-09-27T18:06:47.398729+00:00", "type": "budget_auto_reset", "gap_seconds": 77}
+{"timestamp": "2026-09-27T18:06:47.402283+00:00", "type": "tool_call", "tool": "c3_read", "args": {"file": "src/tools/index.ts", "symbols": null}, "result_summary": "5661->1445tok", "ok": true, "session_id": "20260927_164838_0239733e7ab3"}
+{"timestamp": "2026-09-27T18:06:47.413275+00:00", "type": "tool_call", "tool": "c3_read", "args": {"file": "src/mcp.ts"}, "result_summary": "6413->749tok", "ok": true, "session_id": "20260927_164838_0239733e7ab3"}
+{"timestamp": "2026-09-27T18:06:47.464911+00:00", "type": "tool_call", "tool": "c3_read", "args": {"file": "tsconfig.json"}, "result_summary": "116->44tok", "ok": true, "session_id": "20260927_164838_0239733e7ab3"}
+{"timestamp": "2026-09-27T18:06:47.478241+00:00", "type": "tool_call", "tool": "c3_read", "args": {"file": "src/plugins.ts"}, "result_summary": "635->114tok", "ok": true, "session_id": "20260927_164838_0239733e7ab3"}

@@ -1,0 +1,9 @@
+{
+  "original_tokens": 1598,
+  "compressed_tokens": 184,
+  "saved_tokens": 1414,
+  "savings_pct": 88.5,
+  "compressed": "# tasks.ts (.ts) \u2014 170 lines\nimport { ChildProcess, spawn } from \"child_process\";\nimport { pickShell, killTree, managedCommand, shellEnv } from \"./shell\";\n\ninterface Task\nconst RING_SIZE = 300;\n\nexport class TaskManager\n  private tasks = new Map<string, Task>();\n  private counter = 0;\n  private static readonly MAX_KEPT = 50;\n  constructor(private cwd: string) {}\n  private prune(): void\n  start(command: string): string\n  async startWithEarlyOutput(command: string): Promise<string>\n  logs(taskId: string, lineCount = 50): string\n  stop(taskId: string): string\n  list(): string\n  hasRunning(): boolean\n  runningSummary(): string[]\n  recentUrls(): string[]\n  killAll(): void\n  private unknownTask(taskId: string): string",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\tools\\tasks.ts"
+}

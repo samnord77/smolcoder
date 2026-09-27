@@ -1,0 +1,34 @@
+{
+  "path": "extras/secondary-agent-tools/pyrightconfig.json",
+  "content_hash": "b0d7c05ad04e665296391cb52d87db40",
+  "updated_at": "2026-09-27T17:30:45",
+  "lines": 14,
+  "size_bytes": 222,
+  "mtime_ns": 1790354897593605100,
+  "language": "json",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "property",
+      "name": "include",
+      "line_start": 2,
+      "line_end": 4,
+      "signature": "include"
+    },
+    {
+      "type": "property",
+      "name": "exclude",
+      "line_start": 5,
+      "line_end": 12,
+      "signature": "exclude"
+    },
+    {
+      "type": "property",
+      "name": "pythonPlatform",
+      "line_start": 13,
+      "line_end": 13,
+      "signature": "pythonPlatform"
+    }
+  ]
+}

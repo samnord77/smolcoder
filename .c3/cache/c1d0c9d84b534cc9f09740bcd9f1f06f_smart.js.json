@@ -1,0 +1,9 @@
+{
+  "original_tokens": 811,
+  "compressed_tokens": 51,
+  "saved_tokens": 760,
+  "savings_pct": 93.7,
+  "compressed": "# test-model-router.js (.js) \u2014 101 lines\nconst assert = require(\"node:assert\");\nconst modelRouter = require(\"./model-router.js\");\nlet passed = 0;\nlet failed = 0;\nfunction runTest(name, fn)",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\extras\\secondary-agent-tools\\test-model-router.js"
+}

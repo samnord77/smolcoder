@@ -1,0 +1,9 @@
+{
+  "original_tokens": 1370,
+  "compressed_tokens": 73,
+  "saved_tokens": 1297,
+  "savings_pct": 94.7,
+  "compressed": "# model-router.js (.js) \u2014 182 lines\nlet cachedModels = null;\nlet lastCacheTime = 0;\nconst CACHE_TTL_MS = 60000; // 1 minute\nfunction getInstalledModels()\nfunction getModelForTier(tier)\nfunction getModelForRole(role)\nfunction routePrompt(prompt)\nfunction resolveModelWithFallback(requestedModel)",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\extras\\secondary-agent-tools\\model-router.js"
+}

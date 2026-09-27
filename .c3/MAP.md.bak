@@ -34,6 +34,10 @@ smolcoder-source/
   tsconfig.json
   .github/
     workflows/ (1 files)
+  .playwright-mcp/
+    page-2026-09-24T19-52-18-561Z.yml
+  .smol/
+    mcp.json
   bench/
     block-meadow-browser.cjs
     block-meadow-checks.mjs
@@ -55,14 +59,20 @@ smolcoder-source/
     audit-2026-09-13.md
     backend-notes.md
     how-it-works.md
+    kaggle.md
     lifecycle-2026-09-13.md
+    mcp-cli.md
+    mcp.json
+    plugins.md
     unattended-2026-09-13.md
     evidence/ (12 files)
   scripts/
     test.cjs
+    vram-check.cjs
   src/
     agent.ts
     attachments.ts
+    builtin-skills.ts
     config.ts
     context.ts
     detect.ts
@@ -71,33 +81,32 @@ smolcoder-source/
     hosts.ts
     index.ts
     logo.ts
+    lsp.ts
+    mcp.ts
     netscan.ts
     network.ts
-    plan.ts
-    prompt.ts
-    sandbox.ts
-    ... +5 more
+    ... +8 more
     providers/ (5 files)
-    tools/ (6 files)
+    tools/ (7 files)
     tui/ (3 files)
-    web/ (7 files)
+    web/ (10 files)
   test/
     agent.test.js
+    app.test.js
     attachments.test.js
     branding.test.js
     check.test.js
     context.test.js
     detect.test.js
+    diff.test.js
     edit-feedback.test.js
+    fetch.test.js
     history.test.js
+    http-mcp.test.js
+    lsp.test.js
+    mcp.test.js
     network.test.js
-    plan.test.js
-    process-lifecycle.test.js
-    providers.test.js
-    read-budget.test.js
-    recovery.test.js
-    sandbox.test.js
-    ... +3 more
+    ... +13 more
 ```
 
 ## Key files

@@ -1,5 +1,17 @@
 {
-  "pending": [],
+  "pending": [
+    ".smol/plans/3bba3839.json",
+    "test/editor-tools.test.js",
+    "desktop/editor.html",
+    "desktop/main.js",
+    "src/context.ts",
+    "src/web/client.ts",
+    "src/web/styles.ts",
+    "src/session.ts",
+    "src/web/hub.ts",
+    ".c3/MAP.md",
+    ".smol/plans/f593b42a.json"
+  ],
   "inflight": [
     "desktop/preload-git.js"
   ]
