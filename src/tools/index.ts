@@ -301,12 +301,14 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
           {
             name: "delegate",
       description:
-        'Hand a small subtask to a bounded, role-scoped sub-agent. Example: {"role":"architect","task":"map the login flow and report files + line numbers"}. Choose a role shown in the IDE control centre; omit role for expert. Its tool allowlist is enforced. Max 12 tool calls, no nested delegates.',
+        'Hand a small subtask to a bounded sub-agent (max 12 tool calls, no nested delegates). Roster role: {"role":"architect","task":"map the login flow and report files + line numbers"}. Or define a purpose-built specialist inline: {"task":"audit this parser for crashes","tools":"read_file,search,symbols","instructions":"List every unchecked input with file:line"}. Custom tools must be a subset of your own tools; omit role for expert.',
             parameters: {
               type: "object",
           properties: {
             task: { type: "string", description: "The small concrete subtask" },
-            role: { type: "string", description: 'Optional specialist role from the IDE roles panel (default: "expert")' },
+            role: { type: "string", description: 'Roster role from the IDE roles panel (default: "expert")' },
+            tools: { type: "string", description: 'Custom specialist only: comma-separated subset of your tools, e.g. "read_file,search"' },
+            instructions: { type: "string", description: "Custom specialist only: one-paragraph brief (max 1000 chars)" },
               },
               required: ["task"],
             },
@@ -414,8 +416,10 @@ export interface ToolContext {
   /** False in read-only mode: skill "save" is refused. Defaults to true so
    * older callers and tests keep working. */
   canWrite?: boolean;
-  /** Wired by the Agent: runs one bounded role-scoped sub-turn. Never set by the model. */
-  delegate?: (task: string, signal?: AbortSignal, role?: string) => Promise<string>;
+  /** Wired by the Agent: runs one bounded role-scoped sub-turn. Never set by the model.
+   * custom defines a purpose-built specialist inline (no role file): a
+   * comma-separated tool subset plus a one-paragraph brief. */
+  delegate?: (task: string, signal?: AbortSignal, role?: string, custom?: { tools?: string; instructions?: string }) => Promise<string>;
   /** Lazy MCP bridge (external servers from `.smol/mcp.json`). Never set by the model. */
   mcp?: McpBridge;
   /** Workspace tool plugins (.smol/plugins/*.cjs). Never set by the model. */
@@ -543,7 +547,15 @@ export async function executeTool(
           return "Error: sub-agents are unavailable at this depth. Do the step yourself with read/search.";
         }
         const role = typeof args.role === "string" ? args.role.trim() : undefined;
-        result = await ctx.delegate(task, signal, role);
+        const customTools = typeof args.tools === "string" ? args.tools : undefined;
+        const customInstructions = typeof args.instructions === "string" ? args.instructions : undefined;
+        if (customInstructions !== undefined && customInstructions.trim().length > 1000) {
+          return "Error: keep custom instructions under 1000 characters — one paragraph.";
+        }
+        const custom = customTools !== undefined || customInstructions !== undefined
+          ? { tools: customTools, instructions: customInstructions }
+          : undefined;
+        result = await ctx.delegate(task, signal, role, custom);
         break;
       }
       case "skill": {

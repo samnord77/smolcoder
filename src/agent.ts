@@ -156,12 +156,46 @@ export class Agent {
       this.toolCtx.delegate = undefined;
       return;
     }
-    this.toolCtx.delegate = async (task: string, signal?: AbortSignal, requestedRole?: string): Promise<string> => {
-      const roleName = (requestedRole || "expert").trim().toLowerCase();
-      const role = loadSubagentRoles(this.toolCtx.workspace).find((candidate) => candidate.name === roleName);
-      if (!role) {
-        const available = loadSubagentRoles(this.toolCtx.workspace).map((candidate) => candidate.name).join(", ");
-        return `Error: unknown sub-agent role "${roleName}". Available roles: ${available}.`;
+    this.toolCtx.delegate = async (
+      task: string,
+      signal?: AbortSignal,
+      requestedRole?: string,
+      custom?: { tools?: string; instructions?: string }
+    ): Promise<string> => {
+      const customToolsRaw = typeof custom?.tools === "string" ? custom.tools : "";
+      const customInstructions = typeof custom?.instructions === "string" ? custom.instructions.trim().slice(0, 1000) : "";
+      let role;
+      if (customToolsRaw.trim() || customInstructions) {
+        // Purpose-built specialist: the parent defines tools + brief inline,
+        // no role file needed. The allowlist can only shrink, never grow.
+        const mine = this.toolCtx.allowedTools ? [...this.toolCtx.allowedTools] : this.tools.map((t) => t.name);
+        const wanted = customToolsRaw
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean);
+        const bad = wanted.filter((t) => !mine.includes(t));
+        if (bad.length) {
+          return `Error: custom tools must come from your own tool list (no privilege escalation). Not allowed: ${bad.join(", ")}. Yours: ${mine.join(", ")}.`;
+        }
+        const readerFallback = ["read_file", "list_files", "search", "symbols", "index_symbols", "fetch_url"].filter((t) =>
+          mine.includes(t)
+        );
+        role = {
+          name: "custom",
+          role: "Custom specialist",
+          description: task.slice(0, 120),
+          tools: wanted.length ? [...new Set(wanted)] : readerFallback,
+          instructions: customInstructions || "Do the subtask and report back with files, line numbers and what remains.",
+          source: "builtin" as const,
+        };
+      } else {
+        const roleName = (requestedRole || "expert").trim().toLowerCase();
+        const found = loadSubagentRoles(this.toolCtx.workspace).find((candidate) => candidate.name === roleName);
+        if (!found) {
+          const available = loadSubagentRoles(this.toolCtx.workspace).map((candidate) => candidate.name).join(", ");
+          return `Error: unknown sub-agent role "${roleName}". Available roles: ${available}.`;
+        }
+        role = found;
       }
       const childCtx: ToolContext = {
         workspace: this.toolCtx.workspace,
@@ -364,7 +398,16 @@ export class Agent {
     }
     if (attempts >= (check.maxAttempts ?? 6)) throw new Error(`Acceptance checks still fail after ${attempts} attempts. The task is incomplete.\n${truncateMiddle(output, 1600)}`);
     this.ui.status("· acceptance failed — continuing repairs automatically");
-    this.messages.push({ role: "user", content: `[Acceptance failed; the task is not complete. Repair the first failing behavior. The harness will rerun acceptance automatically. Do not skip tests or report success.${check.source === "project" ? `\nCommand: ${check.command}` : ""}\n${truncateMiddle(output, this.ctxMgr.toolResultCharLimit())}]` });
+    // Auto-evolution at the moment of need: past lessons for similar
+    // failures ride into the repair, not just the next turn's prompt.
+    let lessonNote = "";
+    try {
+      const lessons = relevantSkills(this.toolCtx.workspace, output, 800);
+      if (lessons.trim()) lessonNote = `\nPast auto-repair lessons for similar failures — apply first:\n${lessons}`;
+    } catch {
+      /* lessons must never break a repair */
+    }
+    this.messages.push({ role: "user", content: `[Acceptance failed; the task is not complete. Repair the first failing behavior. The harness will rerun acceptance automatically. Do not skip tests or report success.${check.source === "project" ? `\nCommand: ${check.command}` : ""}\n${truncateMiddle(output, this.ctxMgr.toolResultCharLimit())}${lessonNote}]` });
     if (this.sameVerificationFailures === 2 && this.canRefreshVerification) {
       this.ui.status("· same check failed again — refreshing working context");
       // Repeating an unchanged hypothesis in a larger transcript is not

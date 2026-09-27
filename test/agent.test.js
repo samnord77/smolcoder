@@ -288,3 +288,46 @@ test("a fresh coding turn receives the saved project plan as context", async () 
   assert.match(sent, /Implement the repair/);
   assert.match(sent, /adjust src\/service.ts/);
 });
+
+test("delegate with custom tools spawns a restricted specialist", async () => {
+  const provider = scriptedProvider([
+    { toolCalls: [{ id: "d1", name: "delegate", args: { task: "find X", tools: "read_file,search", instructions: "Be terse." } }] },
+    { content: "found X in a.txt" },
+    { content: "done parent" },
+  ]);
+  const agent = makeAgent(provider, fakeUi());
+  await agent.runTurn("do it");
+  assert.equal(agent.outcome, "completed");
+  assert.deepEqual(provider.toolsets[1].sort(), ["read_file", "search"]);
+  assert.ok(agent.messages.some((m) => m.role === "tool" && /found X in a\.txt/.test(m.content)));
+});
+
+test("delegate refuses custom tools outside the parent allowlist", async () => {
+  const provider = scriptedProvider([
+    { toolCalls: [{ id: "d1", name: "delegate", args: { task: "x", tools: "run_command" } }] },
+    { content: "done" },
+  ]);
+  const ui = fakeUi();
+  const ws = fs.mkdtempSync(path.join(os.tmpdir(), "tc-agent-"));
+  const toolCtx = {
+    workspace: ws, taskManager: new TaskManager(ws), plan: new Plan(), filesTouched: new Set(), commandsRun: [],
+    allowedTools: new Set(["delegate", "read_file", "search"]),
+  };
+  const agent = new Agent(provider, "bypass", "sys", toolCtx, new ContextManager(8000, 2000), new EventBus(), ui, false, 20);
+  await agent.runTurn("do it");
+  assert.equal(agent.outcome, "completed");
+  assert.ok(agent.messages.some((m) => m.role === "tool" && /must come from your own tool list/.test(m.content)));
+  assert.equal(provider.toolsets.length, 2, "no child turn ran");
+});
+
+test("delegate validates custom instruction length", async () => {
+  const { executeTool } = require("../dist/tools/index");
+  const ws = fs.mkdtempSync(path.join(os.tmpdir(), "tc-agent-"));
+  const tm = new TaskManager(ws);
+  try {
+    const ctx = { workspace: ws, taskManager: tm, plan: new Plan(), filesTouched: new Set(), commandsRun: [], delegate: async () => "never" };
+    assert.match(await executeTool("delegate", { task: "x", instructions: "y".repeat(1001) }, ctx), /under 1000/);
+  } finally {
+    try { tm.killAll(); } catch {}
+  }
+});

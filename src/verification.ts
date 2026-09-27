@@ -69,6 +69,21 @@ export function projectVerification(workspace: string): string | undefined {
     commands.push("python -m pytest -q");
   }
 
+  const composerFile = workspaceEntry(workspace, "composer.json");
+  if (composerFile) {
+    try {
+      if (fs.statSync(composerFile).size <= 1024 * 1024) {
+        const data = JSON.parse(fs.readFileSync(composerFile, "utf8"));
+        const scripts = data && typeof data === "object" && !Array.isArray(data) ? (data as any).scripts : null;
+        if (scripts && typeof scripts === "object" && !Array.isArray(scripts) && typeof scripts.test === "string" && scripts.test.trim()) {
+          commands.push("composer test");
+        }
+      }
+    } catch {
+      // malformed composer metadata: never interpolate it.
+    }
+  }
+
   if (workspaceEntry(workspace, "go.mod")) commands.push("go test ./...");
   if (workspaceEntry(workspace, "Cargo.toml")) commands.push("cargo test --workspace");
   const dotnetExtensions = [".sln", ".slnx", ".csproj", ".fsproj", ".vbproj"];

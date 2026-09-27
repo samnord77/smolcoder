@@ -36,7 +36,11 @@
     "desktop/preload.js",
     "test/plan.test.js",
     "package-lock.json",
-    "package.json"
+    "package.json",
+    "src/prompt.ts",
+    "src/agent.ts",
+    "test/agent.test.js",
+    "src/verification.ts"
   ],
   "inflight": [
     "desktop/preload-git.js"

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-27T21:33:03.321Z",
+  "updatedAt": "2026-09-27T22:16:01.402Z",
   "steps": [
     {
       "text": "Analyse: carte globale, cœur agent/session/providers, outils+sécurité, 3 interfaces, capacités annexes (TOUT FAIT - notes retrouvées dans git)",
@@ -13,7 +13,7 @@
     {
       "text": "Fixer le flaky test verification.test.js:101 (race ready.txt, échec ~50% en suite complète) - lire runAcceptance/Agent.verify dans agent.ts",
       "done": false,
-      "note": "Mecanisme confirme: checkProgress (L295) NE consomme PAS le budget verify (pas de verificationResult). runAcceptance=verify() appelle a L593 (avant answer), L747, L749. Test 101 attend progressChecks=2 + attempts=1 + completed. Trace capturee: runTurn :576 = bloc FINAL → le verify final voit ready.txt MANQUANT (exit 42). En iso node --test vt PASS (11s); en suite complete echec deterministe. => contamination entre tests OU race visibilite Windows sous charge CPU. PROCHAIN: lire shell.ts runCommand (spawn cwd) + projectVerification; chercher saveAutoRepairLesson/ecrit .smol dans workspaces de tests precedents; comparer resolve() workspace vs spawn cwd."
+      "note": "TEST 101 (test/verification.test.js:96): chat: calls1-2 texte, call3 write_file ready.txt, call4 answer. verification caller-owned {command:'node verify.cjs',maxAttempts:3}. Attend progressChecks=2, attempts=1, completed. MEGA-FAIL: progressChecks=1 (post_progress_check 1x), status/attempts OK. agent.ts checkProgress(L294) appelé QUE dans needsEvidence L721 + périodique L745 (seuil 24). 1 write_file → needsEvidence true une fois → 1 seul check; AUCUN re-check dédié après l'edit du modèle. À VÉRIFIER: (a) projectVerification(tmpdir vierge)=null? sinon 0 checks; (b) git show 2eccaea -- test/verification.test.js (tandem?); (c) assertions exactes courantes 101+193."
     },
     {
       "text": "Lancer npm run build && npm run test jusqu'à vert",
