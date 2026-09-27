@@ -38,7 +38,8 @@
     "build": "npm run clean && tsc",
     "dev": "tsc -w",
     "prepublishOnly": "npm test",
-    "test": "npm run build && node scripts/test.cjs"
+    "test": "npm run build && node scripts/test.cjs",
+    "package-win": "npm run build && electron-packager . Smolcoder --platform=win32 --arch=x64 --out=release --overwrite && node scripts/patch-packaged-main.cjs"
   },
   "engines": {
     "node": ">=18"
@@ -46,9 +47,13 @@
   "devDependencies": {
     "@types/node": "^20.14.0",
     "electron": "^31.7.7",
+    "electron-packager": "^17.1.2",
     "typescript": "^5.5.0"
   },
   "dependencies": {
     "undici-types": "^6.21.0"
+  },
+  "allowScripts": {
+    "electron@31.7.7": true
   }
 }

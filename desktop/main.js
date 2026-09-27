@@ -2,6 +2,7 @@
 // Shell natif autour du hub web existant : fenetre principale (hub complet),
 // editeur de fichiers integre, menus natifs pour /models /mode /effort /tasks.
 const { app, BrowserWindow, Menu, clipboard, dialog, ipcMain, shell } = require("electron");
+const { spawnSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 const hub = require("./hub-client");
@@ -10,6 +11,77 @@ const editorFileService = require("./editor-file-service");
 
 const ROOT = path.join(__dirname, ".."); // smolcoder-source
 const DIST_INDEX = path.join(ROOT, "dist", "index.js");
+let APP_VERSION = "0.0.0";
+try {
+  APP_VERSION = require(path.join(ROOT, "package.json")).version || APP_VERSION;
+} catch {
+  /* version inconnue : la garde anti-vieux-hub est désactivée */
+}
+
+/** dist/ est ignoré par git : sans compilation, l'app tourne sur l'ancien
+ * code (ou pas du tout). "missing" = rien à lancer, "stale" = source plus
+ * récente que le build, "ok"/"unknown" = on continue. */
+function distState() {
+  try {
+    if (!fs.existsSync(DIST_INDEX)) return "missing";
+    const built = fs.statSync(DIST_INDEX).mtimeMs;
+    let newest = 0;
+    const stack = [path.join(ROOT, "src")];
+    while (stack.length) {
+      const dir = stack.pop();
+      let entries = [];
+      try {
+        entries = fs.readdirSync(dir, { withFileTypes: true });
+      } catch {
+        continue;
+      }
+      for (const e of entries) {
+        const abs = path.join(dir, e.name);
+        if (e.isDirectory()) {
+          if (!e.name.startsWith(".")) stack.push(abs);
+          continue;
+        }
+        if (!e.name.endsWith(".ts")) continue;
+        try {
+          const m = fs.statSync(abs).mtimeMs;
+          if (m > newest) newest = m;
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+    return newest > built + 2000 ? "stale" : "ok";
+  } catch {
+    return "unknown";
+  }
+}
+
+function runBuild() {
+  const candidates = ["npm", "npm.cmd"];
+  try {
+    for (const base of [process.env.ProgramFiles, "C:\\Program Files", "C:\\Program Files (x86)"]) {
+      if (base) candidates.push(path.join(base, "nodejs", "npm.cmd"));
+    }
+  } catch {
+    /* variables d'environnement illisibles */
+  }
+  for (const cmd of candidates) {
+    try {
+      const r = spawnSync(cmd, ["run", "build"], {
+        cwd: ROOT,
+        shell: true,
+        timeout: 300000,
+        windowsHide: true,
+        encoding: "utf8",
+        maxBuffer: 4 * 1024 * 1024,
+      });
+      if (!r.error && r.status === 0 && fs.existsSync(DIST_INDEX)) return true;
+    } catch {
+      /* commande suivante */
+    }
+  }
+  return false;
+}
 const { resolveInWorkspace } = require(path.join(ROOT, "dist", "sandbox.js"));
 const { searchWorkspace } = require(path.join(ROOT, "dist", "workspace-search.js"));
 
@@ -316,8 +388,15 @@ ipcMain.handle("ed:read", async (_e, rel) => {
 
 ipcMain.handle("ed:search", async (_e, query) => searchWorkspace(assertRoot(), query, { maxMatches: 200 }));
 ipcMain.handle("ed:diagnostics", async (_e, rel) => {
-  const { workspaceDiagnostics } = require(path.join(ROOT, "dist", "workspace-diagnostics.js"));
-  return workspaceDiagnostics(assertRoot(), rel);
+  const root = assertRoot();
+  try {
+    const { queryDiagStructured } = require(path.join(ROOT, "dist", "lsp-pro.js"));
+    const r = await queryDiagStructured(root, rel);
+    return { message: r.text, diagnostics: r.diagnostics };
+  } catch (e) {
+    const { workspaceDiagnostics } = require(path.join(ROOT, "dist", "workspace-diagnostics.js"));
+    return workspaceDiagnostics(root, rel);
+  }
 });
 
 ipcMain.handle("ed:save", async (_e, rel, content, expectedMtimeMs) => {
@@ -336,6 +415,72 @@ ipcMain.handle("ed:save", async (_e, rel, content, expectedMtimeMs) => {
   fs.mkdirSync(path.dirname(abs), { recursive: true });
   fs.writeFileSync(abs, content, "utf8");
   return { mtimeMs: fs.statSync(abs).mtimeMs };
+});
+
+ipcMain.handle("ed:new", async (_e, rel, dir) => {
+  const root = assertRoot();
+  if (!rel || rel === "." || rel === "/") throw new Error("Chemin requis.");
+  const abs = resolveInWorkspace(root, rel);
+  if (fs.existsSync(abs)) throw new Error(`"${rel}" existe déjà.`);
+  if (dir === true) fs.mkdirSync(abs, { recursive: true });
+  else {
+    fs.mkdirSync(path.dirname(abs), { recursive: true });
+    fs.writeFileSync(abs, "", "utf8");
+  }
+  return { path: rel };
+});
+
+ipcMain.handle("ed:rename", async (_e, rel, to) => {
+  const root = assertRoot();
+  if (!rel || !to) throw new Error("Chemins requis.");
+  const absFrom = resolveInWorkspace(root, rel);
+  const absTo = resolveInWorkspace(root, to);
+  if (!fs.existsSync(absFrom)) throw new Error(`"${rel}" n’existe pas.`);
+  if (fs.existsSync(absTo)) throw new Error(`"${to}" existe déjà.`);
+  fs.mkdirSync(path.dirname(absTo), { recursive: true });
+  fs.renameSync(absFrom, absTo);
+  return { path: to };
+});
+
+ipcMain.handle("ed:delete", async (_e, rel) => {
+  const root = assertRoot();
+  if (!rel || rel === "." || rel === "/") throw new Error("Chemin requis (jamais le dossier lui-même).");
+  const abs = resolveInWorkspace(root, rel);
+  if (!fs.existsSync(abs)) throw new Error(`"${rel}" n’existe pas.`);
+  if (fs.statSync(abs).isDirectory()) fs.rmSync(abs, { recursive: true, force: true });
+  else fs.unlinkSync(abs);
+  return {};
+});
+
+ipcMain.handle("ed:completion", async (_e, rel, line, col) => {
+  const root = assertRoot();
+  const { queryCode } = require(path.join(ROOT, "dist", "lsp-pro.js"));
+  const out = await queryCode(root, { action: "completion", path: rel, line, col });
+  if (typeof out === "string" && out.startsWith("Error")) throw new Error(out);
+  const items = String(out)
+    .split("\n")
+    .filter((l) => l.startsWith("- "))
+    .slice(0, 12)
+    .map((l) => {
+      const body = l.slice(2);
+      const m = /^(.+?)(?: \(([^)]*)\))?(?: — (.*))?$/.exec(body);
+      return { label: (m ? m[1] : body).trim(), kind: (m && m[2]) || "", detail: (m && m[3]) || "" };
+    });
+  return { items };
+});
+
+ipcMain.handle("ed:inlineStart", async (_e, payload) => {
+  const root = assertRoot();
+  if (!hubRec) throw new Error("Hub Smolcoder requis (fenêtre principale).");
+  const sid = await hub.ensureSession(hubRec, root);
+  const r = await hub.api(hubRec, "POST", "/code/inline/start", { sid, ...(payload || {}) });
+  if (!r?.op) throw new Error("L’édition inline n’a pas démarré.");
+  return r;
+});
+
+ipcMain.handle("ed:inlineResult", async (_e, op) => {
+  if (!hubRec) throw new Error("Hub Smolcoder requis (fenêtre principale).");
+  return hub.api(hubRec, "GET", `/code/inline/result?id=${encodeURIComponent(String(op ?? ""))}`, null);
 });
 
 ipcMain.handle("ed:askModel", async () => {
@@ -499,6 +644,31 @@ ipcMain.handle("panel:data", async () => {
 });
 
 app.whenReady().then(async () => {
+  const st = distState();
+  if (st === "missing" || st === "stale") {
+    const { response } = await dialog.showMessageBox({
+      type: "info",
+      title: "Smolcoder Desktop",
+      message: st === "missing" ? "Première compilation requise." : "Le code source a changé depuis la dernière compilation.",
+      detail: "Compiler maintenant ? (~1 minute — affiche ensuite les nouveautés).",
+      buttons: st === "missing" ? ["Compiler", "Quitter"] : ["Compiler", "Continuer quand même"],
+      defaultId: 0,
+      cancelId: 1,
+    });
+    if (response !== 0) {
+      if (st === "missing") {
+        app.quit();
+        return;
+      }
+    } else if (!runBuild() || !fs.existsSync(DIST_INDEX)) {
+      dialog.showErrorBox(
+        "Smolcoder Desktop",
+        "La compilation a échoué. Lancez `npm run build` dans un terminal, puis relancez."
+      );
+      app.quit();
+      return;
+    }
+  }
   if (!fs.existsSync(DIST_INDEX)) {
     dialog.showErrorBox("Smolcoder Desktop", `dist/index.js introuvable.\nLancez d\u2019abord : npm run build\n(dans ${ROOT})`);
     app.quit();
@@ -508,9 +678,40 @@ app.whenReady().then(async () => {
   try {
     projectDir = process.argv[2] && !process.argv[2].startsWith("-") ? process.argv[2] : ROOT;
     currentProjectDir = projectDir;
-    const r = await hub.ensureHub({ projectDir, distIndex: DIST_INDEX });
-    hubRec = r.rec;
-    hubBase = r.url;
+    try {
+      const r = await hub.ensureHub({ projectDir, distIndex: DIST_INDEX, expectedVersion: APP_VERSION });
+      hubRec = r.rec;
+      hubBase = r.url;
+    } catch (e) {
+      if (e && e.code === "OLD_HUB") {
+        const { response } = await dialog.showMessageBox({
+          type: "warning",
+          title: "Smolcoder Desktop",
+          message: `Un hub v${e.hubVersion} tourne encore — les nouveautés seraient invisibles.`,
+          detail: "Le redémarrer ? Les sessions sont sauvegardées et reprendront.",
+          buttons: ["Redémarrer le hub", "Continuer quand même"],
+          defaultId: 0,
+          cancelId: 1,
+        });
+        if (response === 0) {
+          try {
+            process.kill(e.hubPid);
+          } catch {
+            /* déjà arrêté */
+          }
+          await new Promise((r) => setTimeout(r, 1500));
+          const r = await hub.ensureHub({ projectDir, distIndex: DIST_INDEX, expectedVersion: APP_VERSION });
+          hubRec = r.rec;
+          hubBase = r.url;
+        } else {
+          const r = await hub.ensureHub({ projectDir, distIndex: DIST_INDEX, allowStale: true });
+          hubRec = r.rec;
+          hubBase = r.url;
+        }
+      } else {
+        throw e;
+      }
+    }
   } catch (e) {
     dialog.showErrorBox("Smolcoder Desktop", e.message);
     app.quit();

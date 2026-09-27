@@ -176,7 +176,7 @@ export const STYLES = String.raw`
   #inputbox { border: 1px solid var(--line); border-left: 4px solid var(--accent); background: var(--card); border-radius: var(--radius-lg); padding: 10px 14px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35); backdrop-filter: blur(12px); transition: var(--transition); }
   #inputbox:focus-within { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow), 0 8px 32px rgba(2, 132, 199, 0.25); }
   .inputrow { display: flex; align-items: flex-end; gap: 10px; }
-  #input { flex: 1; background: transparent; border: 0; outline: 0; color: var(--fg); font: inherit; resize: none; min-height: 44px; }
+  #input { flex: 1; background: transparent; border: 0; outline: 0; color: var(--fg); font: inherit; resize: none; min-height: 44px; max-height: 38vh; overflow-y: auto; }
   #actionbtn { flex: none; background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%); color: #ffffff; border: 0; padding: 6px 16px; cursor: pointer; font: inherit; font-size: 12.5px; font-weight: 600; border-radius: var(--radius-sm); transition: var(--transition); box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3); }
   #actionbtn:hover { box-shadow: 0 4px 14px rgba(2, 132, 199, 0.5); transform: translateY(-1px); }
   #actionbtn.stop { background: var(--red); color: #fff; box-shadow: 0 2px 8px rgba(244, 63, 94, 0.3); }
@@ -291,6 +291,20 @@ export const STYLES = String.raw`
   .planstep .box { flex: none; width: 15px; }
   .planstep.done { color: var(--dim); text-decoration: line-through; }
   .planstep.current { box-shadow: inset 3px 0 var(--accent); }
+  .sq-err { text-decoration: underline wavy #f14c4c 1px; text-decoration-skip-ink: none; }
+  .sq-warn { text-decoration: underline wavy #cca700 1px; text-decoration-skip-ink: none; }
+  div.filediagnostic { display: flex; gap: 6px; align-items: center; }
+  .filediagnostic-go { flex: 1; min-width: 0; border: 0; background: transparent; color: inherit; font: inherit; font-size: 11px; text-align: left; cursor: pointer; padding: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fileinlinebar { display: flex; gap: 6px; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  .fileinlinebar[hidden] { display: none; }
+  .fileinlinebar input { flex: 1; min-width: 0; background: var(--box); border: 1px solid var(--line); color: var(--fg); font: inherit; font-size: 12px; padding: 4px 7px; border-radius: 4px; }
+  .fileinlinepreview { border-bottom: 1px solid var(--line); padding: 6px 8px; }
+  .fileinlinepreview[hidden] { display: none; }
+  .completepop { display: block; position: absolute; z-index: 6; left: 12px; top: 44px; min-width: 260px; max-width: 70%; max-height: 220px; overflow: auto; background: #202629; border: 1px solid var(--accent); box-shadow: 0 8px 24px #0008; }
+  .completepop[hidden] { display: none; }
+  .completeitem { display: flex; gap: 8px; width: 100%; text-align: left; background: transparent; border: 0; border-bottom: 1px solid var(--line); color: var(--fg); padding: 5px 10px; cursor: pointer; font: inherit; font-size: 12px; }
+  .completeitem:hover, .completeitem.sel { background: #094771; }
+  .completeitem .kind { color: var(--dim); }
   .filetabs { position: absolute; z-index: 2; inset: 0 0 auto; height: 35px; display: flex; overflow-x: auto; background: #171c1f; border-bottom: 1px solid var(--line); }
   .filetab { display: flex; align-items: center; flex: none; max-width: 220px; background: #202629; border-right: 1px solid var(--line); }
   .filetab.active { background: #0f1417; border-top: 1px solid var(--accent); }

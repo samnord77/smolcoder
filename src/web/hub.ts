@@ -31,6 +31,13 @@ import { workspaceDiagnostics } from "../workspace-diagnostics";
 import { queryCode, lspAvailability, queryDiagStructured } from "../lsp-pro";
 import { queryIndex } from "../codeindex";
 import { applyOp, CrdOp, docFromText } from "../crdt";
+import { Agent } from "../agent";
+import { ContextManager } from "../context";
+import { EventBus } from "../events";
+import { Plan } from "../plan";
+import { renderEditDiff } from "./diff";
+import { AgentUI } from "../ui";
+import { ToolContext } from "../tools/index";
 import { gitApplyHunk, gitDiffFiles } from "../git";
 
 export type SessionFactory = (ui: SessionChannel, workspace: string, prefs: SessionPrefs, planKey?: string) => Promise<Session>;
@@ -252,6 +259,32 @@ function defaultFactory(help: string): SessionFactory {
   };
 }
 
+/** System prompt for the bounded inline-edit agent: read-only tools, one
+ * fenced replacement block out, nothing written anywhere (the user applies
+ * the preview explicitly). */
+const INLINE_SYSTEM = `You are a precise code-editing assistant. You receive one marked section of one file plus an instruction.
+Rules: read the file section first if you need context; reply with ONLY one fenced code block containing the COMPLETE replacement lines — no prose, no explanations, no second block.`;
+
+/** Swallow every UI callback: inline edits must not pollute the transcript. */
+function silentUI(): AgentUI {
+  const noop = () => {};
+  return {
+    token: noop,
+    thinking: noop,
+    toolCall: noop,
+    toolResult: noop,
+    println: noop,
+    status: noop,
+    warn: noop,
+    error: noop,
+    startSpinner: noop,
+    stopSpinner: noop,
+    confirmCommand: async () => "no" as const,
+    turnEnd: noop,
+    planUpdated: noop,
+  };
+}
+
 // ---- the hub ----------------------------------------------------------------
 
 export class WebHub {
@@ -271,6 +304,8 @@ export class WebHub {
   private cursors = new Map<string, Map<string, { name: string; path: string; line: number; at: number }>>();
   /** Collab docs: workspace + path -> CRDT chars (rebuilt from disk on open). */
   private editDocs = new Map<string, { chars: any[]; seen: string[]; version: number; at: number }>();
+  /** Inline-edit jobs: op id -> status (polled, single consumer). */
+  private inlineJobs = new Map<string, { at: number; status: string; result?: any; error?: string }>();
   private live = new Map<string, Live>();
   private metas = new Map<string, SessionMeta>();
   private store: SessionStore;
@@ -907,6 +942,24 @@ export class WebHub {
           } catch (err: any) { json(400, { error: String(err?.message ?? err).slice(0, 500) }); }
           return;
         }
+        case "/code/inline/result": {
+          const id = String(url.searchParams.get("id") ?? "");
+          const job = this.inlineJobs.get(id);
+          if (!job) { json(404, { error: "unknown edit job" }); return; }
+          if (job.status === "running" && Date.now() - job.at > 10 * 60 * 1000) {
+            this.inlineJobs.delete(id);
+            json(200, { status: "error", error: "edit job expired" });
+            return;
+          }
+          if (job.status === "running") {
+            json(200, { status: "running" });
+            return;
+          }
+          this.inlineJobs.delete(id);
+          if (job.status === "done") json(200, { status: "done", ...(job.result ?? {}) });
+          else json(200, { status: "error", error: job.error ?? "edit failed" });
+          return;
+        }
         case "/plan": {
           const sid = String(url.searchParams.get("sid") ?? "");
           const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
@@ -1297,6 +1350,21 @@ export class WebHub {
         if (action !== "stage" && action !== "revert") throw new Error('action must be "stage" or "revert"');
         return { message: gitApplyHunk(l.workspace, String(d.path ?? ""), Number(d.hunk), action) };
       }
+      case "/code/inline/start": {
+        const l = live();
+        this.prepareInlineEdit(l, d);
+        const id = crypto.randomBytes(8).toString("hex");
+        this.inlineJobs.set(id, { at: Date.now(), status: "running" });
+        if (this.inlineJobs.size > 20) {
+          const first = this.inlineJobs.keys().next();
+          if (!first.done) this.inlineJobs.delete(first.value);
+        }
+        void this.runInlineEdit(l, d).then(
+          (result) => this.inlineJobs.set(id, { at: Date.now(), status: "done", result }),
+          (err: any) => this.inlineJobs.set(id, { at: Date.now(), status: "error", error: String(err?.message ?? err).slice(0, 500) })
+        );
+        return { op: id };
+      }
       case "/sessions/share": {
         const l = live();
         return this.shareSession(l.id);
@@ -1360,6 +1428,17 @@ export class WebHub {
       abs = resolveInWorkspace(live.workspace, String(url.searchParams.get("path") ?? ""));
       const st = fs.statSync(abs);
       if (st.isDirectory()) throw new Error("not a file");
+      if (url.searchParams.get("meta") === "1") {
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(
+          JSON.stringify({
+            path: path.relative(live.workspace, abs).split(path.sep).join("/"),
+            size: st.size,
+            mtimeMs: st.mtimeMs,
+          })
+        );
+        return;
+      }
       if (st.size > WEB_FILE_CAP) throw new Error(`file is larger than ${WEB_FILE_CAP} bytes`);
       const content = fs.readFileSync(abs, "utf8");
       res.writeHead(200, { "content-type": "application/json" });
@@ -1553,6 +1632,92 @@ export class WebHub {
     rec.version++;
     this.send({ t: "editop", file: rel, ops: accepted, version: rec.version });
     return { version: rec.version, applied: accepted.length };
+  }
+
+  /** Sync validation + file read for an inline edit (throws immediately so
+   * the start call fails fast on bad input; the model work stays async). */
+  private prepareInlineEdit(
+    live: Live,
+    d: any
+  ): { rel: string; instruction: string; selection: string; start: number; end: number } {
+    const rel = String(d.path ?? "").trim();
+    const instruction = String(d.instruction ?? "").trim();
+    const selection = typeof d.selection === "string" ? d.selection : "";
+    const start = Math.max(1, Number(d.start) || 1);
+    const end = Math.max(start, Number(d.end) || start);
+    if (!rel) throw new Error("path is required");
+    if (!instruction) throw new Error("instruction is required");
+    if (!selection.trim()) throw new Error("select the code to replace first");
+    if (selection.length > 8000) throw new Error("selection too large (8000 chars max) — narrow it");
+    try {
+      resolveInWorkspace(live.workspace, rel);
+    } catch (err: any) {
+      throw new Error(err instanceof SandboxError ? err.message : String(err?.message ?? err));
+    }
+    return { rel, instruction, selection, start, end };
+  }
+
+  /** One bounded inline edit: a read-only sub-agent generates the
+   * replacement, the caller previews and applies it explicitly. Never
+   * throws (route translates Error strings). */
+  private async runInlineEdit(live: Live, d: any): Promise<any> {
+    const session = live.session as any;
+    const agent = session?.agent;
+    if (!session || !agent) throw new Error("no such session");
+    if (agent.mode === "ro") throw new Error("read-only session — switch to edit mode for inline edits");
+    const rel = String(d.path ?? "").trim();
+    const instruction = String(d.instruction ?? "").trim();
+    const selection = typeof d.selection === "string" ? d.selection : "";
+    const start = Math.max(1, Number(d.start) || 1);
+    const end = Math.max(start, Number(d.end) || start);
+    if (!rel) throw new Error("path is required");
+    if (!instruction) throw new Error("instruction is required");
+    if (!selection.trim()) throw new Error("select the code to replace first");
+    if (selection.length > 8000) throw new Error("selection too large (8000 chars max) — narrow it");
+    let abs: string;
+    try {
+      abs = resolveInWorkspace(live.workspace, rel);
+    } catch (err: any) {
+      throw new Error(err instanceof SandboxError ? err.message : String(err?.message ?? err));
+    }
+    let disk: string;
+    try {
+      disk = fs.readFileSync(abs, "utf8");
+    } catch {
+      throw new Error(`could not read "${rel}"`);
+    }
+    const lines = disk.split("\n");
+    const from = Math.max(1, start - 20);
+    const to = Math.min(lines.length, end + 20);
+    const context = lines.slice(from - 1, to).join("\n");
+    const ext = path.extname(rel).slice(1) || "txt";
+    const toolCtx: ToolContext = {
+      workspace: live.workspace,
+      taskManager: session.toolCtx.taskManager,
+      plan: new Plan(),
+      filesTouched: new Set<string>(),
+      commandsRun: [],
+      canWrite: false,
+      allowedTools: new Set(["read_file", "symbols", "index_symbols", "search", "list_files"]),
+      depth: 1,
+      role: "inline",
+    };
+    const provider = agent.provider;
+    const mgr = new ContextManager(provider.contextWindow, provider.maxOutputTokens);
+    const inline = new Agent(provider, "ro", INLINE_SYSTEM, toolCtx, mgr, new EventBus(), silentUI(), false, 6);
+    const task =
+      `File: ${rel} (lines ${start}-${end} of ${lines.length}).\n\nMarked section to replace:\n${selection}\n\n` +
+      `Surrounding code for context (lines ${from}-${to}):\n${context}\n\nInstruction: ${instruction}\n\n` +
+      `Reply with ONLY one fenced ${ext} block containing the COMPLETE replacement lines.`;
+    await inline.runTurn(task);
+    if (inline.outcome !== "completed") {
+      throw new Error("the model did not produce a replacement — try a shorter selection or simpler instruction");
+    }
+    const last = [...inline.messages].reverse().find((m) => m.role === "assistant" && (m.content ?? "").trim());
+    const m = /```(?:[\w.+#-]+)?\s*\n([\s\S]*?)```/.exec(last?.content ?? "");
+    if (!m) throw new Error("the model did not return a code block — rephrase the instruction");
+    const newText = m[1].replace(/\n$/, "");
+    return { oldText: selection, newText, startLine: start, endLine: end, diff: renderEditDiff(selection, newText) };
   }
 
   /** Serializable plan for the checklist tab. Never throws. */

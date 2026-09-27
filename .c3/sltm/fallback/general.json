@@ -76,5 +76,18 @@
     },
     "timestamp": "2026-09-27T21:25:02.057672+00:00",
     "category": "general"
+  },
+  {
+    "id": "abb270cb1117",
+    "text": "smolcoder phase col\u00e8re (2026-09-27) : cause invisibilit\u00e9 = dist/ ignor\u00e9 par git + hub sans garde \u2192 auto-build au d\u00e9marrage bureau (dialog) + erreur OLD_HUB avec red\u00e9marrage propos\u00e9. Cmd+K inline (agent born\u00e9 ro + preview, endpoint start/poll, bureau+web). Compl\u00e9tion Tab via LSP (2 \u00e9diteurs). Squiggles overlay (2 \u00e9diteurs). Fichiers new/rename/delete bureau. Paquet portable release/Smolcoder-win32-x64/Smolcoder.exe (electron-packager, main patch\u00e9). Split view report\u00e9 (refactor risqu\u00e9). 295 tests verts + 1 flake pr\u00e9-existant.",
+    "metadata": {
+      "fact_id": "abb270cb1117",
+      "source_session": "20260927_164838_0239733e7ab3",
+      "source": "memory_store",
+      "timestamp": "2026-09-27T22:07:30.360217+00:00",
+      "category": "general"
+    },
+    "timestamp": "2026-09-27T22:07:30.360217+00:00",
+    "category": "general"
   }
 ]

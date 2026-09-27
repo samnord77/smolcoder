@@ -306,3 +306,88 @@ test("code api: collaborative editing relay", async () => {
     hub.close();
   }
 });
+
+test("code api: inline edit generates a preview without writing", async () => {
+  const { Agent } = require("../dist/agent");
+  const { ContextManager } = require("../dist/context");
+  const { EventBus } = require("../dist/events");
+  const { Plan } = require("../dist/plan");
+  const { TaskManager } = require("../dist/tools/tasks");
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "smol-codeapi5-"));
+  const ws = path.join(dataDir, "proj");
+  fs.mkdirSync(ws);
+  fs.writeFileSync(path.join(ws, "app.js"), "const x = 1;\nconsole.log(x);\n");
+  const fakeProvider = {
+    label: "fake",
+    modelId: "fake",
+    contextWindow: 8000,
+    maxOutputTokens: 500,
+    setEffort() {},
+    effortLabel: () => null,
+    chat: async () => ({ content: "```js\nconst x = 2;\n```", toolCalls: [] }),
+  };
+  const factory = () => async (ui, workspace) => {
+    const toolCtx = {
+      workspace,
+      taskManager: new TaskManager(workspace),
+      plan: new Plan(),
+      filesTouched: new Set(),
+      commandsRun: [],
+      canWrite: true,
+    };
+    const agent = new Agent(
+      fakeProvider, "edit", "sys", toolCtx, new ContextManager(8000, 500),
+      new EventBus(),
+      { token() {}, thinking() {}, toolCall() {}, toolResult() {}, println() {}, status() {}, warn() {}, error() {}, startSpinner() {}, stopSpinner() {}, turnEnd() {}, planUpdated() {} },
+      false, 10
+    );
+    return {
+      chosen: { id: "fake", backend: "ollama" },
+      workspace, agent, toolCtx,
+      onExit: null,
+      taskManager: toolCtx.taskManager,
+      state: () => ({}),
+      announce() {}, restore() {},
+      snapshot: () => ({}),
+      async suggestTitle() { return null; },
+      async run() { await new Promise(() => {}); },
+    };
+  };
+  const hub = new WebHub({ port: 0, prefs: {}, help: "help", version: "9.9.9", dataDir, factory: factory(), quiet: true });
+  await hub.start();
+  const k = "?k=" + hub.authToken;
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  async function until(fn, ms = 15000, label = "condition") {
+    const t0 = Date.now();
+    for (;;) {
+      const v = fn();
+      if (v) return v;
+      if (Date.now() - t0 > ms) throw new Error("timed out waiting for " + label);
+      await sleep(50);
+    }
+  }
+  try {
+    const { id } = JSON.parse((await request(hub, "POST", "/sessions/new" + k, { workspace: ws })).body);
+    assert.ok(id);
+    const started = JSON.parse(
+      (await request(hub, "POST", "/code/inline/start" + k, { sid: id, path: "app.js", selection: "const x = 1;", start: 1, end: 1, instruction: "bump to 2" })).body
+    );
+    assert.match(started.op, /^[0-9a-f]+$/);
+    const done = await until(async () => {
+      const r = JSON.parse((await request(hub, "GET", `/code/inline/result${k}&id=${started.op}`)).body);
+      return r.status === "done" ? r : r.status === "error" ? Promise.reject(new Error(r.error)) : null;
+    }, 15000, "inline result");
+    assert.equal(done.newText, "const x = 2;");
+    assert.match(done.diff, /const x = 2/);
+    assert.equal(fs.readFileSync(path.join(ws, "app.js"), "utf8"), "const x = 1;\nconsole.log(x);\n", "preview only — disk untouched");
+    const bad = JSON.parse((await request(hub, "POST", "/code/inline/start" + k, { sid: id, path: "app.js", selection: "x", start: 1, end: 1, instruction: "" })).body);
+    assert.match(bad.error, /instruction is required/);
+    hub.live.get(id).session.agent.mode = "ro";
+    const ro = JSON.parse((await request(hub, "POST", "/code/inline/start" + k, { sid: id, path: "app.js", selection: "x", start: 1, end: 1, instruction: "y" })).body);
+    assert.match(ro.error || (await request(hub, "GET", `/code/inline/result${k}&id=${ro.op}`)).body, /read-only/);
+    hub.live.get(id).session.agent.mode = "edit";
+    assert.match((await request(hub, "GET", `/code/inline/result${k}&id=nope`)).body, /unknown edit job/);
+  } finally {
+    hub.close();
+  }
+});

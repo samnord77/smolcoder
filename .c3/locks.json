@@ -1,56 +1,86 @@
 {
   "schema_version": 1,
-  "fencing": 90,
+  "fencing": 100,
   "locks": [
+    {
+      "relpath": "desktop/main.js",
+      "agent_id": "claude-code:20260927",
+      "session_id": "20260927_164838_0239733e7ab3",
+      "fencing_token": 92,
+      "intent": "Diagnostics structur\u00e9s multi-langages pour l'\u00e9diteur",
+      "acquired_at": 1790545001.819103,
+      "expires_at": 1790546568.7625802,
+      "lock_id": "2c23b6f370f94df292bc3229cb2c3449"
+    },
     {
       "relpath": "src/web/hub.ts",
       "agent_id": "claude-code:20260927",
       "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 80,
-      "intent": "Amor\u00e7age hub sans site propre",
-      "acquired_at": 1790540484.976682,
-      "expires_at": 1790544265.4623919,
-      "lock_id": "206a04b8e28140e7beee52b99df3f26e"
+      "fencing_token": 93,
+      "intent": "Le start valide avant de rendre la main",
+      "acquired_at": 1790545160.7820315,
+      "expires_at": 1790547130.0850952,
+      "lock_id": "41fa92232dc64b11a973907c779fdf95"
     },
     {
       "relpath": "src/web/client.ts",
       "agent_id": "claude-code:20260927",
       "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 84,
-      "intent": "Site unique par onglet apr\u00e8s amor\u00e7age",
-      "acquired_at": 1790542191.7837996,
-      "expires_at": 1790544314.9777615,
-      "lock_id": "055d5049841847da8c6895b88986442f"
+      "fencing_token": 95,
+      "intent": "Banni\u00e8re agent-a-modifi\u00e9 avec Recharger/Garder",
+      "acquired_at": 1790545751.2011356,
+      "expires_at": 1790546916.240214,
+      "lock_id": "5ca92afc1bf249238e6ace6fa8eb6168"
     },
     {
-      "relpath": "src/crdt.ts",
+      "relpath": "src/web/styles.ts",
       "agent_id": "claude-code:20260927",
       "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 88,
-      "intent": "Amor\u00e7age \u00e0 site partag\u00e9 pour suppressions convergentes",
-      "acquired_at": 1790542577.1126533,
-      "expires_at": 1790544263.994762,
-      "lock_id": "ffb9c37fa6894374bcc3730e21bc57da"
+      "fencing_token": 96,
+      "intent": "CSS inline, compl\u00e9tion, squiggles, diags cliquables",
+      "acquired_at": 1790545777.9046361,
+      "expires_at": 1790546858.5788877,
+      "lock_id": "03862e08480b4eea80f463b2b89a9019"
     },
     {
       "relpath": "test/code-api.test.js",
       "agent_id": "claude-code:20260927",
       "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 89,
-      "intent": "Signature docFromText \u00e0 jour dans le test hub",
-      "acquired_at": 1790543223.6551127,
-      "expires_at": 1790544431.353274,
-      "lock_id": "d53927796336465994776ecbcda12997"
+      "fencing_token": 97,
+      "intent": "Jeton manquant sur le poll ro",
+      "acquired_at": 1790546085.3979776,
+      "expires_at": 1790547340.8259835,
+      "lock_id": "e9b775736c464e4aa220effd8fb168bb"
     },
     {
-      "relpath": "test/crdt.test.js",
+      "relpath": "test/plan.test.js",
       "agent_id": "claude-code:20260927",
       "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 90,
-      "intent": "Compare via JSON (prototypes inter-contextes)",
-      "acquired_at": 1790543223.7758715,
-      "expires_at": 1790544635.2717788,
-      "lock_id": "c18eb243f4ea4b0bb4e5dfa2d48783b7"
+      "fencing_token": 98,
+      "intent": "Test checklist terminal renderPlan",
+      "acquired_at": 1790546118.1028438,
+      "expires_at": 1790547018.1028438,
+      "lock_id": "09ec195443a1445c97fc6dbda9443ebd"
+    },
+    {
+      "relpath": "package.json",
+      "agent_id": "claude-code:20260927",
+      "session_id": "20260927_164838_0239733e7ab3",
+      "fencing_token": 99,
+      "intent": "Script package-win portable 64-bit",
+      "acquired_at": 1790546522.925119,
+      "expires_at": 1790547422.925119,
+      "lock_id": "1c61b8202843439bb44d4d39d280392e"
+    },
+    {
+      "relpath": "scripts/patch-packaged-main.cjs",
+      "agent_id": "claude-code:20260927",
+      "session_id": "20260927_164838_0239733e7ab3",
+      "fencing_token": 100,
+      "intent": "Redirige le paquet vers le main Electron",
+      "acquired_at": 1790546522.9869819,
+      "expires_at": 1790547422.9869819,
+      "lock_id": "0b508c570c224992b2b9db98aa3ec2e7"
     }
   ]
 }

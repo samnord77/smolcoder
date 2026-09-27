@@ -1,10 +1,10 @@
 {
   "path": "package.json",
-  "content_hash": "ed3b7e77aa43c9be9eeee433d5898ec5",
-  "updated_at": "2026-09-25T14:51:38",
-  "lines": 54,
-  "size_bytes": 1288,
-  "mtime_ns": 1790344246075060500,
+  "content_hash": "e251bcaa643d34a13e3da36afdadea6c",
+  "updated_at": "2026-09-27T23:06:43",
+  "lines": 59,
+  "size_bytes": 1545,
+  "mtime_ns": 1790546650911940100,
   "language": "json",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -97,29 +97,36 @@
       "type": "property",
       "name": "scripts",
       "line_start": 36,
-      "line_end": 42,
+      "line_end": 43,
       "signature": "scripts"
     },
     {
       "type": "property",
       "name": "engines",
-      "line_start": 43,
-      "line_end": 45,
+      "line_start": 44,
+      "line_end": 46,
       "signature": "engines"
     },
     {
       "type": "property",
       "name": "devDependencies",
-      "line_start": 46,
-      "line_end": 50,
+      "line_start": 47,
+      "line_end": 52,
       "signature": "devDependencies"
     },
     {
       "type": "property",
       "name": "dependencies",
-      "line_start": 51,
-      "line_end": 53,
+      "line_start": 53,
+      "line_end": 55,
       "signature": "dependencies"
+    },
+    {
+      "type": "property",
+      "name": "allowScripts",
+      "line_start": 56,
+      "line_end": 58,
+      "signature": "allowScripts"
     }
   ]
 }

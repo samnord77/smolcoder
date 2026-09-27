@@ -75,3 +75,14 @@ test('clearing a workspace plan survives another CLI launch', () => {
   assert.equal(plan.reset(), null);
   assert.equal(new Plan(workspace, 'cli').exists, false);
 });
+
+test('renderPlan prints the checkbox checklist for terminals', () => {
+  const { renderPlan } = require('../dist/ui');
+  const plan = new Plan();
+  plan.set('alpha\nbeta');
+  plan.markDone(1);
+  const text = renderPlan(plan);
+  assert.match(text, /1 tâches sur 2 terminées/);
+  assert.match(text, /☑ alpha/);
+  assert.match(text, /◉ beta/);
+});

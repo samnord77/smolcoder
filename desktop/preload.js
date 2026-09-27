@@ -15,6 +15,12 @@ contextBridge.exposeInMainWorld("smolEd", {
   search: (query) => ipcRenderer.invoke("ed:search", query),
   diagnostics: (rel) => ipcRenderer.invoke("ed:diagnostics", rel),
   save: (rel, content) => ipcRenderer.invoke("ed:save", rel, content),
+  createEntry: (rel, dir) => ipcRenderer.invoke("ed:new", rel, dir),
+  renameEntry: (rel, to) => ipcRenderer.invoke("ed:rename", rel, to),
+  deleteEntry: (rel) => ipcRenderer.invoke("ed:delete", rel),
+  completion: (rel, line, col) => ipcRenderer.invoke("ed:completion", rel, line, col),
+  inlineStart: (payload) => ipcRenderer.invoke("ed:inlineStart", payload),
+  inlineResult: (op) => ipcRenderer.invoke("ed:inlineResult", op),
   gitStatus: () => ipcRenderer.invoke("ed:gitStatus"),
   highlightCode: (source, language) => highlightHtml(source, language),
   editorTools: {

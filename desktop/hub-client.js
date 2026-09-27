@@ -137,10 +137,29 @@ async function ping(rec) {
   }
 }
 
-/** Start the hub if none answers, then return its record + base URL. */
-async function ensureHub({ projectDir, distIndex }) {
+/** Start the hub if none answers, then return its record + base URL.
+ * With expectedVersion: refuse to attach to an outdated hub (OLD_HUB error
+ * carrying its version/pid) instead of silently serving old code. */
+async function ensureHub({ projectDir, distIndex, expectedVersion, allowStale }) {
   let rec = readHubRecord();
-  if (rec && (await ping(rec))) return { rec, url: hubUrl(rec) };
+  if (rec && (await ping(rec))) {
+    if (expectedVersion && !allowStale) {
+      try {
+        const info = await api(rec, "GET", "/ping", null);
+        if (info && info.ok && info.version && info.version !== expectedVersion) {
+          const err = new Error(`OLD_HUB ${info.version}`);
+          err.code = "OLD_HUB";
+          err.hubVersion = info.version;
+          err.hubPid = rec.pid;
+          err.hubStartedAt = info.startedAt;
+          throw err;
+        }
+      } catch (e) {
+        if (e && e.code === "OLD_HUB") throw e;
+      }
+    }
+    return { rec, url: hubUrl(rec) };
+  }
   const env = { ...process.env };
   if (process.versions && process.versions.electron) {
     env.ELECTRON_RUN_AS_NODE = "1";

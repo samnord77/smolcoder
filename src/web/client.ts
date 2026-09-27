@@ -1062,6 +1062,91 @@ function buildFilesTab(v, t) {
   const renameBtn = el("button", "iconbtn", "✎"); renameBtn.title = "rename the open file";
   const deleteBtn = el("button", "iconbtn", "🗑"); deleteBtn.title = "delete the open file";
   bar.appendChild(newFile); bar.appendChild(newFolder); bar.appendChild(renameBtn); bar.appendChild(deleteBtn);
+  const inlineBtn = el("button", "iconbtn", "✨"); inlineBtn.title = "Edit selection with AI (Ctrl+K)";
+  bar.appendChild(inlineBtn);
+  const inlineBar = el("div", "fileinlinebar"); inlineBar.hidden = true;
+  const inlineInput = document.createElement("input");
+  inlineInput.placeholder = "Instruction: e.g. add error handling…";
+  inlineInput.setAttribute("aria-label", "AI edit instruction");
+  const inlineGo = el("button", "iconbtn", "Generate"); inlineGo.type = "button";
+  const inlineCancel = el("button", "iconbtn", "×"); inlineCancel.type = "button"; inlineCancel.title = "Close";
+  inlineBar.append(inlineInput, inlineGo, inlineCancel);
+  const inlinePreview = el("div", "fileinlinepreview"); inlinePreview.hidden = true;
+  const inlineDiff = el("pre", "reviewpatch");
+  const inlineRow = el("div", "reviewactions");
+  const inlineStatus = el("span", "filemeta", "");
+  inlineStatus.style.flex = "1";
+  const inlineAccept = el("button", "iconbtn", "Accept"); inlineAccept.type = "button";
+  const inlineReject = el("button", "iconbtn", "Reject"); inlineReject.type = "button";
+  inlineRow.append(inlineStatus, inlineAccept, inlineReject);
+  inlinePreview.append(inlineDiff, inlineRow);
+  body.insertBefore(inlinePreview, results);
+  body.insertBefore(inlineBar, inlinePreview);
+  let inlineRange = null;
+  const openInlineBar = () => {
+    if (!t.filePath) { showError("Open a file first."); return; }
+    if (editor.selectionStart === editor.selectionEnd) { showError("Select the code to replace."); return; }
+    inlineBar.hidden = false;
+    inlinePreview.hidden = true;
+    inlineInput.value = "";
+    inlineInput.focus();
+  };
+  const closeInlineBar = () => { inlineBar.hidden = true; inlinePreview.hidden = true; inlineRange = null; editor.focus(); };
+  const paintInlineDiff = (text) => {
+    inlineDiff.replaceChildren();
+    for (const ln of String(text || "").split("\n")) {
+      const s = document.createElement("span");
+      s.className = ln.startsWith("+ ") ? "add" : ln.startsWith("- ") ? "del" : ln.startsWith("@@") ? "hunk" : "same";
+      s.textContent = ln + "\n";
+      inlineDiff.appendChild(s);
+    }
+  };
+  const pollInline = (op, left = 120) => {
+    if (left <= 0) { inlineStatus.textContent = "Timed out — try again."; inlineRange = null; return; }
+    fetch("/code/inline/result?k=" + k + "&id=" + encodeURIComponent(op))
+      .then((r) => r.json()).then((d) => {
+        if (d.status === "done") {
+          inlineRange.newText = d.newText;
+          paintInlineDiff(d.diff || "");
+          inlineStatus.textContent = "Review, then Accept.";
+        } else if (d.status === "error") {
+          inlineStatus.textContent = d.error || "Generation failed.";
+          inlineRange = null;
+        } else {
+          setTimeout(() => pollInline(op, left - 1), 1500);
+        }
+      }).catch((e) => { inlineStatus.textContent = String((e && e.message) || e); inlineRange = null; });
+  };
+  const runInline = () => {
+    const instruction = inlineInput.value.trim();
+    if (!instruction) { inlineStatus.textContent = "Describe the change."; return; }
+    if (editor.selectionStart === editor.selectionEnd) { inlineStatus.textContent = "Selection is empty."; return; }
+    const selStart = editor.selectionStart, selEnd = editor.selectionEnd;
+    const before = editor.value.slice(0, selStart).split("\n").length;
+    const selection = editor.value.slice(selStart, selEnd);
+    const after = before + selection.split("\n").length - 1;
+    inlineRange = { start: selStart, end: selEnd, newText: null };
+    inlineStatus.textContent = "Generating…";
+    inlinePreview.hidden = false;
+    inlineDiff.replaceChildren();
+    post("/code/inline/start", { sid: v.sid, path: t.filePath, selection, start: before, end: after, instruction })
+      .then((r) => {
+        if (!r || r.error || !r.op) { inlineStatus.textContent = (r && r.error) || "Inline edit did not start."; inlineRange = null; return; }
+        pollInline(r.op);
+      }).catch((e) => { inlineStatus.textContent = String((e && e.message) || e); inlineRange = null; });
+  };
+  inlineBtn.onclick = openInlineBar;
+  inlineCancel.onclick = closeInlineBar;
+  inlineGo.onclick = runInline;
+  inlineInput.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); runInline(); } if (e.key === "Escape") closeInlineBar(); };
+  inlineAccept.onclick = () => {
+    if (!inlineRange || typeof inlineRange.newText !== "string") return;
+    editor.focus();
+    editor.setRangeText(inlineRange.newText, inlineRange.start, inlineRange.end, "end");
+    editor.dispatchEvent(new Event("input", { bubbles: true }));
+    closeInlineBar();
+  };
+  inlineReject.onclick = closeInlineBar;
   const fileOp = (endpoint, body, after) => {
     fetch("/workspace/file/" + endpoint + "?k=" + k + "&sid=" + encodeURIComponent(v.sid), {
       method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body || {}),
@@ -1126,14 +1211,83 @@ function buildFilesTab(v, t) {
   const currentFindClose = el("button", "iconbtn", "×"); currentFindClose.type = "button"; currentFindClose.title = "Fermer la recherche";
   fileFindBar.append(currentFindInput, currentFindPrev, currentFindNext, currentFindCount, currentReplaceInput, currentReplaceOne, currentReplaceAll, currentFindClose);
   editorWrap.appendChild(tabsBar); editorWrap.appendChild(code); editorWrap.appendChild(editor);
+  const completePop = el("div", "completepop"); completePop.hidden = true;
+  completePop.setAttribute("role", "listbox");
+  editorWrap.appendChild(completePop);
+  let completeItems = [], completePrefix = "", completeAnchor = 0;
+  const hideComplete = () => { completePop.hidden = true; completePop.replaceChildren(); completeItems = []; };
+  const acceptComplete = (i) => {
+    const it = completeItems[i || 0];
+    hideComplete();
+    if (!it) return;
+    editor.focus();
+    editor.setRangeText(it.label, completeAnchor, editor.selectionStart, "end");
+    editor.dispatchEvent(new Event("input", { bubbles: true }));
+  };
+  const triggerComplete = () => {
+    hideComplete();
+    if (!t.filePath) return;
+    const pos = editor.selectionStart;
+    const ls = editor.value.lastIndexOf("\n", pos - 1) + 1;
+    const m = /[\w$]+$/.exec(editor.value.slice(ls, pos));
+    if (!m) return;
+    completePrefix = m[0];
+    completeAnchor = pos - completePrefix.length;
+    const at = editorTools.cursorPosition(editor.value, pos);
+    fetch("/code/lsp?k=" + k + "&sid=" + encodeURIComponent(v.sid) + "&action=completion&path=" + encodeURIComponent(t.filePath) + "&line=" + at.line + "&col=" + at.column)
+      .then((r) => r.json()).then((d) => {
+        const items = [];
+        for (const ln of String((d && d.result) || "").split("\n")) {
+          if (!ln.startsWith("- ")) continue;
+          const body = ln.slice(2);
+          const mm = /^(.+?)(?: \(([^)]*)\))?(?: — (.*))?$/.exec(body);
+          items.push({ label: (mm ? mm[1] : body).trim(), kind: (mm && mm[2]) || "", detail: (mm && mm[3]) || "" });
+          if (items.length >= 8) break;
+        }
+        if (!items.length) return;
+        completeItems = items;
+        items.forEach((it, i) => {
+          const b = el("button", "completeitem" + (i === 0 ? " sel" : ""));
+          b.type = "button";
+          b.appendChild(el("span", "", it.label));
+          if (it.kind || it.detail) b.appendChild(el("span", "kind", (it.kind ? it.kind + " " : "") + (it.detail || "")));
+          b.onclick = () => acceptComplete(i);
+          completePop.appendChild(b);
+        });
+        completePop.hidden = false;
+      }).catch(() => {});
+  };
   split.appendChild(tree); split.appendChild(editorWrap);
   body.appendChild(bar); body.appendChild(results); body.appendChild(fileFindBar); body.appendChild(split); body.appendChild(diagnosticsPanel); body.appendChild(meta);
   v.panelEl.appendChild(body);
   t.el = body; t.pathInput = pathInput; t.findInput = findInput; t.tree = tree; t.editor = editor; t.code = code; t.tabsBar = tabsBar; t.tabStore = makeEditorTabStore(); t.saveBtn = save; t.meta = meta;
   t.filePath = ""; t.mtimeMs = 0; t.rel = ".";
+  t.diags = [];
+  const SQE = ["\u0001", "\u0002"], SQW = ["\u0003", "\u0004"];
+  const markDiags = (source) => {
+    const diags = (t.diags || []).filter((d) => d && d.path === t.filePath);
+    if (!diags.length) return source;
+    const lines = source.split("\n");
+    for (const d of diags) {
+      const li = (d.line || 1) - 1;
+      if (li < 0 || li >= lines.length) continue;
+      const line = lines[li];
+      const col = Math.max(0, Math.min(((d.col || 1) - 1), line.length));
+      let end = col;
+      while (end < line.length && /[\w$]/.test(line[end])) end++;
+      if (end <= col) end = Math.min(line.length, col + 1);
+      if (end <= col) continue;
+      const m = d.severity === "warning" ? SQW : SQE;
+      lines[li] = line.slice(0, col) + m[0] + line.slice(col, end) + m[1] + line.slice(end);
+    }
+    return lines.join("\n");
+  };
   let diagnosticRequest = 0;
   const paint = () => {
-    code.innerHTML = highlightEscapedHtml(esc(editor.value), t.filePath.split(".").pop()) || " ";
+    let html = highlightEscapedHtml(esc(markDiags(editor.value)), t.filePath.split(".").pop()) || " ";
+    html = html.split(SQE[0]).join('<span class="sq-err">').split(SQE[1]).join("</span>");
+    html = html.split(SQW[0]).join('<span class="sq-warn">').split(SQW[1]).join("</span>");
+    code.innerHTML = html;
     code.scrollTop = editor.scrollTop; code.scrollLeft = editor.scrollLeft;
   };
   const showError = (message) => {
@@ -1337,6 +1491,7 @@ function buildFilesTab(v, t) {
   };
   const displayTab = (tab) => {
     t.filePath = tab ? tab.path : ""; t.mtimeMs = tab ? tab.mtimeMs : 0;
+    t.diags = [];
     editor.value = tab ? tab.content : ""; editor.dataset.original = tab ? tab.savedContent : ""; paint();
     editor.dataset.dirty = tab && tab.dirty ? "1" : "0";
     save.disabled = v.state.mode === "ro" || !tab;
@@ -1383,6 +1538,47 @@ function buildFilesTab(v, t) {
     post("/edit/op", { sid: v.sid, path: c.path, ops }).catch(() => {});
   };
   editor.addEventListener("input", () => { try { syncCollab(); } catch (e) {} });
+  const agentBar = el("div", "fileinlinebar"); agentBar.hidden = true;
+  const agentText = el("span", "filemeta", "");
+  agentText.style.flex = "1";
+  const agentReload = el("button", "iconbtn", "Recharger"); agentReload.type = "button";
+  const agentKeep = el("button", "iconbtn", "Garder"); agentKeep.type = "button"; agentKeep.title = "Keep my version (next save overwrites)";
+  const agentX = el("button", "iconbtn", "×"); agentX.type = "button";
+  agentBar.append(agentText, agentReload, agentKeep, agentX);
+  body.insertBefore(agentBar, split);
+  const hideAgentBar = () => { agentBar.hidden = true; };
+  agentX.onclick = hideAgentBar;
+  agentReload.onclick = () => {
+    hideAgentBar();
+    if (!t.filePath) return;
+    t.tabStore.close(t.filePath, true);
+    t.collab = null;
+    void t.loadFile(t.filePath);
+  };
+  agentKeep.onclick = () => {
+    if (!t.filePath) { hideAgentBar(); return; }
+    fetch("/workspace/file?k=" + k + "&sid=" + encodeURIComponent(v.sid) + "&path=" + encodeURIComponent(t.filePath) + "&meta=1")
+      .then((r) => r.json()).then((d) => {
+        if (d && !d.error && Number.isFinite(d.mtimeMs)) t.mtimeMs = d.mtimeMs;
+        hideAgentBar();
+      }).catch(() => hideAgentBar());
+  };
+  let metaCheckAt = 0;
+  const checkAgentChange = () => {
+    if (!t.filePath || !t.mtimeMs) return;
+    const now = Date.now();
+    if (now - metaCheckAt < 5000) return;
+    metaCheckAt = now;
+    fetch("/workspace/file?k=" + k + "&sid=" + encodeURIComponent(v.sid) + "&path=" + encodeURIComponent(t.filePath) + "&meta=1")
+      .then((r) => r.json()).then((d) => {
+        if (!d || d.error || !Number.isFinite(d.mtimeMs)) return;
+        if (Math.abs(d.mtimeMs - t.mtimeMs) > 1 && t.filePath) {
+          agentText.textContent = "L’agent (ou un autre outil) a modifié ce fichier sur le disque.";
+          agentBar.hidden = false;
+        }
+      }).catch(() => {});
+  };
+  editor.addEventListener("focus", () => { try { checkAgentChange(); } catch (e) {} });
   let lastCursorKey = "";
   let lastCursorAt = 0;
   const broadcastCursor = (line) => {
@@ -1426,19 +1622,32 @@ function buildFilesTab(v, t) {
       if (!response.ok || result.error) throw new Error(result.error || "L’analyse a échoué.");
       if (request !== diagnosticRequest || filePath !== t.filePath) return;
       diagnosticsPanel.replaceChildren();
+      t.diags = result.diagnostics || [];
+      paint();
       if (result.message) diagnosticsPanel.appendChild(el("div", "filediagnostic-note", result.message));
       if (result.text && !(result.diagnostics || []).length && !result.message) {
         diagnosticsPanel.appendChild(el("div", "filediagnostic-note", result.text));
       }
       for (const diagnostic of result.diagnostics || []) {
-        const row = el("button", "filediagnostic " + diagnostic.severity);
-        row.type = "button";
-        row.textContent = diagnostic.severity.toUpperCase() + "  " + diagnostic.path + ":" + diagnostic.line + "  " + diagnostic.message;
-        row.onclick = async () => {
+        const row = el("div", "filediagnostic " + diagnostic.severity);
+        const go = el("button", "filediagnostic-go", diagnostic.severity.toUpperCase() + "  " + diagnostic.path + ":" + diagnostic.line + "  " + diagnostic.message);
+        go.type = "button";
+        go.onclick = async () => {
           if (diagnostic.path !== t.filePath && !await t.loadFile(diagnostic.path)) return;
           const offset = editorTools.offsetForPosition(editor.value, diagnostic.line);
           editor.focus(); editor.setSelectionRange(offset, offset); updatePosition();
         };
+        const fix = el("button", "iconbtn", "🤖");
+        fix.type = "button"; fix.title = "Corriger avec l’IA";
+        fix.onclick = async () => {
+          if (diagnostic.path !== t.filePath && !await t.loadFile(diagnostic.path)) return;
+          const lines = editor.value.split("\n");
+          const li = Math.max(0, Math.min((diagnostic.line || 1) - 1, lines.length - 1));
+          const start = lines.slice(0, li).join("\n").length + (li > 0 ? 1 : 0);
+          editor.focus(); editor.setSelectionRange(start, start + (lines[li] || "").length); updatePosition();
+          openInlineBar();
+        };
+        row.appendChild(go); row.appendChild(fix);
         diagnosticsPanel.appendChild(row);
       }
     } catch (error) {
@@ -1570,6 +1779,17 @@ function buildFilesTab(v, t) {
   editor.onkeyup = editor.onclick = editor.onselect = updatePosition;
   editor.onkeydown = (e) => {
     if (editor.readOnly) return;
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "k") { e.preventDefault(); openInlineBar(); return; }
+    if (e.key === "Escape" && !inlineBar.hidden) { closeInlineBar(); return; }
+    if (!completePop.hidden) {
+      if (e.key === "Escape") { e.preventDefault(); hideComplete(); return; }
+      if (e.key === "Tab" || e.key === "Enter") { e.preventDefault(); acceptComplete(0); return; }
+    }
+    if (e.key === "Tab" && !e.shiftKey && editor.selectionStart === editor.selectionEnd) {
+      const pos = editor.selectionStart;
+      const ls = editor.value.lastIndexOf("\n", pos - 1) + 1;
+      if (/[\w$]+$/.test(editor.value.slice(ls, pos))) { e.preventDefault(); triggerComplete(); return; }
+    }
     if (e.key === "Tab") {
       e.preventDefault();
       const edit = editorTools.changeIndent(editor.value, editor.selectionStart, editor.selectionEnd, e.shiftKey ? -1 : 1);
@@ -1874,7 +2094,7 @@ function submit() {
   scrollToBottom();
   post("/msg", { sid: active.sid, text: v, attachments: files }).then((r) => { if (r && r.error) alert(r.error); });
 }
-function autoGrow() { input.rows = Math.min(6, Math.max(1, input.value.split("\n").length)); }
+function autoGrow() { input.rows = Math.min(12, Math.max(2, input.value.split("\n").length)); }
 input.addEventListener("input", () => { menuIdx = 0; renderMenu(); autoGrow(); });
 input.addEventListener("keydown", (e) => {
   const items = menuItems();

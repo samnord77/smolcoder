@@ -31,7 +31,12 @@
     "src/detect.ts",
     "test/code-api.test.js",
     "src/crdt.ts",
-    "test/crdt.test.js"
+    "test/crdt.test.js",
+    "desktop/hub-client.js",
+    "desktop/preload.js",
+    "test/plan.test.js",
+    "package-lock.json",
+    "package.json"
   ],
   "inflight": [
     "desktop/preload-git.js"

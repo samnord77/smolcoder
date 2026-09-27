@@ -1,10 +1,10 @@
 {
   "path": "desktop/hub-client.js",
-  "content_hash": "de0538eda7844b877b15b999dd677ff5",
-  "updated_at": "2026-09-26T17:53:04",
-  "lines": 168,
-  "size_bytes": 5802,
-  "mtime_ns": 1790370415831429700,
+  "content_hash": "56312eb49c9970d2faae9491cd6d2e6e",
+  "updated_at": "2026-09-27T22:37:40",
+  "lines": 187,
+  "size_bytes": 6503,
+  "mtime_ns": 1790545001760382100,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -145,17 +145,17 @@
     {
       "type": "function",
       "name": "ensureHub",
-      "line_start": 141,
-      "line_end": 162,
-      "signature": "async function ensureHub({ projectDir, distIndex }) {",
+      "line_start": 143,
+      "line_end": 181,
+      "signature": "async function ensureHub({ projectDir, distIndex, expectedVersion, allowStale }) {",
       "async": true,
       "doc": "Start the hub if none answers, then return its record + base URL."
     },
     {
       "type": "function",
       "name": "hubUrl",
-      "line_start": 164,
-      "line_end": 166,
+      "line_start": 183,
+      "line_end": 185,
       "signature": "function hubUrl(rec) {"
     }
   ]
