@@ -1,66 +1,16 @@
 {
   "schema_version": 1,
-  "fencing": 106,
+  "fencing": 107,
   "locks": [
     {
-      "relpath": "src/agent.ts",
+      "relpath": "src/web/client.ts",
       "agent_id": "claude-code:20260927",
       "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 101,
-      "intent": "Le\u00e7ons auto inject\u00e9es dans le message de r\u00e9paration",
-      "acquired_at": 1790547569.9530404,
-      "expires_at": 1790548558.666514,
-      "lock_id": "0fdba78b9fd9486292b92babe814bc32"
-    },
-    {
-      "relpath": "src/tools/index.ts",
-      "agent_id": "claude-code:20260927",
-      "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 102,
-      "intent": "Ex\u00e9cute les sp\u00e9cialistes dynamiques avec garde 1000 chars",
-      "acquired_at": 1790547581.9140046,
-      "expires_at": 1790548509.385407,
-      "lock_id": "115923d10df0456caf75c1dd7ad38a80"
-    },
-    {
-      "relpath": "src/prompt.ts",
-      "agent_id": "claude-code:20260927",
-      "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 103,
-      "intent": "Prompt : sp\u00e9cialistes dynamiques + revue du diff",
-      "acquired_at": 1790547622.5626178,
-      "expires_at": 1790548522.5626178,
-      "lock_id": "dd925dc66bd54b06a1c9b005dd7bfa3b"
-    },
-    {
-      "relpath": "test/agent.test.js",
-      "agent_id": "claude-code:20260927",
-      "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 104,
-      "intent": "Tests sp\u00e9cialistes dynamiques : succ\u00e8s, refus, garde",
-      "acquired_at": 1790547710.5176811,
-      "expires_at": 1790548610.5176811,
-      "lock_id": "2351a79a64aa49588c35ca7e27f41896"
-    },
-    {
-      "relpath": "test/verification.test.js",
-      "agent_id": "claude-code:20260927",
-      "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 105,
-      "intent": "Assertion robuste \u00e0 la course de compaction",
-      "acquired_at": 1790547736.1813347,
-      "expires_at": 1790548829.884448,
-      "lock_id": "dfc4a56ec006406d98a12aab8b363641"
-    },
-    {
-      "relpath": "src/verification.ts",
-      "agent_id": "claude-code:20260927",
-      "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 106,
-      "intent": "D\u00e9couverte composer test (PHP)",
-      "acquired_at": 1790547820.0419877,
-      "expires_at": 1790548720.0419877,
-      "lock_id": "1e914e4933914a69b11500b7f3ea1d75"
+      "fencing_token": 107,
+      "intent": "Banni\u00e8re d'erreur visible au lieu de pannes silencieuses",
+      "acquired_at": 1790550080.4886994,
+      "expires_at": 1790550980.4886994,
+      "lock_id": "0ccd7f283ea446e3bc15b92343c9a767"
     }
   ]
 }

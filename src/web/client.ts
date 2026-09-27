@@ -19,6 +19,22 @@ const makeEditorTabStore = ${editorTabStoreBrowserSource};
 const editorTools = ${editorToolsBrowserSource};
 const k = new URLSearchParams(location.search).get("k") || "";
 const $ = (id) => document.getElementById(id);
+// Visible self-diagnosis: any page script error shows a red banner instead
+// of silently dead panels. Tells stale code apart from real bugs.
+function smolReportError(where, err) {
+  try {
+    let b = document.getElementById("smolerror");
+    if (!b) {
+      b = document.createElement("div");
+      b.id = "smolerror";
+      b.style.cssText = "position:fixed;left:0;right:0;bottom:0;z-index:9999;background:#3a1414;color:#ffd7d7;font:12px Consolas,monospace;padding:8px 12px;border-top:1px solid #f14c4c;white-space:pre-wrap;";
+      document.body.appendChild(b);
+    }
+    b.textContent = "Page error (" + where + "): " + String((err && err.message) || err) + " — reload (Ctrl+R). If it persists after npm run build + hub restart, report this text.";
+  } catch (_) {}
+}
+window.addEventListener("error", (e) => smolReportError("js", e.error || e.message));
+window.addEventListener("unhandledrejection", (e) => smolReportError("async", e.reason));
 const ls = {
   get(key) { try { return localStorage.getItem(key); } catch (e) { return null; } },
   set(key, v) { try { localStorage.setItem(key, v); } catch (e) {} },

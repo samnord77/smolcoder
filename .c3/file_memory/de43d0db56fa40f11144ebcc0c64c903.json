@@ -1,10 +1,10 @@
 {
   "path": "src/verification.ts",
-  "content_hash": "d70ed4832c69cc0b79e0f856beb182cf",
-  "updated_at": "2026-09-26T18:01:05",
-  "lines": 144,
-  "size_bytes": 5952,
-  "mtime_ns": 1790427299644511500,
+  "content_hash": "3eae41295ec2dab287ee0f5d66c567a6",
+  "updated_at": "2026-09-27T23:58:46",
+  "lines": 159,
+  "size_bytes": 6523,
+  "mtime_ns": 1790547820053311700,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -56,21 +56,21 @@
       "type": "function",
       "name": "projectVerification",
       "line_start": 39,
-      "line_end": 94,
+      "line_end": 109,
       "signature": "function projectVerification(workspace: string): string | undefined {"
     },
     {
       "type": "function",
       "name": "splitVerification",
-      "line_start": 98,
-      "line_end": 128,
+      "line_start": 113,
+      "line_end": 143,
       "signature": "function splitVerification(command: string): string[] {"
     },
     {
       "type": "function",
       "name": "mergeVerificationCommands",
-      "line_start": 131,
-      "line_end": 144,
+      "line_start": 146,
+      "line_end": 159,
       "signature": "function mergeVerificationCommands(...cmds: (string | undefined)[]): string {"
     }
   ]
