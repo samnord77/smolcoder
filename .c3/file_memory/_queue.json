@@ -21,7 +21,9 @@
     "test/lsp-pro.test.js",
     "src/codeindex.ts",
     "test/mcp.test.js",
-    "test/verification.test.js"
+    "test/verification.test.js",
+    "src/git.ts",
+    "src/web/page.ts"
   ],
   "inflight": [
     "desktop/preload-git.js"

@@ -1,10 +1,10 @@
 {
   "path": "src/git.ts",
-  "content_hash": "14ff420e53b035798e4c6fb94cc48561",
-  "updated_at": "2026-09-27T19:17:49",
-  "lines": 239,
-  "size_bytes": 9376,
-  "mtime_ns": 1790533046615223900,
+  "content_hash": "37bb56dae8fbcc65a8bb3c2b3f51b6c1",
+  "updated_at": "2026-09-27T20:42:10",
+  "lines": 421,
+  "size_bytes": 16487,
+  "mtime_ns": 1790538115310875800,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -138,31 +138,111 @@
     },
     {
       "type": "interface",
+      "name": "DiffHunk",
+      "line_start": 189,
+      "line_end": 193,
+      "signature": "interface DiffHunk {",
+      "children": []
+    },
+    {
+      "type": "interface",
+      "name": "FileDiff",
+      "line_start": 195,
+      "line_end": 198,
+      "signature": "interface FileDiff {",
+      "children": []
+    },
+    {
+      "type": "constant",
+      "name": "MAX_DIFF_FILES",
+      "line_start": 200,
+      "line_end": 200,
+      "signature": "const MAX_DIFF_FILES = 20;"
+    },
+    {
+      "type": "constant",
+      "name": "MAX_HUNKS_PER_FILE",
+      "line_start": 201,
+      "line_end": 201,
+      "signature": "const MAX_HUNKS_PER_FILE = 50;"
+    },
+    {
+      "type": "function",
+      "name": "parseDiffHunks",
+      "line_start": 204,
+      "line_end": 234,
+      "signature": "function parseDiffHunks(diffText: string): FileDiff[] {"
+    },
+    {
+      "type": "function",
+      "name": "fileHeaderFor",
+      "line_start": 238,
+      "line_end": 253,
+      "signature": "function fileHeaderFor(diffText: string, file: string): string[] {"
+    },
+    {
+      "type": "function",
+      "name": "applyPatch",
+      "line_start": 255,
+      "line_end": 274,
+      "signature": "function applyPatch(root: string, args: string[], patch: string): GitRun {"
+    },
+    {
+      "type": "interface",
+      "name": "DiffFilesResult",
+      "line_start": 276,
+      "line_end": 279,
+      "signature": "interface DiffFilesResult {",
+      "children": []
+    },
+    {
+      "type": "function",
+      "name": "gitDiffFiles",
+      "line_start": 283,
+      "line_end": 310,
+      "signature": "function gitDiffFiles(root: string, staged = false): DiffFilesResult {"
+    },
+    {
+      "type": "function",
+      "name": "gitApplyHunk",
+      "line_start": 315,
+      "line_end": 339,
+      "signature": "function gitApplyHunk(root: string, file: string, index: number, action: \"stage\" | \"revert\"): string {"
+    },
+    {
+      "type": "interface",
       "name": "GitQuery",
-      "line_start": 184,
-      "line_end": 192,
+      "line_start": 341,
+      "line_end": 350,
       "signature": "interface GitQuery {",
       "children": []
     },
     {
       "type": "constant",
       "name": "READ_ACTIONS",
-      "line_start": 194,
-      "line_end": 194,
-      "signature": "const READ_ACTIONS = new Set([\"status\", \"diff\", \"log\", \"blame\", \"branch\"]);"
+      "line_start": 352,
+      "line_end": 352,
+      "signature": "const READ_ACTIONS = new Set([\"status\", \"diff\", \"log\", \"blame\", \"branch\", \"review\"]);"
     },
     {
       "type": "constant",
       "name": "GIT_ACTIONS",
-      "line_start": 196,
-      "line_end": 196,
-      "signature": "const GIT_ACTIONS = [\"status\", \"diff\", \"log\", \"blame\", \"branch\", \"stage\", \"commit\"];"
+      "line_start": 354,
+      "line_end": 354,
+      "signature": "const GIT_ACTIONS = [\"status\", \"diff\", \"log\", \"blame\", \"branch\", \"stage\", \"commit\", \"review\", \"stage_hunk\", \"revert_hunk\"];"
+    },
+    {
+      "type": "function",
+      "name": "formatReview",
+      "line_start": 357,
+      "line_end": 371,
+      "signature": "function formatReview(root: string, staged = false): string {"
     },
     {
       "type": "function",
       "name": "queryGit",
-      "line_start": 199,
-      "line_end": 239,
+      "line_start": 375,
+      "line_end": 421,
       "signature": "function queryGit(root: string, args: GitQuery, opts?: { canWrite?: boolean }): string {"
     }
   ]

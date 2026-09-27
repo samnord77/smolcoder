@@ -484,6 +484,7 @@ function renderPlan(v, p) {
 function handle(m) {
   if (m.t === "hub") { onHub(m); return; }
   if (m.t === "closed") { dropView(m.sid); return; }
+  if (m.t === "shared") { onShared(m); return; }
   if (!m.sid) return;
   const v = getView(m.sid);
   switch (m.t) {
@@ -705,6 +706,12 @@ function renderSidebar() {
       row.appendChild(el("span", "dot"));
       row.appendChild(el("span", "stitle" + (s.title ? "" : " untitled"), s.title || "new session"));
       row.appendChild(el("span", "stime", rel(s.updatedAt)));
+      if (s.live) {
+        const sh = el("button", "iconbtn", "⍾");
+        sh.title = "copy a read-only live-follow link";
+        sh.onclick = (e) => { e.stopPropagation(); shareSession(s.id); };
+        row.appendChild(sh);
+      }
       const x = el("button", "iconbtn", "×");
       x.title = s.live ? "close session (kept in the list)" : "delete session";
       x.onclick = (e) => {
@@ -713,7 +720,7 @@ function renderSidebar() {
         else if (confirm("Delete this session permanently?")) post("/sessions/delete", { id: s.id });
       };
       row.appendChild(x);
-      row.title = (s.title || "new session") + (s.model ? " · " + s.model : "") + (s.live ? " · " + s.status : " · saved — click to resume");
+      row.title = (s.title || "new session") + (s.model ? " · " + s.model : "") + (s.live ? " · " + s.status : " · saved — click to resume") + (s.viewers && s.viewers.length ? " · 👁 " + s.viewers.join(", ") : "");
       row.onclick = () => select(s.id);
       row.ondblclick = () => { const t = prompt("Rename session", s.title || ""); if (t !== null && t.trim()) post("/sessions/rename", { id: s.id, title: t }); };
       sl.appendChild(row);
@@ -853,15 +860,16 @@ function renderPanel() {
     x.onclick = (e) => { e.stopPropagation(); closeTab(v, t); };
     b.appendChild(x);
     b.onclick = () => { v.activeTab = t.id; savePanel(v); renderPanel(); if (t.kind === "term" && t.inp) t.inp.focus(); };
-    b.title = t.kind === "browser" ? (t.url || "new browser tab") : t.kind === "files" ? "workspace explorer" : "terminal in " + shortPath(t.cwd);
+    b.title = t.kind === "browser" ? (t.url || "new browser tab") : t.kind === "files" ? "workspace explorer" : t.kind === "review" ? "review uncommitted changes" : "terminal in " + shortPath(t.cwd);
     tabsEl.appendChild(b);
   }
   tabsEl.appendChild(el("span", "grow"));
   const nb = el("button", "iconbtn", "+◎"); nb.title = "new browser tab"; nb.onclick = () => openBrowserTab(v);
   const nf = el("button", "iconbtn", "+▤"); nf.title = "project files"; nf.onclick = () => openFilesTab(v);
+  const nr = el("button", "iconbtn", "+Δ"); nr.title = "review uncommitted changes"; nr.onclick = () => openReviewTab(v);
   const nt = el("button", "iconbtn", "+>_"); nt.title = "new terminal"; nt.onclick = () => openTerminalTab(v);
   const cl = el("button", "iconbtn", "»"); cl.title = "hide panel"; cl.onclick = () => { v.panelOpen = false; savePanel(v); renderPanel(); };
-  tabsEl.appendChild(nb); tabsEl.appendChild(nf); tabsEl.appendChild(nt); tabsEl.appendChild(cl);
+  tabsEl.appendChild(nb); tabsEl.appendChild(nf); tabsEl.appendChild(nr); tabsEl.appendChild(nt); tabsEl.appendChild(cl);
   for (const t of v.tabs) if (t.el) t.el.hidden = t !== cur;
 }
 function closeTab(v, t) {
@@ -883,11 +891,13 @@ function togglePanelKind(kind) {
     if (kind === "term" && existing.inp) existing.inp.focus();
   } else if (kind === "browser") openBrowserTab(v);
   else if (kind === "files") openFilesTab(v);
+  else if (kind === "review") openReviewTab(v);
   else openTerminalTab(v);
 }
 $("btnfiles").onclick = () => togglePanelKind("files");
 $("btnbrowser").onclick = () => togglePanelKind("browser");
 $("btnterm").onclick = () => togglePanelKind("term");
+{ const br = $("btnreview"); if (br) br.onclick = () => togglePanelKind("review"); }
 
 // browser tabs
 function fillUrls(t, urls) {
@@ -1179,7 +1189,11 @@ function buildFilesTab(v, t) {
     meta.textContent = (t.filePath ? t.filePath + " · " : "") + "Ln " + position.line + ", Col " + position.column + (tab && tab.dirty ? " · modifié" : "");
   };
   const analyzeFile = async (filePath = t.filePath) => {
-    if (!filePath || !/\.(?:[cm]?js|jsx|tsx?)$/i.test(filePath)) { diagnosticRequest++; diagnosticsPanel.replaceChildren(); return; }
+    if (!filePath) { diagnosticRequest++; diagnosticsPanel.replaceChildren(); return; }
+    // TypeScript/JavaScript go through the workspace diagnostics; Python,
+    // Rust and Go through the pro language servers (same panel, same rows).
+    const proLang = /\.(?:py|rs|go)$/i.test(filePath);
+    if (!proLang && !/\.(?:[cm]?js|jsx|tsx?)$/i.test(filePath)) { diagnosticRequest++; diagnosticsPanel.replaceChildren(); return; }
     const active = t.tabStore.active();
     if (active && active.path === filePath && active.dirty) {
       diagnosticRequest++;
@@ -1189,13 +1203,18 @@ function buildFilesTab(v, t) {
     const request = ++diagnosticRequest;
     diagnosticsPanel.replaceChildren(el("div", "filediagnostic-note", "Analyse du fichier…"));
     try {
-      const url = "/workspace/diagnostics?k=" + k + "&sid=" + encodeURIComponent(v.sid) + "&path=" + encodeURIComponent(filePath);
+      const url = proLang
+        ? "/code/diag-structured?k=" + k + "&sid=" + encodeURIComponent(v.sid) + "&path=" + encodeURIComponent(filePath)
+        : "/workspace/diagnostics?k=" + k + "&sid=" + encodeURIComponent(v.sid) + "&path=" + encodeURIComponent(filePath);
       const response = await fetch(url);
       const result = await response.json();
       if (!response.ok || result.error) throw new Error(result.error || "L’analyse a échoué.");
       if (request !== diagnosticRequest || filePath !== t.filePath) return;
       diagnosticsPanel.replaceChildren();
       if (result.message) diagnosticsPanel.appendChild(el("div", "filediagnostic-note", result.message));
+      if (result.text && !(result.diagnostics || []).length && !result.message) {
+        diagnosticsPanel.appendChild(el("div", "filediagnostic-note", result.text));
+      }
       for (const diagnostic of result.diagnostics || []) {
         const row = el("button", "filediagnostic " + diagnostic.severity);
         row.type = "button";
@@ -1370,6 +1389,68 @@ function buildFilesTab(v, t) {
     }).catch((e) => showError(e.message)).finally(() => t.refreshMode(v.state.mode !== "ro"));
   };
   t.refreshMode(v.state.mode !== "ro");
+}
+
+// review tab: uncommitted changes, hunk by hunk, with stage/revert actions
+function openReviewTab(v) {
+  if (!v) return;
+  const existing = v.tabs.filter((t) => t.kind === "review").pop();
+  if (existing) { v.activeTab = existing.id; v.panelOpen = true; savePanel(v); renderPanel(); return; }
+  const t = { kind: "review", id: "r:" + Math.random().toString(36).slice(2) };
+  buildReviewTab(v, t);
+  v.tabs.push(t); v.activeTab = t.id; v.panelOpen = true; savePanel(v); renderPanel();
+}
+function buildReviewTab(v, t) {
+  const body = el("div", "tabbody review"); body.hidden = true;
+  const bar = el("div", "bar");
+  const refresh = el("button", "iconbtn", "↻"); refresh.title = "refresh review";
+  const staged = el("button", "iconbtn", "staged"); staged.title = "show staged changes instead of unstaged";
+  bar.appendChild(refresh); bar.appendChild(staged);
+  const list = el("div", "reviewlist");
+  const note = el("div", "filemeta", "uncommitted changes");
+  body.appendChild(bar); body.appendChild(list); body.appendChild(note);
+  v.panelEl.appendChild(body);
+  t.el = body;
+  let showStaged = false;
+  const actHunk = (file, index, action, btn) => {
+    btn.disabled = true;
+    post("/code/diff/hunk", { sid: v.sid, path: file, hunk: index, action }).then((r) => {
+      if (!r || r.error || (typeof r.message === "string" && /^Error/.test(r.message))) {
+        alert((r && (r.error || r.message)) || "Review action failed");
+        return;
+      }
+      load();
+    }).catch((e) => alert(String((e && e.message) || e))).finally(() => { btn.disabled = false; });
+  };
+  const load = () => {
+    list.replaceChildren(el("div", "filediagnostic-note", "Loading review…"));
+    fetch("/code/diff?k=" + k + "&sid=" + encodeURIComponent(v.sid) + (showStaged ? "&staged=1" : ""))
+      .then((r) => r.json()).then((d) => {
+        if (d.error) throw new Error(d.error);
+        list.replaceChildren();
+        note.textContent = d.note || ((d.files || []).length + " file(s) with uncommitted changes");
+        for (const f of d.files || []) {
+          list.appendChild(el("div", "reviewfile", f.file));
+          for (const h of f.hunks || []) {
+            const block = el("div", "reviewhunk");
+            block.appendChild(el("pre", "reviewpatch", h.header + "\n" + (h.lines || []).join("\n")));
+            const row = el("div", "reviewactions");
+            const sb = el("button", "iconbtn", "Stage"); sb.title = "stage this hunk";
+            const rb = el("button", "iconbtn", "Revert"); rb.title = "revert this hunk in the working tree";
+            sb.onclick = () => actHunk(f.file, h.index, "stage", sb);
+            rb.onclick = () => { if (confirm("Revert this hunk in " + f.file + "? The change will be lost.")) actHunk(f.file, h.index, "revert", rb); };
+            row.appendChild(sb); row.appendChild(rb);
+            block.appendChild(row);
+            list.appendChild(block);
+          }
+        }
+        if (!(d.files || []).length && !d.note) list.appendChild(el("div", "filediagnostic-note", "Working tree clean."));
+      }).catch((e) => { list.replaceChildren(el("div", "filediagnostic-note error", String((e && e.message) || e))); });
+  };
+  refresh.onclick = load;
+  staged.onclick = () => { showStaged = !showStaged; staged.textContent = showStaged ? "unstaged" : "staged"; load(); };
+  t.reload = load;
+  load();
 }
 
 // terminal tabs
@@ -2017,9 +2098,46 @@ function sseFailed() {
   if (sseTimer) clearTimeout(sseTimer);
   sseTimer = setTimeout(() => { sseTimer = null; connectSSE(); }, delay);
 }
+// ---- read-only live follow --------------------------------------------------
+// Opened with ?share=TOKEN: the same page follows one session live, with the
+// composer disabled and presence announced. The hub token is never exposed.
+const shareToken = new URLSearchParams(location.search).get("share") || "";
+let shareSid = "";
+function shareSession(sid) {
+  post("/sessions/share", { sid }).then((r) => {
+    if (!r || r.error || !r.token) { alert((r && r.error) || "Share failed"); return; }
+    prompt("Read-only live link (copy it):", location.origin + location.pathname + "?share=" + r.token);
+  }).catch((e) => alert(String((e && e.message) || e)));
+}
+function pingShare() {
+  if (!shareToken) return;
+  fetch("/shared/ping?k=" + encodeURIComponent(shareToken) + "&name=" + encodeURIComponent(ls.get("smol-viewer") || "anonymous")).catch(() => {});
+}
+function onShared(m) {
+  shareSid = m.sid;
+  let name = ls.get("smol-viewer") || "";
+  if (!name) {
+    try { name = (prompt("Votre nom (affiché au propriétaire) :", "") || "").trim().slice(0, 40) || "anonymous"; }
+    catch (e) { name = "anonymous"; }
+    ls.set("smol-viewer", name);
+  }
+  document.title = "👁 " + (m.title || "session partagée") + " · smol";
+  if (!$("sharebanner")) {
+    const b = el("div", "sharebanner", "👁 Session partagée en lecture seule — le compositeur est désactivé.");
+    document.body.prepend(b);
+  }
+  input.disabled = true;
+  input.placeholder = "Lecture seule — demandez au propriétaire d’agir.";
+  const ab = $("actionbtn"); if (ab) ab.disabled = true;
+  const st = $("sidetoggle"); if (st) st.hidden = true;
+  sideEl.hidden = true;
+  pingShare();
+  show(m.sid);
+}
+setInterval(() => { if (shareToken && shareSid) pingShare(); }, 20000);
 function connectSSE() {
   try { if (es) es.close(); } catch (e) {}
-  es = new EventSource("/events?k=" + k);
+  es = new EventSource(shareToken ? "/shared?k=" + encodeURIComponent(shareToken) : "/events?k=" + k);
   es.onopen = () => {
     sseClearRetry();
     hideNetBanner();

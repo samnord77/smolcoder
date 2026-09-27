@@ -160,17 +160,21 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
     {
       name: "git",
       description:
-        'Read the git repository (works in read-only mode). Status: {"action": "status"}. Uncommitted changes: {"action": "diff"}. Staged changes: {"action": "diff", "staged": true}. History: {"action": "log", "count": 10}. Who wrote a line: {"action": "blame", "path": "src/agent.ts", "line": 42}. Branches: {"action": "branch"}. Stage (edit only): {"action": "stage", "path": "src/agent.ts"} — use "." for everything. Commit (edit only): {"action": "commit", "message": "Fix login retry"}.',
+        'Read the git repository (works in read-only mode). Status: {"action": "status"}. Uncommitted changes: {"action": "diff"}. Hunk review: {"action": "review"}. History: {"action": "log", "count": 10}. Who wrote a line: {"action": "blame", "path": "src/agent.ts", "line": 42}. Branches: {"action": "branch"}. Stage (edit only): {"action": "stage", "path": "src/agent.ts"} — use "." for everything. Stage one hunk (edit only): {"action": "stage_hunk", "path": "src/a.ts", "hunk": 0}. Revert one hunk, undoable (edit only): {"action": "revert_hunk", "path": "src/a.ts", "hunk": 1}. Commit (edit only): {"action": "commit", "message": "Fix login retry"}.',
       parameters: {
         type: "object",
         properties: {
-          action: { type: "string", enum: ["status", "diff", "log", "blame", "branch", "stage", "commit"] },
-          path: { type: "string", description: "File path (for diff, blame, stage); comma-separated for stage" },
+          action: {
+            type: "string",
+            enum: ["status", "diff", "log", "blame", "branch", "stage", "commit", "review", "stage_hunk", "revert_hunk"],
+          },
+          path: { type: "string", description: "File path (for diff, blame, stage, stage_hunk, revert_hunk); comma-separated for stage" },
           message: { type: "string", description: "Commit message (only for commit)" },
           count: { type: "number", description: "Commits to show (only for log, default 10)" },
           line: { type: "number", description: "Line number (only for blame)" },
-          staged: { type: "boolean", description: "Show staged changes (only for diff)" },
+          staged: { type: "boolean", description: "Show staged changes (for diff and review)" },
           stat: { type: "boolean", description: "Show file summary instead of full patch (only for diff)" },
+          hunk: { type: "number", description: "Hunk number from review (only for stage_hunk and revert_hunk)" },
         },
         required: ["action"],
       },
@@ -576,7 +580,19 @@ export async function executeTool(
         break;
       }
       case "git": {
+        // revert_hunk destroys work: capture it first so /undo brings it back.
+        const gAction = String(args.action ?? "");
+        const gPath = typeof args.path === "string" ? args.path : "";
+        const undoCap = gAction === "revert_hunk" && gPath ? capturePrev(ctx.workspace, gPath) : null;
         result = queryGit(ctx.workspace, args, { canWrite: ctx.canWrite });
+        if (gAction === "revert_hunk" && undoCap && !result.startsWith("Error")) {
+          try {
+            pushUndo(ctx, undoCap, fs.readFileSync(resolveInWorkspace(ctx.workspace, gPath), "utf8"));
+          } catch {
+            /* undo is best effort — the revert itself succeeded */
+          }
+          ctx.filesTouched.add(gPath);
+        }
         break;
       }
       case "debug": {

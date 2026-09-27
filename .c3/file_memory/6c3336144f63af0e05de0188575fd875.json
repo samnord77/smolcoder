@@ -1,10 +1,10 @@
 {
   "path": "src/lsp-pro.ts",
-  "content_hash": "30e31e8ee0c82445d1246f1fdc5efb4e",
-  "updated_at": "2026-09-27T19:43:00",
-  "lines": 846,
-  "size_bytes": 29823,
-  "mtime_ns": 1790534494777204200,
+  "content_hash": "5eab95c19a4dde8f4653faba83442502",
+  "updated_at": "2026-09-27T20:19:02",
+  "lines": 939,
+  "size_bytes": 33288,
+  "mtime_ns": 1790536684707993900,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -424,7 +424,7 @@
       "type": "class",
       "name": "LspManager",
       "line_start": 524,
-      "line_end": 780,
+      "line_end": 855,
       "signature": "class LspManager {",
       "children": [
         {
@@ -511,16 +511,35 @@
           "type": "method",
           "name": "query",
           "line_start": 629,
-          "line_end": 737,
+          "line_end": 731,
           "signature": "async query(raw: CodeQuery, signal?: AbortSignal): Promise<string> {",
           "async": true,
           "doc": "One symbol question. Never throws: failures are coaching strings."
         },
         {
           "type": "method",
+          "name": "fetchDiagnostics",
+          "line_start": 735,
+          "line_end": 752,
+          "signature": "private async fetchDiagnostics(live: LiveServer, uri: string, signal?: AbortSignal): Promise<any[]> {",
+          "async": true,
+          "access": "private",
+          "doc": "Wait for the server's async diagnostics for one open document."
+        },
+        {
+          "type": "method",
+          "name": "diagStructured",
+          "line_start": 756,
+          "line_end": 812,
+          "signature": "async diagStructured(rel: string, signal?: AbortSignal): Promise<{ text: string; diagnostics: StructuredDiag[] }> {",
+          "async": true,
+          "doc": "Structured diagnostics for IDE panels: rows carry file/line/severity"
+        },
+        {
+          "type": "method",
           "name": "workspaceSymbol",
-          "line_start": 739,
-          "line_end": 766,
+          "line_start": 814,
+          "line_end": 841,
           "signature": "private async workspaceSymbol(query: string, lang: string, signal?: AbortSignal): Promise<string> {",
           "async": true,
           "access": "private"
@@ -528,8 +547,8 @@
         {
           "type": "method",
           "name": "shutdown",
-          "line_start": 768,
-          "line_end": 779,
+          "line_start": 843,
+          "line_end": 854,
           "signature": "shutdown(): void {"
         }
       ]
@@ -537,37 +556,53 @@
     {
       "type": "constant",
       "name": "managers",
-      "line_start": 786,
-      "line_end": 786,
+      "line_start": 861,
+      "line_end": 861,
       "signature": "const managers = new Map<string, LspManager>();"
     },
     {
       "type": "function",
       "name": "managerFor",
-      "line_start": 788,
-      "line_end": 795,
+      "line_start": 863,
+      "line_end": 870,
       "signature": "function managerFor(root: string): LspManager {"
     },
     {
       "type": "function",
       "name": "closeLspManagers",
-      "line_start": 798,
-      "line_end": 807,
+      "line_start": 873,
+      "line_end": 882,
       "signature": "function closeLspManagers(): void {"
     },
     {
       "type": "constant",
       "name": "LEGACY_TS_ACTIONS",
-      "line_start": 817,
-      "line_end": 817,
+      "line_start": 892,
+      "line_end": 892,
       "signature": "const LEGACY_TS_ACTIONS = new Set([\"hover\", \"def\", \"refs\", \"diag\"]);"
     },
     {
       "type": "function",
       "name": "queryCode",
-      "line_start": 823,
-      "line_end": 846,
+      "line_start": 898,
+      "line_end": 921,
       "signature": "async function queryCode(root: string, args: CodeQuery, signal?: AbortSignal): Promise<string> {",
+      "async": true
+    },
+    {
+      "type": "interface",
+      "name": "StructuredDiag",
+      "line_start": 923,
+      "line_end": 929,
+      "signature": "interface StructuredDiag {",
+      "children": []
+    },
+    {
+      "type": "function",
+      "name": "queryDiagStructured",
+      "line_start": 933,
+      "line_end": 939,
+      "signature": "async function queryDiagStructured(",
       "async": true
     }
   ]

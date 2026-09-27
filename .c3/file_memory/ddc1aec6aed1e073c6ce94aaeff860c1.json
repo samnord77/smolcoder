@@ -1,10 +1,10 @@
 {
   "path": "test/lsp-pro.test.js",
-  "content_hash": "c84b7b8891c4947bd3b0bb1e2fce80ad",
-  "updated_at": "2026-09-27T19:36:57",
-  "lines": 194,
-  "size_bytes": 9847,
-  "mtime_ns": 1790534135239544300,
+  "content_hash": "0d10a68e67890d43f49e2d19293f329f",
+  "updated_at": "2026-09-27T20:42:13",
+  "lines": 216,
+  "size_bytes": 10642,
+  "mtime_ns": 1790538042278554200,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -47,29 +47,29 @@
     {
       "type": "function",
       "name": "scratchWs",
-      "line_start": 22,
-      "line_end": 29,
+      "line_start": 23,
+      "line_end": 30,
       "signature": "function scratchWs(files) {"
     },
     {
       "type": "constant",
       "name": "MOCK_LINES",
-      "line_start": 31,
-      "line_end": 77,
+      "line_start": 32,
+      "line_end": 78,
       "signature": "const MOCK_LINES = ["
     },
     {
       "type": "variable",
       "name": "mockCmd",
-      "line_start": 80,
-      "line_end": 80,
+      "line_start": 81,
+      "line_end": 81,
       "signature": "let mockCmd = null;"
     },
     {
       "type": "function",
       "name": "mockCommand",
-      "line_start": 81,
-      "line_end": 89,
+      "line_start": 82,
+      "line_end": 90,
       "signature": "function mockCommand() {"
     }
   ]

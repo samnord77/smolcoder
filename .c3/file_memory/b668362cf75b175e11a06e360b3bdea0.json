@@ -1,10 +1,10 @@
 {
   "path": "src/web/hub.ts",
-  "content_hash": "5d9a1799b6e3a1c6ef4afbcdef8523f6",
-  "updated_at": "2026-09-27T19:26:54",
-  "lines": 1248,
-  "size_bytes": 47130,
-  "mtime_ns": 1790533386480465800,
+  "content_hash": "a17a0b83f20cf586171e4e8740a8ae06",
+  "updated_at": "2026-09-27T20:28:04",
+  "lines": 1390,
+  "size_bytes": 53519,
+  "mtime_ns": 1790537241227637400,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -137,10 +137,10 @@
     },
     {
       "type": "import",
-      "name": "import { queryCode, lspAvailability } from \"../lsp-pro\";",
+      "name": "import { queryCode, lspAvailability, queryDiagStructured } from \"../lsp-pro\";",
       "line_start": 31,
       "line_end": 31,
-      "signature": "import { queryCode, lspAvailability } from \"../lsp-pro\";"
+      "signature": "import { queryCode, lspAvailability, queryDiagStructured } from \"../lsp-pro\";"
     },
     {
       "type": "import",
@@ -150,388 +150,422 @@
       "signature": "import { queryIndex } from \"../codeindex\";"
     },
     {
+      "type": "import",
+      "name": "import { gitApplyHunk, gitDiffFiles } from \"../git\";",
+      "line_start": 33,
+      "line_end": 33,
+      "signature": "import { gitApplyHunk, gitDiffFiles } from \"../git\";"
+    },
+    {
       "type": "type",
       "name": "SessionFactory",
-      "line_start": 34,
-      "line_end": 34,
+      "line_start": 35,
+      "line_end": 35,
       "signature": "type SessionFactory = (ui: SessionChannel, workspace: string, prefs: SessionPrefs, planKey?: string) => Promise<Session>;",
       "children": []
     },
     {
       "type": "constant",
       "name": "SESSION_ID_RE",
-      "line_start": 38,
-      "line_end": 38,
+      "line_start": 39,
+      "line_end": 39,
       "signature": "const SESSION_ID_RE = /^[a-z0-9_-]{1,64}$/i;"
     },
     {
       "type": "constant",
       "name": "UPLOAD_ID_RE",
-      "line_start": 39,
-      "line_end": 39,
+      "line_start": 40,
+      "line_end": 40,
       "signature": "const UPLOAD_ID_RE = /^[a-f0-9]{16}$/;"
     },
     {
       "type": "constant",
       "name": "WEB_FILE_CAP",
-      "line_start": 40,
-      "line_end": 40,
+      "line_start": 41,
+      "line_end": 41,
       "signature": "const WEB_FILE_CAP = 512 * 1024;"
     },
     {
       "type": "constant",
       "name": "WEB_TREE_CAP",
-      "line_start": 41,
-      "line_end": 41,
+      "line_start": 42,
+      "line_end": 42,
       "signature": "const WEB_TREE_CAP = 800;"
     },
     {
       "type": "interface",
       "name": "HubOptions",
-      "line_start": 43,
-      "line_end": 56,
+      "line_start": 44,
+      "line_end": 57,
       "signature": "interface HubOptions {",
       "children": []
     },
     {
       "type": "interface",
       "name": "Live",
-      "line_start": 58,
-      "line_end": 80,
+      "line_start": 59,
+      "line_end": 81,
       "signature": "interface Live {",
       "children": []
     },
     {
       "type": "interface",
       "name": "HubRecord",
-      "line_start": 84,
-      "line_end": 89,
+      "line_start": 85,
+      "line_end": 90,
       "signature": "interface HubRecord {",
       "children": []
     },
     {
       "type": "constant",
       "name": "HUB_FILE",
-      "line_start": 91,
-      "line_end": 91,
+      "line_start": 92,
+      "line_end": 92,
       "signature": "const HUB_FILE = \"web.json\";"
     },
     {
       "type": "function",
       "name": "readHubRecord",
-      "line_start": 93,
-      "line_end": 101,
+      "line_start": 94,
+      "line_end": 102,
       "signature": "function readHubRecord(dataDir = DATA_DIR): HubRecord | null {"
     },
     {
       "type": "function",
       "name": "writeHubRecord",
-      "line_start": 103,
-      "line_end": 112,
+      "line_start": 104,
+      "line_end": 113,
       "signature": "function writeHubRecord(rec: HubRecord, dataDir: string): void {"
     },
     {
       "type": "function",
       "name": "clearHubRecord",
-      "line_start": 114,
-      "line_end": 123,
+      "line_start": 115,
+      "line_end": 124,
       "signature": "function clearHubRecord(pid: number, dataDir: string): void {"
     },
     {
       "type": "function",
       "name": "pingHub",
-      "line_start": 126,
-      "line_end": 129,
+      "line_start": 127,
+      "line_end": 130,
       "signature": "async function pingHub(rec: HubRecord): Promise<boolean> {",
       "async": true
     },
     {
       "type": "function",
       "name": "askHubToOpen",
-      "line_start": 132,
-      "line_end": 142,
+      "line_start": 133,
+      "line_end": 143,
       "signature": "function askHubToOpen(rec: HubRecord, workspace: string, start: boolean): Promise<{ id?: string; path?: string } | null> {"
     },
     {
       "type": "function",
       "name": "tilde",
-      "line_start": 146,
-      "line_end": 150,
+      "line_start": 147,
+      "line_end": 151,
       "signature": "function tilde(p: string): string {"
     },
     {
       "type": "function",
       "name": "expandHome",
-      "line_start": 152,
-      "line_end": 156,
+      "line_start": 153,
+      "line_end": 157,
       "signature": "function expandHome(s: string): string {"
     },
     {
       "type": "constant",
       "name": "PROJECT_MARKERS",
-      "line_start": 158,
-      "line_end": 158,
+      "line_start": 159,
+      "line_end": 159,
       "signature": "const PROJECT_MARKERS = [\".git\", \"package.json\", \"pyproject.toml\", \"Cargo.toml\", \"go.mod\", \"AGENTS.md\", \"pom.xml\", \"Gemfile\"];"
     },
     {
       "type": "function",
       "name": "isProject",
-      "line_start": 159,
-      "line_end": 161,
+      "line_start": 160,
+      "line_end": 162,
       "signature": "function isProject(dir: string): boolean {"
     },
     {
       "type": "variable",
       "name": "rootsCache",
-      "line_start": 163,
-      "line_end": 163,
+      "line_start": 164,
+      "line_end": 164,
       "signature": "let rootsCache: { at: number; roots: string[] } | null = null;"
     },
     {
       "type": "function",
       "name": "listRoots",
-      "line_start": 164,
-      "line_end": 183,
+      "line_start": 165,
+      "line_end": 184,
       "signature": "function listRoots(): string[] {"
     },
     {
       "type": "constant",
       "name": "SKIP_DIRS",
-      "line_start": 185,
-      "line_end": 185,
+      "line_start": 186,
+      "line_end": 186,
       "signature": "const SKIP_DIRS = /^(node_modules|\\$recycle\\.bin|system volume information|windows|program files( \\(x86\\))?|programdata|appdata)$/i;"
     },
     {
       "type": "function",
       "name": "browseDir",
-      "line_start": 188,
-      "line_end": 222,
+      "line_start": 189,
+      "line_end": 223,
       "signature": "function browseDir(input: string | null | undefined): Record<string, any> {"
     },
     {
       "type": "function",
       "name": "defaultFactory",
-      "line_start": 224,
-      "line_end": 234,
+      "line_start": 225,
+      "line_end": 235,
       "signature": "function defaultFactory(help: string): SessionFactory {"
     },
     {
       "type": "class",
       "name": "WebHub",
-      "line_start": 238,
-      "line_end": 1248,
+      "line_start": 239,
+      "line_end": 1390,
       "signature": "class WebHub {",
       "children": [
         {
           "type": "property",
           "name": "authToken",
-          "line_start": 239,
-          "line_end": 239,
+          "line_start": 240,
+          "line_end": 240,
           "signature": "readonly authToken: string;"
         },
         {
           "type": "property",
           "name": "dataDir",
-          "line_start": 240,
-          "line_end": 240,
+          "line_start": 241,
+          "line_end": 241,
           "signature": "readonly dataDir: string;"
         },
         {
           "type": "property",
           "name": "port",
-          "line_start": 241,
-          "line_end": 241,
+          "line_start": 242,
+          "line_end": 242,
           "signature": "port: number;"
         },
         {
           "type": "property",
           "name": "server",
-          "line_start": 243,
-          "line_end": 243,
+          "line_start": 244,
+          "line_end": 244,
           "signature": "private server: http.Server | null = null;",
           "access": "private"
         },
         {
           "type": "property",
           "name": "clients",
-          "line_start": 244,
-          "line_end": 244,
+          "line_start": 245,
+          "line_end": 245,
           "signature": "private clients = new Set<http.ServerResponse>();",
           "access": "private"
         },
         {
           "type": "property",
+          "name": "sharedClients",
+          "line_start": 247,
+          "line_end": 247,
+          "signature": "private sharedClients = new Set<{ res: http.ServerResponse; sid: string }>();",
+          "access": "private",
+          "doc": "Read-only followers: one SSE stream per shared session."
+        },
+        {
+          "type": "property",
+          "name": "shares",
+          "line_start": 249,
+          "line_end": 249,
+          "signature": "private shares = new Map<string, { sid: string; createdAt: number }>();",
+          "access": "private",
+          "doc": "Share tokens: token -> session id (read-only live follow)."
+        },
+        {
+          "type": "property",
+          "name": "viewers",
+          "line_start": 251,
+          "line_end": 251,
+          "signature": "private viewers = new Map<string, Map<string, number>>();",
+          "access": "private",
+          "doc": "Presence: session id -> viewer name -> last ping."
+        },
+        {
+          "type": "property",
           "name": "live",
-          "line_start": 245,
-          "line_end": 245,
+          "line_start": 252,
+          "line_end": 252,
           "signature": "private live = new Map<string, Live>();",
           "access": "private"
         },
         {
           "type": "property",
           "name": "metas",
-          "line_start": 246,
-          "line_end": 246,
+          "line_start": 253,
+          "line_end": 253,
           "signature": "private metas = new Map<string, SessionMeta>();",
           "access": "private"
         },
         {
           "type": "property",
           "name": "store",
-          "line_start": 247,
-          "line_end": 247,
+          "line_start": 254,
+          "line_end": 254,
           "signature": "private store: SessionStore;",
           "access": "private"
         },
         {
           "type": "property",
           "name": "workspaces",
-          "line_start": 248,
-          "line_end": 248,
+          "line_start": 255,
+          "line_end": 255,
           "signature": "private workspaces: WorkspaceStore;",
           "access": "private"
         },
         {
           "type": "property",
           "name": "factory",
-          "line_start": 249,
-          "line_end": 249,
+          "line_start": 256,
+          "line_end": 256,
           "signature": "private factory: SessionFactory;",
           "access": "private"
         },
         {
           "type": "property",
           "name": "hubTimer",
-          "line_start": 250,
-          "line_end": 250,
+          "line_start": 257,
+          "line_end": 257,
           "signature": "private hubTimer: NodeJS.Timeout | null = null;",
           "access": "private"
         },
         {
           "type": "property",
           "name": "termCounter",
-          "line_start": 251,
-          "line_end": 251,
+          "line_start": 258,
+          "line_end": 258,
           "signature": "private termCounter = 0;",
           "access": "private"
         },
         {
           "type": "property",
           "name": "stopped",
-          "line_start": 252,
-          "line_end": 252,
+          "line_start": 259,
+          "line_end": 259,
           "signature": "private stopped = false;",
           "access": "private"
         },
         {
           "type": "method",
           "name": "constructor",
-          "line_start": 254,
-          "line_end": 273,
+          "line_start": 261,
+          "line_end": 280,
           "signature": "constructor(private opts: HubOptions) {"
         },
         {
           "type": "method",
           "name": "url",
-          "line_start": 275,
-          "line_end": 277,
+          "line_start": 282,
+          "line_end": 284,
           "signature": "url(): string {"
         },
         {
           "type": "method",
           "name": "start",
-          "line_start": 279,
-          "line_end": 291,
+          "line_start": 286,
+          "line_end": 298,
           "signature": "start(): Promise<void> {"
         },
         {
           "type": "method",
           "name": "shutdownSync",
-          "line_start": 295,
-          "line_end": 316,
+          "line_start": 302,
+          "line_end": 323,
           "signature": "shutdownSync(): void {",
           "doc": "Synchronous teardown for exit paths: save what has something to save,"
         },
         {
           "type": "method",
           "name": "close",
-          "line_start": 318,
-          "line_end": 320,
+          "line_start": 325,
+          "line_end": 327,
           "signature": "close(): void {"
         },
         {
           "type": "method",
           "name": "log",
-          "line_start": 322,
-          "line_end": 324,
+          "line_start": 329,
+          "line_end": 331,
           "signature": "private log(s: string): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "addWorkspace",
-          "line_start": 328,
-          "line_end": 331,
+          "line_start": 335,
+          "line_end": 338,
           "signature": "addWorkspace(p: string): void {"
         },
         {
           "type": "method",
           "name": "openSession",
-          "line_start": 335,
-          "line_end": 343,
+          "line_start": 342,
+          "line_end": 350,
           "signature": "openSession(workspace: string): string {",
           "doc": "Start a new session in a workspace; returns its id right away while the"
         },
         {
           "type": "method",
           "name": "resumeSession",
-          "line_start": 346,
-          "line_end": 365,
+          "line_start": 353,
+          "line_end": 372,
           "signature": "resumeSession(id: string): boolean {",
           "doc": "Bring a saved session back to life (or retry one that failed to start)."
         },
         {
           "type": "method",
           "name": "closeSession",
-          "line_start": 367,
-          "line_end": 379,
+          "line_start": 374,
+          "line_end": 386,
           "signature": "closeSession(id: string): boolean {"
         },
         {
           "type": "method",
           "name": "deleteSession",
-          "line_start": 381,
-          "line_end": 395,
+          "line_start": 388,
+          "line_end": 402,
           "signature": "deleteSession(id: string): void {"
         },
         {
           "type": "method",
           "name": "renameSession",
-          "line_start": 397,
-          "line_end": 418,
+          "line_start": 404,
+          "line_end": 425,
           "signature": "renameSession(id: string, title: string): void {"
         },
         {
           "type": "method",
           "name": "removeWorkspace",
-          "line_start": 422,
-          "line_end": 436,
+          "line_start": 429,
+          "line_end": 443,
           "signature": "removeWorkspace(p: string): string | null {",
           "doc": "Forget a workspace and delete its saved sessions. Returns an error"
         },
         {
           "type": "method",
           "name": "makeLive",
-          "line_start": 438,
-          "line_end": 464,
+          "line_start": 445,
+          "line_end": 471,
           "signature": "private makeLive(id: string, meta: SessionMeta): Live {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "autoTitle",
-          "line_start": 468,
-          "line_end": 478,
+          "line_start": 475,
+          "line_end": 485,
           "signature": "private async autoTitle(live: Live): Promise<void> {",
           "async": true,
           "access": "private",
@@ -540,8 +574,8 @@
         {
           "type": "method",
           "name": "spawn",
-          "line_start": 480,
-          "line_end": 521,
+          "line_start": 487,
+          "line_end": 528,
           "signature": "private async spawn(live: Live, restore: SessionSnapshot | null): Promise<void> {",
           "async": true,
           "access": "private"
@@ -549,40 +583,40 @@
         {
           "type": "method",
           "name": "sessionEnded",
-          "line_start": 523,
-          "line_end": 535,
+          "line_start": 530,
+          "line_end": 542,
           "signature": "private sessionEnded(id: string): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "dropLive",
-          "line_start": 537,
-          "line_end": 547,
+          "line_start": 544,
+          "line_end": 554,
           "signature": "private dropLive(live: Live): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "touched",
-          "line_start": 551,
-          "line_end": 556,
+          "line_start": 558,
+          "line_end": 563,
           "signature": "private touched(id: string): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "scheduleSave",
-          "line_start": 558,
-          "line_end": 565,
+          "line_start": 565,
+          "line_end": 572,
           "signature": "private scheduleSave(live: Live): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "save",
-          "line_start": 567,
-          "line_end": 590,
+          "line_start": 574,
+          "line_end": 597,
           "signature": "private async save(live: Live): Promise<void> {",
           "async": true,
           "access": "private"
@@ -590,38 +624,38 @@
         {
           "type": "method",
           "name": "saveSync",
-          "line_start": 592,
-          "line_end": 598,
+          "line_start": 599,
+          "line_end": 605,
           "signature": "private saveSync(live: Live): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "openTerminal",
-          "line_start": 602,
-          "line_end": 614,
+          "line_start": 609,
+          "line_end": 621,
           "signature": "openTerminal(sid: string): { tid: string; cwd: string } | null {"
         },
         {
           "type": "method",
           "name": "closeTerminal",
-          "line_start": 616,
-          "line_end": 624,
+          "line_start": 623,
+          "line_end": 631,
           "signature": "closeTerminal(sid: string, tid: string): void {"
         },
         {
           "type": "method",
           "name": "send",
-          "line_start": 628,
-          "line_end": 631,
+          "line_start": 635,
+          "line_end": 651,
           "signature": "private send(ev: Event): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "changed",
-          "line_start": 634,
-          "line_end": 640,
+          "line_start": 654,
+          "line_end": 660,
           "signature": "private changed(): void {",
           "access": "private",
           "doc": "Coalesced: many status flips in one tick produce one snapshot."
@@ -629,40 +663,76 @@
         {
           "type": "method",
           "name": "snapshot",
-          "line_start": 643,
-          "line_end": 691,
+          "line_start": 663,
+          "line_end": 712,
           "signature": "snapshot(): Event {",
           "doc": "What the sidebar shows. Exported through the SSE stream and /ping."
         },
         {
           "type": "method",
+          "name": "sessionViewers",
+          "line_start": 715,
+          "line_end": 726,
+          "signature": "private sessionViewers(sid: string): string[] {",
+          "access": "private",
+          "doc": "Names watching a session right now (pings older than 60s are pruned)."
+        },
+        {
+          "type": "method",
           "name": "route",
-          "line_start": 695,
-          "line_end": 841,
+          "line_start": 730,
+          "line_end": 912,
           "signature": "private route(req: http.IncomingMessage, res: http.ServerResponse): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "sse",
-          "line_start": 843,
-          "line_end": 861,
+          "line_start": 914,
+          "line_end": 932,
           "signature": "private sse(req: http.IncomingMessage, res: http.ServerResponse): void {",
           "access": "private"
         },
         {
           "type": "method",
+          "name": "sharedSse",
+          "line_start": 936,
+          "line_end": 964,
+          "signature": "private sharedSse(req: http.IncomingMessage, res: http.ServerResponse, url: URL): void {",
+          "access": "private",
+          "doc": "Read-only live follow: the session replay plus its future events, and"
+        },
+        {
+          "type": "method",
+          "name": "shareSession",
+          "line_start": 967,
+          "line_end": 976,
+          "signature": "private shareSession(sid: string): { token: string } {",
+          "access": "private",
+          "doc": "Mint a read-only follow token for a live session."
+        },
+        {
+          "type": "method",
+          "name": "sharedPing",
+          "line_start": 979,
+          "line_end": 993,
+          "signature": "private sharedPing(token: string, name: string): { sid: string } {",
+          "access": "private",
+          "doc": "A viewer announces itself; presence shows in the sidebar snapshot."
+        },
+        {
+          "type": "method",
           "name": "uploadsDir",
-          "line_start": 865,
-          "line_end": 867,
+          "line_start": 997,
+          "line_end": 999,
           "signature": "private uploadsDir(sid: string): string {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "receiveUpload",
-          "line_start": 871,
-          "line_end": 926,
+          "line_start": 1003,
+          "line_end": 1058,
           "signature": "private receiveUpload(req: http.IncomingMessage, res: http.ServerResponse, url: URL): void {",
           "access": "private",
           "doc": "One file for a live session, sent as the raw request body with the name"
@@ -670,8 +740,8 @@
         {
           "type": "method",
           "name": "serveUpload",
-          "line_start": 929,
-          "line_end": 940,
+          "line_start": 1061,
+          "line_end": 1072,
           "signature": "private serveUpload(res: http.ServerResponse, url: URL): void {",
           "access": "private",
           "doc": "A stored upload, for the page's thumbnails and \"open\" links."
@@ -679,16 +749,16 @@
         {
           "type": "method",
           "name": "findUpload",
-          "line_start": 942,
-          "line_end": 950,
+          "line_start": 1074,
+          "line_end": 1082,
           "signature": "private findUpload(sid: string, id: string): string | null {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "removeUpload",
-          "line_start": 953,
-          "line_end": 963,
+          "line_start": 1085,
+          "line_end": 1095,
           "signature": "private removeUpload(live: Live, id: string): void {",
           "access": "private",
           "doc": "The user took a chip off the composer: forget the file."
@@ -696,24 +766,24 @@
         {
           "type": "method",
           "name": "checkDir",
-          "line_start": 965,
-          "line_end": 971,
+          "line_start": 1097,
+          "line_end": 1103,
           "signature": "private checkDir(p: any): string {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "handlePost",
-          "line_start": 973,
-          "line_end": 1065,
+          "line_start": 1105,
+          "line_end": 1207,
           "signature": "private handlePost(p: string, d: any): any {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "workspaceTree",
-          "line_start": 1069,
-          "line_end": 1106,
+          "line_start": 1211,
+          "line_end": 1248,
           "signature": "private workspaceTree(sidRaw: string | null, relRaw: string | null): any {",
           "access": "private",
           "doc": "Structured project tree for the web IDE panel. It is deliberately"
@@ -721,24 +791,24 @@
         {
           "type": "method",
           "name": "workspaceFile",
-          "line_start": 1108,
-          "line_end": 1134,
+          "line_start": 1250,
+          "line_end": 1276,
           "signature": "private workspaceFile(res: http.ServerResponse, url: URL): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "saveWorkspaceFile",
-          "line_start": 1136,
-          "line_end": 1167,
+          "line_start": 1278,
+          "line_end": 1309,
           "signature": "private saveWorkspaceFile(sid: string, d: any): any {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "statusReport",
-          "line_start": 1170,
-          "line_end": 1235,
+          "line_start": 1312,
+          "line_end": 1377,
           "signature": "private async statusReport(url: URL): Promise<any> {",
           "async": true,
           "access": "private",
@@ -747,8 +817,8 @@
         {
           "type": "method",
           "name": "agentDraft",
-          "line_start": 1239,
-          "line_end": 1246,
+          "line_start": 1381,
+          "line_end": 1388,
           "signature": "private agentDraft(workspace: string, roleName: string, task: string): any {",
           "access": "private",
           "doc": "The delegation message for a role. subagents.ts stays the single source of"

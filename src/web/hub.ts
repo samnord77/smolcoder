@@ -28,8 +28,9 @@ import { describeSkills, readDelegateStats } from "../skills";
 import { delegatePrompt, loadSubagentRoles, SubagentRole } from "../subagents";
 import { searchWorkspace } from "../workspace-search";
 import { workspaceDiagnostics } from "../workspace-diagnostics";
-import { queryCode, lspAvailability } from "../lsp-pro";
+import { queryCode, lspAvailability, queryDiagStructured } from "../lsp-pro";
 import { queryIndex } from "../codeindex";
+import { gitApplyHunk, gitDiffFiles } from "../git";
 
 export type SessionFactory = (ui: SessionChannel, workspace: string, prefs: SessionPrefs, planKey?: string) => Promise<Session>;
 
@@ -242,6 +243,12 @@ export class WebHub {
 
   private server: http.Server | null = null;
   private clients = new Set<http.ServerResponse>();
+  /** Read-only followers: one SSE stream per shared session. */
+  private sharedClients = new Set<{ res: http.ServerResponse; sid: string }>();
+  /** Share tokens: token -> session id (read-only live follow). */
+  private shares = new Map<string, { sid: string; createdAt: number }>();
+  /** Presence: session id -> viewer name -> last ping. */
+  private viewers = new Map<string, Map<string, number>>();
   private live = new Map<string, Live>();
   private metas = new Map<string, SessionMeta>();
   private store: SessionStore;
@@ -628,6 +635,19 @@ export class WebHub {
   private send(ev: Event): void {
     const line = `data: ${JSON.stringify(ev)}\n\n`;
     for (const c of this.clients) c.write(line);
+    // Read-only followers only get events tagged with their session id —
+    // the hub snapshot (all workspaces) never leaks to a share token.
+    const sid = (ev as any)?.sid;
+    if (typeof sid === "string" && sid) {
+      this.sharedClients.forEach((s) => {
+        if (s.sid !== sid) return;
+        try {
+          s.res.write(line);
+        } catch {
+          /* closed — removed on req close */
+        }
+      });
+    }
   }
 
   /** Coalesced: many status flips in one tick produce one snapshot. */
@@ -678,6 +698,7 @@ export class WebHub {
         updatedAt: l.meta.updatedAt,
         model: l.meta.model,
         terminals: [...l.terminals.values()].map((t) => ({ tid: t.id, cwd: t.cwd })),
+        viewers: this.sessionViewers(l.id),
       });
     }
     const workspaces = [...groups.values()]
@@ -688,6 +709,20 @@ export class WebHub {
       })
       .sort((a, b) => b.last - a.last);
     return { t: "hub", home: os.homedir(), sep: path.sep, version: this.opts.version, workspaces };
+  }
+
+  /** Names watching a session right now (pings older than 60s are pruned). */
+  private sessionViewers(sid: string): string[] {
+    const now = Date.now();
+    const map = this.viewers.get(sid);
+    if (!map) return [];
+    const out: string[] = [];
+    map.forEach((seen, name) => {
+      if (now - seen > 60_000) map.delete(name);
+      else out.push(name);
+    });
+    if (!map.size) this.viewers.delete(sid);
+    return out.sort().slice(0, 20);
   }
 
   // ---- http ---------------------------------------------------------------------
@@ -709,9 +744,14 @@ export class WebHub {
       origin === `http://localhost:${this.port}` ||
       (host !== "" && origin === `http://${host}`);
     if (url.searchParams.get("k") !== this.authToken || !sameOrigin) {
-      res.writeHead(403, { "content-type": "text/plain" });
-      res.end("forbidden — open smolcoder's printed URL (it includes the session key)");
-      return;
+      // Share links carry their own secret (the share token): viewers never
+      // see the hub token. Every /shared endpoint re-validates it.
+      const sharedPath = url.pathname === "/shared" || url.pathname === "/shared/ping";
+      if (!sharedPath) {
+        res.writeHead(403, { "content-type": "text/plain" });
+        res.end("forbidden — open smolcoder's printed URL (it includes the session key)");
+        return;
+      }
     }
     const json = (code: number, body: any) => {
       res.writeHead(code, { "content-type": "application/json" });
@@ -730,6 +770,17 @@ export class WebHub {
         case "/events":
           this.sse(req, res);
           return;
+        case "/shared":
+          this.sharedSse(req, res, url);
+          return;
+        case "/shared/ping": {
+          try {
+            json(200, this.sharedPing(String(url.searchParams.get("k") ?? ""), String(url.searchParams.get("name") ?? "")));
+          } catch (err: any) {
+            json(403, { error: String(err?.message ?? err).slice(0, 300) });
+          }
+          return;
+        }
         case "/fs":
           json(200, browseDir(url.searchParams.get("path")));
           return;
@@ -796,6 +847,26 @@ export class WebHub {
           } catch (err: any) { json(400, { error: String(err?.message ?? err).slice(0, 500) }); }
           return;
         }
+        case "/code/diag-structured": {
+          const sid = String(url.searchParams.get("sid") ?? "");
+          const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
+          if (!live) { json(404, { error: "no such session" }); return; }
+          const rel = String(url.searchParams.get("path") ?? "");
+          if (!rel) { json(400, { error: "path is required" }); return; }
+          void queryDiagStructured(live.workspace, rel)
+            .then((result) => json(200, result))
+            .catch((err: any) => json(400, { error: String(err?.message ?? err).slice(0, 500) }));
+          return;
+        }
+        case "/code/diff": {
+          const sid = String(url.searchParams.get("sid") ?? "");
+          const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
+          if (!live) { json(404, { error: "no such session" }); return; }
+          try {
+            json(200, gitDiffFiles(live.workspace, url.searchParams.get("staged") === "1"));
+          } catch (err: any) { json(400, { error: String(err?.message ?? err).slice(0, 500) }); }
+          return;
+        }
         case "/workspace/file":
           this.workspaceFile(res, url);
           return;
@@ -858,6 +929,67 @@ export class WebHub {
     }
     this.clients.add(res);
     req.on("close", () => this.clients.delete(res));
+  }
+
+  /** Read-only live follow: the session replay plus its future events, and
+   * nothing else — no sidebar, no terminals of other sessions, no control. */
+  private sharedSse(req: http.IncomingMessage, res: http.ServerResponse, url: URL): void {
+    const token = String(url.searchParams.get("k") ?? "");
+    const share = this.shares.get(token);
+    if (!share) {
+      res.writeHead(403, { "content-type": "text/plain" });
+      res.end("unknown or expired share — ask the owner for a fresh link");
+      return;
+    }
+    // The link alone is enough: the session comes from the token itself.
+    const sid = String(url.searchParams.get("sid") ?? "") || share.sid;
+    const live = share.sid === sid && SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
+    if (!live) {
+      res.writeHead(403, { "content-type": "text/plain" });
+      res.end("unknown or expired share — ask the owner for a fresh link");
+      return;
+    }
+    res.writeHead(200, {
+      "content-type": "text/event-stream",
+      "cache-control": "no-cache",
+      connection: "keep-alive",
+    });
+    const write = (ev: Event) => res.write(`data: ${JSON.stringify(ev)}\n\n`);
+    write({ t: "shared", sid: live.id, title: live.channel.title || live.meta.title });
+    for (const ev of live.channel.replay) write(ev);
+    write(live.channel.stateEvent());
+    const entry = { res, sid: live.id };
+    this.sharedClients.add(entry);
+    req.on("close", () => this.sharedClients.delete(entry));
+  }
+
+  /** Mint a read-only follow token for a live session. */
+  private shareSession(sid: string): { token: string } {
+    if (!SESSION_ID_RE.test(sid) || !this.live.has(sid)) throw new Error("no such session");
+    const token = crypto.randomBytes(16).toString("hex");
+    this.shares.set(token, { sid, createdAt: Date.now() });
+    if (this.shares.size > 50) {
+      const first = this.shares.keys().next();
+      if (!first.done) this.shares.delete(first.value);
+    }
+    return { token };
+  }
+
+  /** A viewer announces itself; presence shows in the sidebar snapshot. */
+  private sharedPing(token: string, name: string): { sid: string } {
+    const share = this.shares.get(String(token ?? ""));
+    if (!share || !this.live.has(share.sid)) {
+      throw new Error("unknown or expired share — ask the owner for a fresh link");
+    }
+    const viewer = String(name ?? "").trim().slice(0, 40) || "anonymous";
+    let map = this.viewers.get(share.sid);
+    if (!map) {
+      map = new Map();
+      this.viewers.set(share.sid, map);
+    }
+    map.set(viewer, Date.now());
+    this.changed();
+    return { sid: share.sid };
   }
 
   // ---- attachments ---------------------------------------------------------
@@ -1059,6 +1191,16 @@ export class WebHub {
       }
       case "/workspace/file":
         return this.saveWorkspaceFile(sid, d);
+      case "/code/diff/hunk": {
+        const l = live();
+        const action = String(d.action ?? "");
+        if (action !== "stage" && action !== "revert") throw new Error('action must be "stage" or "revert"');
+        return { message: gitApplyHunk(l.workspace, String(d.path ?? ""), Number(d.hunk), action) };
+      }
+      case "/sessions/share": {
+        const l = live();
+        return this.shareSession(l.id);
+      }
       default:
         throw new Error(`unknown endpoint ${p}`);
     }

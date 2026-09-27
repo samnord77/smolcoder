@@ -1,10 +1,10 @@
 {
   "path": "test/git.test.js",
-  "content_hash": "00bebdba3d6b22aae8964e2b45d7e15b",
-  "updated_at": "2026-09-27T19:31:57",
-  "lines": 71,
-  "size_bytes": 3469,
-  "mtime_ns": 1790533617885545100,
+  "content_hash": "7e89bdf297dab7c6c3007da3457bca10",
+  "updated_at": "2026-09-27T20:42:11",
+  "lines": 148,
+  "size_bytes": 6851,
+  "mtime_ns": 1790538023481353100,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -57,6 +57,20 @@
       "line_start": 20,
       "line_end": 30,
       "signature": "function scratchRepo() {"
+    },
+    {
+      "type": "constant",
+      "name": "DIFF_SAMPLE",
+      "line_start": 73,
+      "line_end": 86,
+      "signature": "const DIFF_SAMPLE = `diff --git a/app.txt b/app.txt"
+    },
+    {
+      "type": "function",
+      "name": "scratchHunkRepo",
+      "line_start": 105,
+      "line_end": 112,
+      "signature": "function scratchHunkRepo() {"
     }
   ]
 }

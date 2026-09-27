@@ -1,26 +1,96 @@
 {
   "schema_version": 1,
-  "fencing": 48,
+  "fencing": 59,
   "locks": [
     {
-      "relpath": "test/mcp.test.js",
+      "relpath": "src/web/hub.ts",
       "agent_id": "claude-code:20260927",
       "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 47,
-      "intent": "Compteurs d'outils : 19 en \u00e9dition, 10 en lecture seule",
-      "acquired_at": 1790535983.3797143,
-      "expires_at": 1790536883.3797143,
-      "lock_id": "e68fad377b5e454aa22587f146f9bf26"
+      "fencing_token": 51,
+      "intent": "Le lien de partage seul suffit (sid d\u00e9duit du jeton)",
+      "acquired_at": 1790536766.2092974,
+      "expires_at": 1790538141.2003858,
+      "lock_id": "5373fcad2c6746c893a55a47625c5649"
     },
     {
-      "relpath": "test/verification.test.js",
+      "relpath": "src/web/client.ts",
       "agent_id": "claude-code:20260927",
       "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 48,
-      "intent": "Recalibre le compteur d'appels (compaction plus pr\u00e9coce avec 19 outils)",
-      "acquired_at": 1790535983.458457,
-      "expires_at": 1790536883.458457,
-      "lock_id": "bba4f3bd60f34fea8bfa28e88b3ea902"
+      "fencing_token": 52,
+      "intent": "Mode suiveur lecture seule + pr\u00e9sence + SSE partag\u00e9",
+      "acquired_at": 1790537216.642757,
+      "expires_at": 1790538702.686527,
+      "lock_id": "e3902cce8ab64ff18a98c713444fa2b0"
+    },
+    {
+      "relpath": "src/web/styles.ts",
+      "agent_id": "claude-code:20260927",
+      "session_id": "20260927_164838_0239733e7ab3",
+      "fencing_token": 53,
+      "intent": "CSS revue de diff + banni\u00e8re de partage",
+      "acquired_at": 1790537241.2914839,
+      "expires_at": 1790538141.2914839,
+      "lock_id": "9cdbd6ab44474815b8b5d97482e2a5b3"
+    },
+    {
+      "relpath": "src/web/page.ts",
+      "agent_id": "claude-code:20260927",
+      "session_id": "20260927_164838_0239733e7ab3",
+      "fencing_token": 54,
+      "intent": "Bouton revue dans la barre d'outils",
+      "acquired_at": 1790537547.6082356,
+      "expires_at": 1790538447.6082356,
+      "lock_id": "25c0148d707c48b680fb50868e85526c"
+    },
+    {
+      "relpath": "src/git.ts",
+      "agent_id": "claude-code:20260927",
+      "session_id": "20260927_164838_0239733e7ab3",
+      "fencing_token": 55,
+      "intent": "Ajoute hunk \u00e0 GitQuery",
+      "acquired_at": 1790537864.2587647,
+      "expires_at": 1790539015.2873042,
+      "lock_id": "81598861c54f4291b70bc14ccaa149d1"
+    },
+    {
+      "relpath": "src/tools/index.ts",
+      "agent_id": "claude-code:20260927",
+      "session_id": "20260927_164838_0239733e7ab3",
+      "fencing_token": 56,
+      "intent": "revert_hunk annulable via /undo comme les edits",
+      "acquired_at": 1790537933.0622358,
+      "expires_at": 1790538847.4065223,
+      "lock_id": "a9471cd46c4d4b2389b49bf58aea6480"
+    },
+    {
+      "relpath": "test/git.test.js",
+      "agent_id": "claude-code:20260927",
+      "session_id": "20260927_164838_0239733e7ab3",
+      "fencing_token": 57,
+      "intent": "Tests hunks : parse, stage/revert cibl\u00e9s, revue via l'outil",
+      "acquired_at": 1790538023.4617875,
+      "expires_at": 1790538923.4617875,
+      "lock_id": "aee8557d162743a6b56cf14e73b9b1a3"
+    },
+    {
+      "relpath": "test/code-api.test.js",
+      "agent_id": "claude-code:20260927",
+      "session_id": "20260927_164838_0239733e7ab3",
+      "fencing_token": 58,
+      "intent": "Tests partage, pr\u00e9sence, revue de hunks via le hub",
+      "acquired_at": 1790538023.637323,
+      "expires_at": 1790538923.637323,
+      "lock_id": "b40655dc8245402a856016d2a2c2b3d5"
+    },
+    {
+      "relpath": "test/lsp-pro.test.js",
+      "agent_id": "claude-code:20260927",
+      "session_id": "20260927_164838_0239733e7ab3",
+      "fencing_token": 59,
+      "intent": "Test diagnostics structur\u00e9s via le mock",
+      "acquired_at": 1790538023.843283,
+      "expires_at": 1790538942.1411362,
+      "lock_id": "0f832c81773e48f0a40462cb1b124668"
     }
   ]
 }

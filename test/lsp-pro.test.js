@@ -16,6 +16,7 @@ const {
   managerFor,
   closeLspManagers,
   queryCode,
+  queryDiagStructured,
   CODE_ACTIONS,
 } = require("../dist/lsp-pro");
 
@@ -191,4 +192,25 @@ test("symbols schema exposes the 9 pro actions; new tools are visible per mode",
     assert.ok(names("edit").includes(n) && names("bypass").includes(n));
   }
   assert.equal(edit.length, 19);
+});
+
+test("diagStructured returns panel rows through the mock server", async () => {
+  const ws = scratchWs({ "a.py": "value = 1\n" });
+  process.env.SMOLCODER_LSP_PYTHON = mockCommand();
+  try {
+    const r = await queryDiagStructured(ws, "a.py");
+    assert.match(r.text, /mock error/);
+    assert.equal(r.diagnostics.length, 1);
+    assert.deepEqual(
+      [r.diagnostics[0].path, r.diagnostics[0].line, r.diagnostics[0].severity],
+      ["a.py", 1, "error"]
+    );
+    assert.match(r.diagnostics[0].message, /mock error/);
+    const bad = await queryDiagStructured(ws, "note.txt");
+    assert.deepEqual(bad.diagnostics, []);
+    assert.match(bad.text, /not a supported language/);
+  } finally {
+    delete process.env.SMOLCODER_LSP_PYTHON;
+    closeLspManagers();
+  }
 });

@@ -1,10 +1,10 @@
 {
   "path": "test/code-api.test.js",
-  "content_hash": "807d2ea5fc1a5e31a773472a796ba3db",
-  "updated_at": "2026-09-27T19:31:56",
-  "lines": 98,
-  "size_bytes": 3808,
-  "mtime_ns": 1790533746794620200,
+  "content_hash": "2d507de8b011f00562e356a85ce8a6ea",
+  "updated_at": "2026-09-27T20:42:10",
+  "lines": 209,
+  "size_bytes": 8911,
+  "mtime_ns": 1790538023780450300,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -79,6 +79,13 @@
       "line_start": 45,
       "line_end": 59,
       "signature": "function request(hub, method, p, body) {"
+    },
+    {
+      "type": "function",
+      "name": "followShare",
+      "line_start": 100,
+      "line_end": 128,
+      "signature": "function followShare(hub, path) {"
     }
   ]
 }

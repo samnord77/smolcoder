@@ -692,17 +692,11 @@ export class LspManager {
             await live.client.request("textDocument/references", { textDocument: docId, position: pos, context: { includeDeclaration: true } })
           );
         case "diag": {
+          let diags: any[];
           try {
-            await live.client.request("textDocument/hover", { textDocument: docId, position: { line: 0, character: 0 } });
+            diags = await this.fetchDiagnostics(live, uri, signal);
           } catch {
-            return fmtDiagList(this.root, uri, live.client.takeDiag(uri));
-          }
-          const deadline = Date.now() + 8000;
-          let diags = live.client.takeDiag(uri);
-          while (!diags.length && Date.now() < deadline) {
-            await new Promise((r) => setTimeout(r, 300));
-            if (signal?.aborted) return "Error: symbols query cancelled.";
-            diags = [...diags, ...live.client.takeDiag(uri)];
+            return "Error: symbols query cancelled.";
           }
           return fmtDiagList(this.root, uri, diags);
         }
@@ -734,6 +728,87 @@ export class LspManager {
       if (signal?.aborted || (err as any)?.name === "AbortError") return "Error: symbols query cancelled.";
       return `Error: symbols query failed (${String(err?.message ?? err).slice(0, 200)}).`;
     }
+  }
+
+  /** Wait for the server's async diagnostics for one open document.
+   * Throws Error("cancelled") when the signal aborts. */
+  private async fetchDiagnostics(live: LiveServer, uri: string, signal?: AbortSignal): Promise<any[]> {
+    try {
+      await live.client.request("textDocument/hover", {
+        textDocument: { uri },
+        position: { line: 0, character: 0 },
+      });
+    } catch {
+      return live.client.takeDiag(uri);
+    }
+    const deadline = Date.now() + 8000;
+    let diags = live.client.takeDiag(uri);
+    while (!diags.length && Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 300));
+      if (signal?.aborted) throw new Error("cancelled");
+      diags = [...diags, ...live.client.takeDiag(uri)];
+    }
+    return diags;
+  }
+
+  /** Structured diagnostics for IDE panels: rows carry file/line/severity
+   * for click-to-jump, plus the human-readable text. Never throws. */
+  async diagStructured(rel: string, signal?: AbortSignal): Promise<{ text: string; diagnostics: StructuredDiag[] }> {
+    const none = (text: string): { text: string; diagnostics: StructuredDiag[] } => ({ text, diagnostics: [] });
+    if (lspDisabled()) return none("Error: symbols is désactivé (SMOLCODER_LSP_DISABLE=1).");
+    if (typeof rel !== "string" || !rel) {
+      return none('Error: path is required. Example: {"action": "diag", "path": "src/agent.ts"}');
+    }
+    let abs: string;
+    try {
+      abs = resolveInWorkspace(this.root, rel);
+    } catch (err: any) {
+      return none(`Error: ${err?.message ?? err}`);
+    }
+    const def = serverForFile(abs);
+    if (!def) {
+      return none(
+        `Error: "${rel}" is not a supported language — code intelligence works on ${supportedLspExts().join(", ")}.`
+      );
+    }
+    let stat: fs.Stats;
+    try {
+      stat = fs.statSync(abs);
+    } catch {
+      return none(`Error: file "${rel}" does not exist.`);
+    }
+    if (!stat.isFile()) return none(`Error: "${rel}" is a folder, not a file.`);
+    if (stat.size > MAX_FILE_BYTES) return none(`Error: "${rel}" is too large for symbol queries (1 MB limit).`);
+    if (signal?.aborted) return none("Error: symbols query cancelled before starting.");
+    let live: LiveServer;
+    try {
+      live = await this.ensureServer(def, signal);
+    } catch (err: any) {
+      return none(
+        `Error: ${def.lang} language server unavailable (${String(err?.message ?? err).slice(0, 160)}). ${def.installHint}`
+      );
+    }
+    const uri = lspUri(abs);
+    try {
+      await this.ensureDoc(live, abs, uri, def, signal);
+    } catch (err: any) {
+      return none(`Error: could not open "${rel}" on the language server (${String(err?.message ?? err).slice(0, 160)}).`);
+    }
+    let diags: any[];
+    try {
+      diags = await this.fetchDiagnostics(live, uri, signal);
+    } catch {
+      return none("Error: symbols query cancelled.");
+    }
+    const relNorm = path.relative(this.root, abs).split(path.sep).join("/");
+    const diagnostics: StructuredDiag[] = diags.slice(0, 50).map((d: any) => ({
+      path: relNorm,
+      line: (d?.range?.start?.line ?? 0) + 1,
+      col: (d?.range?.start?.character ?? 0) + 1,
+      severity: d?.severity === 1 ? "error" : d?.severity === 2 ? "warning" : "info",
+      message: String(d?.message ?? "").split("\n")[0].slice(0, 300),
+    }));
+    return { text: fmtDiagList(this.root, uri, diags), diagnostics };
   }
 
   private async workspaceSymbol(query: string, lang: string, signal?: AbortSignal): Promise<string> {
@@ -843,4 +918,22 @@ export async function queryCode(root: string, args: CodeQuery, signal?: AbortSig
     return querySymbols(root, args as any, signal);
   }
   return managerFor(root).query(args, signal);
+}
+
+export interface StructuredDiag {
+  path: string;
+  line: number;
+  col: number;
+  severity: string;
+  message: string;
+}
+
+/** Structured file diagnostics for IDE panels (web review, desktop).
+ * Never throws: failures come back as text with empty rows. */
+export async function queryDiagStructured(
+  root: string,
+  relPath: string,
+  signal?: AbortSignal
+): Promise<{ text: string; diagnostics: StructuredDiag[] }> {
+  return managerFor(root).diagStructured(relPath, signal);
 }

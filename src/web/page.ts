@@ -56,6 +56,7 @@ export const PAGE_HTML = `<!doctype html>
     <button type="button" class="iconbtn" id="btnfiles" title="Fichiers du projet et éditeur">${ICON_FILES}</button>
     <button type="button" class="iconbtn" id="btnbrowser" title="Navigateur intégré : aperçu live">${ICON_BROWSER}</button>
     <button type="button" class="iconbtn" id="btnterm" title="Terminal intégré (Ctrl+\`)">${ICON_TERMINAL}</button>
+    <button type="button" class="iconbtn" id="btnreview" title="Revue des modifications (diff par hunk)">Δ</button>
     <button type="button" class="iconbtn" id="btnstatus" title="Centre de Contrôle Pro">${ICON_GAUGE}</button>
   </div>
   <div id="logwrap" tabindex="0" role="region" aria-label="Historique des échanges">

@@ -69,3 +69,80 @@ test("git: full flow — stage, commit, status, diff, log, blame, branch", () =>
   assert.match(queryGit(repo, { action: "branch" }), /main|master/);
   assert.equal(isGitRepo(repo), true);
 });
+
+const DIFF_SAMPLE = `diff --git a/app.txt b/app.txt
+index 1111111..2222222 100644
+--- a/app.txt
++++ b/app.txt
+@@ -1,3 +1,3 @@
+ line1
+-old2
++new2
+ line3
+@@ -17,3 +17,3 @@ line17
+-old18
++new18
+ line19
+`;
+
+test("git: hunk parsing splits files and rebuilds headers", () => {
+  const { parseDiffHunks, fileHeaderFor } = require("../dist/git");
+  const files = parseDiffHunks(DIFF_SAMPLE);
+  assert.equal(files.length, 1);
+  assert.equal(files[0].file, "app.txt");
+  assert.equal(files[0].hunks.length, 2);
+  assert.equal(files[0].hunks[0].index, 0);
+  assert.equal(files[0].hunks[1].index, 1);
+  assert.match(files[0].hunks[0].header, /@@/);
+  assert.ok(files[0].hunks[0].lines.some((l) => l === "-old2"));
+  const header = fileHeaderFor(DIFF_SAMPLE, "app.txt");
+  assert.ok(header[0].startsWith("diff --git"));
+  assert.ok(header.some((l) => l.startsWith("+++")));
+  assert.deepEqual(parseDiffHunks(""), []);
+  assert.deepEqual(fileHeaderFor(DIFF_SAMPLE, "missing.txt"), []);
+});
+
+function scratchHunkRepo() {
+  const ws = scratchRepo();
+  const lines = Array.from({ length: 20 }, (_, i) => `line${i + 1}`);
+  fs.writeFileSync(path.join(ws, "app.txt"), lines.join("\n") + "\n");
+  spawnSync("git", ["add", "."], { cwd: ws, windowsHide: true });
+  spawnSync("git", ["commit", "-m", "base"], { cwd: ws, windowsHide: true });
+  return ws;
+}
+
+test("git: stage and revert one hunk without touching the other", () => {
+  if (!gitAvailable()) return;
+  const { gitDiffFiles, gitApplyHunk } = require("../dist/git");
+  const repo = scratchHunkRepo();
+  const changed = Array.from({ length: 20 }, (_, i) => `line${i + 1}`);
+  changed[1] = "CHANGED2";
+  changed[17] = "CHANGED18";
+  fs.writeFileSync(path.join(repo, "app.txt"), changed.join("\n") + "\n");
+  const before = gitDiffFiles(repo);
+  assert.equal(before.files.length, 1);
+  assert.equal(before.files[0].hunks.length, 2);
+  assert.match(gitApplyHunk(repo, "app.txt", 0, "stage"), /Staged hunk 0/);
+  const staged = spawnSync("git", ["diff", "--cached"], { cwd: repo, encoding: "utf8", windowsHide: true }).stdout;
+  assert.match(staged, /CHANGED2/);
+  assert.doesNotMatch(staged, /CHANGED18/);
+  assert.match(gitApplyHunk(repo, "app.txt", 9, "stage"), /no longer exists/);
+  assert.match(gitApplyHunk(repo, "app.txt", 0, "revert"), /Reverted hunk 0/);
+  const content = fs.readFileSync(path.join(repo, "app.txt"), "utf8");
+  assert.match(content, /CHANGED2/);
+  assert.doesNotMatch(content, /CHANGED18/);
+  const unstaged = spawnSync("git", ["diff"], { cwd: repo, encoding: "utf8", windowsHide: true }).stdout;
+  assert.equal(unstaged.trim(), "", "nothing left unstaged");
+});
+
+test("git: review actions through the tool, gated in read-only", () => {
+  if (!gitAvailable()) return;
+  const repo = scratchHunkRepo();
+  fs.writeFileSync(path.join(repo, "new.txt"), "hello\n");
+  assert.match(queryGit(repo, { action: "review" }), /Untracked.*new\.txt/);
+  assert.match(queryGit(repo, { action: "review" }, { canWrite: false }), /Untracked/);
+  assert.match(queryGit(repo, { action: "stage_hunk", path: "new.txt", hunk: 0 }, { canWrite: false }), /read-only/);
+  assert.match(queryGit(repo, { action: "revert_hunk", path: "new.txt", hunk: 0 }, { canWrite: false }), /read-only/);
+  assert.match(queryGit(repo, { action: "stage_hunk", path: "app.txt", hunk: 5 }), /no longer exists/);
+  assert.match(queryGit(repo, {}), /stage_hunk/);
+});

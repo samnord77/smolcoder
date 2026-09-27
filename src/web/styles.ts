@@ -267,6 +267,12 @@ export const STYLES = String.raw`
   .filediagnostic.warning { box-shadow: inset 3px 0 #c99a34; }
   .filediagnostic-note { color: var(--dim); }
   .filediagnostic-note.error { color: var(--red); }
+  .reviewlist { flex: 1; min-height: 0; overflow: auto; padding: 6px 8px; }
+  .reviewfile { font-weight: 700; font-size: 12px; margin: 10px 0 4px; color: var(--fg); }
+  .reviewhunk { border: 1px solid var(--line); border-radius: 6px; margin: 0 0 8px; overflow: hidden; }
+  .reviewpatch { margin: 0; padding: 6px 8px; font-size: 11px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; background: #0c1013; max-height: 220px; overflow: auto; }
+  .reviewactions { display: flex; gap: 6px; padding: 6px 8px; border-top: 1px solid var(--line); background: #101416; }
+  .sharebanner { padding: 8px 14px; background: #1c2b1f; border-bottom: 1px solid #2f5b38; color: #c9f0d4; font-size: 12.5px; }
   .filetabs { position: absolute; z-index: 2; inset: 0 0 auto; height: 35px; display: flex; overflow-x: auto; background: #171c1f; border-bottom: 1px solid var(--line); }
   .filetab { display: flex; align-items: center; flex: none; max-width: 220px; background: #202629; border-right: 1px solid var(--line); }
   .filetab.active { background: #0f1417; border-top: 1px solid var(--accent); }
