@@ -1,10 +1,10 @@
 {
   "path": "src/tools/index.ts",
-  "content_hash": "9085ba7dad5f3465a6490599863724a6",
-  "updated_at": "2026-09-27T20:39:08",
-  "lines": 670,
-  "size_bytes": 30626,
-  "mtime_ns": 1790537947470785800,
+  "content_hash": "9d2d952d9dadd62f7e875d79ba0d8dda",
+  "updated_at": "2026-09-27T21:06:18",
+  "lines": 679,
+  "size_bytes": 31216,
+  "mtime_ns": 1790539547562995800,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -53,205 +53,212 @@
     },
     {
       "type": "import",
-      "name": "import { McpBridge } from \"../mcp\";",
+      "name": "import { setupLsp } from \"../lsp-install\";",
       "line_start": 15,
       "line_end": 15,
+      "signature": "import { setupLsp } from \"../lsp-install\";"
+    },
+    {
+      "type": "import",
+      "name": "import { McpBridge } from \"../mcp\";",
+      "line_start": 16,
+      "line_end": 16,
       "signature": "import { McpBridge } from \"../mcp\";"
     },
     {
       "type": "import",
       "name": "import { listSkills, readSkill, saveSkill } from \"../skills\";",
-      "line_start": 16,
-      "line_end": 16,
+      "line_start": 17,
+      "line_end": 17,
       "signature": "import { listSkills, readSkill, saveSkill } from \"../skills\";"
     },
     {
       "type": "import",
       "name": "import { syntaxCheck } from \"./check\";",
-      "line_start": 17,
-      "line_end": 17,
+      "line_start": 18,
+      "line_end": 18,
       "signature": "import { syntaxCheck } from \"./check\";"
     },
     {
       "type": "import",
       "name": "import { runCommand } from \"./shell\";",
-      "line_start": 18,
-      "line_end": 18,
+      "line_start": 19,
+      "line_end": 19,
       "signature": "import { runCommand } from \"./shell\";"
     },
     {
       "type": "import",
       "name": "import { TaskManager } from \"./tasks\";",
-      "line_start": 19,
-      "line_end": 19,
+      "line_start": 20,
+      "line_end": 20,
       "signature": "import { TaskManager } from \"./tasks\";"
     },
     {
       "type": "import",
       "name": "import { CoworkBoard } from \"./cowork\";",
-      "line_start": 20,
-      "line_end": 20,
+      "line_start": 21,
+      "line_end": 21,
       "signature": "import { CoworkBoard } from \"./cowork\";"
     },
     {
       "type": "import",
       "name": "import { queryIndex } from \"../codeindex\";",
-      "line_start": 21,
-      "line_end": 21,
+      "line_start": 22,
+      "line_end": 22,
       "signature": "import { queryIndex } from \"../codeindex\";"
     },
     {
       "type": "import",
       "name": "import { queryGit } from \"../git\";",
-      "line_start": 22,
-      "line_end": 22,
+      "line_start": 23,
+      "line_end": 23,
       "signature": "import { queryGit } from \"../git\";"
     },
     {
       "type": "import",
       "name": "import { queryDebug } from \"../debug\";",
-      "line_start": 23,
-      "line_end": 23,
+      "line_start": 24,
+      "line_end": 24,
       "signature": "import { queryDebug } from \"../debug\";"
     },
     {
       "type": "import",
       "name": "import { formatFile } from \"../format\";",
-      "line_start": 24,
-      "line_end": 24,
+      "line_start": 25,
+      "line_end": 25,
       "signature": "import { formatFile } from \"../format\";"
     },
     {
       "type": "import",
       "name": "import { resolveInWorkspace, SandboxError } from \"../sandbox\";",
-      "line_start": 25,
-      "line_end": 25,
+      "line_start": 26,
+      "line_end": 26,
       "signature": "import { resolveInWorkspace, SandboxError } from \"../sandbox\";"
     },
     {
       "type": "import",
       "name": "import { truncateMiddle } from \"../util\";",
-      "line_start": 26,
-      "line_end": 26,
+      "line_start": 27,
+      "line_end": 27,
       "signature": "import { truncateMiddle } from \"../util\";"
     },
     {
       "type": "import",
       "name": "import { searchFilesBounded } from \"./search-worker\";",
-      "line_start": 27,
-      "line_end": 27,
+      "line_start": 28,
+      "line_end": 28,
       "signature": "import { searchFilesBounded } from \"./search-worker\";"
     },
     {
       "type": "import",
       "name": "import { LoadedPlugin, describePlugins } from \"../plugins\";",
-      "line_start": 28,
-      "line_end": 28,
+      "line_start": 29,
+      "line_end": 29,
       "signature": "import { LoadedPlugin, describePlugins } from \"../plugins\";"
     },
     {
       "type": "type",
       "name": "Mode",
-      "line_start": 30,
-      "line_end": 30,
+      "line_start": 31,
+      "line_end": 31,
       "signature": "type Mode = \"ro\" | \"edit\" | \"bypass\";",
       "children": []
     },
     {
       "type": "constant",
       "name": "MODE_LABELS",
-      "line_start": 32,
-      "line_end": 36,
+      "line_start": 33,
+      "line_end": 37,
       "signature": "const MODE_LABELS: Record<Mode, string> = {"
     },
     {
       "type": "constant",
       "name": "TOOL_RESULT_CAP",
-      "line_start": 38,
-      "line_end": 38,
+      "line_start": 39,
+      "line_end": 39,
       "signature": "const TOOL_RESULT_CAP = 10000; // chars \u2014 final safety net over per-tool caps"
     },
     {
       "type": "function",
       "name": "workTool",
-      "line_start": 40,
-      "line_end": 62,
+      "line_start": 41,
+      "line_end": 63,
       "signature": "function workTool(canWrite: boolean): ToolSpec {"
     },
     {
       "type": "function",
       "name": "buildToolSpecs",
-      "line_start": 64,
-      "line_end": 338,
+      "line_start": 65,
+      "line_end": 339,
       "signature": "function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): ToolSpec[] {"
     },
     {
       "type": "interface",
       "name": "UndoEntry",
-      "line_start": 343,
-      "line_end": 349,
+      "line_start": 344,
+      "line_end": 350,
       "signature": "interface UndoEntry {",
       "children": []
     },
     {
       "type": "constant",
       "name": "UNDO_CAP",
-      "line_start": 351,
-      "line_end": 351,
+      "line_start": 352,
+      "line_end": 352,
       "signature": "const UNDO_CAP = 20;"
     },
     {
       "type": "constant",
       "name": "UNDO_SKIP_BYTES",
-      "line_start": 352,
-      "line_end": 352,
+      "line_start": 353,
+      "line_end": 353,
       "signature": "const UNDO_SKIP_BYTES = 1024 * 1024; // >1 Mo : skip silencieuse, pas d'entr\u00e9e undo"
     },
     {
       "type": "function",
       "name": "capturePrev",
-      "line_start": 356,
-      "line_end": 371,
+      "line_start": 357,
+      "line_end": 372,
       "signature": "function capturePrev(workspace: string, rel: unknown): { abs: string; prev: string | null } | null {",
       "doc": "Capture le contenu AVANT \u00e9criture. Retourne null quand il n'y a rien \u00e0"
     },
     {
       "type": "function",
       "name": "pushUndo",
-      "line_start": 374,
-      "line_end": 393,
+      "line_start": 375,
+      "line_end": 394,
       "signature": "function pushUndo(",
       "doc": "Enregistre l'\u00e9criture APRES succ\u00e8s (cap 20, redo vid\u00e9e \u00e0 chaque nouvel edit)."
     },
     {
       "type": "interface",
       "name": "ToolContext",
-      "line_start": 395,
-      "line_end": 422,
+      "line_start": 396,
+      "line_end": 423,
       "signature": "interface ToolContext {",
       "children": []
     },
     {
       "type": "function",
       "name": "executeTool",
-      "line_start": 424,
-      "line_end": 648,
+      "line_start": 425,
+      "line_end": 657,
       "signature": "async function executeTool(",
       "async": true
     },
     {
       "type": "function",
       "name": "afterWrite",
-      "line_start": 653,
-      "line_end": 662,
+      "line_start": 662,
+      "line_end": 671,
       "signature": "function afterWrite(workspace: string, relPath: string): string {",
       "doc": "Post-write hook: parse what was just written and coach on the first"
     },
     {
       "type": "function",
       "name": "commandOf",
-      "line_start": 666,
-      "line_end": 670,
+      "line_start": 675,
+      "line_end": 679,
       "signature": "function commandOf(name: string, args: Record<string, any>): string | null {"
     }
   ]

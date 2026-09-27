@@ -1,0 +1,99 @@
+{
+  "path": "src/lsp-install.ts",
+  "content_hash": "001ac7ba4645c089f00916866200a5b9",
+  "updated_at": "2026-09-27T21:01:16",
+  "lines": 139,
+  "size_bytes": 5042,
+  "mtime_ns": 1790539050247686600,
+  "language": "typescript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "import",
+      "name": "import { spawnSync } from \"child_process\";",
+      "line_start": 6,
+      "line_end": 6,
+      "signature": "import { spawnSync } from \"child_process\";"
+    },
+    {
+      "type": "import",
+      "name": "import { LSP_LANGS, lspAvailability, serverDefForLang } from \"./lsp-pro\";",
+      "line_start": 7,
+      "line_end": 7,
+      "signature": "import { LSP_LANGS, lspAvailability, serverDefForLang } from \"./lsp-pro\";"
+    },
+    {
+      "type": "import",
+      "name": "import { resolveCommand } from \"./mcp\";",
+      "line_start": 8,
+      "line_end": 8,
+      "signature": "import { resolveCommand } from \"./mcp\";"
+    },
+    {
+      "type": "constant",
+      "name": "INSTALL_TIMEOUT_MS",
+      "line_start": 10,
+      "line_end": 10,
+      "signature": "const INSTALL_TIMEOUT_MS = 120_000;"
+    },
+    {
+      "type": "interface",
+      "name": "InstallStep",
+      "line_start": 12,
+      "line_end": 16,
+      "signature": "interface InstallStep {",
+      "children": []
+    },
+    {
+      "type": "function",
+      "name": "run",
+      "line_start": 18,
+      "line_end": 33,
+      "signature": "function run(cmd: string[], cwd: string): { code: number; out: string } {"
+    },
+    {
+      "type": "function",
+      "name": "installCommands",
+      "line_start": 35,
+      "line_end": 52,
+      "signature": "function installCommands(lang: string): string[][] {"
+    },
+    {
+      "type": "function",
+      "name": "tsPeerNote",
+      "line_start": 56,
+      "line_end": 63,
+      "signature": "function tsPeerNote(cwd: string): string {",
+      "doc": "Extra honesty for TypeScript: the server needs a `typescript` peer"
+    },
+    {
+      "type": "function",
+      "name": "serverResolves",
+      "line_start": 65,
+      "line_end": 75,
+      "signature": "function serverResolves(def: { candidates: string[][] }): string | null {"
+    },
+    {
+      "type": "function",
+      "name": "installLspServer",
+      "line_start": 78,
+      "line_end": 110,
+      "signature": "function installLspServer(lang: string, cwd: string): InstallStep {"
+    },
+    {
+      "type": "function",
+      "name": "lspDoctor",
+      "line_start": 113,
+      "line_end": 124,
+      "signature": "function lspDoctor(): string {"
+    },
+    {
+      "type": "function",
+      "name": "setupLsp",
+      "line_start": 127,
+      "line_end": 139,
+      "signature": "function setupLsp(root: string, lang: string): string {"
+    }
+  ]
+}

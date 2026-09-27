@@ -1,10 +1,10 @@
 {
   "path": "src/web/hub.ts",
-  "content_hash": "a17a0b83f20cf586171e4e8740a8ae06",
-  "updated_at": "2026-09-27T20:28:04",
-  "lines": 1390,
-  "size_bytes": 53519,
-  "mtime_ns": 1790537241227637400,
+  "content_hash": "85807bb4239685096eeab014e0cf8e37",
+  "updated_at": "2026-09-27T20:57:14",
+  "lines": 1391,
+  "size_bytes": 53625,
+  "mtime_ns": 1790538984527257000,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -326,7 +326,7 @@
       "type": "class",
       "name": "WebHub",
       "line_start": 239,
-      "line_end": 1390,
+      "line_end": 1391,
       "signature": "class WebHub {",
       "children": [
         {
@@ -664,15 +664,15 @@
           "type": "method",
           "name": "snapshot",
           "line_start": 663,
-          "line_end": 712,
+          "line_end": 713,
           "signature": "snapshot(): Event {",
           "doc": "What the sidebar shows. Exported through the SSE stream and /ping."
         },
         {
           "type": "method",
           "name": "sessionViewers",
-          "line_start": 715,
-          "line_end": 726,
+          "line_start": 716,
+          "line_end": 727,
           "signature": "private sessionViewers(sid: string): string[] {",
           "access": "private",
           "doc": "Names watching a session right now (pings older than 60s are pruned)."
@@ -680,24 +680,24 @@
         {
           "type": "method",
           "name": "route",
-          "line_start": 730,
-          "line_end": 912,
+          "line_start": 731,
+          "line_end": 913,
           "signature": "private route(req: http.IncomingMessage, res: http.ServerResponse): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "sse",
-          "line_start": 914,
-          "line_end": 932,
+          "line_start": 915,
+          "line_end": 933,
           "signature": "private sse(req: http.IncomingMessage, res: http.ServerResponse): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "sharedSse",
-          "line_start": 936,
-          "line_end": 964,
+          "line_start": 937,
+          "line_end": 965,
           "signature": "private sharedSse(req: http.IncomingMessage, res: http.ServerResponse, url: URL): void {",
           "access": "private",
           "doc": "Read-only live follow: the session replay plus its future events, and"
@@ -705,8 +705,8 @@
         {
           "type": "method",
           "name": "shareSession",
-          "line_start": 967,
-          "line_end": 976,
+          "line_start": 968,
+          "line_end": 977,
           "signature": "private shareSession(sid: string): { token: string } {",
           "access": "private",
           "doc": "Mint a read-only follow token for a live session."
@@ -714,8 +714,8 @@
         {
           "type": "method",
           "name": "sharedPing",
-          "line_start": 979,
-          "line_end": 993,
+          "line_start": 980,
+          "line_end": 994,
           "signature": "private sharedPing(token: string, name: string): { sid: string } {",
           "access": "private",
           "doc": "A viewer announces itself; presence shows in the sidebar snapshot."
@@ -723,16 +723,16 @@
         {
           "type": "method",
           "name": "uploadsDir",
-          "line_start": 997,
-          "line_end": 999,
+          "line_start": 998,
+          "line_end": 1000,
           "signature": "private uploadsDir(sid: string): string {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "receiveUpload",
-          "line_start": 1003,
-          "line_end": 1058,
+          "line_start": 1004,
+          "line_end": 1059,
           "signature": "private receiveUpload(req: http.IncomingMessage, res: http.ServerResponse, url: URL): void {",
           "access": "private",
           "doc": "One file for a live session, sent as the raw request body with the name"
@@ -740,8 +740,8 @@
         {
           "type": "method",
           "name": "serveUpload",
-          "line_start": 1061,
-          "line_end": 1072,
+          "line_start": 1062,
+          "line_end": 1073,
           "signature": "private serveUpload(res: http.ServerResponse, url: URL): void {",
           "access": "private",
           "doc": "A stored upload, for the page's thumbnails and \"open\" links."
@@ -749,16 +749,16 @@
         {
           "type": "method",
           "name": "findUpload",
-          "line_start": 1074,
-          "line_end": 1082,
+          "line_start": 1075,
+          "line_end": 1083,
           "signature": "private findUpload(sid: string, id: string): string | null {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "removeUpload",
-          "line_start": 1085,
-          "line_end": 1095,
+          "line_start": 1086,
+          "line_end": 1096,
           "signature": "private removeUpload(live: Live, id: string): void {",
           "access": "private",
           "doc": "The user took a chip off the composer: forget the file."
@@ -766,24 +766,24 @@
         {
           "type": "method",
           "name": "checkDir",
-          "line_start": 1097,
-          "line_end": 1103,
+          "line_start": 1098,
+          "line_end": 1104,
           "signature": "private checkDir(p: any): string {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "handlePost",
-          "line_start": 1105,
-          "line_end": 1207,
+          "line_start": 1106,
+          "line_end": 1208,
           "signature": "private handlePost(p: string, d: any): any {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "workspaceTree",
-          "line_start": 1211,
-          "line_end": 1248,
+          "line_start": 1212,
+          "line_end": 1249,
           "signature": "private workspaceTree(sidRaw: string | null, relRaw: string | null): any {",
           "access": "private",
           "doc": "Structured project tree for the web IDE panel. It is deliberately"
@@ -791,24 +791,24 @@
         {
           "type": "method",
           "name": "workspaceFile",
-          "line_start": 1250,
-          "line_end": 1276,
+          "line_start": 1251,
+          "line_end": 1277,
           "signature": "private workspaceFile(res: http.ServerResponse, url: URL): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "saveWorkspaceFile",
-          "line_start": 1278,
-          "line_end": 1309,
+          "line_start": 1279,
+          "line_end": 1310,
           "signature": "private saveWorkspaceFile(sid: string, d: any): any {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "statusReport",
-          "line_start": 1312,
-          "line_end": 1377,
+          "line_start": 1313,
+          "line_end": 1378,
           "signature": "private async statusReport(url: URL): Promise<any> {",
           "async": true,
           "access": "private",
@@ -817,8 +817,8 @@
         {
           "type": "method",
           "name": "agentDraft",
-          "line_start": 1381,
-          "line_end": 1388,
+          "line_start": 1382,
+          "line_end": 1389,
           "signature": "private agentDraft(workspace: string, roleName: string, task: string): any {",
           "access": "private",
           "doc": "The delegation message for a role. subagents.ts stays the single source of"

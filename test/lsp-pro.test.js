@@ -176,7 +176,7 @@ test("live mock servers through queryCode routing (python manager + ts legacy)",
   }
 });
 
-test("symbols schema exposes the 9 pro actions; new tools are visible per mode", () => {
+test("symbols schema exposes the 10 pro actions; new tools are visible per mode", () => {
   const edit = buildToolSpecs("edit");
   const symbols = edit.find((t) => t.name === "symbols");
   assert.deepEqual(symbols.parameters.properties.action.enum, CODE_ACTIONS);
@@ -212,5 +212,29 @@ test("diagStructured returns panel rows through the mock server", async () => {
   } finally {
     delete process.env.SMOLCODER_LSP_PYTHON;
     closeLspManagers();
+  }
+});
+
+test("symbols setup installs only in edit modes", async () => {
+  const { executeTool } = require("../dist/tools/index");
+  const { TaskManager } = require("../dist/tools/tasks");
+  const { Plan } = require("../dist/plan");
+  const ws = scratchWs({ "a.py": "x = 1\n" });
+  const tm = new TaskManager(ws);
+  try {
+    const ctx = (canWrite) => ({
+      workspace: ws,
+      taskManager: tm,
+      plan: new Plan(),
+      filesTouched: new Set(),
+      commandsRun: [],
+      canWrite,
+    });
+    assert.match(await executeTool("symbols", { action: "setup", lang: "cobol" }, ctx(true)), /Unknown language/);
+    assert.match(await executeTool("symbols", { action: "setup", lang: "cobol" }, ctx(false)), /read-only/);
+  } finally {
+    try {
+      tm.killAll();
+    } catch {}
   }
 });

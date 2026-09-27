@@ -1,10 +1,10 @@
 {
   "path": "src/highlight.ts",
-  "content_hash": "cdb2d9405453f92166f483a545d82246",
-  "updated_at": "2026-09-26T17:51:05",
-  "lines": 142,
-  "size_bytes": 7344,
-  "mtime_ns": 1790421117213580100,
+  "content_hash": "7520207f3a6208bd75a834e0b76d3c23",
+  "updated_at": "2026-09-27T20:57:14",
+  "lines": 177,
+  "size_bytes": 8905,
+  "mtime_ns": 1790538868736471700,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -73,6 +73,27 @@
       "line_start": 142,
       "line_end": 142,
       "signature": "const browserHighlighterSource = `const tokenizeCode = (${tokenizeCode.toString()});\\nconst highlightEscapedHtml = (${highlightEscapedHtml.toString()});`;"
+    },
+    {
+      "type": "constant",
+      "name": "ANSI_RE",
+      "line_start": 144,
+      "line_end": 144,
+      "signature": "const ANSI_RE = /\\x1b\\[[0-9;]*[A-Za-z]|\\x1b\\][^\\x07]*\\x07|\\r(?!\\n)/g;"
+    },
+    {
+      "type": "function",
+      "name": "stripAnsiDisplay",
+      "line_start": 147,
+      "line_end": 149,
+      "signature": "function stripAnsiDisplay(text: string): string {"
+    },
+    {
+      "type": "function",
+      "name": "colorizeResultBlock",
+      "line_start": 154,
+      "line_end": 177,
+      "signature": "function colorizeResultBlock(result: string, enabled: boolean): string {"
     }
   ]
 }

@@ -1,7 +1,7 @@
 // Smolcoder Desktop (Electron) — main process.
 // Shell natif autour du hub web existant : fenetre principale (hub complet),
 // editeur de fichiers integre, menus natifs pour /models /mode /effort /tasks.
-const { app, BrowserWindow, Menu, dialog, ipcMain, shell } = require("electron");
+const { app, BrowserWindow, Menu, clipboard, dialog, ipcMain, shell } = require("electron");
 const fs = require("fs");
 const path = require("path");
 const hub = require("./hub-client");
@@ -152,6 +152,26 @@ function openPanel() {
   panelWin.on("closed", () => { panelWin = null; });
 }
 
+/** Read-only live-follow link for the current session (copied to clipboard). */
+async function openShare() {
+  try {
+    const { token } = await hub.withLiveSid(hubRec, (sid) => hub.api(hubRec, "POST", "/sessions/share", { sid }));
+    const url = String(hubBase).split("?")[0] + "?share=" + token;
+    const { response } = await dialog.showMessageBox({
+      type: "info",
+      title: "Smolcoder — partage",
+      message: "Lien de suivi en lecture seule :",
+      detail: url,
+      buttons: ["Copier le lien", "Fermer"],
+      defaultId: 0,
+      cancelId: 1,
+    });
+    if (response === 0) clipboard.writeText(url);
+  } catch (e) {
+    errBox(e.message);
+  }
+}
+
 function buildMenu() {
   const send = (label, text) => ({ label, click: () => hubMsg(text) });
   const template = [
@@ -184,6 +204,7 @@ function buildMenu() {
       submenu: [
         { label: "Nouvelle session", click: () => hubMsg("/clear") },
         { label: "Annuler le tour (esc)", click: () => hub.cancelTurn(hubRec).catch((e) => errBox(e.message)) },
+        { label: "Partager la session (lecture seule)", click: openShare },
         { type: "separator" },
         { label: "\u00c9diteur de fichiers", accelerator: "CmdOrCtrl+E", click: openEditor },
         { type: "separator" },
@@ -226,6 +247,8 @@ function buildMenu() {
         { label: "Git", accelerator: "CmdOrCtrl+Shift+G", click: openGit },
         { type: "separator" },
         send("Voir le plan", "/plan"),
+        send("Revoir les modifications", "/review"),
+        send("Santé des serveurs de langage", "/doctor"),
         send("Contexte", "/context"),
         send("Compacter", "/compact"),
       ],

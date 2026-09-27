@@ -1,0 +1,48 @@
+{
+  "path": "test/lsp-install.test.js",
+  "content_hash": "4b70465746b10d7098386b2c8b42e07d",
+  "updated_at": "2026-09-27T21:08:19",
+  "lines": 32,
+  "size_bytes": 1375,
+  "mtime_ns": 1790539653793764000,
+  "language": "javascript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "constant",
+      "name": "test",
+      "line_start": 4,
+      "line_end": 4,
+      "signature": "const test = require(\"node:test\");"
+    },
+    {
+      "type": "constant",
+      "name": "assert",
+      "line_start": 5,
+      "line_end": 5,
+      "signature": "const assert = require(\"node:assert/strict\");"
+    },
+    {
+      "type": "constant",
+      "name": "fs",
+      "line_start": 6,
+      "line_end": 6,
+      "signature": "const fs = require(\"node:fs\");"
+    },
+    {
+      "type": "constant",
+      "name": "os",
+      "line_start": 7,
+      "line_end": 7,
+      "signature": "const os = require(\"node:os\");"
+    },
+    {
+      "type": "constant",
+      "name": "path",
+      "line_start": 8,
+      "line_end": 8,
+      "signature": "const path = require(\"node:path\");"
+    }
+  ]
+}

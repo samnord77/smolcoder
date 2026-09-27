@@ -491,7 +491,7 @@ function fmtCodeActions(res: any): string {
 // Persistent manager
 // ---------------------------------------------------------------------------
 
-export const CODE_ACTIONS = ["hover", "def", "refs", "diag", "rename", "completion", "signature", "wsymbol", "quickfix"];
+export const CODE_ACTIONS = ["hover", "def", "refs", "diag", "rename", "completion", "signature", "wsymbol", "quickfix", "setup"];
 
 export interface CodeQuery {
   action?: unknown;
@@ -899,6 +899,9 @@ export async function queryCode(root: string, args: CodeQuery, signal?: AbortSig
   const action = String((args as any)?.action ?? "");
   if (!CODE_ACTIONS.includes(action)) {
     return `Error: action must be one of ${CODE_ACTIONS.map((a) => `"${a}"`).join(", ")}. Example: {"action": "hover", "path": "src/agent.ts", "line": 10, "col": 15}`;
+  }
+  if (action === "setup") {
+    return "Error: setup installs software — use the symbols tool in edit mode, or run /doctor install in any session.";
   }
   const rel = typeof (args as any)?.path === "string" ? (args as any).path : "";
   if (!rel && action !== "wsymbol") {

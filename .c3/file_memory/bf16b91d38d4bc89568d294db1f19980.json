@@ -1,10 +1,10 @@
 {
   "path": "src/tui/tui.ts",
-  "content_hash": "23cbb303c526be770a82ed478d63e18c",
-  "updated_at": "2026-09-26T17:59:05",
-  "lines": 781,
-  "size_bytes": 25379,
-  "mtime_ns": 1790420974697752400,
+  "content_hash": "bd7b00387b0a6c715452a06a615e55c5",
+  "updated_at": "2026-09-27T20:57:14",
+  "lines": 796,
+  "size_bytes": 26009,
+  "mtime_ns": 1790538918088055300,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -32,10 +32,10 @@
     },
     {
       "type": "import",
-      "name": "import { createCodeStreamColorizer } from \"../highlight\";",
+      "name": "import { createCodeStreamColorizer, colorizeResultBlock } from \"../highlight\";",
       "line_start": 12,
       "line_end": 12,
-      "signature": "import { createCodeStreamColorizer } from \"../highlight\";"
+      "signature": "import { createCodeStreamColorizer, colorizeResultBlock } from \"../highlight\";"
     },
     {
       "type": "import",
@@ -128,7 +128,7 @@
       "type": "class",
       "name": "Tui",
       "line_start": 61,
-      "line_end": 781,
+      "line_end": 796,
       "signature": "class Tui implements SessionUI {",
       "children": [
         {
@@ -619,56 +619,56 @@
           "type": "method",
           "name": "toolResult",
           "line_start": 676,
-          "line_end": 686,
+          "line_end": 701,
           "signature": "toolResult(result: string): void {"
         },
         {
           "type": "method",
           "name": "resetResponse",
-          "line_start": 688,
-          "line_end": 692,
+          "line_start": 703,
+          "line_end": 707,
           "signature": "resetResponse(): void {"
         },
         {
           "type": "method",
           "name": "println",
-          "line_start": 694,
-          "line_end": 700,
+          "line_start": 709,
+          "line_end": 715,
           "signature": "println(s = \"\"): void {"
         },
         {
           "type": "method",
           "name": "status",
-          "line_start": 702,
-          "line_end": 704,
+          "line_start": 717,
+          "line_end": 719,
           "signature": "status(s: string): void {"
         },
         {
           "type": "method",
           "name": "turnEnd",
-          "line_start": 706,
-          "line_end": 715,
+          "line_start": 721,
+          "line_end": 730,
           "signature": "turnEnd(label: string): void {"
         },
         {
           "type": "method",
           "name": "planUpdated",
-          "line_start": 717,
-          "line_end": 724,
+          "line_start": 732,
+          "line_end": 739,
           "signature": "planUpdated(plan: Plan): void {"
         },
         {
           "type": "method",
           "name": "subagent",
-          "line_start": 726,
-          "line_end": 728,
+          "line_start": 741,
+          "line_end": 743,
           "signature": "subagent(phase: \"start\" | \"done\", label: string): void {"
         },
         {
           "type": "method",
           "name": "bell",
-          "line_start": 731,
-          "line_end": 737,
+          "line_start": 746,
+          "line_end": 752,
           "signature": "private bell(): void {",
           "access": "private",
           "doc": "Terminal bell: ping on approval prompts, finished turns and errors."
@@ -676,29 +676,29 @@
         {
           "type": "method",
           "name": "warn",
-          "line_start": 739,
-          "line_end": 741,
+          "line_start": 754,
+          "line_end": 756,
           "signature": "warn(s: string): void {"
         },
         {
           "type": "method",
           "name": "error",
-          "line_start": 743,
-          "line_end": 747,
+          "line_start": 758,
+          "line_end": 762,
           "signature": "error(s: string): void {"
         },
         {
           "type": "method",
           "name": "startSpinner",
-          "line_start": 749,
-          "line_end": 768,
+          "line_start": 764,
+          "line_end": 783,
           "signature": "startSpinner(label: string): void {"
         },
         {
           "type": "method",
           "name": "stopSpinner",
-          "line_start": 770,
-          "line_end": 780,
+          "line_start": 785,
+          "line_end": 795,
           "signature": "stopSpinner(): void {"
         }
       ]

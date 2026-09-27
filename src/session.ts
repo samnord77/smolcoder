@@ -21,6 +21,10 @@ import { OllamaProvider } from "./providers/ollama";
 import { Effort, Msg, Provider } from "./providers/types";
 import { Mode, MODE_LABELS, ToolContext } from "./tools/index";
 import { createMcpBridge } from "./mcp";
+import { formatReview } from "./git";
+import { queryCode } from "./lsp-pro";
+import { lspDoctor, setupLsp } from "./lsp-install";
+import { RoutingProvider, routeProvider } from "./router";
 import { listSkills } from "./skills";
 import { loadPlugins } from "./plugins";
 import { readFile } from "./tools/fs-tools";
@@ -46,6 +50,11 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { name: "mode", desc: "Set mode (ro / edit / bypass)" },
   { name: "effort", desc: "Set reasoning effort" },
   { name: "plan", desc: "Show the agent's plan" },
+  { name: "todo", desc: "Show the agent's task list (same as /plan)" },
+  { name: "review", desc: "Review uncommitted changes hunk by hunk" },
+  { name: "diag", desc: "Language-server diagnostics — /diag src/agent.ts" },
+  { name: "doctor", desc: "Language-server health + install — /doctor install" },
+  { name: "route", desc: "Model route and failover status" },
   { name: "context", desc: "Show context usage" },
   { name: "compact", desc: "Compact the conversation now" },
   { name: "tasks", desc: "List background tasks" },
@@ -361,7 +370,19 @@ export class Session {
     const mode0 = prefs.mode ?? cfg.lastMode ?? "edit";
     this.effort = effortForBackend(cfg, chosen.backend, prefs.effort);
 
-    const provider = makeProvider(chosen);
+    const provider = routeProvider(
+      makeProvider(chosen),
+      process.env.SMOLCODER_FALLBACKS,
+      () => detectAll({ hosts: cfg.hosts }),
+      (m) => makeProvider(m),
+      (msg) => {
+        try {
+          ui.status(msg);
+        } catch {
+          /* status must never break startup */
+        }
+      }
+    );
     provider.setEffort(this.effort);
     this.taskManager = new TaskManager(workspace);
     let plugins: ToolContext["plugins"] = [];
@@ -442,6 +463,21 @@ export class Session {
   }
 
   /** Structured status for the web page's status bar. */
+  /** One-line plan progress for sidebars and menus ("Plan 2/5 · write tests"). */
+  planLine(): string | null {
+    try {
+      const plan = this.toolCtx?.plan;
+      if (!plan || !plan.exists || !plan.steps.length) return null;
+      const done = plan.doneCount ?? 0;
+      const total = plan.steps.length;
+      const cur =
+        plan.currentIndex >= 0 && plan.currentIndex < total ? plan.steps[plan.currentIndex].text : "complete";
+      return `Plan ${done}/${total} · ${String(cur).slice(0, 80)}`;
+    } catch {
+      return null;
+    }
+  }
+
   state(): Record<string, any> {
     const plan = this.toolCtx.plan;
     return {
@@ -789,6 +825,54 @@ export class Session {
             if (toolCtx.plan.exists) ui.println(renderPlan(toolCtx.plan));
             else ui.status("· no plan yet — the agent creates one when it starts a multi-step task");
             break;
+          case "todo":
+            if (toolCtx.plan.exists) ui.println(renderPlan(toolCtx.plan));
+            else ui.status("· no task list yet — the agent creates one when it starts a multi-step task");
+            break;
+          case "review":
+            ui.println(formatReview(this.workspace, (arg ?? "").toLowerCase() === "staged"));
+            break;
+          case "diag": {
+            const target = rest.join(" ").trim() || (arg ?? "");
+            if (!target) {
+              ui.status("· usage: /diag <file> — ex. /diag src/agent.ts");
+              break;
+            }
+            ui.startSpinner("analyzing with the language server");
+            try {
+              ui.println(await queryCode(this.workspace, { action: "diag", path: target }));
+            } catch (err: any) {
+              ui.error(String(err?.message ?? err));
+            } finally {
+              ui.stopSpinner();
+            }
+            break;
+          }
+          case "doctor": {
+            if ((arg ?? "").toLowerCase() === "install") {
+              const lang = (rest[1] ?? "all").trim() || "all";
+              ui.startSpinner(`installing language servers (${lang} — up to 2 min)`);
+              try {
+                ui.println(setupLsp(this.workspace, lang));
+              } catch (err: any) {
+                ui.error(String(err?.message ?? err));
+              } finally {
+                ui.stopSpinner();
+              }
+              break;
+            }
+            ui.println(lspDoctor());
+            break;
+          }
+          case "route": {
+            const p = this.agent.provider as any;
+            ui.println(
+              p instanceof RoutingProvider
+                ? p.describe()
+                : 'Route: direct (this model only).\nSet SMOLCODER_FALLBACKS="ollama:qwen,lmstudio:glm" to add automatic failover.'
+            );
+            break;
+          }
           case "tasks":
             ui.println(taskManager.list());
             break;
@@ -985,7 +1069,19 @@ export class Session {
     if (next.backend !== previousBackend && this.prefs.effort === undefined) {
       this.effort = effortForBackend(loadConfig(), next.backend);
     }
-    const p = makeProvider(next);
+    const p = routeProvider(
+      makeProvider(next),
+      process.env.SMOLCODER_FALLBACKS,
+      () => detectAll({ hosts: loadConfig().hosts }),
+      (m) => makeProvider(m),
+      (msg) => {
+        try {
+          ui.status(msg);
+        } catch {
+          /* ignore */
+        }
+      }
+    );
     p.setEffort(this.effort);
     agent.setProvider(p);
     this.ctxMgr.setWindow(next.contextWindow, p.maxOutputTokens);

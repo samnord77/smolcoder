@@ -1,0 +1,48 @@
+{
+  "path": ".smol/codeindex.json",
+  "content_hash": "d153b250dc90a802ad382cb96ffaee92",
+  "updated_at": "2026-09-27T20:51:11",
+  "lines": 1,
+  "size_bytes": 411571,
+  "mtime_ns": 1790538645451591600,
+  "language": "json",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "property",
+      "name": "version",
+      "line_start": 1,
+      "line_end": 1,
+      "signature": "version"
+    },
+    {
+      "type": "property",
+      "name": "updatedAt",
+      "line_start": 1,
+      "line_end": 1,
+      "signature": "updatedAt"
+    },
+    {
+      "type": "property",
+      "name": "stats",
+      "line_start": 1,
+      "line_end": 1,
+      "signature": "stats"
+    },
+    {
+      "type": "property",
+      "name": "symbols",
+      "line_start": 1,
+      "line_end": 1,
+      "signature": "symbols"
+    }
+  ],
+  "shape": {
+    "minified": true,
+    "generated": false,
+    "oversized": false,
+    "longest_line": 411571,
+    "bytes": 411571
+  }
+}

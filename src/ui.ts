@@ -6,7 +6,7 @@ import * as readline from "readline";
 import { UserInput } from "./attachments";
 import { Plan } from "./plan";
 import { c } from "./util";
-import { createCodeStreamColorizer } from "./highlight";
+import { createCodeStreamColorizer, colorizeResultBlock } from "./highlight";
 
 /** What the agent loop needs from a UI — implemented by the plain UI (used in
  * -p / non-TTY mode) and by the interactive Tui. */
@@ -194,6 +194,13 @@ export class UI implements AgentUI {
       ? c.red(firstLine.slice(0, 120))
       : c.dim(firstLine.slice(0, 100) + (lines > 1 ? ` (+${lines - 1} lines)` : ""));
     this.meta(`  ${isError ? c.red("✗") : c.green("✓")} ${label}`);
+    // Short results print in full with code colors (stderr: automations
+    // parsing stdout are unaffected); long ones stay a one-line summary.
+    if (!isError && lines > 1 && lines <= 25 && result.length <= 2500) {
+      this.stopSpinner();
+      this.ensureLine();
+      process.stderr.write(colorizeResultBlock(result, process.stdout.isTTY && !process.env.NO_COLOR) + "\n");
+    }
   }
 
   println(s = ""): void {

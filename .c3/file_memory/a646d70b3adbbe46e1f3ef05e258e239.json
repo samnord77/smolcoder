@@ -1,10 +1,10 @@
 {
   "path": "src/web/client.ts",
-  "content_hash": "5941137a010dcd98d0dcc13dedb361e2",
-  "updated_at": "2026-09-27T20:39:08",
-  "lines": 2154,
-  "size_bytes": 111395,
-  "mtime_ns": 1790537802737297400,
+  "content_hash": "1ff5ab7300e42d166c00703c0db6190e",
+  "updated_at": "2026-09-27T20:57:13",
+  "lines": 2155,
+  "size_bytes": 111467,
+  "mtime_ns": 1790538984567508800,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -34,7 +34,7 @@
       "type": "constant",
       "name": "CLIENT_JS",
       "line_start": 13,
-      "line_end": 2154,
+      "line_end": 2155,
       "signature": "const CLIENT_JS = String.raw`"
     }
   ]

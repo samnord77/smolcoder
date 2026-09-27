@@ -705,6 +705,7 @@ function renderSidebar() {
       const row = el("div", "sess " + (s.live ? s.status : "stored") + (active && active.sid === s.id ? " active" : "") + (v && v.unread ? " unread" : ""));
       row.appendChild(el("span", "dot"));
       row.appendChild(el("span", "stitle" + (s.title ? "" : " untitled"), s.title || "new session"));
+      if (s.plan) row.appendChild(el("span", "stime", String(s.plan)));
       row.appendChild(el("span", "stime", rel(s.updatedAt)));
       if (s.live) {
         const sh = el("button", "iconbtn", "⍾");

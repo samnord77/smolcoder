@@ -14,6 +14,8 @@ import * as path from "path";
 import { Agent } from "./agent";
 import { effortForBackend, loadConfig } from "./config";
 import { ContextManager } from "./context";
+import { detectAll } from "./detect";
+import { routeProvider } from "./router";
 import { EventBus } from "./events";
 import { terminalLogo } from "./logo";
 import { Plan } from "./plan";
@@ -276,7 +278,19 @@ async function runHeadless(args: CliArgs): Promise<void> {
   const mode = args.mode ?? cfg.lastMode ?? "edit";
 
   const shell = pickShell();
-  const provider = makeProvider(chosen);
+  const provider = routeProvider(
+    makeProvider(chosen),
+    process.env.SMOLCODER_FALLBACKS,
+    () => detectAll({}),
+    (m) => makeProvider(m),
+    (msg) => {
+      try {
+        ui.status(msg);
+      } catch {
+        /* ignore */
+      }
+    }
+  );
   provider.setEffort(effortForBackend(cfg, chosen.backend, args.effort));
   const taskManager = new TaskManager(args.workspace);
   let headlessPlugins: ToolContext["plugins"] = [];

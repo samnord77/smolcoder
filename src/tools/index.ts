@@ -12,6 +12,7 @@ import { ToolSpec } from "../providers/types";
 import { editFile, listFiles, readFile, writeFile } from "./fs-tools";
 import { fetchUrl } from "./web";
 import { queryCode } from "../lsp-pro";
+import { setupLsp } from "../lsp-install";
 import { McpBridge } from "../mcp";
 import { listSkills, readSkill, saveSkill } from "../skills";
 import { syntaxCheck } from "./check";
@@ -315,20 +316,20 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
     {
       name: "symbols",
       description:
-        'Ask a language server about code (TypeScript, JavaScript, Python, Rust, Go). Hover: {"action": "hover", "path": "src/agent.ts", "line": 10, "col": 15}. Definition: {"action": "def", ...}. References: {"action": "refs", ...}. Diagnostics: {"action": "diag", "path": "src/agent.ts"}. Rename preview: {"action": "rename", "path": "...", "line": 3, "col": 5, "new_text": "total"}. Completions: {"action": "completion", ...}. Signature: {"action": "signature", ...}. Quick fixes: {"action": "quickfix", ...}. Whole-workspace symbol: {"action": "wsymbol", "query": "Agent"}. Lines and columns start at 1.',
+        'Ask a language server about code (TypeScript, JavaScript, Python, Rust, Go). Hover: {"action": "hover", "path": "src/agent.ts", "line": 10, "col": 15}. Definition: {"action": "def", ...}. References: {"action": "refs", ...}. Diagnostics: {"action": "diag", "path": "src/agent.ts"}. Rename preview: {"action": "rename", "path": "...", "line": 3, "col": 5, "new_text": "total"}. Completions: {"action": "completion", ...}. Signature: {"action": "signature", ...}. Quick fixes: {"action": "quickfix", ...}. Whole-workspace symbol: {"action": "wsymbol", "query": "Agent"}. Install a server: {"action": "setup", "lang": "python"} (or "all", edit modes only). Lines and columns start at 1.',
       parameters: {
         type: "object",
         properties: {
           action: {
             type: "string",
-            enum: ["hover", "def", "refs", "diag", "rename", "completion", "signature", "wsymbol", "quickfix"],
+            enum: ["hover", "def", "refs", "diag", "rename", "completion", "signature", "wsymbol", "quickfix", "setup"],
           },
-          path: { type: "string", description: "File path relative to the workspace (not for wsymbol)" },
+          path: { type: "string", description: "File path relative to the workspace (not for wsymbol/setup)" },
           line: { type: "number", description: "Line number starting at 1 (not for diag/wsymbol)" },
           col: { type: "number", description: "Column number starting at 1 (not for diag/wsymbol)" },
           new_text: { type: "string", description: "New name (only for rename)" },
           query: { type: "string", description: "Symbol name to find (only for wsymbol)" },
-          lang: { type: "string", description: "Language for wsymbol: typescript, python, rust, go (optional)" },
+          lang: { type: "string", description: "Language for wsymbol/setup: typescript, python, rust, go (or all for setup)" },
         },
         required: ["action"],
       },
@@ -565,6 +566,14 @@ export async function executeTool(
         break;
       }
       case "symbols": {
+        if (String(args.action ?? "") === "setup") {
+          if (ctx.canWrite === false) {
+            return "Error: installing language servers changes this computer — unavailable in read-only mode. Switch to edit mode first.";
+          }
+          const lang = typeof args.lang === "string" && args.lang.trim() ? args.lang.trim() : "all";
+          result = setupLsp(ctx.workspace, lang);
+          break;
+        }
         result = await queryCode(ctx.workspace, args, signal);
         break;
       }

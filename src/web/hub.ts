@@ -699,6 +699,7 @@ export class WebHub {
         model: l.meta.model,
         terminals: [...l.terminals.values()].map((t) => ({ tid: t.id, cwd: t.cwd })),
         viewers: this.sessionViewers(l.id),
+        plan: typeof (l.session as any)?.planLine === "function" ? (l.session as any).planLine() : null,
       });
     }
     const workspaces = [...groups.values()]

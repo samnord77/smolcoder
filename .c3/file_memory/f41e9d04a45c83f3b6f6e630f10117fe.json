@@ -1,10 +1,10 @@
 {
   "path": "src/index.ts",
-  "content_hash": "da2ef2720666b7fc0233f21bc00760d2",
-  "updated_at": "2026-09-26T17:57:05",
-  "lines": 480,
-  "size_bytes": 18957,
-  "mtime_ns": 1790426715380053700,
+  "content_hash": "16d30c4e311fbe152f405c9b7bccdb28",
+  "updated_at": "2026-09-27T21:06:18",
+  "lines": 494,
+  "size_bytes": 19274,
+  "mtime_ns": 1790539401372273400,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -53,220 +53,234 @@
     },
     {
       "type": "import",
-      "name": "import { EventBus } from \"./events\";",
+      "name": "import { detectAll } from \"./detect\";",
       "line_start": 17,
       "line_end": 17,
+      "signature": "import { detectAll } from \"./detect\";"
+    },
+    {
+      "type": "import",
+      "name": "import { routeProvider } from \"./router\";",
+      "line_start": 18,
+      "line_end": 18,
+      "signature": "import { routeProvider } from \"./router\";"
+    },
+    {
+      "type": "import",
+      "name": "import { EventBus } from \"./events\";",
+      "line_start": 19,
+      "line_end": 19,
       "signature": "import { EventBus } from \"./events\";"
     },
     {
       "type": "import",
       "name": "import { terminalLogo } from \"./logo\";",
-      "line_start": 18,
-      "line_end": 18,
+      "line_start": 20,
+      "line_end": 20,
       "signature": "import { terminalLogo } from \"./logo\";"
     },
     {
       "type": "import",
       "name": "import { Plan } from \"./plan\";",
-      "line_start": 19,
-      "line_end": 19,
+      "line_start": 21,
+      "line_end": 21,
       "signature": "import { Plan } from \"./plan\";"
     },
     {
       "type": "import",
       "name": "import { buildSystemPrompt, loadAgentsMd, loadMemoryMd } from \"./prompt\";",
-      "line_start": 20,
-      "line_end": 20,
+      "line_start": 22,
+      "line_end": 22,
       "signature": "import { buildSystemPrompt, loadAgentsMd, loadMemoryMd } from \"./prompt\";"
     },
     {
       "type": "import",
       "name": "import { Effort } from \"./providers/types\";",
-      "line_start": 21,
-      "line_end": 21,
+      "line_start": 23,
+      "line_end": 23,
       "signature": "import { Effort } from \"./providers/types\";"
     },
     {
       "type": "import",
       "name": "import {",
-      "line_start": 22,
-      "line_end": 33,
+      "line_start": 24,
+      "line_end": 35,
       "signature": "import {"
     },
     {
       "type": "import",
       "name": "import { Mode, ToolContext } from \"./tools/index\";",
-      "line_start": 34,
-      "line_end": 34,
+      "line_start": 36,
+      "line_end": 36,
       "signature": "import { Mode, ToolContext } from \"./tools/index\";"
     },
     {
       "type": "import",
       "name": "import { createMcpBridge } from \"./mcp\";",
-      "line_start": 35,
-      "line_end": 35,
+      "line_start": 37,
+      "line_end": 37,
       "signature": "import { createMcpBridge } from \"./mcp\";"
     },
     {
       "type": "import",
       "name": "import { loadPlugins } from \"./plugins\";",
-      "line_start": 36,
-      "line_end": 36,
+      "line_start": 38,
+      "line_end": 38,
       "signature": "import { loadPlugins } from \"./plugins\";"
     },
     {
       "type": "import",
       "name": "import { pickShell } from \"./tools/shell\";",
-      "line_start": 37,
-      "line_end": 37,
+      "line_start": 39,
+      "line_end": 39,
       "signature": "import { pickShell } from \"./tools/shell\";"
     },
     {
       "type": "import",
       "name": "import { TaskManager } from \"./tools/tasks\";",
-      "line_start": 38,
-      "line_end": 38,
+      "line_start": 40,
+      "line_end": 40,
       "signature": "import { TaskManager } from \"./tools/tasks\";"
     },
     {
       "type": "import",
       "name": "import { Tui } from \"./tui/tui\";",
-      "line_start": 39,
-      "line_end": 39,
+      "line_start": 41,
+      "line_end": 41,
       "signature": "import { Tui } from \"./tui/tui\";"
     },
     {
       "type": "import",
       "name": "import { UI } from \"./ui\";",
-      "line_start": 40,
-      "line_end": 40,
+      "line_start": 42,
+      "line_end": 42,
       "signature": "import { UI } from \"./ui\";"
     },
     {
       "type": "import",
       "name": "import { c } from \"./util\";",
-      "line_start": 41,
-      "line_end": 41,
+      "line_start": 43,
+      "line_end": 43,
       "signature": "import { c } from \"./util\";"
     },
     {
       "type": "import",
       "name": "import { askHubToOpen, pingHub, readHubRecord, WebHub } from \"./web/hub\";",
-      "line_start": 42,
-      "line_end": 42,
+      "line_start": 44,
+      "line_end": 44,
       "signature": "import { askHubToOpen, pingHub, readHubRecord, WebHub } from \"./web/hub\";"
     },
     {
       "type": "import",
       "name": "import { launchApp } from \"./web/app\";",
-      "line_start": 43,
-      "line_end": 43,
+      "line_start": 45,
+      "line_end": 45,
       "signature": "import { launchApp } from \"./web/app\";"
     },
     {
       "type": "constant",
       "name": "VERSION",
-      "line_start": 45,
-      "line_end": 45,
+      "line_start": 47,
+      "line_end": 47,
       "signature": "const VERSION = require(\"../package.json\").version as string;"
     },
     {
       "type": "constant",
       "name": "DEFAULT_WEB_PORT",
-      "line_start": 46,
-      "line_end": 46,
+      "line_start": 48,
+      "line_end": 48,
       "signature": "const DEFAULT_WEB_PORT = 7433;"
     },
     {
       "type": "interface",
       "name": "CliArgs",
-      "line_start": 48,
-      "line_end": 67,
+      "line_start": 50,
+      "line_end": 69,
       "signature": "interface CliArgs {",
       "children": []
     },
     {
       "type": "function",
       "name": "parseArgs",
-      "line_start": 69,
-      "line_end": 152,
+      "line_start": 71,
+      "line_end": 154,
       "signature": "function parseArgs(argv: string[]): CliArgs {"
     },
     {
       "type": "constant",
       "name": "HELP",
-      "line_start": 154,
-      "line_end": 207,
+      "line_start": 156,
+      "line_end": 209,
       "signature": "const HELP = `"
     },
     {
       "type": "function",
       "name": "installSignalCleanup",
-      "line_start": 213,
-      "line_end": 228,
+      "line_start": 215,
+      "line_end": 230,
       "signature": "function installSignalCleanup(cleanup: () => void): void {",
       "doc": "Node fires 'exit' on normal termination but NOT on a killing signal, so"
     },
     {
       "type": "function",
       "name": "printLogo",
-      "line_start": 231,
-      "line_end": 233,
+      "line_start": 233,
+      "line_end": 235,
       "signature": "function printLogo(): void {",
       "doc": "The SMOL banner that opens every interactive session."
     },
     {
       "type": "function",
       "name": "prefsOf",
-      "line_start": 235,
-      "line_end": 237,
+      "line_start": 237,
+      "line_end": 239,
       "signature": "function prefsOf(args: CliArgs): SessionPrefs {"
     },
     {
       "type": "function",
       "name": "main",
-      "line_start": 241,
-      "line_end": 262,
+      "line_start": 243,
+      "line_end": 264,
       "signature": "async function main(): Promise<void> {",
       "async": true
     },
     {
       "type": "function",
       "name": "runHeadless",
-      "line_start": 266,
-      "line_end": 354,
+      "line_start": 268,
+      "line_end": 368,
       "signature": "async function runHeadless(args: CliArgs): Promise<void> {",
       "async": true
     },
     {
       "type": "function",
       "name": "runInteractive",
-      "line_start": 358,
-      "line_end": 407,
+      "line_start": 372,
+      "line_end": 421,
       "signature": "async function runInteractive(args: CliArgs): Promise<void> {",
       "async": true
     },
     {
       "type": "function",
       "name": "isHomeOrRoot",
-      "line_start": 413,
-      "line_end": 417,
+      "line_start": 427,
+      "line_end": 431,
       "signature": "function isHomeOrRoot(p: string): boolean {",
       "doc": "The home folder or a drive root is not a project: launching there opens"
     },
     {
       "type": "function",
       "name": "runWeb",
-      "line_start": 419,
-      "line_end": 463,
+      "line_start": 433,
+      "line_end": 477,
       "signature": "async function runWeb(args: CliArgs): Promise<void> {",
       "async": true
     },
     {
       "type": "function",
       "name": "openAppWindow",
-      "line_start": 466,
-      "line_end": 475,
+      "line_start": 480,
+      "line_end": 489,
       "signature": "function openAppWindow(url: string): void {",
       "doc": "Open the hub like a desktop app and say what happened. Never throws."
     }

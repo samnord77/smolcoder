@@ -23,7 +23,11 @@
     "test/mcp.test.js",
     "test/verification.test.js",
     "src/git.ts",
-    "src/web/page.ts"
+    "src/web/page.ts",
+    "src/highlight.ts",
+    "src/tui/tui.ts",
+    "src/ui.ts",
+    "src/index.ts"
   ],
   "inflight": [
     "desktop/preload-git.js"

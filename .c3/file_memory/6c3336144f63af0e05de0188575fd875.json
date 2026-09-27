@@ -1,10 +1,10 @@
 {
   "path": "src/lsp-pro.ts",
-  "content_hash": "5eab95c19a4dde8f4653faba83442502",
-  "updated_at": "2026-09-27T20:19:02",
-  "lines": 939,
-  "size_bytes": 33288,
-  "mtime_ns": 1790536684707993900,
+  "content_hash": "be0646b16b013eb2177a2216596be4c7",
+  "updated_at": "2026-09-27T21:06:18",
+  "lines": 942,
+  "size_bytes": 33452,
+  "mtime_ns": 1790539494626233600,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -373,7 +373,7 @@
       "name": "CODE_ACTIONS",
       "line_start": 494,
       "line_end": 494,
-      "signature": "const CODE_ACTIONS = [\"hover\", \"def\", \"refs\", \"diag\", \"rename\", \"completion\", \"signature\", \"wsymbol\", \"quickfix\"];"
+      "signature": "const CODE_ACTIONS = [\"hover\", \"def\", \"refs\", \"diag\", \"rename\", \"completion\", \"signature\", \"wsymbol\", \"quickfix\", \"setup\"];"
     },
     {
       "type": "interface",
@@ -585,23 +585,23 @@
       "type": "function",
       "name": "queryCode",
       "line_start": 898,
-      "line_end": 921,
+      "line_end": 924,
       "signature": "async function queryCode(root: string, args: CodeQuery, signal?: AbortSignal): Promise<string> {",
       "async": true
     },
     {
       "type": "interface",
       "name": "StructuredDiag",
-      "line_start": 923,
-      "line_end": 929,
+      "line_start": 926,
+      "line_end": 932,
       "signature": "interface StructuredDiag {",
       "children": []
     },
     {
       "type": "function",
       "name": "queryDiagStructured",
-      "line_start": 933,
-      "line_end": 939,
+      "line_start": 936,
+      "line_end": 942,
       "signature": "async function queryDiagStructured(",
       "async": true
     }

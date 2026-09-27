@@ -1,0 +1,9 @@
+{
+  "original_tokens": 2467,
+  "compressed_tokens": 276,
+  "saved_tokens": 2191,
+  "savings_pct": 88.8,
+  "compressed": "# highlight.ts (.ts) \u2014 177 lines\nexport type SyntaxTokenKind = \"plain\" | \"tok-k\" | \"tok-s\" | \"tok-n\" | \"tok-c\" | \"tok-f\" | \"tok-o\" | \"tok-tag\";\nexport interface SyntaxToken { kind: SyntaxTokenKind; text: string }\nexport function tokenizeCode(source: string, language = \"\"): SyntaxToken[]\nfunction escapeHtml(text: string): string\nexport function highlightHtml(source: string, language = \"\"): string\nexport function highlightEscapedHtml(source: string, language = \"\"): string\nexport function highlightAnsi(source: string, language = \"\"): string\nexport function createCodeStreamColorizer(write: (text: string) => void, enabled: boolean): { push(text: string): void; flush(): void }\nexport const browserHighlighterSource = `const tokenizeCode = (${tokenizeCode.toString()});\\nconst highlightEscapedHtml = (${highlightEscapedHtml.toString()});`;\nconst ANSI_RE = /\\x1b\\[[0-9;]*[A-Za-z]|\\x1b\\][^\\x07]*\\x07|\\r(?!\\n)/g;\nexport function stripAnsiDisplay(text: string): string\nexport function colorizeResultBlock(result: string, enabled: boolean): string",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\highlight.ts"
+}

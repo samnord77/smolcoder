@@ -140,3 +140,38 @@ export function createCodeStreamColorizer(write: (text: string) => void, enabled
 }
 /** Plain JavaScript source injected into the standalone web page. */
 export const browserHighlighterSource = `const tokenizeCode = (${tokenizeCode.toString()});\nconst highlightEscapedHtml = (${highlightEscapedHtml.toString()});`;
+
+const ANSI_RE = /\x1b\[[0-9;]*[A-Za-z]|\x1b\][^\x07]*\x07|\r(?!\n)/g;
+
+/** Strip terminal escapes so re-coloring never corrupts existing colors. */
+export function stripAnsiDisplay(text: string): string {
+  return String(text ?? "").replace(ANSI_RE, "");
+}
+
+/** Full short-result display for terminals: fenced code blocks get syntax
+ * colors, "Error" lines go red, exit-code trailers green/red. Pure and
+ * line-based (log-safe). Exported for tests. */
+export function colorizeResultBlock(result: string, enabled: boolean): string {
+  const lines = stripAnsiDisplay(result).split("\n");
+  const out: string[] = [];
+  let inFence = false;
+  let fenceLang = "";
+  for (const line of lines) {
+    const fence = /^\s*```([\w.+#-]*)[\t ]*$/.exec(line);
+    if (fence) {
+      inFence = !inFence;
+      if (inFence) fenceLang = fence[1] || "";
+      out.push(enabled ? "\x1b[2m" + line + "\x1b[0m" : line);
+      continue;
+    }
+    if (inFence) {
+      out.push(enabled ? highlightAnsi(line, fenceLang) : line);
+      continue;
+    }
+    if (/^\s*Error\b/.test(line)) out.push(enabled ? "\x1b[31m" + line + "\x1b[0m" : line);
+    else if (/\[exit code 0 in /.test(line)) out.push(enabled ? "\x1b[32m" + line + "\x1b[0m" : line);
+    else if (/\[exit code [1-9]/.test(line)) out.push(enabled ? "\x1b[31m" + line + "\x1b[0m" : line);
+    else out.push(line);
+  }
+  return out.join("\n");
+}

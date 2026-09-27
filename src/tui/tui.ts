@@ -9,7 +9,7 @@
 import { Plan } from "../plan";
 import { SelectOption, SessionUI, SlashCommand, summarizeArgs } from "../ui";
 import { c } from "../util";
-import { createCodeStreamColorizer } from "../highlight";
+import { createCodeStreamColorizer, colorizeResultBlock } from "../highlight";
 import { LineEditor, layoutBuffer } from "./editor";
 import { Key, KeyDecoder } from "./keys";
 
@@ -678,11 +678,26 @@ export class Tui implements SessionUI {
     const firstLine = result.split("\n")[0] ?? "";
     const isError = firstLine.startsWith("Error");
     const lineCount = result.split("\n").length;
-    const label = isError
-      ? c.red(firstLine.slice(0, 120))
-      : c.dim(firstLine.slice(0, 100) + (lineCount > 1 ? ` (+${lineCount - 1} lines)` : ""));
-    if (isError) this.out(`  ${c.red("✗")} ${label}\n`);
-    else if (result.includes("Warning:")) this.out(`  ${c.yellow("! " + result.slice(result.indexOf("Warning:")).split("\n")[0])}\n`);
+    if (isError) {
+      this.out(`  ${c.red("✗")} ${c.red(firstLine.slice(0, 120))}\n`);
+      this.atLineStart = true;
+      return;
+    }
+    if (result.includes("Warning:")) {
+      this.out(`  ${c.yellow("! " + result.slice(result.indexOf("Warning:")).split("\n")[0])}\n`);
+      this.atLineStart = true;
+      return;
+    }
+    // Success used to print nothing — every read and write looked idle.
+    // Show the same ✓ summary as headless mode, plus the full colorized
+    // body when it is short (shell output stays readable, big reads stay
+    // collapsed to one line).
+    const label = c.dim(firstLine.slice(0, 100) + (lineCount > 1 ? ` (+${lineCount - 1} lines)` : ""));
+    this.out(`  ${c.green("✓")} ${label}\n`);
+    if (lineCount > 1 && lineCount <= 25 && result.length <= 2500) {
+      this.out(colorizeResultBlock(result, process.stdout.isTTY && !process.env.NO_COLOR) + "\n");
+    }
+    this.atLineStart = true;
   }
 
   resetResponse(): void {

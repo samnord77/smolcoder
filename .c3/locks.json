@@ -1,96 +1,166 @@
 {
   "schema_version": 1,
-  "fencing": 59,
+  "fencing": 75,
   "locks": [
+    {
+      "relpath": "src/highlight.ts",
+      "agent_id": "claude-code:20260927",
+      "session_id": "20260927_164838_0239733e7ab3",
+      "fencing_token": 60,
+      "intent": "Colorisation des blocs de r\u00e9sultats shell pour terminaux",
+      "acquired_at": 1790538868.7081335,
+      "expires_at": 1790539768.7081335,
+      "lock_id": "5d3528ec06824727bd0b3d1bdd00337b"
+    },
+    {
+      "relpath": "src/ui.ts",
+      "agent_id": "claude-code:20260927",
+      "session_id": "20260927_164838_0239733e7ab3",
+      "fencing_token": 61,
+      "intent": "R\u00e9sultats courts affich\u00e9s en couleur (stderr)",
+      "acquired_at": 1790538868.7567673,
+      "expires_at": 1790539788.8025138,
+      "lock_id": "cf370588c7b54b26b97b7eaa6fe47af7"
+    },
+    {
+      "relpath": "src/tui/tui.ts",
+      "agent_id": "claude-code:20260927",
+      "session_id": "20260927_164838_0239733e7ab3",
+      "fencing_token": 62,
+      "intent": "Le TUI montre enfin les succ\u00e8s + sorties color\u00e9es",
+      "acquired_at": 1790538904.7614965,
+      "expires_at": 1790539817.9939957,
+      "lock_id": "15ea2c0365e140768cb707c7ab662113"
+    },
+    {
+      "relpath": "src/session.ts",
+      "agent_id": "claude-code:20260927",
+      "session_id": "20260927_164838_0239733e7ab3",
+      "fencing_token": 63,
+      "intent": "Ex\u00e9cute /todo /review /diag /doctor /route",
+      "acquired_at": 1790538942.4934604,
+      "expires_at": 1790540142.6152341,
+      "lock_id": "5150ccfcfc4f4e8b818644df3d16f372"
+    },
     {
       "relpath": "src/web/hub.ts",
       "agent_id": "claude-code:20260927",
       "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 51,
-      "intent": "Le lien de partage seul suffit (sid d\u00e9duit du jeton)",
-      "acquired_at": 1790536766.2092974,
-      "expires_at": 1790538141.2003858,
-      "lock_id": "5373fcad2c6746c893a55a47625c5649"
+      "fencing_token": 64,
+      "intent": "Progression du plan dans le snapshot",
+      "acquired_at": 1790538984.487621,
+      "expires_at": 1790539884.487621,
+      "lock_id": "fe0c25a5f4dc4b08831690be70547a9e"
     },
     {
       "relpath": "src/web/client.ts",
       "agent_id": "claude-code:20260927",
       "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 52,
-      "intent": "Mode suiveur lecture seule + pr\u00e9sence + SSE partag\u00e9",
-      "acquired_at": 1790537216.642757,
-      "expires_at": 1790538702.686527,
-      "lock_id": "e3902cce8ab64ff18a98c713444fa2b0"
+      "fencing_token": 65,
+      "intent": "Progression du plan sous chaque session",
+      "acquired_at": 1790538984.5436893,
+      "expires_at": 1790539884.5436893,
+      "lock_id": "ebe8377ac3c346cea2d6092be7612f3a"
     },
     {
-      "relpath": "src/web/styles.ts",
+      "relpath": "src/lsp-install.ts",
       "agent_id": "claude-code:20260927",
       "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 53,
-      "intent": "CSS revue de diff + banni\u00e8re de partage",
-      "acquired_at": 1790537241.2914839,
-      "expires_at": 1790538141.2914839,
-      "lock_id": "9cdbd6ab44474815b8b5d97482e2a5b3"
+      "fencing_token": 66,
+      "intent": "Auto-install des serveurs de langage + diagnostic",
+      "acquired_at": 1790539050.226932,
+      "expires_at": 1790539950.226932,
+      "lock_id": "19f0fbb97f59466989bbd27bf158e759"
     },
     {
-      "relpath": "src/web/page.ts",
+      "relpath": "src/router.ts",
       "agent_id": "claude-code:20260927",
       "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 54,
-      "intent": "Bouton revue dans la barre d'outils",
-      "acquired_at": 1790537547.6082356,
-      "expires_at": 1790538447.6082356,
-      "lock_id": "25c0148d707c48b680fb50868e85526c"
+      "fencing_token": 67,
+      "intent": "Routage mod\u00e8les avec bascule automatique sur panne",
+      "acquired_at": 1790539050.306619,
+      "expires_at": 1790539950.306619,
+      "lock_id": "c1610a3fe0d544d4b3604f76a4d07228"
     },
     {
-      "relpath": "src/git.ts",
+      "relpath": "src/index.ts",
       "agent_id": "claude-code:20260927",
       "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 55,
-      "intent": "Ajoute hunk \u00e0 GitQuery",
-      "acquired_at": 1790537864.2587647,
-      "expires_at": 1790539015.2873042,
-      "lock_id": "81598861c54f4291b70bc14ccaa149d1"
+      "fencing_token": 68,
+      "intent": "Routage aussi en mode headless",
+      "acquired_at": 1790539321.4795709,
+      "expires_at": 1790540301.3440487,
+      "lock_id": "5ebc3806a3924bbe804473f07d09c05c"
+    },
+    {
+      "relpath": "src/lsp-pro.ts",
+      "agent_id": "claude-code:20260927",
+      "session_id": "20260927_164838_0239733e7ab3",
+      "fencing_token": 69,
+      "intent": "setup guid\u00e9 vers l'outil en mode \u00e9dition",
+      "acquired_at": 1790539439.0819478,
+      "expires_at": 1790540394.6029556,
+      "lock_id": "4fedbc50241e4342a4b3249dc980709c"
     },
     {
       "relpath": "src/tools/index.ts",
       "agent_id": "claude-code:20260927",
       "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 56,
-      "intent": "revert_hunk annulable via /undo comme les edits",
-      "acquired_at": 1790537933.0622358,
-      "expires_at": 1790538847.4065223,
-      "lock_id": "a9471cd46c4d4b2389b49bf58aea6480"
+      "fencing_token": 70,
+      "intent": "Ex\u00e9cute setup (\u00e9dition uniquement)",
+      "acquired_at": 1790539515.2266707,
+      "expires_at": 1790540447.5156739,
+      "lock_id": "dfb700662bd44f1b810b107d011b3dd3"
     },
     {
-      "relpath": "test/git.test.js",
+      "relpath": "desktop/main.js",
       "agent_id": "claude-code:20260927",
       "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 57,
-      "intent": "Tests hunks : parse, stage/revert cibl\u00e9s, revue via l'outil",
-      "acquired_at": 1790538023.4617875,
-      "expires_at": 1790538923.4617875,
-      "lock_id": "aee8557d162743a6b56cf14e73b9b1a3"
+      "fencing_token": 71,
+      "intent": "Menus bureau : revue + sant\u00e9 LSP",
+      "acquired_at": 1790539563.599751,
+      "expires_at": 1790540515.0660212,
+      "lock_id": "c778ea5c49ea4f60bae3c7cff6002453"
     },
     {
-      "relpath": "test/code-api.test.js",
+      "relpath": "test/highlight-display.test.js",
       "agent_id": "claude-code:20260927",
       "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 58,
-      "intent": "Tests partage, pr\u00e9sence, revue de hunks via le hub",
-      "acquired_at": 1790538023.637323,
-      "expires_at": 1790538923.637323,
-      "lock_id": "b40655dc8245402a856016d2a2c2b3d5"
+      "fencing_token": 72,
+      "intent": "Tests colorisation des r\u00e9sultats shell",
+      "acquired_at": 1790539653.571536,
+      "expires_at": 1790540553.571536,
+      "lock_id": "02287403e05645c492da1fe664da114d"
+    },
+    {
+      "relpath": "test/router.test.js",
+      "agent_id": "claude-code:20260927",
+      "session_id": "20260927_164838_0239733e7ab3",
+      "fencing_token": 73,
+      "intent": "Tests routage : parse, transitoire, bascule, effort",
+      "acquired_at": 1790539653.6355367,
+      "expires_at": 1790540553.6355367,
+      "lock_id": "c7921daac68b4ecfbdce86c030d2a92a"
     },
     {
       "relpath": "test/lsp-pro.test.js",
       "agent_id": "claude-code:20260927",
       "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 59,
-      "intent": "Test diagnostics structur\u00e9s via le mock",
-      "acquired_at": 1790538023.843283,
-      "expires_at": 1790538942.1411362,
-      "lock_id": "0f832c81773e48f0a40462cb1b124668"
+      "fencing_token": 74,
+      "intent": "Intitul\u00e9 \u00e0 jour : 10 actions",
+      "acquired_at": 1790539653.7158604,
+      "expires_at": 1790540605.4468412,
+      "lock_id": "33bc5f8cccfa42ac95967187db120209"
+    },
+    {
+      "relpath": "test/lsp-install.test.js",
+      "agent_id": "claude-code:20260927",
+      "session_id": "20260927_164838_0239733e7ab3",
+      "fencing_token": 75,
+      "intent": "Tests install LSP : doctor, inconnus, d\u00e9j\u00e0-install\u00e9 herm\u00e9tique",
+      "acquired_at": 1790539653.7672203,
+      "expires_at": 1790540553.7672203,
+      "lock_id": "2eab8053340b403c8554c5ce800697a0"
     }
   ]
 }

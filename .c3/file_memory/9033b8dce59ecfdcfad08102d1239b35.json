@@ -1,0 +1,48 @@
+{
+  "path": "test/router.test.js",
+  "content_hash": "8e216ca37425900a8b57cc497afd24e2",
+  "updated_at": "2026-09-27T21:08:19",
+  "lines": 88,
+  "size_bytes": 3503,
+  "mtime_ns": 1790539653658137500,
+  "language": "javascript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "constant",
+      "name": "test",
+      "line_start": 2,
+      "line_end": 2,
+      "signature": "const test = require(\"node:test\");"
+    },
+    {
+      "type": "constant",
+      "name": "assert",
+      "line_start": 3,
+      "line_end": 3,
+      "signature": "const assert = require(\"node:assert/strict\");"
+    },
+    {
+      "type": "function",
+      "name": "okProvider",
+      "line_start": 6,
+      "line_end": 14,
+      "signature": "const okProvider = (label) => ({"
+    },
+    {
+      "type": "function",
+      "name": "failProvider",
+      "line_start": 15,
+      "line_end": 20,
+      "signature": "const failProvider = (label, msg) => ({"
+    },
+    {
+      "type": "constant",
+      "name": "models",
+      "line_start": 21,
+      "line_end": 21,
+      "signature": "const models = [{ backend: \"lmstudio\", id: \"model-b\", baseUrl: \"http://127.0.0.1:1234\", contextWindow: 8000 }];"
+    }
+  ]
+}

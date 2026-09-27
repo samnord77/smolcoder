@@ -1,10 +1,10 @@
 {
   "path": "desktop/main.js",
-  "content_hash": "8c18ac6411b4d9a4edc8db1a0fba5e20",
-  "updated_at": "2026-09-27T17:30:45",
-  "lines": 515,
-  "size_bytes": 19610,
-  "mtime_ns": 1790467207644633400,
+  "content_hash": "a597c6af05350dd6a881f92882d0c907",
+  "updated_at": "2026-09-27T21:08:19",
+  "lines": 538,
+  "size_bytes": 20503,
+  "mtime_ns": 1790539615156650100,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -186,30 +186,39 @@
     },
     {
       "type": "function",
+      "name": "openShare",
+      "line_start": 156,
+      "line_end": 173,
+      "signature": "async function openShare() {",
+      "async": true,
+      "doc": "Read-only live-follow link for the current session (copied to clipboard)."
+    },
+    {
+      "type": "function",
       "name": "buildMenu",
-      "line_start": 155,
-      "line_end": 246,
+      "line_start": 175,
+      "line_end": 269,
       "signature": "function buildMenu() {"
     },
     {
       "type": "function",
       "name": "assertRoot",
-      "line_start": 249,
-      "line_end": 252,
+      "line_start": 272,
+      "line_end": 275,
       "signature": "function assertRoot() {"
     },
     {
       "type": "constant",
       "name": "SKIP_DIRS",
-      "line_start": 254,
-      "line_end": 254,
+      "line_start": 277,
+      "line_end": 277,
       "signature": "const SKIP_DIRS = new Set([\"node_modules\", \".git\", \"dist\", \".smolcoder\"]);"
     },
     {
       "type": "function",
       "name": "activeWorkspace",
-      "line_start": 333,
-      "line_end": 343,
+      "line_start": 356,
+      "line_end": 366,
       "signature": "async function activeWorkspace() {",
       "async": true
     }

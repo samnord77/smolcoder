@@ -1,10 +1,10 @@
 {
   "path": "src/ui.ts",
-  "content_hash": "137c2d5f85518c1698c12c04147dce4a",
-  "updated_at": "2026-09-26T17:59:05",
-  "lines": 272,
-  "size_bytes": 9591,
-  "mtime_ns": 1790420974696768300,
+  "content_hash": "bbc0a21dae49b2540904d78367f9d293",
+  "updated_at": "2026-09-27T20:57:14",
+  "lines": 279,
+  "size_bytes": 10011,
+  "mtime_ns": 1790538888863332800,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -39,10 +39,10 @@
     },
     {
       "type": "import",
-      "name": "import { createCodeStreamColorizer } from \"./highlight\";",
+      "name": "import { createCodeStreamColorizer, colorizeResultBlock } from \"./highlight\";",
       "line_start": 9,
       "line_end": 9,
-      "signature": "import { createCodeStreamColorizer } from \"./highlight\";"
+      "signature": "import { createCodeStreamColorizer, colorizeResultBlock } from \"./highlight\";"
     },
     {
       "type": "interface",
@@ -87,7 +87,7 @@
       "type": "class",
       "name": "UI",
       "line_start": 80,
-      "line_end": 236,
+      "line_end": 243,
       "signature": "class UI implements AgentUI {",
       "children": [
         {
@@ -218,63 +218,63 @@
           "type": "method",
           "name": "toolResult",
           "line_start": 189,
-          "line_end": 197,
+          "line_end": 204,
           "signature": "toolResult(result: string): void {"
         },
         {
           "type": "method",
           "name": "println",
-          "line_start": 199,
-          "line_end": 204,
+          "line_start": 206,
+          "line_end": 211,
           "signature": "println(s = \"\"): void {"
         },
         {
           "type": "method",
           "name": "status",
-          "line_start": 206,
-          "line_end": 208,
+          "line_start": 213,
+          "line_end": 215,
           "signature": "status(s: string): void {"
         },
         {
           "type": "method",
           "name": "turnEnd",
-          "line_start": 210,
-          "line_end": 213,
+          "line_start": 217,
+          "line_end": 220,
           "signature": "turnEnd(label: string): void {"
         },
         {
           "type": "method",
           "name": "planUpdated",
-          "line_start": 215,
-          "line_end": 217,
+          "line_start": 222,
+          "line_end": 224,
           "signature": "planUpdated(plan: Plan): void {"
         },
         {
           "type": "method",
           "name": "subagent",
-          "line_start": 219,
-          "line_end": 221,
+          "line_start": 226,
+          "line_end": 228,
           "signature": "subagent(phase: \"start\" | \"done\", label: string): void {"
         },
         {
           "type": "method",
           "name": "warn",
-          "line_start": 223,
-          "line_end": 225,
+          "line_start": 230,
+          "line_end": 232,
           "signature": "warn(s: string): void {"
         },
         {
           "type": "method",
           "name": "error",
-          "line_start": 227,
-          "line_end": 230,
+          "line_start": 234,
+          "line_end": 237,
           "signature": "error(s: string): void {"
         },
         {
           "type": "method",
           "name": "close",
-          "line_start": 232,
-          "line_end": 235,
+          "line_start": 239,
+          "line_end": 242,
           "signature": "close(): void {"
         }
       ]
@@ -282,8 +282,8 @@
     {
       "type": "function",
       "name": "summarizeArgs",
-      "line_start": 238,
-      "line_end": 272,
+      "line_start": 245,
+      "line_end": 279,
       "signature": "function summarizeArgs(name: string, args: Record<string, any>): string {"
     }
   ]
