@@ -207,3 +207,66 @@ test("code api: share links, presence, and hunk review", async () => {
     hub.close();
   }
 });
+
+test("code api: file ops, plan checklist, and cursor presence", async () => {
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "smol-codeapi3-"));
+  const ws = path.join(dataDir, "proj");
+  fs.mkdirSync(ws);
+  fs.writeFileSync(path.join(ws, "keep.txt"), "keep\n");
+  const calls = [];
+  const hub = new WebHub({ port: 0, prefs: {}, help: "help", version: "9.9.9", dataDir, factory: stubFactory(calls), quiet: true });
+  await hub.start();
+  const k = "?k=" + hub.authToken;
+  try {
+    const { id } = JSON.parse((await request(hub, "POST", "/sessions/new" + k, { workspace: ws })).body);
+    await until(() => calls.length === 1, 3000, "factory call");
+    const live = () => hub.live.get(id);
+
+    const created = JSON.parse((await request(hub, "POST", "/workspace/file/new" + k, { sid: id, path: "sub/n.txt" })).body);
+    assert.equal(created.path, "sub/n.txt");
+    assert.ok(fs.existsSync(path.join(ws, "sub", "n.txt")));
+    assert.match((await request(hub, "POST", "/workspace/file/new" + k, { sid: id, path: "sub/n.txt" })).body, /already exists/);
+    const made = JSON.parse((await request(hub, "POST", "/workspace/file/new" + k, { sid: id, path: "docs", dir: true })).body);
+    assert.equal(made.path, "docs");
+    assert.ok(fs.statSync(path.join(ws, "docs")).isDirectory());
+
+    const renamed = JSON.parse((await request(hub, "POST", "/workspace/file/rename" + k, { sid: id, path: "sub/n.txt", to: "sub/m.txt" })).body);
+    assert.equal(renamed.path, "sub/m.txt");
+    assert.ok(!fs.existsSync(path.join(ws, "sub", "n.txt")) && fs.existsSync(path.join(ws, "sub", "m.txt")));
+    assert.match((await request(hub, "POST", "/workspace/file/rename" + k, { sid: id, path: "sub/m.txt", to: "keep.txt" })).body, /already exists/);
+
+    await request(hub, "POST", "/workspace/file/delete" + k, { sid: id, path: "sub/m.txt" });
+    assert.ok(!fs.existsSync(path.join(ws, "sub", "m.txt")));
+    assert.match((await request(hub, "POST", "/workspace/file/delete" + k, { sid: id, path: "." })).body, /workspace itself/);
+    assert.match((await request(hub, "POST", "/workspace/file/delete" + k, { sid: id, path: "../evil.txt" })).body, /outside|workspace/i);
+
+    live().session.agent.mode = "ro";
+    assert.match((await request(hub, "POST", "/workspace/file/new" + k, { sid: id, path: "x.txt" })).body, /read-only/);
+    live().session.agent.mode = "edit";
+
+    const emptyPlan = JSON.parse((await request(hub, "GET", `/plan${k}&sid=${id}`)).body);
+    assert.equal(emptyPlan.exists, false);
+    const { Plan } = require("../dist/plan");
+    const { Session } = require("../dist/session");
+    const plan = new Plan(ws, "testkey");
+    assert.match(plan.set("alpha\nbeta"), /Plan set/);
+    live().session.toolCtx.plan = plan;
+    live().session.planLine = Session.prototype.planLine;
+    const full = JSON.parse((await request(hub, "GET", `/plan${k}&sid=${id}`)).body);
+    assert.equal(full.total, 2);
+    assert.equal(full.done, 0);
+    const done = JSON.parse((await request(hub, "POST", "/plan/done" + k, { sid: id, step: 1 })).body);
+    assert.match(done.message, /Done: 1/);
+    assert.equal(done.plan.done, 1);
+    assert.deepEqual(hub.snapshot().workspaces[0].sessions[0].plan, "Plan 1/2 · beta");
+    assert.match((await request(hub, "POST", "/plan/done" + k, { sid: id, step: 9 })).body, /does not exist/);
+
+    await request(hub, "POST", "/cursor" + k, { sid: id, path: "keep.txt", line: 3, name: "Zoe" });
+    const editing = hub.snapshot().workspaces[0].sessions[0].editing;
+    assert.deepEqual(editing, [{ name: "Zoe", path: "keep.txt", line: 3 }]);
+    await request(hub, "POST", "/cursor" + k, { sid: id, path: "", name: "Zoe" });
+    assert.deepEqual(hub.snapshot().workspaces[0].sessions[0].editing, []);
+  } finally {
+    hub.close();
+  }
+});

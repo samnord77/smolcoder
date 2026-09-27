@@ -1,10 +1,10 @@
 {
   "path": "src/web/hub.ts",
-  "content_hash": "85807bb4239685096eeab014e0cf8e37",
-  "updated_at": "2026-09-27T20:57:14",
-  "lines": 1391,
-  "size_bytes": 53625,
-  "mtime_ns": 1790538984527257000,
+  "content_hash": "35bd6305f7d53ca8ecfc82723b1c3d6e",
+  "updated_at": "2026-09-27T21:28:24",
+  "lines": 1541,
+  "size_bytes": 60227,
+  "mtime_ns": 1790540635633621400,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -326,7 +326,7 @@
       "type": "class",
       "name": "WebHub",
       "line_start": 239,
-      "line_end": 1391,
+      "line_end": 1541,
       "signature": "class WebHub {",
       "children": [
         {
@@ -395,177 +395,186 @@
         },
         {
           "type": "property",
+          "name": "cursors",
+          "line_start": 253,
+          "line_end": 253,
+          "signature": "private cursors = new Map<string, Map<string, { name: string; path: string; line: number; at: number }>>();",
+          "access": "private",
+          "doc": "Live cursors: session id -> name -> file + line (30s expiry, no persist)."
+        },
+        {
+          "type": "property",
           "name": "live",
-          "line_start": 252,
-          "line_end": 252,
+          "line_start": 254,
+          "line_end": 254,
           "signature": "private live = new Map<string, Live>();",
           "access": "private"
         },
         {
           "type": "property",
           "name": "metas",
-          "line_start": 253,
-          "line_end": 253,
+          "line_start": 255,
+          "line_end": 255,
           "signature": "private metas = new Map<string, SessionMeta>();",
           "access": "private"
         },
         {
           "type": "property",
           "name": "store",
-          "line_start": 254,
-          "line_end": 254,
+          "line_start": 256,
+          "line_end": 256,
           "signature": "private store: SessionStore;",
           "access": "private"
         },
         {
           "type": "property",
           "name": "workspaces",
-          "line_start": 255,
-          "line_end": 255,
+          "line_start": 257,
+          "line_end": 257,
           "signature": "private workspaces: WorkspaceStore;",
           "access": "private"
         },
         {
           "type": "property",
           "name": "factory",
-          "line_start": 256,
-          "line_end": 256,
+          "line_start": 258,
+          "line_end": 258,
           "signature": "private factory: SessionFactory;",
           "access": "private"
         },
         {
           "type": "property",
           "name": "hubTimer",
-          "line_start": 257,
-          "line_end": 257,
+          "line_start": 259,
+          "line_end": 259,
           "signature": "private hubTimer: NodeJS.Timeout | null = null;",
           "access": "private"
         },
         {
           "type": "property",
           "name": "termCounter",
-          "line_start": 258,
-          "line_end": 258,
+          "line_start": 260,
+          "line_end": 260,
           "signature": "private termCounter = 0;",
           "access": "private"
         },
         {
           "type": "property",
           "name": "stopped",
-          "line_start": 259,
-          "line_end": 259,
+          "line_start": 261,
+          "line_end": 261,
           "signature": "private stopped = false;",
           "access": "private"
         },
         {
           "type": "method",
           "name": "constructor",
-          "line_start": 261,
-          "line_end": 280,
+          "line_start": 263,
+          "line_end": 282,
           "signature": "constructor(private opts: HubOptions) {"
         },
         {
           "type": "method",
           "name": "url",
-          "line_start": 282,
-          "line_end": 284,
+          "line_start": 284,
+          "line_end": 286,
           "signature": "url(): string {"
         },
         {
           "type": "method",
           "name": "start",
-          "line_start": 286,
-          "line_end": 298,
+          "line_start": 288,
+          "line_end": 300,
           "signature": "start(): Promise<void> {"
         },
         {
           "type": "method",
           "name": "shutdownSync",
-          "line_start": 302,
-          "line_end": 323,
+          "line_start": 304,
+          "line_end": 325,
           "signature": "shutdownSync(): void {",
           "doc": "Synchronous teardown for exit paths: save what has something to save,"
         },
         {
           "type": "method",
           "name": "close",
-          "line_start": 325,
-          "line_end": 327,
+          "line_start": 327,
+          "line_end": 329,
           "signature": "close(): void {"
         },
         {
           "type": "method",
           "name": "log",
-          "line_start": 329,
-          "line_end": 331,
+          "line_start": 331,
+          "line_end": 333,
           "signature": "private log(s: string): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "addWorkspace",
-          "line_start": 335,
-          "line_end": 338,
+          "line_start": 337,
+          "line_end": 340,
           "signature": "addWorkspace(p: string): void {"
         },
         {
           "type": "method",
           "name": "openSession",
-          "line_start": 342,
-          "line_end": 350,
+          "line_start": 344,
+          "line_end": 352,
           "signature": "openSession(workspace: string): string {",
           "doc": "Start a new session in a workspace; returns its id right away while the"
         },
         {
           "type": "method",
           "name": "resumeSession",
-          "line_start": 353,
-          "line_end": 372,
+          "line_start": 355,
+          "line_end": 374,
           "signature": "resumeSession(id: string): boolean {",
           "doc": "Bring a saved session back to life (or retry one that failed to start)."
         },
         {
           "type": "method",
           "name": "closeSession",
-          "line_start": 374,
-          "line_end": 386,
+          "line_start": 376,
+          "line_end": 388,
           "signature": "closeSession(id: string): boolean {"
         },
         {
           "type": "method",
           "name": "deleteSession",
-          "line_start": 388,
-          "line_end": 402,
+          "line_start": 390,
+          "line_end": 404,
           "signature": "deleteSession(id: string): void {"
         },
         {
           "type": "method",
           "name": "renameSession",
-          "line_start": 404,
-          "line_end": 425,
+          "line_start": 406,
+          "line_end": 427,
           "signature": "renameSession(id: string, title: string): void {"
         },
         {
           "type": "method",
           "name": "removeWorkspace",
-          "line_start": 429,
-          "line_end": 443,
+          "line_start": 431,
+          "line_end": 445,
           "signature": "removeWorkspace(p: string): string | null {",
           "doc": "Forget a workspace and delete its saved sessions. Returns an error"
         },
         {
           "type": "method",
           "name": "makeLive",
-          "line_start": 445,
-          "line_end": 471,
+          "line_start": 447,
+          "line_end": 473,
           "signature": "private makeLive(id: string, meta: SessionMeta): Live {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "autoTitle",
-          "line_start": 475,
-          "line_end": 485,
+          "line_start": 477,
+          "line_end": 487,
           "signature": "private async autoTitle(live: Live): Promise<void> {",
           "async": true,
           "access": "private",
@@ -574,8 +583,8 @@
         {
           "type": "method",
           "name": "spawn",
-          "line_start": 487,
-          "line_end": 528,
+          "line_start": 489,
+          "line_end": 530,
           "signature": "private async spawn(live: Live, restore: SessionSnapshot | null): Promise<void> {",
           "async": true,
           "access": "private"
@@ -583,40 +592,40 @@
         {
           "type": "method",
           "name": "sessionEnded",
-          "line_start": 530,
-          "line_end": 542,
+          "line_start": 532,
+          "line_end": 544,
           "signature": "private sessionEnded(id: string): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "dropLive",
-          "line_start": 544,
-          "line_end": 554,
+          "line_start": 546,
+          "line_end": 556,
           "signature": "private dropLive(live: Live): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "touched",
-          "line_start": 558,
-          "line_end": 563,
+          "line_start": 560,
+          "line_end": 565,
           "signature": "private touched(id: string): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "scheduleSave",
-          "line_start": 565,
-          "line_end": 572,
+          "line_start": 567,
+          "line_end": 574,
           "signature": "private scheduleSave(live: Live): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "save",
-          "line_start": 574,
-          "line_end": 597,
+          "line_start": 576,
+          "line_end": 599,
           "signature": "private async save(live: Live): Promise<void> {",
           "async": true,
           "access": "private"
@@ -624,38 +633,38 @@
         {
           "type": "method",
           "name": "saveSync",
-          "line_start": 599,
-          "line_end": 605,
+          "line_start": 601,
+          "line_end": 607,
           "signature": "private saveSync(live: Live): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "openTerminal",
-          "line_start": 609,
-          "line_end": 621,
+          "line_start": 611,
+          "line_end": 623,
           "signature": "openTerminal(sid: string): { tid: string; cwd: string } | null {"
         },
         {
           "type": "method",
           "name": "closeTerminal",
-          "line_start": 623,
-          "line_end": 631,
+          "line_start": 625,
+          "line_end": 633,
           "signature": "closeTerminal(sid: string, tid: string): void {"
         },
         {
           "type": "method",
           "name": "send",
-          "line_start": 635,
-          "line_end": 651,
+          "line_start": 637,
+          "line_end": 653,
           "signature": "private send(ev: Event): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "changed",
-          "line_start": 654,
-          "line_end": 660,
+          "line_start": 656,
+          "line_end": 662,
           "signature": "private changed(): void {",
           "access": "private",
           "doc": "Coalesced: many status flips in one tick produce one snapshot."
@@ -663,41 +672,50 @@
         {
           "type": "method",
           "name": "snapshot",
-          "line_start": 663,
-          "line_end": 713,
+          "line_start": 665,
+          "line_end": 716,
           "signature": "snapshot(): Event {",
           "doc": "What the sidebar shows. Exported through the SSE stream and /ping."
         },
         {
           "type": "method",
           "name": "sessionViewers",
-          "line_start": 716,
-          "line_end": 727,
+          "line_start": 719,
+          "line_end": 730,
           "signature": "private sessionViewers(sid: string): string[] {",
           "access": "private",
           "doc": "Names watching a session right now (pings older than 60s are pruned)."
         },
         {
           "type": "method",
+          "name": "sessionEditing",
+          "line_start": 733,
+          "line_end": 744,
+          "signature": "private sessionEditing(sid: string): Array<{ name: string; path: string; line: number }> {",
+          "access": "private",
+          "doc": "Who is editing which file right now (cursors younger than 30s)."
+        },
+        {
+          "type": "method",
           "name": "route",
-          "line_start": 731,
-          "line_end": 913,
+          "line_start": 748,
+          "line_end": 939,
           "signature": "private route(req: http.IncomingMessage, res: http.ServerResponse): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "sse",
-          "line_start": 915,
-          "line_end": 933,
+          "line_start": 941,
+          "line_end": 959,
           "signature": "private sse(req: http.IncomingMessage, res: http.ServerResponse): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "sharedSse",
-          "line_start": 937,
-          "line_end": 965,
+          "line_start": 963,
+          "line_end": 991,
           "signature": "private sharedSse(req: http.IncomingMessage, res: http.ServerResponse, url: URL): void {",
           "access": "private",
           "doc": "Read-only live follow: the session replay plus its future events, and"
@@ -705,8 +723,8 @@
         {
           "type": "method",
           "name": "shareSession",
-          "line_start": 968,
-          "line_end": 977,
+          "line_start": 994,
+          "line_end": 1003,
           "signature": "private shareSession(sid: string): { token: string } {",
           "access": "private",
           "doc": "Mint a read-only follow token for a live session."
@@ -714,8 +732,8 @@
         {
           "type": "method",
           "name": "sharedPing",
-          "line_start": 980,
-          "line_end": 994,
+          "line_start": 1006,
+          "line_end": 1020,
           "signature": "private sharedPing(token: string, name: string): { sid: string } {",
           "access": "private",
           "doc": "A viewer announces itself; presence shows in the sidebar snapshot."
@@ -723,16 +741,16 @@
         {
           "type": "method",
           "name": "uploadsDir",
-          "line_start": 998,
-          "line_end": 1000,
+          "line_start": 1024,
+          "line_end": 1026,
           "signature": "private uploadsDir(sid: string): string {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "receiveUpload",
-          "line_start": 1004,
-          "line_end": 1059,
+          "line_start": 1030,
+          "line_end": 1085,
           "signature": "private receiveUpload(req: http.IncomingMessage, res: http.ServerResponse, url: URL): void {",
           "access": "private",
           "doc": "One file for a live session, sent as the raw request body with the name"
@@ -740,8 +758,8 @@
         {
           "type": "method",
           "name": "serveUpload",
-          "line_start": 1062,
-          "line_end": 1073,
+          "line_start": 1088,
+          "line_end": 1099,
           "signature": "private serveUpload(res: http.ServerResponse, url: URL): void {",
           "access": "private",
           "doc": "A stored upload, for the page's thumbnails and \"open\" links."
@@ -749,16 +767,16 @@
         {
           "type": "method",
           "name": "findUpload",
-          "line_start": 1075,
-          "line_end": 1083,
+          "line_start": 1101,
+          "line_end": 1109,
           "signature": "private findUpload(sid: string, id: string): string | null {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "removeUpload",
-          "line_start": 1086,
-          "line_end": 1096,
+          "line_start": 1112,
+          "line_end": 1122,
           "signature": "private removeUpload(live: Live, id: string): void {",
           "access": "private",
           "doc": "The user took a chip off the composer: forget the file."
@@ -766,24 +784,24 @@
         {
           "type": "method",
           "name": "checkDir",
-          "line_start": 1098,
-          "line_end": 1104,
+          "line_start": 1124,
+          "line_end": 1130,
           "signature": "private checkDir(p: any): string {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "handlePost",
-          "line_start": 1106,
-          "line_end": 1208,
+          "line_start": 1132,
+          "line_end": 1265,
           "signature": "private handlePost(p: string, d: any): any {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "workspaceTree",
-          "line_start": 1212,
-          "line_end": 1249,
+          "line_start": 1269,
+          "line_end": 1306,
           "signature": "private workspaceTree(sidRaw: string | null, relRaw: string | null): any {",
           "access": "private",
           "doc": "Structured project tree for the web IDE panel. It is deliberately"
@@ -791,24 +809,66 @@
         {
           "type": "method",
           "name": "workspaceFile",
-          "line_start": 1251,
-          "line_end": 1277,
+          "line_start": 1308,
+          "line_end": 1334,
           "signature": "private workspaceFile(res: http.ServerResponse, url: URL): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "saveWorkspaceFile",
-          "line_start": 1279,
-          "line_end": 1310,
+          "line_start": 1336,
+          "line_end": 1367,
           "signature": "private saveWorkspaceFile(sid: string, d: any): any {",
           "access": "private"
         },
         {
           "type": "method",
+          "name": "editLive",
+          "line_start": 1370,
+          "line_end": 1377,
+          "signature": "private editLive(sid: string): Live {",
+          "access": "private",
+          "doc": "Guard for every mutating workspace-file endpoint."
+        },
+        {
+          "type": "method",
+          "name": "createWorkspaceEntry",
+          "line_start": 1379,
+          "line_end": 1398,
+          "signature": "private createWorkspaceEntry(sid: string, d: any): any {",
+          "access": "private"
+        },
+        {
+          "type": "method",
+          "name": "renameWorkspaceEntry",
+          "line_start": 1400,
+          "line_end": 1420,
+          "signature": "private renameWorkspaceEntry(sid: string, d: any): any {",
+          "access": "private"
+        },
+        {
+          "type": "method",
+          "name": "deleteWorkspaceEntry",
+          "line_start": 1422,
+          "line_end": 1438,
+          "signature": "private deleteWorkspaceEntry(sid: string, d: any): any {",
+          "access": "private"
+        },
+        {
+          "type": "method",
+          "name": "planView",
+          "line_start": 1441,
+          "line_end": 1460,
+          "signature": "private planView(live: Live): {",
+          "access": "private",
+          "doc": "Serializable plan for the checklist tab. Never throws."
+        },
+        {
+          "type": "method",
           "name": "statusReport",
-          "line_start": 1313,
-          "line_end": 1378,
+          "line_start": 1463,
+          "line_end": 1528,
           "signature": "private async statusReport(url: URL): Promise<any> {",
           "async": true,
           "access": "private",
@@ -817,8 +877,8 @@
         {
           "type": "method",
           "name": "agentDraft",
-          "line_start": 1382,
-          "line_end": 1389,
+          "line_start": 1532,
+          "line_end": 1539,
           "signature": "private agentDraft(workspace: string, roleName: string, task: string): any {",
           "access": "private",
           "doc": "The delegation message for a role. subagents.ts stays the single source of"

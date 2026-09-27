@@ -1,10 +1,10 @@
 {
   "path": "src/session.ts",
-  "content_hash": "697e1f93c0f71a7360a2d4833dd79856",
-  "updated_at": "2026-09-27T21:01:15",
-  "lines": 1157,
-  "size_bytes": 46162,
-  "mtime_ns": 1790539242640360200,
+  "content_hash": "1b42d12327641b6ec9a5967059343238",
+  "updated_at": "2026-09-27T21:22:20",
+  "lines": 1159,
+  "size_bytes": 46268,
+  "mtime_ns": 1790540347408324100,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -315,286 +315,286 @@
       "type": "function",
       "name": "prepareModel",
       "line_start": 189,
-      "line_end": 207,
+      "line_end": 209,
       "signature": "async function prepareModel(",
       "async": true
     },
     {
       "type": "function",
       "name": "modelOptions",
-      "line_start": 210,
-      "line_end": 218,
+      "line_start": 212,
+      "line_end": 220,
       "signature": "function modelOptions(models: DetectedModel[], current?: DetectedModel): SelectOption[] {"
     },
     {
       "type": "constant",
       "name": "FIND_ROW",
-      "line_start": 220,
-      "line_end": 220,
+      "line_start": 222,
+      "line_end": 222,
       "signature": "const FIND_ROW: SelectOption = { label: \"+ Find models on another machine\u2026\", hint: \"search my network or enter an address\" };"
     },
     {
       "type": "constant",
       "name": "HOSTS_ROW",
-      "line_start": 221,
-      "line_end": 221,
+      "line_start": 223,
+      "line_end": 223,
       "signature": "const HOSTS_ROW: SelectOption = { label: \"Network hosts\u2026\", hint: \"rename, remove or re-find added machines\" };"
     },
     {
       "type": "function",
       "name": "setupWithoutLocalModels",
-      "line_start": 226,
-      "line_end": 253,
+      "line_start": 228,
+      "line_end": 255,
       "signature": "async function setupWithoutLocalModels(ui: FlowUI, prefs: SessionPrefs): Promise<DetectedModel | null> {",
       "async": true
     },
     {
       "type": "function",
       "name": "suggestTitle",
-      "line_start": 260,
-      "line_end": 287,
+      "line_start": 262,
+      "line_end": 289,
       "signature": "async function suggestTitle(messages: Msg[], provider: Provider): Promise<string | null> {",
       "async": true
     },
     {
       "type": "function",
       "name": "cleanTitle",
-      "line_start": 290,
-      "line_end": 305,
+      "line_start": 292,
+      "line_end": 307,
       "signature": "function cleanTitle(raw: string): string | null {"
     },
     {
       "type": "interface",
       "name": "SessionSnapshot",
-      "line_start": 310,
-      "line_end": 323,
+      "line_start": 312,
+      "line_end": 325,
       "signature": "interface SessionSnapshot {",
       "children": []
     },
     {
       "type": "interface",
       "name": "SessionOptions",
-      "line_start": 325,
-      "line_end": 336,
+      "line_start": 327,
+      "line_end": 338,
       "signature": "interface SessionOptions {",
       "children": []
     },
     {
       "type": "class",
       "name": "Session",
-      "line_start": 338,
-      "line_end": 1157,
+      "line_start": 340,
+      "line_end": 1159,
       "signature": "class Session {",
       "children": [
         {
           "type": "property",
           "name": "workspace",
-          "line_start": 339,
-          "line_end": 339,
+          "line_start": 341,
+          "line_end": 341,
           "signature": "readonly workspace: string;"
         },
         {
           "type": "property",
           "name": "chosen",
-          "line_start": 340,
-          "line_end": 340,
+          "line_start": 342,
+          "line_end": 342,
           "signature": "chosen: DetectedModel;"
         },
         {
           "type": "property",
           "name": "effort",
-          "line_start": 341,
-          "line_end": 341,
+          "line_start": 343,
+          "line_end": 343,
           "signature": "effort: Effort | null;"
         },
         {
           "type": "property",
           "name": "agent",
-          "line_start": 342,
-          "line_end": 342,
+          "line_start": 344,
+          "line_end": 344,
           "signature": "readonly agent: Agent;"
         },
         {
           "type": "property",
           "name": "toolCtx",
-          "line_start": 343,
-          "line_end": 343,
+          "line_start": 345,
+          "line_end": 345,
           "signature": "readonly toolCtx: ToolContext;"
         },
         {
           "type": "property",
           "name": "taskManager",
-          "line_start": 344,
-          "line_end": 344,
+          "line_start": 346,
+          "line_end": 346,
           "signature": "readonly taskManager: TaskManager;"
         },
         {
           "type": "property",
           "name": "ctxMgr",
-          "line_start": 345,
-          "line_end": 345,
+          "line_start": 347,
+          "line_end": 347,
           "signature": "readonly ctxMgr: ContextManager;"
         },
         {
           "type": "property",
           "name": "bus",
-          "line_start": 346,
-          "line_end": 346,
+          "line_start": 348,
+          "line_end": 348,
           "signature": "readonly bus = new EventBus();"
         },
         {
           "type": "property",
           "name": "shell",
-          "line_start": 347,
-          "line_end": 347,
+          "line_start": 349,
+          "line_end": 349,
           "signature": "readonly shell = pickShell();"
         },
         {
           "type": "property",
           "name": "onExit",
-          "line_start": 349,
-          "line_end": 349,
+          "line_start": 351,
+          "line_end": 351,
           "signature": "onExit: (() => void) | null = null;",
           "doc": "Host hook: fired once when the session has shut down (/exit, ctrl+c)."
         },
         {
           "type": "property",
           "name": "onTurnDone",
-          "line_start": 352,
-          "line_end": 352,
+          "line_start": 354,
+          "line_end": 354,
           "signature": "onTurnDone: (() => void) | null = null;",
           "doc": "Host hook: fired after each completed user turn (the web hub names the"
         },
         {
           "type": "property",
           "name": "agentsMd",
-          "line_start": 354,
-          "line_end": 354,
+          "line_start": 356,
+          "line_end": 356,
           "signature": "private readonly agentsMd: string | null;",
           "access": "private"
         },
         {
           "type": "property",
           "name": "memoryMd",
-          "line_start": 355,
-          "line_end": 355,
+          "line_start": 357,
+          "line_end": 357,
           "signature": "private readonly memoryMd: string | null;",
           "access": "private"
         },
         {
           "type": "property",
           "name": "prefs",
-          "line_start": 356,
-          "line_end": 356,
+          "line_start": 358,
+          "line_end": 358,
           "signature": "private readonly prefs: SessionPrefs;",
           "access": "private"
         },
         {
           "type": "property",
           "name": "help",
-          "line_start": 357,
-          "line_end": 357,
+          "line_start": 359,
+          "line_end": 359,
           "signature": "private readonly help: string;",
           "access": "private"
         },
         {
           "type": "property",
           "name": "hubRec",
-          "line_start": 358,
-          "line_end": 358,
+          "line_start": 360,
+          "line_end": 360,
           "signature": "private readonly hubRec: any;",
           "access": "private"
         },
         {
           "type": "property",
           "name": "ended",
-          "line_start": 359,
-          "line_end": 359,
+          "line_start": 361,
+          "line_end": 361,
           "signature": "private ended = false;",
           "access": "private"
         },
         {
           "type": "method",
           "name": "constructor",
-          "line_start": 361,
-          "line_end": 426,
+          "line_start": 363,
+          "line_end": 428,
           "signature": "constructor("
         },
         {
           "type": "method",
           "name": "sysPrompt",
-          "line_start": 428,
-          "line_end": 430,
+          "line_start": 430,
+          "line_end": 432,
           "signature": "private sysPrompt(mode: Mode): string {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "persist",
-          "line_start": 432,
-          "line_end": 441,
+          "line_start": 434,
+          "line_end": 443,
           "signature": "private persist(): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "statusLine",
-          "line_start": 444,
-          "line_end": 463,
+          "line_start": 446,
+          "line_end": 465,
           "signature": "statusLine(): string {",
           "doc": "The TUI's status row: mode \u00b7 model \u00b7 effort \u00b7 context \u00b7 plan \u00b7 tasks."
         },
         {
           "type": "method",
           "name": "planLine",
-          "line_start": 467,
-          "line_end": 479,
+          "line_start": 469,
+          "line_end": 481,
           "signature": "planLine(): string | null {",
           "doc": "One-line plan progress for sidebars and menus (\"Plan 2/5 \u00b7 write tests\")."
         },
         {
           "type": "method",
           "name": "state",
-          "line_start": 481,
-          "line_end": 510,
+          "line_start": 483,
+          "line_end": 512,
           "signature": "state(): Record<string, any> {"
         },
         {
           "type": "method",
           "name": "announce",
-          "line_start": 513,
-          "line_end": 519,
+          "line_start": 515,
+          "line_end": 521,
           "signature": "announce(): void {",
           "doc": "The opening lines: backend \u00b7 model \u00b7 mode, workspace, AGENTS.md, advice."
         },
         {
           "type": "method",
           "name": "snapshot",
-          "line_start": 521,
-          "line_end": 535,
+          "line_start": 523,
+          "line_end": 537,
           "signature": "snapshot(): SessionSnapshot {"
         },
         {
           "type": "method",
           "name": "suggestTitle",
-          "line_start": 538,
-          "line_end": 540,
+          "line_start": 540,
+          "line_end": 542,
           "signature": "suggestTitle(): Promise<string | null> {",
           "doc": "A model-written name for this session, or null to keep the fallback."
         },
         {
           "type": "method",
           "name": "restore",
-          "line_start": 544,
-          "line_end": 552,
+          "line_start": 546,
+          "line_end": 554,
           "signature": "restore(s: SessionSnapshot): void {",
           "doc": "Bring a saved transcript back (the system message is rebuilt for the"
         },
         {
           "type": "method",
           "name": "handleUserMessage",
-          "line_start": 557,
-          "line_end": 585,
+          "line_start": 559,
+          "line_end": 587,
           "signature": "private async handleUserMessage(input: string, attachments: Attachment[]): Promise<void> {",
           "async": true,
           "access": "private",
@@ -603,8 +603,8 @@
         {
           "type": "method",
           "name": "expandMentions",
-          "line_start": 589,
-          "line_end": 601,
+          "line_start": 591,
+          "line_end": 603,
           "signature": "private expandMentions(text: string): string {",
           "access": "private",
           "doc": "Replace each @path with the file's content (cap 9000 chars). A failure"
@@ -612,8 +612,8 @@
         {
           "type": "method",
           "name": "undoEdit",
-          "line_start": 604,
-          "line_end": 632,
+          "line_start": 606,
+          "line_end": 634,
           "signature": "private undoEdit(): void {",
           "access": "private",
           "doc": "Restore the last file write (prev null = the file was created \u2192 delete)."
@@ -621,8 +621,8 @@
         {
           "type": "method",
           "name": "redoEdit",
-          "line_start": 636,
-          "line_end": 670,
+          "line_start": 638,
+          "line_end": 672,
           "signature": "private redoEdit(): void {",
           "access": "private",
           "doc": "Re-apply the last undone write. Edits replay old_text -> next on the"
@@ -630,8 +630,8 @@
         {
           "type": "method",
           "name": "openEditor",
-          "line_start": 675,
-          "line_end": 737,
+          "line_start": 677,
+          "line_end": 739,
           "signature": "private async openEditor(draft: string): Promise<string | null> {",
           "async": true,
           "access": "private",
@@ -640,8 +640,8 @@
         {
           "type": "method",
           "name": "exportTranscript",
-          "line_start": 740,
-          "line_end": 756,
+          "line_start": 742,
+          "line_end": 758,
           "signature": "private exportTranscript(): void {",
           "access": "private",
           "doc": "Write the transcript as timestamped markdown under .smol/exports/."
@@ -649,8 +649,8 @@
         {
           "type": "method",
           "name": "copyLastReply",
-          "line_start": 759,
-          "line_end": 789,
+          "line_start": 761,
+          "line_end": 791,
           "signature": "private copyLastReply(): void {",
           "access": "private",
           "doc": "Copy the last assistant reply to the OS clipboard (best effort)."
@@ -658,8 +658,8 @@
         {
           "type": "method",
           "name": "run",
-          "line_start": 793,
-          "line_end": 1010,
+          "line_start": 795,
+          "line_end": 1012,
           "signature": "async run(): Promise<void> {",
           "async": true,
           "doc": "The input loop. Returns after /exit (or after the host asked the UI to"
@@ -667,8 +667,8 @@
         {
           "type": "method",
           "name": "shutdown",
-          "line_start": 1014,
-          "line_end": 1031,
+          "line_start": 1016,
+          "line_end": 1033,
           "signature": "async shutdown(): Promise<void> {",
           "async": true,
           "doc": "Idempotent: end-of-session hook, kill background tasks, close the UI,"
@@ -676,8 +676,8 @@
         {
           "type": "method",
           "name": "switchModel",
-          "line_start": 1033,
-          "line_end": 1093,
+          "line_start": 1035,
+          "line_end": 1095,
           "signature": "private async switchModel(): Promise<void> {",
           "async": true,
           "access": "private"
@@ -685,8 +685,8 @@
         {
           "type": "method",
           "name": "setMode",
-          "line_start": 1095,
-          "line_end": 1124,
+          "line_start": 1097,
+          "line_end": 1126,
           "signature": "private async setMode(arg?: string): Promise<void> {",
           "async": true,
           "access": "private"
@@ -694,8 +694,8 @@
         {
           "type": "method",
           "name": "setEffort",
-          "line_start": 1126,
-          "line_end": 1156,
+          "line_start": 1128,
+          "line_end": 1158,
           "signature": "private async setEffort(arg?: string): Promise<void> {",
           "async": true,
           "access": "private"

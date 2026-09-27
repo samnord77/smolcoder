@@ -1,166 +1,46 @@
 {
   "schema_version": 1,
-  "fencing": 75,
+  "fencing": 83,
   "locks": [
-    {
-      "relpath": "src/highlight.ts",
-      "agent_id": "claude-code:20260927",
-      "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 60,
-      "intent": "Colorisation des blocs de r\u00e9sultats shell pour terminaux",
-      "acquired_at": 1790538868.7081335,
-      "expires_at": 1790539768.7081335,
-      "lock_id": "5d3528ec06824727bd0b3d1bdd00337b"
-    },
-    {
-      "relpath": "src/ui.ts",
-      "agent_id": "claude-code:20260927",
-      "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 61,
-      "intent": "R\u00e9sultats courts affich\u00e9s en couleur (stderr)",
-      "acquired_at": 1790538868.7567673,
-      "expires_at": 1790539788.8025138,
-      "lock_id": "cf370588c7b54b26b97b7eaa6fe47af7"
-    },
-    {
-      "relpath": "src/tui/tui.ts",
-      "agent_id": "claude-code:20260927",
-      "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 62,
-      "intent": "Le TUI montre enfin les succ\u00e8s + sorties color\u00e9es",
-      "acquired_at": 1790538904.7614965,
-      "expires_at": 1790539817.9939957,
-      "lock_id": "15ea2c0365e140768cb707c7ab662113"
-    },
-    {
-      "relpath": "src/session.ts",
-      "agent_id": "claude-code:20260927",
-      "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 63,
-      "intent": "Ex\u00e9cute /todo /review /diag /doctor /route",
-      "acquired_at": 1790538942.4934604,
-      "expires_at": 1790540142.6152341,
-      "lock_id": "5150ccfcfc4f4e8b818644df3d16f372"
-    },
     {
       "relpath": "src/web/hub.ts",
       "agent_id": "claude-code:20260927",
       "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 64,
-      "intent": "Progression du plan dans le snapshot",
-      "acquired_at": 1790538984.487621,
-      "expires_at": 1790539884.487621,
-      "lock_id": "fe0c25a5f4dc4b08831690be70547a9e"
+      "fencing_token": 80,
+      "intent": "Transtypage justifi\u00e9 apr\u00e8s validation",
+      "acquired_at": 1790540484.976682,
+      "expires_at": 1790542366.5133133,
+      "lock_id": "206a04b8e28140e7beee52b99df3f26e"
     },
     {
       "relpath": "src/web/client.ts",
       "agent_id": "claude-code:20260927",
       "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 65,
-      "intent": "Progression du plan sous chaque session",
-      "acquired_at": 1790538984.5436893,
-      "expires_at": 1790539884.5436893,
-      "lock_id": "ebe8377ac3c346cea2d6092be7612f3a"
+      "fencing_token": 81,
+      "intent": "Curseur diffus\u00e9 aux autres fen\u00eatres (co-\u00e9dition)",
+      "acquired_at": 1790540670.8777745,
+      "expires_at": 1790542039.599741,
+      "lock_id": "772fdd7eb95147d48c0b2099bd1e04fb"
     },
     {
-      "relpath": "src/lsp-install.ts",
+      "relpath": "scripts/install-smolcoder.ps1",
       "agent_id": "claude-code:20260927",
       "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 66,
-      "intent": "Auto-install des serveurs de langage + diagnostic",
-      "acquired_at": 1790539050.226932,
-      "expires_at": 1790539950.226932,
-      "lock_id": "19f0fbb97f59466989bbd27bf158e759"
+      "fencing_token": 82,
+      "intent": "Installateur Windows 1-clic (Node, build, smol, raccourcis)",
+      "acquired_at": 1790541220.7789915,
+      "expires_at": 1790542120.7789915,
+      "lock_id": "1d4a8c7c742e422da44b5aba8adf1144"
     },
     {
-      "relpath": "src/router.ts",
+      "relpath": "test/code-api.test.js",
       "agent_id": "claude-code:20260927",
       "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 67,
-      "intent": "Routage mod\u00e8les avec bascule automatique sur panne",
-      "acquired_at": 1790539050.306619,
-      "expires_at": 1790539950.306619,
-      "lock_id": "c1610a3fe0d544d4b3604f76a4d07228"
-    },
-    {
-      "relpath": "src/index.ts",
-      "agent_id": "claude-code:20260927",
-      "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 68,
-      "intent": "Routage aussi en mode headless",
-      "acquired_at": 1790539321.4795709,
-      "expires_at": 1790540301.3440487,
-      "lock_id": "5ebc3806a3924bbe804473f07d09c05c"
-    },
-    {
-      "relpath": "src/lsp-pro.ts",
-      "agent_id": "claude-code:20260927",
-      "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 69,
-      "intent": "setup guid\u00e9 vers l'outil en mode \u00e9dition",
-      "acquired_at": 1790539439.0819478,
-      "expires_at": 1790540394.6029556,
-      "lock_id": "4fedbc50241e4342a4b3249dc980709c"
-    },
-    {
-      "relpath": "src/tools/index.ts",
-      "agent_id": "claude-code:20260927",
-      "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 70,
-      "intent": "Ex\u00e9cute setup (\u00e9dition uniquement)",
-      "acquired_at": 1790539515.2266707,
-      "expires_at": 1790540447.5156739,
-      "lock_id": "dfb700662bd44f1b810b107d011b3dd3"
-    },
-    {
-      "relpath": "desktop/main.js",
-      "agent_id": "claude-code:20260927",
-      "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 71,
-      "intent": "Menus bureau : revue + sant\u00e9 LSP",
-      "acquired_at": 1790539563.599751,
-      "expires_at": 1790540515.0660212,
-      "lock_id": "c778ea5c49ea4f60bae3c7cff6002453"
-    },
-    {
-      "relpath": "test/highlight-display.test.js",
-      "agent_id": "claude-code:20260927",
-      "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 72,
-      "intent": "Tests colorisation des r\u00e9sultats shell",
-      "acquired_at": 1790539653.571536,
-      "expires_at": 1790540553.571536,
-      "lock_id": "02287403e05645c492da1fe664da114d"
-    },
-    {
-      "relpath": "test/router.test.js",
-      "agent_id": "claude-code:20260927",
-      "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 73,
-      "intent": "Tests routage : parse, transitoire, bascule, effort",
-      "acquired_at": 1790539653.6355367,
-      "expires_at": 1790540553.6355367,
-      "lock_id": "c7921daac68b4ecfbdce86c030d2a92a"
-    },
-    {
-      "relpath": "test/lsp-pro.test.js",
-      "agent_id": "claude-code:20260927",
-      "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 74,
-      "intent": "Intitul\u00e9 \u00e0 jour : 10 actions",
-      "acquired_at": 1790539653.7158604,
-      "expires_at": 1790540605.4468412,
-      "lock_id": "33bc5f8cccfa42ac95967187db120209"
-    },
-    {
-      "relpath": "test/lsp-install.test.js",
-      "agent_id": "claude-code:20260927",
-      "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 75,
-      "intent": "Tests install LSP : doctor, inconnus, d\u00e9j\u00e0-install\u00e9 herm\u00e9tique",
-      "acquired_at": 1790539653.7672203,
-      "expires_at": 1790540553.7672203,
-      "lock_id": "2eab8053340b403c8554c5ce800697a0"
+      "fencing_token": 83,
+      "intent": "Branche la vraie planLine sur le stub (bout en bout)",
+      "acquired_at": 1790541250.4513948,
+      "expires_at": 1790542504.304649,
+      "lock_id": "6e6b5b81f80c4da9b29419e27e96d6f6"
     }
   ]
 }

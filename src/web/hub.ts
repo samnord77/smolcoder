@@ -249,6 +249,8 @@ export class WebHub {
   private shares = new Map<string, { sid: string; createdAt: number }>();
   /** Presence: session id -> viewer name -> last ping. */
   private viewers = new Map<string, Map<string, number>>();
+  /** Live cursors: session id -> name -> file + line (30s expiry, no persist). */
+  private cursors = new Map<string, Map<string, { name: string; path: string; line: number; at: number }>>();
   private live = new Map<string, Live>();
   private metas = new Map<string, SessionMeta>();
   private store: SessionStore;
@@ -700,6 +702,7 @@ export class WebHub {
         terminals: [...l.terminals.values()].map((t) => ({ tid: t.id, cwd: t.cwd })),
         viewers: this.sessionViewers(l.id),
         plan: typeof (l.session as any)?.planLine === "function" ? (l.session as any).planLine() : null,
+        editing: this.sessionEditing(l.id),
       });
     }
     const workspaces = [...groups.values()]
@@ -724,6 +727,20 @@ export class WebHub {
     });
     if (!map.size) this.viewers.delete(sid);
     return out.sort().slice(0, 20);
+  }
+
+  /** Who is editing which file right now (cursors younger than 30s). */
+  private sessionEditing(sid: string): Array<{ name: string; path: string; line: number }> {
+    const now = Date.now();
+    const map = this.cursors.get(sid);
+    if (!map) return [];
+    const out: Array<{ name: string; path: string; line: number }> = [];
+    map.forEach((c, name) => {
+      if (now - c.at > 30_000) map.delete(name);
+      else out.push({ name, path: c.path, line: c.line });
+    });
+    if (!map.size) this.cursors.delete(sid);
+    return out.slice(0, 10);
   }
 
   // ---- http ---------------------------------------------------------------------
@@ -865,6 +882,15 @@ export class WebHub {
           if (!live) { json(404, { error: "no such session" }); return; }
           try {
             json(200, gitDiffFiles(live.workspace, url.searchParams.get("staged") === "1"));
+          } catch (err: any) { json(400, { error: String(err?.message ?? err).slice(0, 500) }); }
+          return;
+        }
+        case "/plan": {
+          const sid = String(url.searchParams.get("sid") ?? "");
+          const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
+          if (!live) { json(404, { error: "no such session" }); return; }
+          try {
+            json(200, this.planView(live));
           } catch (err: any) { json(400, { error: String(err?.message ?? err).slice(0, 500) }); }
           return;
         }
@@ -1192,6 +1218,37 @@ export class WebHub {
       }
       case "/workspace/file":
         return this.saveWorkspaceFile(sid, d);
+      case "/workspace/file/new":
+        return this.createWorkspaceEntry(sid, d);
+      case "/workspace/file/rename":
+        return this.renameWorkspaceEntry(sid, d);
+      case "/workspace/file/delete":
+        return this.deleteWorkspaceEntry(sid, d);
+      case "/plan/done": {
+        const l = live();
+        const plan = (l.session as any)?.toolCtx?.plan;
+        if (!plan || typeof plan.markDone !== "function") throw new Error("no plan in this session");
+        const step = d.step === undefined || d.step === null ? undefined : Number(d.step);
+        const message = plan.markDone(step);
+        if (typeof message === "string" && message.startsWith("Error")) throw new Error(message);
+        this.changed();
+        return { message, plan: this.planView(l) };
+      }
+      case "/cursor": {
+        const l = live();
+        const name = String(d.name ?? "").trim().slice(0, 40) || "anonymous";
+        const rel = String(d.path ?? "").trim().slice(0, 200);
+        const line = Math.max(1, Number(d.line) || 1);
+        let map = this.cursors.get(l.id);
+        if (!map) {
+          map = new Map();
+          this.cursors.set(l.id, map);
+        }
+        if (rel) map.set(name, { name, path: rel, line, at: Date.now() });
+        else map.delete(name);
+        this.changed();
+        return {};
+      }
       case "/code/diff/hunk": {
         const l = live();
         const action = String(d.action ?? "");
@@ -1307,6 +1364,99 @@ export class WebHub {
     live.channel.status(`· saved ${rel}`);
     live.channel.refresh();
     return { path: rel, size: st.size, mtimeMs: st.mtimeMs };
+  }
+
+  /** Guard for every mutating workspace-file endpoint. */
+  private editLive(sid: string): Live & { session: Session } {
+    const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
+    if (!live || !live.session) throw new Error("no such session");
+    if ((live.session as any)?.agent?.mode === "ro") {
+      throw new Error("workspace is read-only; switch the session to edit mode first");
+    }
+    return live as Live & { session: Session };
+  }
+
+  private createWorkspaceEntry(sid: string, d: any): any {
+    const live = this.editLive(sid);
+    const rel = String(d.path ?? "").trim();
+    if (!rel || rel === "." || rel === "/") throw new Error("path is required");
+    let abs: string;
+    try {
+      abs = resolveInWorkspace(live.workspace, rel);
+    } catch (err: any) {
+      throw new Error(err instanceof SandboxError ? err.message : String(err?.message ?? err));
+    }
+    if (fs.existsSync(abs)) throw new Error(`"${rel}" already exists`);
+    if (d.dir === true) fs.mkdirSync(abs, { recursive: true });
+    else {
+      fs.mkdirSync(path.dirname(abs), { recursive: true });
+      fs.writeFileSync(abs, "", "utf8");
+    }
+    live.session.toolCtx.filesTouched.add(rel);
+    live.channel.status(`· created ${rel}`);
+    return { path: rel };
+  }
+
+  private renameWorkspaceEntry(sid: string, d: any): any {
+    const live = this.editLive(sid);
+    const from = String(d.path ?? "").trim();
+    const to = String(d.to ?? "").trim();
+    if (!from || !to) throw new Error("path and to are required");
+    let absFrom: string;
+    let absTo: string;
+    try {
+      absFrom = resolveInWorkspace(live.workspace, from);
+      absTo = resolveInWorkspace(live.workspace, to);
+    } catch (err: any) {
+      throw new Error(err instanceof SandboxError ? err.message : String(err?.message ?? err));
+    }
+    if (!fs.existsSync(absFrom)) throw new Error(`"${from}" does not exist`);
+    if (fs.existsSync(absTo)) throw new Error(`"${to}" already exists`);
+    fs.mkdirSync(path.dirname(absTo), { recursive: true });
+    fs.renameSync(absFrom, absTo);
+    live.session.toolCtx.filesTouched.add(to);
+    live.channel.status(`· renamed ${from} → ${to}`);
+    return { path: to };
+  }
+
+  private deleteWorkspaceEntry(sid: string, d: any): any {
+    const live = this.editLive(sid);
+    const rel = String(d.path ?? "").trim();
+    if (!rel || rel === "." || rel === "/") throw new Error("path is required (never the workspace itself)");
+    let abs: string;
+    try {
+      abs = resolveInWorkspace(live.workspace, rel);
+    } catch (err: any) {
+      throw new Error(err instanceof SandboxError ? err.message : String(err?.message ?? err));
+    }
+    if (!fs.existsSync(abs)) throw new Error(`"${rel}" does not exist`);
+    if (fs.statSync(abs).isDirectory()) fs.rmSync(abs, { recursive: true, force: true });
+    else fs.unlinkSync(abs);
+    live.session.toolCtx.filesTouched.add(rel);
+    live.channel.status(`· deleted ${rel}`);
+    return {};
+  }
+
+  /** Serializable plan for the checklist tab. Never throws. */
+  private planView(live: Live): {
+    exists: boolean;
+    steps: Array<{ text: string; done: boolean }>;
+    current: number;
+    done: number;
+    total: number;
+  } {
+    try {
+      const plan = (live.session as any)?.toolCtx?.plan;
+      if (!plan || !Array.isArray(plan.steps)) return { exists: false, steps: [], current: -1, done: 0, total: 0 };
+      const steps = plan.steps
+        .filter((s: any) => s && typeof s.text === "string")
+        .map((s: any) => ({ text: String(s.text).slice(0, 300), done: !!s.done }));
+      const current = typeof plan.currentIndex === "number" ? plan.currentIndex : steps.findIndex((s: any) => !s.done);
+      const done = steps.filter((s: any) => s.done).length;
+      return { exists: steps.length > 0, steps: steps.slice(0, 20), current, done, total: steps.length };
+    } catch {
+      return { exists: false, steps: [], current: -1, done: 0, total: 0 };
+    }
   }
   /** Everything the IDE control centre needs about one live session. Kept off
    * the hot SSE path: the page asks for it when the panel opens. */

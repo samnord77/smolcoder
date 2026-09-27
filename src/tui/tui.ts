@@ -7,7 +7,7 @@
 // the agent runs, output streams plainly and scrolls naturally.
 
 import { Plan } from "../plan";
-import { SelectOption, SessionUI, SlashCommand, summarizeArgs } from "../ui";
+import { SelectOption, SessionUI, SlashCommand, renderPlan, summarizeArgs } from "../ui";
 import { c } from "../util";
 import { createCodeStreamColorizer, colorizeResultBlock } from "../highlight";
 import { LineEditor, layoutBuffer } from "./editor";
@@ -733,8 +733,13 @@ export class Tui implements SessionUI {
     this.stopSpinner();
     this.ensureLine();
     this.lastKind = null;
-    const current = plan.currentIndex >= 0 ? plan.steps[plan.currentIndex].text : "complete";
-    this.out(c.dim(`  Plan ${plan.doneCount}/${plan.steps.length} · ${current}`) + "\n");
+    // The full checklist, like headless mode — one line hides the work.
+    try {
+      this.out(renderPlan(plan, "  ") + "\n");
+    } catch {
+      const current = plan.currentIndex >= 0 ? plan.steps[plan.currentIndex].text : "complete";
+      this.out(c.dim(`  Plan ${plan.doneCount}/${plan.steps.length} · ${current}`) + "\n");
+    }
     this.atLineStart = true;
   }
 

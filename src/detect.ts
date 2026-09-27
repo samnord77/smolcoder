@@ -348,6 +348,8 @@ export interface DetectOptions {
   /** Return as soon as a matching model turns up (startup looks for the
    * remembered model and need not wait for a machine that is switched off). */
   until?: (m: DetectedModel) => boolean;
+  /** Skip containers and network hosts: loopback only (fast startup). */
+  fast?: boolean;
 }
 
 export interface HostStatus {
@@ -375,14 +377,20 @@ export async function detectAll(opts: DetectOptions = {}): Promise<DetectedModel
   const covered = new Set(local.flatMap((g) => g.urls));
 
   // One slot per source, in display order: this computer, its containers,
-  // then each added host. Slots finish at different times.
+  // then each added host. Slots finish at different times. Fast start
+  // (SMOLCODER_FAST_START=1) skips containers and network hosts — loopback
+  // only — for slow Docker daemons and switched-off machines.
   const slots: Promise<DetectedModel[]>[] = [
     ...local.map((g) => probeGroup(g).then((s) => s?.models ?? [])),
-    containerPublishedUrls(ports).then(async (urls) => {
-      const groups = groupServers(urls.filter((u) => !covered.has(u)), LOCAL_PROBE_TIMEOUT_MS);
-      return (await Promise.all(groups.map(probeGroup))).flatMap((s) => s?.models ?? []);
-    }),
-    ...(opts.hosts ?? []).flatMap((host) =>
+    ...(opts.fast
+      ? []
+      : [
+          containerPublishedUrls(ports).then(async (urls) => {
+            const groups = groupServers(urls.filter((u) => !covered.has(u)), LOCAL_PROBE_TIMEOUT_MS);
+            return (await Promise.all(groups.map(probeGroup))).flatMap((s) => s?.models ?? []);
+          }),
+        ]),
+    ...(!opts.fast ? opts.hosts ?? [] : []).flatMap((host) =>
       groupServers(hostUrls(host), NETWORK_PROBE_TIMEOUT_MS, hostLabel(host)).map((g) => probeGroup(g).then((s) => s?.models ?? []))
     ),
   ];

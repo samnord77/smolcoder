@@ -542,7 +542,7 @@ function handle(m) {
       else add(v, body);
       break;
     }
-      case "plan": endThought(v); v.curText = null; renderPlan(v, m); break;
+      case "plan": endThought(v); v.curText = null; renderPlan(v, m); v.planCache = m; { const pt = v.tabs.find((t) => t.kind === "plan"); if (pt && pt.renderSteps) { try { pt.renderSteps(m); } catch (e) {} } } break;
       case "sub": endThought(v); v.curText = null;
         if (m.phase === "start") {
           const d = el("details", "subagent"); d.open = true;
@@ -721,7 +721,7 @@ function renderSidebar() {
         else if (confirm("Delete this session permanently?")) post("/sessions/delete", { id: s.id });
       };
       row.appendChild(x);
-      row.title = (s.title || "new session") + (s.model ? " · " + s.model : "") + (s.live ? " · " + s.status : " · saved — click to resume") + (s.viewers && s.viewers.length ? " · 👁 " + s.viewers.join(", ") : "");
+      row.title = (s.title || "new session") + (s.model ? " · " + s.model : "") + (s.live ? " · " + s.status : " · saved — click to resume") + (s.viewers && s.viewers.length ? " · 👁 " + s.viewers.join(", ") : "") + (s.editing && s.editing.length ? " · ✎ " + s.editing.map((e) => e.name + ": " + e.path + ":" + e.line).join(", ") : "");
       row.onclick = () => select(s.id);
       row.ondblclick = () => { const t = prompt("Rename session", s.title || ""); if (t !== null && t.trim()) post("/sessions/rename", { id: s.id, title: t }); };
       sl.appendChild(row);
@@ -861,16 +861,17 @@ function renderPanel() {
     x.onclick = (e) => { e.stopPropagation(); closeTab(v, t); };
     b.appendChild(x);
     b.onclick = () => { v.activeTab = t.id; savePanel(v); renderPanel(); if (t.kind === "term" && t.inp) t.inp.focus(); };
-    b.title = t.kind === "browser" ? (t.url || "new browser tab") : t.kind === "files" ? "workspace explorer" : t.kind === "review" ? "review uncommitted changes" : "terminal in " + shortPath(t.cwd);
+    b.title = t.kind === "browser" ? (t.url || "new browser tab") : t.kind === "files" ? "workspace explorer" : t.kind === "review" ? "review uncommitted changes" : t.kind === "plan" ? "task list" : "terminal in " + shortPath(t.cwd);
     tabsEl.appendChild(b);
   }
   tabsEl.appendChild(el("span", "grow"));
   const nb = el("button", "iconbtn", "+◎"); nb.title = "new browser tab"; nb.onclick = () => openBrowserTab(v);
   const nf = el("button", "iconbtn", "+▤"); nf.title = "project files"; nf.onclick = () => openFilesTab(v);
   const nr = el("button", "iconbtn", "+Δ"); nr.title = "review uncommitted changes"; nr.onclick = () => openReviewTab(v);
+  const np = el("button", "iconbtn", "+☑"); np.title = "task list"; np.onclick = () => openPlanTab(v);
   const nt = el("button", "iconbtn", "+>_"); nt.title = "new terminal"; nt.onclick = () => openTerminalTab(v);
   const cl = el("button", "iconbtn", "»"); cl.title = "hide panel"; cl.onclick = () => { v.panelOpen = false; savePanel(v); renderPanel(); };
-  tabsEl.appendChild(nb); tabsEl.appendChild(nf); tabsEl.appendChild(nr); tabsEl.appendChild(nt); tabsEl.appendChild(cl);
+  tabsEl.appendChild(nb); tabsEl.appendChild(nf); tabsEl.appendChild(nr); tabsEl.appendChild(np); tabsEl.appendChild(nt); tabsEl.appendChild(cl);
   for (const t of v.tabs) if (t.el) t.el.hidden = t !== cur;
 }
 function closeTab(v, t) {
@@ -893,6 +894,7 @@ function togglePanelKind(kind) {
   } else if (kind === "browser") openBrowserTab(v);
   else if (kind === "files") openFilesTab(v);
   else if (kind === "review") openReviewTab(v);
+  else if (kind === "plan") openPlanTab(v);
   else openTerminalTab(v);
 }
 $("btnfiles").onclick = () => togglePanelKind("files");
@@ -1020,6 +1022,54 @@ function buildFilesTab(v, t) {
   findInput.placeholder = "Rechercher dans le projet…"; findInput.setAttribute("aria-label", "Rechercher dans les fichiers du projet");
   const findButton = el("button", "iconbtn", "⌕"); findButton.title = "search workspace";
   bar.appendChild(up); bar.appendChild(pathInput); bar.appendChild(findInput); bar.appendChild(findButton); bar.appendChild(refresh); bar.appendChild(diagnosticsButton); bar.appendChild(save);
+  const newFile = el("button", "iconbtn", "+F"); newFile.title = "new file in this folder";
+  const newFolder = el("button", "iconbtn", "+D"); newFolder.title = "new folder here";
+  const renameBtn = el("button", "iconbtn", "✎"); renameBtn.title = "rename the open file";
+  const deleteBtn = el("button", "iconbtn", "🗑"); deleteBtn.title = "delete the open file";
+  bar.appendChild(newFile); bar.appendChild(newFolder); bar.appendChild(renameBtn); bar.appendChild(deleteBtn);
+  const fileOp = (endpoint, body, after) => {
+    fetch("/workspace/file/" + endpoint + "?k=" + k + "&sid=" + encodeURIComponent(v.sid), {
+      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body || {}),
+    }).then((r) => r.json()).then((d) => {
+      if (d.error) throw new Error(d.error);
+      after(d);
+    }).catch((e) => showError(e.message));
+  };
+  const inDir = (name) => (t.rel && t.rel !== "." ? t.rel + "/" : "") + name;
+  newFile.onclick = () => {
+    const name = prompt("New file in " + (t.rel || ".") + " :", "");
+    if (!name || !name.trim()) return;
+    fileOp("new", { path: inDir(name.trim()) }, (d) => { t.loadDir(t.rel || "."); void t.loadFile(d.path); });
+  };
+  newFolder.onclick = () => {
+    const name = prompt("New folder in " + (t.rel || ".") + " :", "");
+    if (!name || !name.trim()) return;
+    fileOp("new", { path: inDir(name.trim()), dir: true }, () => t.loadDir(t.rel || "."));
+  };
+  renameBtn.onclick = () => {
+    if (!t.filePath) { showError("Ouvrez d’abord un fichier."); return; }
+    const tab = t.tabStore.active();
+    if (tab && tab.path === t.filePath && tab.dirty) { showError("Enregistrez les modifications avant de renommer."); return; }
+    const to = prompt("Renommer en :", t.filePath);
+    if (!to || !to.trim() || to.trim() === t.filePath) return;
+    const from = t.filePath;
+    fileOp("rename", { path: from, to: to.trim() }, (d) => {
+      const r = t.tabStore.close(from, true);
+      displayTab(r ? r.active : null);
+      t.loadDir(t.rel || ".");
+      void t.loadFile(d.path);
+    });
+  };
+  deleteBtn.onclick = () => {
+    if (!t.filePath) { showError("Ouvrez d’abord un fichier."); return; }
+    const p = t.filePath;
+    if (!confirm("Supprimer " + p + " ?")) return;
+    fileOp("delete", { path: p }, () => {
+      const r = t.tabStore.close(p, true);
+      displayTab(r ? r.active : null);
+      t.loadDir(t.rel || ".");
+    });
+  };
   const results = el("div", "filesearch-results"); results.hidden = true;
   const split = el("div", "filesplit");
   const tree = el("div", "filetree");
@@ -1184,10 +1234,25 @@ function buildFilesTab(v, t) {
     renderTabs();
     void analyzeFile(t.filePath);
   };
+  let lastCursorKey = "";
+  let lastCursorAt = 0;
+  const broadcastCursor = (line) => {
+    if (!t.filePath) return;
+    const key = t.filePath + ":" + line;
+    const now = Date.now();
+    if (key === lastCursorKey && now - lastCursorAt < 5000) return;
+    lastCursorKey = key;
+    lastCursorAt = now;
+    fetch("/cursor?k=" + k, {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ sid: v.sid, path: t.filePath, line, name: ls.get("smol-viewer") || "owner" }),
+    }).catch(() => {});
+  };
   const updatePosition = () => {
     const position = editorTools.cursorPosition(editor.value, editor.selectionStart);
     const tab = t.filePath && t.tabStore.active();
     meta.textContent = (t.filePath ? t.filePath + " · " : "") + "Ln " + position.line + ", Col " + position.column + (tab && tab.dirty ? " · modifié" : "");
+    broadcastCursor(position.line);
   };
   const analyzeFile = async (filePath = t.filePath) => {
     if (!filePath) { diagnosticRequest++; diagnosticsPanel.replaceChildren(); return; }
@@ -1434,7 +1499,14 @@ function buildReviewTab(v, t) {
           list.appendChild(el("div", "reviewfile", f.file));
           for (const h of f.hunks || []) {
             const block = el("div", "reviewhunk");
-            block.appendChild(el("pre", "reviewpatch", h.header + "\n" + (h.lines || []).join("\n")));
+            const pre = el("pre", "reviewpatch");
+            const paint = (text, cls) => {
+              const s = document.createElement("span");
+              s.className = cls; s.textContent = text + "\n"; pre.appendChild(s);
+            };
+            paint(h.header, "hunk");
+            for (const ln of h.lines || []) paint(ln, ln.startsWith("+") ? "add" : ln.startsWith("-") ? "del" : "same");
+            block.appendChild(pre);
             const row = el("div", "reviewactions");
             const sb = el("button", "iconbtn", "Stage"); sb.title = "stage this hunk";
             const rb = el("button", "iconbtn", "Revert"); rb.title = "revert this hunk in the working tree";
@@ -1451,6 +1523,67 @@ function buildReviewTab(v, t) {
   refresh.onclick = load;
   staged.onclick = () => { showStaged = !showStaged; staged.textContent = showStaged ? "unstaged" : "staged"; load(); };
   t.reload = load;
+  load();
+}
+
+// plan tab: the agent's task list with clickable checkboxes
+function openPlanTab(v) {
+  if (!v) return;
+  const existing = v.tabs.filter((t) => t.kind === "plan").pop();
+  if (existing) { v.activeTab = existing.id; v.panelOpen = true; savePanel(v); renderPanel(); return; }
+  const t = { kind: "plan", id: "p:" + Math.random().toString(36).slice(2) };
+  buildPlanTab(v, t);
+  v.tabs.push(t); v.activeTab = t.id; v.panelOpen = true; savePanel(v); renderPanel();
+}
+function buildPlanTab(v, t) {
+  const body = el("div", "tabbody plan"); body.hidden = true;
+  const bar = el("div", "bar");
+  const refresh = el("button", "iconbtn", "↻"); refresh.title = "refresh task list";
+  const head = el("span", "filemeta", "task list");
+  head.style.flex = "1";
+  bar.appendChild(refresh); bar.appendChild(head);
+  const list = el("div", "planlist");
+  body.appendChild(bar); body.appendChild(list);
+  v.panelEl.appendChild(body);
+  t.el = body;
+  const renderSteps = (d) => {
+    list.replaceChildren();
+    const steps = (d && d.steps) || [];
+    head.textContent = d && d.exists ? (d.done + " tâches sur " + d.total + " terminées") : "task list";
+    if (!steps.length) {
+      list.appendChild(el("div", "filediagnostic-note", "No task list yet — the agent creates one for multi-step work."));
+      return;
+    }
+    steps.forEach((s, i) => {
+      const b = el("button", "planstep" + (s.done ? " done" : i === d.current ? " current" : ""));
+      b.type = "button";
+      b.title = s.done ? "done" : "mark step " + (i + 1) + " done";
+      const box = el("span", "box", s.done ? "☑" : i === d.current ? "◉" : "☐");
+      const label = el("span", "", (i + 1) + ". " + s.text);
+      b.appendChild(box); b.appendChild(label);
+      if (!s.done) {
+        b.onclick = () => {
+          b.disabled = true;
+          post("/plan/done", { sid: v.sid, step: i + 1 }).then((r) => {
+            if (!r || r.error) { alert((r && r.error) || "Plan update failed"); return; }
+            if (r.plan) renderSteps(r.plan);
+            else load();
+          }).catch((e) => alert(String((e && e.message) || e))).finally(() => { b.disabled = false; });
+        };
+      }
+      list.appendChild(b);
+    });
+  };
+  const load = () => {
+    list.replaceChildren(el("div", "filediagnostic-note", "Loading task list…"));
+    fetch("/plan?k=" + k + "&sid=" + encodeURIComponent(v.sid))
+      .then((r) => r.json()).then((d) => {
+        if (d.error) throw new Error(d.error);
+        renderSteps(d);
+      }).catch((e) => { list.replaceChildren(el("div", "filediagnostic-note error", String((e && e.message) || e))); });
+  };
+  refresh.onclick = load;
+  t.renderSteps = renderSteps;
   load();
 }
 

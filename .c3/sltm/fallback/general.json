@@ -50,5 +50,18 @@
     },
     "timestamp": "2026-09-27T19:10:41.746648+00:00",
     "category": "general"
+  },
+  {
+    "id": "ceba3ed0b84f",
+    "text": "smolcoder phase capture (2026-09-27) : fichiers web g\u00e9rables (new/rename/delete + garde ro), CSS diff vert/rouge appliqu\u00e9 (spans manquants), TODO checklist cliquable (GET /plan, POST /plan/done, onglet + sidebar + TUI renderPlan), curseurs live (POST /cursor, sidebar \u270e), SMOLCODER_FAST_START=1 (skip conteneurs/r\u00e9seau), scripts/Install-Smolcoder.ps1 valid\u00e9 0 erreur. Co-\u00e9dition simultan\u00e9e vraie (OT/CRDT) explicitement hors scope.",
+    "metadata": {
+      "fact_id": "ceba3ed0b84f",
+      "source_session": "20260927_164838_0239733e7ab3",
+      "source": "memory_store",
+      "timestamp": "2026-09-27T20:41:17.541760+00:00",
+      "category": "general"
+    },
+    "timestamp": "2026-09-27T20:41:17.541760+00:00",
+    "category": "general"
   }
 ]

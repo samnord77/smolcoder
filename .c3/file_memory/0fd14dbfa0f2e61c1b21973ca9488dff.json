@@ -1,10 +1,10 @@
 {
   "path": "src/detect.ts",
-  "content_hash": "27be619b1313a52299ff477d44345a11",
-  "updated_at": "2026-09-24T17:24:24",
-  "lines": 507,
-  "size_bytes": 22903,
-  "mtime_ns": 1790260569934700500,
+  "content_hash": "a3108296e18070ece0d20cd9a27d89cf",
+  "updated_at": "2026-09-27T21:22:22",
+  "lines": 515,
+  "size_bytes": 23250,
+  "mtime_ns": 1790540386051560800,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -281,46 +281,46 @@
       "type": "interface",
       "name": "DetectOptions",
       "line_start": 345,
-      "line_end": 351,
+      "line_end": 353,
       "signature": "interface DetectOptions {",
       "children": []
     },
     {
       "type": "interface",
       "name": "HostStatus",
-      "line_start": 353,
-      "line_end": 356,
+      "line_start": 355,
+      "line_end": 358,
       "signature": "interface HostStatus {",
       "children": []
     },
     {
       "type": "function",
       "name": "probeHosts",
-      "line_start": 359,
-      "line_end": 366,
+      "line_start": 361,
+      "line_end": 368,
       "signature": "async function probeHosts(hosts: SavedHost[]): Promise<HostStatus[]> {",
       "async": true
     },
     {
       "type": "function",
       "name": "detectAll",
-      "line_start": 368,
-      "line_end": 409,
+      "line_start": 370,
+      "line_end": 417,
       "signature": "async function detectAll(opts: DetectOptions = {}): Promise<DetectedModel[]> {",
       "async": true
     },
     {
       "type": "constant",
       "name": "DEFAULT_OLLAMA_CTX_CAP",
-      "line_start": 411,
-      "line_end": 411,
+      "line_start": 419,
+      "line_end": 419,
       "signature": "const DEFAULT_OLLAMA_CTX_CAP = 32768; // avoid surprise VRAM blowups on huge-window models"
     },
     {
       "type": "function",
       "name": "resolveContextWindow",
-      "line_start": 423,
-      "line_end": 507,
+      "line_start": 431,
+      "line_end": 515,
       "signature": "async function resolveContextWindow(",
       "async": true
     }

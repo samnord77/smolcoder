@@ -1,10 +1,10 @@
 {
   "path": "src/tui/tui.ts",
-  "content_hash": "bd7b00387b0a6c715452a06a615e55c5",
-  "updated_at": "2026-09-27T20:57:14",
-  "lines": 796,
-  "size_bytes": 26009,
-  "mtime_ns": 1790538918088055300,
+  "content_hash": "ba81145206a84d1ee8bc94d1eb935b21",
+  "updated_at": "2026-09-27T21:22:21",
+  "lines": 801,
+  "size_bytes": 26182,
+  "mtime_ns": 1790540414410263600,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -18,10 +18,10 @@
     },
     {
       "type": "import",
-      "name": "import { SelectOption, SessionUI, SlashCommand, summarizeArgs } from \"../ui\";",
+      "name": "import { SelectOption, SessionUI, SlashCommand, renderPlan, summarizeArgs } from \"../ui\";",
       "line_start": 10,
       "line_end": 10,
-      "signature": "import { SelectOption, SessionUI, SlashCommand, summarizeArgs } from \"../ui\";"
+      "signature": "import { SelectOption, SessionUI, SlashCommand, renderPlan, summarizeArgs } from \"../ui\";"
     },
     {
       "type": "import",
@@ -128,7 +128,7 @@
       "type": "class",
       "name": "Tui",
       "line_start": 61,
-      "line_end": 796,
+      "line_end": 801,
       "signature": "class Tui implements SessionUI {",
       "children": [
         {
@@ -654,21 +654,21 @@
           "type": "method",
           "name": "planUpdated",
           "line_start": 732,
-          "line_end": 739,
+          "line_end": 744,
           "signature": "planUpdated(plan: Plan): void {"
         },
         {
           "type": "method",
           "name": "subagent",
-          "line_start": 741,
-          "line_end": 743,
+          "line_start": 746,
+          "line_end": 748,
           "signature": "subagent(phase: \"start\" | \"done\", label: string): void {"
         },
         {
           "type": "method",
           "name": "bell",
-          "line_start": 746,
-          "line_end": 752,
+          "line_start": 751,
+          "line_end": 757,
           "signature": "private bell(): void {",
           "access": "private",
           "doc": "Terminal bell: ping on approval prompts, finished turns and errors."
@@ -676,29 +676,29 @@
         {
           "type": "method",
           "name": "warn",
-          "line_start": 754,
-          "line_end": 756,
+          "line_start": 759,
+          "line_end": 761,
           "signature": "warn(s: string): void {"
         },
         {
           "type": "method",
           "name": "error",
-          "line_start": 758,
-          "line_end": 762,
+          "line_start": 763,
+          "line_end": 767,
           "signature": "error(s: string): void {"
         },
         {
           "type": "method",
           "name": "startSpinner",
-          "line_start": 764,
-          "line_end": 783,
+          "line_start": 769,
+          "line_end": 788,
           "signature": "startSpinner(label: string): void {"
         },
         {
           "type": "method",
           "name": "stopSpinner",
-          "line_start": 785,
-          "line_end": 795,
+          "line_start": 790,
+          "line_end": 800,
           "signature": "stopSpinner(): void {"
         }
       ]

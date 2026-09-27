@@ -27,7 +27,9 @@
     "src/highlight.ts",
     "src/tui/tui.ts",
     "src/ui.ts",
-    "src/index.ts"
+    "src/index.ts",
+    "src/detect.ts",
+    "test/code-api.test.js"
   ],
   "inflight": [
     "desktop/preload-git.js"

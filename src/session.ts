@@ -199,7 +199,9 @@ export async function prepareModel(
     !prefs.model && cfg.lastModel
       ? (m: DetectedModel) => m.id === cfg.lastModel && (!url || m.baseUrl === url) && (!prefs.backend || m.backend === prefs.backend)
       : undefined;
-  const models = (await detectAll({ hosts: cfg.hosts, until })).filter((m) => !prefs.backend || m.backend === prefs.backend);
+  const models = (
+    await detectAll({ hosts: process.env.SMOLCODER_FAST_START === "1" ? [] : cfg.hosts, until, fast: process.env.SMOLCODER_FAST_START === "1" })
+  ).filter((m) => !prefs.backend || m.backend === prefs.backend);
   if (models.length === 0) return null;
   const chosen = autoPickModel(models, prefs.model, cfg.lastModel, url);
   progress?.(`loading ${chosen.id}`);
