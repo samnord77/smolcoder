@@ -1,0 +1,84 @@
+{
+  "path": "test/code-api.test.js",
+  "content_hash": "807d2ea5fc1a5e31a773472a796ba3db",
+  "updated_at": "2026-09-27T19:31:56",
+  "lines": 98,
+  "size_bytes": 3808,
+  "mtime_ns": 1790533746794620200,
+  "language": "javascript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "constant",
+      "name": "test",
+      "line_start": 3,
+      "line_end": 3,
+      "signature": "const test = require(\"node:test\");"
+    },
+    {
+      "type": "constant",
+      "name": "assert",
+      "line_start": 4,
+      "line_end": 4,
+      "signature": "const assert = require(\"node:assert/strict\");"
+    },
+    {
+      "type": "constant",
+      "name": "fs",
+      "line_start": 5,
+      "line_end": 5,
+      "signature": "const fs = require(\"node:fs\");"
+    },
+    {
+      "type": "constant",
+      "name": "http",
+      "line_start": 6,
+      "line_end": 6,
+      "signature": "const http = require(\"node:http\");"
+    },
+    {
+      "type": "constant",
+      "name": "os",
+      "line_start": 7,
+      "line_end": 7,
+      "signature": "const os = require(\"node:os\");"
+    },
+    {
+      "type": "constant",
+      "name": "path",
+      "line_start": 8,
+      "line_end": 8,
+      "signature": "const path = require(\"node:path\");"
+    },
+    {
+      "type": "function",
+      "name": "sleep",
+      "line_start": 11,
+      "line_end": 11,
+      "signature": "const sleep = (ms) => new Promise((r) => setTimeout(r, ms));"
+    },
+    {
+      "type": "function",
+      "name": "until",
+      "line_start": 12,
+      "line_end": 20,
+      "signature": "async function until(fn, ms = 4000, label = \"condition\") {",
+      "async": true
+    },
+    {
+      "type": "function",
+      "name": "stubFactory",
+      "line_start": 22,
+      "line_end": 43,
+      "signature": "function stubFactory(calls) {"
+    },
+    {
+      "type": "function",
+      "name": "request",
+      "line_start": 45,
+      "line_end": 59,
+      "signature": "function request(hub, method, p, body) {"
+    }
+  ]
+}

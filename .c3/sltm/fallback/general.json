@@ -24,5 +24,31 @@
     },
     "timestamp": "2026-09-25T20:11:42.245707+00:00",
     "category": "general"
+  },
+  {
+    "id": "72dca8526f91",
+    "text": "smolcoder enrichi IDE pro (2026-09-27) : src/lsp-pro.ts (LSP persistant TS/Python/Rust/Go, 9 actions), src/codeindex.ts (index symboles + cache), src/git.ts (7 actions), src/debug.ts (client DAP stdio+socket), src/format.ts (prettier/black/ruff/rustfmt/gofmt), plugins manifest JSON, 5 nouveaux outils agent (19 au total), 3 API web /code/*, 6 fichiers de tests. Build tsc OK. splitCommand() partag\u00e9 dans src/lsp.ts (guillemets Windows).",
+    "metadata": {
+      "fact_id": "72dca8526f91",
+      "source_session": "20260927_164838_0239733e7ab3",
+      "source": "memory_store",
+      "timestamp": "2026-09-27T18:44:57.431238+00:00",
+      "category": "general"
+    },
+    "timestamp": "2026-09-27T18:44:57.431238+00:00",
+    "category": "general"
+  },
+  {
+    "id": "2ccca7939c58",
+    "text": "smolcoder: test verification.test.js 'recovery from failed edits' est instable PR\u00c9-EXISTANT (\u00e9choue aussi sur l'arbre d'avant enrichissement, prouv\u00e9 via worktree). Test 'periodic project checks' recalibr\u00e9 26\u219227 appels (compaction de fond plus pr\u00e9coce avec 19 outils vs 14, +769 tokens/estimation). Compteurs outils: edit 19, ro 10 (mcp.test.js, lsp.test.js mis \u00e0 jour).",
+    "metadata": {
+      "fact_id": "2ccca7939c58",
+      "source_session": "20260927_164838_0239733e7ab3",
+      "source": "memory_store",
+      "timestamp": "2026-09-27T19:10:41.746648+00:00",
+      "category": "general"
+    },
+    "timestamp": "2026-09-27T19:10:41.746648+00:00",
+    "category": "general"
   }
 ]

@@ -1,0 +1,67 @@
+{
+  "path": "extras/secondary-agent-tools/ast-indexer.js",
+  "content_hash": "6c63cec7d41435c2df2be596d75a492b",
+  "updated_at": "2026-09-27T19:10:49",
+  "lines": 290,
+  "size_bytes": 7564,
+  "mtime_ns": 1790361994075336800,
+  "language": "javascript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "constant",
+      "name": "fs",
+      "line_start": 7,
+      "line_end": 7,
+      "signature": "const fs = require(\"node:fs\");"
+    },
+    {
+      "type": "constant",
+      "name": "path",
+      "line_start": 8,
+      "line_end": 8,
+      "signature": "const path = require(\"node:path\");"
+    },
+    {
+      "type": "function",
+      "name": "getAstOutline",
+      "line_start": 15,
+      "line_end": 102,
+      "signature": "function getAstOutline(filePath) {",
+      "doc": "Extrait l'arbre des symboles (AST Outline) d'un fichier source (JS, TS, Python)"
+    },
+    {
+      "type": "function",
+      "name": "lookupSymbol",
+      "line_start": 110,
+      "line_end": 152,
+      "signature": "function lookupSymbol(symbolName, workspace = process.cwd()) {",
+      "doc": "Trouve la d\u00e9finition exacte d'un symbole dans un projet"
+    },
+    {
+      "type": "function",
+      "name": "findCallSites",
+      "line_start": 160,
+      "line_end": 210,
+      "signature": "function findCallSites(symbolName, workspace = process.cwd()) {",
+      "doc": "Analyse d'impact (Blast Radius) : localise tous les fichiers et lignes qui consomment ce symbole"
+    },
+    {
+      "type": "function",
+      "name": "searchSymbols",
+      "line_start": 218,
+      "line_end": 263,
+      "signature": "function searchSymbols(query, workspace = process.cwd()) {",
+      "doc": "Recherche globale de symboles correspondant \u00e0 un mot-cl\u00e9"
+    },
+    {
+      "type": "function",
+      "name": "queryC3Context",
+      "line_start": 271,
+      "line_end": 282,
+      "signature": "function queryC3Context(query, workspace = process.cwd()) {",
+      "doc": "Interroge l'index s\u00e9mantique profond de C3 via son CLI"
+    }
+  ]
+}

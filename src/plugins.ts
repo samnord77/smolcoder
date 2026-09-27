@@ -79,3 +79,104 @@ export function loadPlugins(workspace: string): LoadedPlugin[] {
     return [];
   }
 }
+
+// ---------------------------------------------------------------------------
+// Plugin marketplace: an optional `.smol/plugins/<name>.json` sidecar gives
+// every plugin a name card (version, description, author) so the agent and
+// the user can see what is installed without reading code.
+//   {"version": "1.2.0", "description": "Blocks rm -rf outside trash.", "author": "team"}
+// A plugin without a manifest still loads — the card just says "unknown".
+// ---------------------------------------------------------------------------
+
+export interface PluginManifest {
+  name: string;
+  version: string;
+  description: string;
+  author: string;
+}
+
+/** Read one manifest sidecar. Null when missing or invalid (never throws). */
+export function readPluginManifest(workspace: string, name: string): PluginManifest | null {
+  try {
+    if (typeof workspace !== "string" || !workspace || !name || name.includes("/") || name.includes("\\")) {
+      return null;
+    }
+    const file = path.join(path.resolve(workspace, PLUGINS_DIR), `${name}.json`);
+    let stat: fs.Stats;
+    try {
+      stat = fs.statSync(file);
+    } catch {
+      return null;
+    }
+    if (!stat.isFile() || stat.size > 64 * 1024) return null;
+    const raw = JSON.parse(fs.readFileSync(file, "utf8"));
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+    return {
+      name,
+      version: typeof raw.version === "string" && raw.version.trim() ? raw.version.trim().slice(0, 20) : "0.0.0",
+      description:
+        typeof raw.description === "string" && raw.description.trim()
+          ? raw.description.trim().slice(0, 300)
+          : "No description.",
+      author: typeof raw.author === "string" && raw.author.trim() ? raw.author.trim().slice(0, 80) : "unknown",
+    };
+  } catch {
+    return null;
+  }
+}
+
+export interface PluginInfo extends LoadedPlugin {
+  version: string;
+  description: string;
+  author: string;
+  hooks: string[];
+}
+
+/** Every installed plugin with its name card. Never throws. */
+export function listPluginInfos(workspace: string): PluginInfo[] {
+  try {
+    return loadPlugins(workspace).map((p) => {
+      const m = readPluginManifest(workspace, p.name);
+      const hooks: string[] = [];
+      if (typeof p.beforeTool === "function") hooks.push("beforeTool");
+      if (typeof p.afterTool === "function") hooks.push("afterTool");
+      return {
+        ...p,
+        version: m?.version ?? "0.0.0",
+        description: m?.description ?? "No description.",
+        author: m?.author ?? "unknown",
+        hooks,
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
+const PLUGIN_EXAMPLE = `module.exports = {
+  // Return { block: "reason" } to refuse a call, { args: newArgs } to rewrite it.
+  beforeTool(name, args) { return null; },
+  // Return a replacement result string.
+  afterTool(name, result) { return result; },
+};`;
+
+/** Human/model-readable marketplace listing. Never throws. */
+export function describePlugins(workspace: string): string {
+  const infos = listPluginInfos(workspace);
+  if (!infos.length) {
+    return [
+      "No plugins installed.",
+      "",
+      "Add one: drop a file into .smol/plugins/my-guard.cjs with:",
+      PLUGIN_EXAMPLE,
+      "",
+      "Add an optional name card in .smol/plugins/my-guard.json with:",
+      '{"version": "1.0.0", "description": "What it does.", "author": "you"}',
+    ].join("\n");
+  }
+  const lines = infos.map(
+    (i) =>
+      `- ${i.name} v${i.version} by ${i.author} [${i.hooks.join("+") || "no hooks"}]${i.ok ? "" : ` — BROKEN: ${(i.error ?? "load error").slice(0, 120)}`}\n  ${i.description}`
+  );
+  return `Plugins (${infos.length}):\n${lines.join("\n")}`;
+}

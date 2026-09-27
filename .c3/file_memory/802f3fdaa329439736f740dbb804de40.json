@@ -1,10 +1,10 @@
 {
   "path": "test/lsp.test.js",
-  "content_hash": "d8e5c8380f6e2d5f564a47c9b0f7bdcb",
-  "updated_at": "2026-09-26T18:03:05",
+  "content_hash": "8b615be58c752d28faac84d452725533",
+  "updated_at": "2026-09-27T19:26:50",
   "lines": 55,
   "size_bytes": 2785,
-  "mtime_ns": 1790424959013363300,
+  "mtime_ns": 1790533564343353500,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",

@@ -11,17 +11,21 @@ import { Plan } from "../plan";
 import { ToolSpec } from "../providers/types";
 import { editFile, listFiles, readFile, writeFile } from "./fs-tools";
 import { fetchUrl } from "./web";
-import { querySymbols } from "../lsp";
+import { queryCode } from "../lsp-pro";
 import { McpBridge } from "../mcp";
 import { listSkills, readSkill, saveSkill } from "../skills";
 import { syntaxCheck } from "./check";
 import { runCommand } from "./shell";
 import { TaskManager } from "./tasks";
 import { CoworkBoard } from "./cowork";
+import { queryIndex } from "../codeindex";
+import { queryGit } from "../git";
+import { queryDebug } from "../debug";
+import { formatFile } from "../format";
 import { resolveInWorkspace, SandboxError } from "../sandbox";
 import { truncateMiddle } from "../util";
 import { searchFilesBounded } from "./search-worker";
-import { LoadedPlugin } from "../plugins";
+import { LoadedPlugin, describePlugins } from "../plugins";
 
 export type Mode = "ro" | "edit" | "bypass";
 
@@ -138,6 +142,51 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
         required: ["url"],
       },
     },
+    {
+      name: "index_symbols",
+      description:
+        'Find where a function, class or type is defined (offline code index, instant). Search: {"action": "search", "query": "Agent"}. All symbols of one file: {"action": "file", "path": "src/agent.ts"}. Index info: {"action": "stats"}. Rebuild after adding files: {"action": "refresh"} (edit modes only).',
+      parameters: {
+        type: "object",
+        properties: {
+          action: { type: "string", enum: ["search", "file", "stats", "refresh"] },
+          query: { type: "string", description: "Symbol name to find (only for search)" },
+          path: { type: "string", description: "File path relative to the workspace (only for file)" },
+          limit: { type: "number", description: "Max results (only for search, default 30)" },
+        },
+        required: ["action"],
+      },
+    },
+    {
+      name: "git",
+      description:
+        'Read the git repository (works in read-only mode). Status: {"action": "status"}. Uncommitted changes: {"action": "diff"}. Staged changes: {"action": "diff", "staged": true}. History: {"action": "log", "count": 10}. Who wrote a line: {"action": "blame", "path": "src/agent.ts", "line": 42}. Branches: {"action": "branch"}. Stage (edit only): {"action": "stage", "path": "src/agent.ts"} — use "." for everything. Commit (edit only): {"action": "commit", "message": "Fix login retry"}.',
+      parameters: {
+        type: "object",
+        properties: {
+          action: { type: "string", enum: ["status", "diff", "log", "blame", "branch", "stage", "commit"] },
+          path: { type: "string", description: "File path (for diff, blame, stage); comma-separated for stage" },
+          message: { type: "string", description: "Commit message (only for commit)" },
+          count: { type: "number", description: "Commits to show (only for log, default 10)" },
+          line: { type: "number", description: "Line number (only for blame)" },
+          staged: { type: "boolean", description: "Show staged changes (only for diff)" },
+          stat: { type: "boolean", description: "Show file summary instead of full patch (only for diff)" },
+        },
+        required: ["action"],
+      },
+    },
+    {
+      name: "plugins",
+      description:
+        'List installed workspace plugins with their version and description. Example: {"action": "list"}. Add one by dropping a .cjs file into .smol/plugins/ (optional <name>.json name card).',
+      parameters: {
+        type: "object",
+        properties: {
+          action: { type: "string", enum: ["list"] },
+        },
+        required: ["action"],
+      },
+    },
   ];
 
   const write: ToolSpec[] = [
@@ -168,6 +217,18 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
         required: ["path", "old_text", "new_text"],
       },
     },
+    {
+      name: "format",
+      description:
+        'Format one code file in place with the project formatter (prettier, black/ruff, rustfmt, gofmt). Example: {"path": "src/agent.ts"}. Undoable like any edit. If no formatter is installed, the answer is the install command.',
+      parameters: {
+        type: "object",
+        properties: {
+          path: { type: "string", description: "File path relative to the workspace" },
+        },
+        required: ["path"],
+      },
+    },
   ];
 
   const exec: ToolSpec[] = [
@@ -193,6 +254,18 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
           action: { type: "string", enum: ["start", "list", "logs", "stop"] },
           command: { type: "string", description: 'Command to run (only for "start")' },
           task_id: { type: "string", description: 'Task id like "t1" (for "logs" and "stop")' },
+        },
+        required: ["action"],
+      },
+    },
+    {
+      name: "debug",
+      description:
+        'Run the program under a real debugger (breakpoints, stack, variables) using .smol/debug.json. Example: {"action": "run"}. First call without config explains the setup. Runs code: edit modes only.',
+      parameters: {
+        type: "object",
+        properties: {
+          action: { type: "string", enum: ["run"] },
         },
         required: ["action"],
       },
@@ -238,16 +311,22 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
     {
       name: "symbols",
       description:
-        'Ask the language server about TypeScript/JavaScript code. Hover: {"action": "hover", "path": "src/agent.ts", "line": 10, "col": 15}. Definition: {"action": "def", ...}. References: {"action": "refs", ...}. Diagnostics: {"action": "diag", "path": "src/agent.ts"}. Lines and columns start at 1.',
+        'Ask a language server about code (TypeScript, JavaScript, Python, Rust, Go). Hover: {"action": "hover", "path": "src/agent.ts", "line": 10, "col": 15}. Definition: {"action": "def", ...}. References: {"action": "refs", ...}. Diagnostics: {"action": "diag", "path": "src/agent.ts"}. Rename preview: {"action": "rename", "path": "...", "line": 3, "col": 5, "new_text": "total"}. Completions: {"action": "completion", ...}. Signature: {"action": "signature", ...}. Quick fixes: {"action": "quickfix", ...}. Whole-workspace symbol: {"action": "wsymbol", "query": "Agent"}. Lines and columns start at 1.',
       parameters: {
         type: "object",
         properties: {
-          action: { type: "string", enum: ["hover", "def", "refs", "diag"] },
-          path: { type: "string", description: "File path relative to the workspace" },
-          line: { type: "number", description: "Line number starting at 1 (not for diag)" },
-          col: { type: "number", description: "Column number starting at 1 (not for diag)" },
+          action: {
+            type: "string",
+            enum: ["hover", "def", "refs", "diag", "rename", "completion", "signature", "wsymbol", "quickfix"],
+          },
+          path: { type: "string", description: "File path relative to the workspace (not for wsymbol)" },
+          line: { type: "number", description: "Line number starting at 1 (not for diag/wsymbol)" },
+          col: { type: "number", description: "Column number starting at 1 (not for diag/wsymbol)" },
+          new_text: { type: "string", description: "New name (only for rename)" },
+          query: { type: "string", description: "Symbol name to find (only for wsymbol)" },
+          lang: { type: "string", description: "Language for wsymbol: typescript, python, rust, go (optional)" },
         },
-        required: ["action", "path"],
+        required: ["action"],
       },
     },
   ];
@@ -482,7 +561,7 @@ export async function executeTool(
         break;
       }
       case "symbols": {
-        result = await querySymbols(ctx.workspace, args, signal);
+        result = await queryCode(ctx.workspace, args, signal);
         break;
       }
       case "mcp": {
@@ -490,6 +569,43 @@ export async function executeTool(
           return "Error: MCP bridge is not wired in this session. The host must set toolCtx.mcp (see docs/plugins.md).";
         }
         result = await ctx.mcp.call(String(args.server ?? ""), String(args.tool ?? ""), String(args.args ?? ""), signal);
+        break;
+      }
+      case "index_symbols": {
+        result = queryIndex(ctx.workspace, args, { canWrite: ctx.canWrite });
+        break;
+      }
+      case "git": {
+        result = queryGit(ctx.workspace, args, { canWrite: ctx.canWrite });
+        break;
+      }
+      case "debug": {
+        result = await queryDebug(ctx.workspace, args, { canWrite: ctx.canWrite }, signal);
+        break;
+      }
+      case "format": {
+        const rel = typeof args.path === "string" ? args.path : "";
+        if (!rel) {
+          return 'Error: path is required. Example: {"path": "src/agent.ts"}';
+        }
+        const undoCap = capturePrev(ctx.workspace, rel);
+        const fr = formatFile(ctx.workspace, rel);
+        result = fr.message;
+        if (fr.ok && !result.startsWith("Error")) {
+          try {
+            pushUndo(ctx, undoCap, fs.readFileSync(resolveInWorkspace(ctx.workspace, rel), "utf8"));
+          } catch {
+            /* undo is best effort — the format itself succeeded */
+          }
+          ctx.filesTouched.add(rel);
+        }
+        break;
+      }
+      case "plugins": {
+        if (args.action !== undefined && args.action !== "list") {
+          return 'Error: action must be "list". Example: {"action": "list"}';
+        }
+        result = describePlugins(ctx.workspace);
         break;
       }
       default:

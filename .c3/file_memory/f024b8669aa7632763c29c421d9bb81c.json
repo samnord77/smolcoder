@@ -1,0 +1,69 @@
+{
+  "path": "extras/secondary-agent-tools/AGENTS.md",
+  "content_hash": "2b53c398a994ec510182d694f258d6a8",
+  "updated_at": "2026-09-27T19:10:49",
+  "lines": 67,
+  "size_bytes": 6636,
+  "mtime_ns": 1790261870441361600,
+  "language": "markdown",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "heading",
+      "name": "h1: AGENTS.md \u2014 Protocole d'Excellence Ing\u00e9nierie (Standard Clau",
+      "line_start": 1,
+      "line_end": 67,
+      "signature": "# AGENTS.md \u2014 Protocole d'Excellence Ing\u00e9nierie (Standard Claude Code & Codex)"
+    },
+    {
+      "type": "heading",
+      "name": "h2: 1. Philosophie de Codage (Standard Claude Code & Codex)",
+      "line_start": 5,
+      "line_end": 11,
+      "signature": "## 1. Philosophie de Codage (Standard Claude Code & Codex)"
+    },
+    {
+      "type": "heading",
+      "name": "h2: 2. D\u00e9roulement M\u00e9thodique par \u00c9tape",
+      "line_start": 12,
+      "line_end": 21,
+      "signature": "## 2. D\u00e9roulement M\u00e9thodique par \u00c9tape"
+    },
+    {
+      "type": "heading",
+      "name": "h2: 3. Automatisation des Outils Locaux (Machine DELL)",
+      "line_start": 22,
+      "line_end": 30,
+      "signature": "## 3. Automatisation des Outils Locaux (Machine DELL)"
+    },
+    {
+      "type": "heading",
+      "name": "h2: 4. Gestion du Contexte & Auto-R\u00e9paration",
+      "line_start": 31,
+      "line_end": 36,
+      "signature": "## 4. Gestion du Contexte & Auto-R\u00e9paration"
+    },
+    {
+      "type": "heading",
+      "name": "h2: 5. Outils Natifs Avanc\u00e9s (Skills, ChromaDB, WebFetch, Think,",
+      "line_start": 37,
+      "line_end": 49,
+      "signature": "## 5. Outils Natifs Avanc\u00e9s (Skills, ChromaDB, WebFetch, Think, Sub-Agents & MCP)"
+    },
+    {
+      "type": "heading",
+      "name": "h2: 6. Protocole Multi-Sous-Agents & TDD (Standard Claude Code &",
+      "line_start": 50,
+      "line_end": 59,
+      "signature": "## 6. Protocole Multi-Sous-Agents & TDD (Standard Claude Code & Codex)"
+    },
+    {
+      "type": "heading",
+      "name": "h2: 7. Alignement d'Architecture Entreprise (Standard Oracle Fus",
+      "line_start": 60,
+      "line_end": 67,
+      "signature": "## 7. Alignement d'Architecture Entreprise (Standard Oracle Fusion AI)"
+    }
+  ]
+}

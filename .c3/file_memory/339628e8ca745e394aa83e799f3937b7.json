@@ -1,0 +1,48 @@
+{
+  "path": "extras/secondary-agent-tools/add-kaggle-host.js",
+  "content_hash": "c6d2bff65000dc6b3a6c843ec74f5f78",
+  "updated_at": "2026-09-27T19:10:50",
+  "lines": 62,
+  "size_bytes": 1765,
+  "mtime_ns": 1790256054478339600,
+  "language": "javascript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "constant",
+      "name": "fs",
+      "line_start": 6,
+      "line_end": 6,
+      "signature": "const fs = require(\"node:fs\");"
+    },
+    {
+      "type": "constant",
+      "name": "os",
+      "line_start": 7,
+      "line_end": 7,
+      "signature": "const os = require(\"node:os\");"
+    },
+    {
+      "type": "constant",
+      "name": "path",
+      "line_start": 8,
+      "line_end": 8,
+      "signature": "const path = require(\"node:path\");"
+    },
+    {
+      "type": "constant",
+      "name": "CONFIG_PATH",
+      "line_start": 10,
+      "line_end": 10,
+      "signature": "const CONFIG_PATH = path.join(os.homedir(), \".smolcoder.json\");"
+    },
+    {
+      "type": "function",
+      "name": "addRemoteHost",
+      "line_start": 12,
+      "line_end": 49,
+      "signature": "function addRemoteHost(url, name = \"Kaggle Model Host\") {"
+    }
+  ]
+}

@@ -1,0 +1,74 @@
+✔ a repeated acceptance failure refreshes facts and discards stale hypotheses without another inference (3990.4859ms)
+✔ progress to a different acceptance failure retains the working context (5244.2129ms)
+✔ repeated failures never discard summaries containing earlier user decisions (5519.6101ms)
+✔ private acceptance command stays in the host instead of becoming an inaccessible model instruction (2017.2774ms)
+✖ recovery from failed edits uses known project failures without spending final acceptance attempts (6941.4597ms)
+✔ failed acceptance returns real feedback and repairs within a single runTurn (1979.8768ms)
+✔ repeated claims of completion cannot bypass a failing acceptance command (2091.8654ms)
+✔ cancellation during acceptance terminates the command and does not start a repair (1296.9757ms)
+✔ reads evicted by the harness do not count as retained unchanged-read loops (89.9989ms)
+✔ stalled reads trigger acceptance feedback and an automatic repair (3735.3299ms)
+✔ sustained investigation triggers real checks even when compaction evicts every read (2418.8564ms)
+[events] post_progress_check handler failed: The input did not match the regular expression /Last project check failure/. Input:
+
+'[The conversation so far was compacted to save context. Continue the task from these notes — do not start over, and do not redo finished steps.]\n' +
+  'Original request: Build\n' +
+  '\n' +
+  'Caller-owned acceptance checks must pass before completion. The harness runs them automatically and returns failures for repair. Use project files and returned failures to fix the application. Do not weaken or bypass acceptance checks.\n' +
+  'Files created/modified so far: app.txt\n'
+
+✖ periodic project checks break API investigation cycles with edits without spending acceptance attempts (5730.7404ms)
+✔ after acceptance fails, periodic checks use that oracle and a final summary reuses its pass (2543.8293ms)
+✔ acceptance commands cannot run after switching to read-only (14.9372ms)
+✔ short commands preempt background summaries before any model request (1.9935ms)
+✔ project checks run automatically after edits in the shared UI agent (4266.6451ms)
+✔ project check discovery never interpolates package script bodies (159.778ms)
+✔ project check discovery recognizes common non-Node test runners with fixed commands (81.3156ms)
+✔ Java builds prefer checked-in wrappers and Python without tests is not guessed (87.1933ms)
+✔ automatic repairs discover added checks and cannot bypass a required script by deleting it (22022.4478ms)
+ℹ tests 20
+ℹ suites 0
+ℹ pass 18
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 71320.7292
+
+✖ failing tests:
+
+test at test\verification.test.js:101:1
+✖ recovery from failed edits uses known project failures without spending final acceptance attempts (6941.4597ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  1 !== 2
+  
+      at TestContext.<anonymous> (C:\Users\DELL\smolcoder-source\test\verification.test.js:114:50)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 2,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test\verification.test.js:193:1
+✖ periodic project checks break API investigation cycles with edits without spending acceptance attempts (5730.7404ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  27 !== 26
+  
+      at TestContext.<anonymous> (C:\Users\DELL\smolcoder-source\test\verification.test.js:212:41)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 27,
+    expected: 26,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

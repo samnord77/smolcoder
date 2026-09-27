@@ -1,0 +1,9 @@
+{
+  "original_tokens": 2881,
+  "compressed_tokens": 93,
+  "saved_tokens": 2788,
+  "savings_pct": 96.8,
+  "compressed": "# lsp-pro.test.js (.js) \u2014 194 lines\nconst test = require(\"node:test\");\nconst assert = require(\"node:assert/strict\");\nconst fs = require(\"node:fs\");\nconst os = require(\"node:os\");\nconst path = require(\"node:path\");\nfunction scratchWs(files)\nconst MOCK_LINES = [ '\"use strict\";', 'let buf = Buffer.alloc(0);',\nlet mockCmd = null;\nfunction mockCommand()",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\lsp-pro.test.js"
+}

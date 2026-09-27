@@ -1,46 +1,26 @@
 {
   "schema_version": 1,
-  "fencing": 27,
+  "fencing": 48,
   "locks": [
     {
-      "relpath": "desktop/preload-git.js",
-      "agent_id": "claude-code:20260925",
-      "session_id": "20260925_112127_7665d46da88a",
-      "fencing_token": 24,
-      "intent": "Cr\u00e9e preload-git.js : pont getStatus/getDiff/commit",
-      "acquired_at": 1790358423.9248326,
-      "expires_at": 1790359323.9248326,
-      "lock_id": "14e1f2b9e6ca4d42a8b43c4245d108fb"
+      "relpath": "test/mcp.test.js",
+      "agent_id": "claude-code:20260927",
+      "session_id": "20260927_164838_0239733e7ab3",
+      "fencing_token": 47,
+      "intent": "Compteurs d'outils : 19 en \u00e9dition, 10 en lecture seule",
+      "acquired_at": 1790535983.3797143,
+      "expires_at": 1790536883.3797143,
+      "lock_id": "e68fad377b5e454aa22587f146f9bf26"
     },
     {
-      "relpath": "desktop/git.html",
-      "agent_id": "claude-code:20260925",
-      "session_id": "20260925_112127_7665d46da88a",
-      "fencing_token": 25,
-      "intent": "Cr\u00e9e git.html : panneau sombre FR badges/filtre/diff/commit",
-      "acquired_at": 1790358489.0041175,
-      "expires_at": 1790359389.0041175,
-      "lock_id": "10c7460031894ac6918fb14e3d707038"
-    },
-    {
-      "relpath": "src/web/client.ts",
-      "agent_id": "claude-code:20260925",
-      "session_id": "20260925_112127_7665d46da88a",
-      "fencing_token": 26,
-      "intent": "editing via c3_edit",
-      "acquired_at": 1790358490.2460103,
-      "expires_at": 1790359390.2460103,
-      "lock_id": "74a7b94bdba44e7891b22c871291e9d1"
-    },
-    {
-      "relpath": "desktop/main.js",
-      "agent_id": "claude-code:20260925",
-      "session_id": "20260925_112127_7665d46da88a",
-      "fencing_token": 27,
-      "intent": "Ajoute fen\u00eatre openGit + ipc git:status/diff/commit avant app.whenReady",
-      "acquired_at": 1790358511.820608,
-      "expires_at": 1790359476.4406476,
-      "lock_id": "222be568870e4b5bb7e725fc0643bb4e"
+      "relpath": "test/verification.test.js",
+      "agent_id": "claude-code:20260927",
+      "session_id": "20260927_164838_0239733e7ab3",
+      "fencing_token": 48,
+      "intent": "Recalibre le compteur d'appels (compaction plus pr\u00e9coce avec 19 outils)",
+      "acquired_at": 1790535983.458457,
+      "expires_at": 1790536883.458457,
+      "lock_id": "bba4f3bd60f34fea8bfa28e88b3ea902"
     }
   ]
 }

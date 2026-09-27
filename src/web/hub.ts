@@ -28,6 +28,8 @@ import { describeSkills, readDelegateStats } from "../skills";
 import { delegatePrompt, loadSubagentRoles, SubagentRole } from "../subagents";
 import { searchWorkspace } from "../workspace-search";
 import { workspaceDiagnostics } from "../workspace-diagnostics";
+import { queryCode, lspAvailability } from "../lsp-pro";
+import { queryIndex } from "../codeindex";
 
 export type SessionFactory = (ui: SessionChannel, workspace: string, prefs: SessionPrefs, planKey?: string) => Promise<Session>;
 
@@ -755,6 +757,43 @@ export class WebHub {
           void workspaceDiagnostics(live.workspace, url.searchParams.get("path"))
             .then((result) => json(200, result))
             .catch((err: any) => json(400, { error: String(err?.message ?? err).slice(0, 500) }));
+          return;
+        }
+        case "/code/lsp": {
+          const sid = String(url.searchParams.get("sid") ?? "");
+          const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
+          if (!live) { json(404, { error: "no such session" }); return; }
+          const num = (v: string | null): number | undefined => {
+            const n = Number(v);
+            return Number.isSafeInteger(n) && n >= 1 ? n : undefined;
+          };
+          void queryCode(live.workspace, {
+            action: url.searchParams.get("action") ?? "diag",
+            path: url.searchParams.get("path") ?? undefined,
+            line: num(url.searchParams.get("line")),
+            col: num(url.searchParams.get("col")),
+            new_text: url.searchParams.get("new_text") ?? undefined,
+            query: url.searchParams.get("query") ?? undefined,
+            lang: url.searchParams.get("lang") ?? undefined,
+          })
+            .then((result) => json(200, { result }))
+            .catch((err: any) => json(400, { error: String(err?.message ?? err).slice(0, 500) }));
+          return;
+        }
+        case "/code/symbols": {
+          const sid = String(url.searchParams.get("sid") ?? "");
+          const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
+          if (!live) { json(404, { error: "no such session" }); return; }
+          try {
+            const q = String(url.searchParams.get("q") ?? "");
+            json(200, { result: queryIndex(live.workspace, q ? { action: "search", query: q } : { action: "stats" }) });
+          } catch (err: any) { json(400, { error: String(err?.message ?? err).slice(0, 500) }); }
+          return;
+        }
+        case "/code/availability": {
+          try {
+            json(200, { servers: lspAvailability() });
+          } catch (err: any) { json(400, { error: String(err?.message ?? err).slice(0, 500) }); }
           return;
         }
         case "/workspace/file":

@@ -1,0 +1,9 @@
+{
+  "original_tokens": 1092,
+  "compressed_tokens": 52,
+  "saved_tokens": 1040,
+  "savings_pct": 95.2,
+  "compressed": "# MEMORY.md (.md) \u2014 16 lines\n# M\u00e9moire durable du projet  - L\u2019utilisateur veut faire \u00e9voluer Smolcoder vers un IDE professionnel, dans ses trois interfaces : terminal/CLI, application de bureau Electron et interface web.",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\MEMORY.md"
+}

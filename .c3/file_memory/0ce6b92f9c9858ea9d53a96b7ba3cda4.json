@@ -1,0 +1,289 @@
+{
+  "path": "src/debug.ts",
+  "content_hash": "7da48060857718120c608c385830c70c",
+  "updated_at": "2026-09-27T19:22:50",
+  "lines": 499,
+  "size_bytes": 18233,
+  "mtime_ns": 1790533209175263700,
+  "language": "typescript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "import",
+      "name": "import { spawn, ChildProcess } from \"child_process\";",
+      "line_start": 16,
+      "line_end": 16,
+      "signature": "import { spawn, ChildProcess } from \"child_process\";"
+    },
+    {
+      "type": "import",
+      "name": "import * as fs from \"fs\";",
+      "line_start": 17,
+      "line_end": 17,
+      "signature": "import * as fs from \"fs\";"
+    },
+    {
+      "type": "import",
+      "name": "import * as net from \"net\";",
+      "line_start": 18,
+      "line_end": 18,
+      "signature": "import * as net from \"net\";"
+    },
+    {
+      "type": "import",
+      "name": "import * as path from \"path\";",
+      "line_start": 19,
+      "line_end": 19,
+      "signature": "import * as path from \"path\";"
+    },
+    {
+      "type": "import",
+      "name": "import { encodeLsp } from \"./lsp\";",
+      "line_start": 20,
+      "line_end": 20,
+      "signature": "import { encodeLsp } from \"./lsp\";"
+    },
+    {
+      "type": "import",
+      "name": "import { resolveInWorkspace } from \"./sandbox\";",
+      "line_start": 21,
+      "line_end": 21,
+      "signature": "import { resolveInWorkspace } from \"./sandbox\";"
+    },
+    {
+      "type": "import",
+      "name": "import { resolveCommand } from \"./mcp\";",
+      "line_start": 22,
+      "line_end": 22,
+      "signature": "import { resolveCommand } from \"./mcp\";"
+    },
+    {
+      "type": "constant",
+      "name": "DEFAULT_BUDGET_MS",
+      "line_start": 24,
+      "line_end": 24,
+      "signature": "const DEFAULT_BUDGET_MS = 60_000;"
+    },
+    {
+      "type": "constant",
+      "name": "TRANSCRIPT_CAP",
+      "line_start": 25,
+      "line_end": 25,
+      "signature": "const TRANSCRIPT_CAP = 6000;"
+    },
+    {
+      "type": "interface",
+      "name": "DapPending",
+      "line_start": 27,
+      "line_end": 31,
+      "signature": "interface DapPending {",
+      "children": []
+    },
+    {
+      "type": "interface",
+      "name": "DapEvent",
+      "line_start": 33,
+      "line_end": 36,
+      "signature": "interface DapEvent {",
+      "children": []
+    },
+    {
+      "type": "class",
+      "name": "DapClient",
+      "line_start": 40,
+      "line_end": 202,
+      "signature": "class DapClient {",
+      "children": [
+        {
+          "type": "property",
+          "name": "proc",
+          "line_start": 41,
+          "line_end": 41,
+          "signature": "private proc: ChildProcess | null = null;",
+          "access": "private"
+        },
+        {
+          "type": "property",
+          "name": "socket",
+          "line_start": 42,
+          "line_end": 42,
+          "signature": "private socket: net.Socket | null = null;",
+          "access": "private"
+        },
+        {
+          "type": "property",
+          "name": "seq",
+          "line_start": 43,
+          "line_end": 43,
+          "signature": "private seq = 0;",
+          "access": "private"
+        },
+        {
+          "type": "property",
+          "name": "pending",
+          "line_start": 44,
+          "line_end": 44,
+          "signature": "private pending = new Map<number, DapPending>();",
+          "access": "private"
+        },
+        {
+          "type": "property",
+          "name": "buf",
+          "line_start": 45,
+          "line_end": 45,
+          "signature": "private buf = Buffer.alloc(0);",
+          "access": "private"
+        },
+        {
+          "type": "property",
+          "name": "events",
+          "line_start": 46,
+          "line_end": 46,
+          "signature": "private events: DapEvent[] = [];",
+          "access": "private"
+        },
+        {
+          "type": "property",
+          "name": "dead",
+          "line_start": 47,
+          "line_end": 47,
+          "signature": "private dead: Error | null = null;",
+          "access": "private"
+        },
+        {
+          "type": "method",
+          "name": "startStdio",
+          "line_start": 50,
+          "line_end": 67,
+          "signature": "async startStdio(cmd: string[], cwd: string): Promise<void> {",
+          "async": true,
+          "doc": "Spawn a stdio adapter."
+        },
+        {
+          "type": "method",
+          "name": "connectSocket",
+          "line_start": 70,
+          "line_end": 96,
+          "signature": "async connectSocket(host: string, port: number, timeoutMs = 10_000): Promise<void> {",
+          "async": true,
+          "doc": "Connect to a TCP DAP server (already listening)."
+        },
+        {
+          "type": "method",
+          "name": "failAll",
+          "line_start": 98,
+          "line_end": 106,
+          "signature": "private failAll(err: Error): void {",
+          "access": "private"
+        },
+        {
+          "type": "method",
+          "name": "ingest",
+          "line_start": 108,
+          "line_end": 146,
+          "signature": "private ingest(chunk: Buffer): void {",
+          "access": "private"
+        },
+        {
+          "type": "method",
+          "name": "write",
+          "line_start": 148,
+          "line_end": 156,
+          "signature": "private write(raw: string): void {",
+          "access": "private"
+        },
+        {
+          "type": "method",
+          "name": "request",
+          "line_start": 158,
+          "line_end": 175,
+          "signature": "request(command: string, args?: any, timeoutMs = 20_000): Promise<any> {"
+        },
+        {
+          "type": "method",
+          "name": "takeEvents",
+          "line_start": 177,
+          "line_end": 181,
+          "signature": "takeEvents(): DapEvent[] {"
+        },
+        {
+          "type": "method",
+          "name": "close",
+          "line_start": 183,
+          "line_end": 201,
+          "signature": "close(): void {"
+        }
+      ]
+    },
+    {
+      "type": "interface",
+      "name": "DebugBreakpoint",
+      "line_start": 208,
+      "line_end": 211,
+      "signature": "interface DebugBreakpoint {",
+      "children": []
+    },
+    {
+      "type": "interface",
+      "name": "DebugPlan",
+      "line_start": 213,
+      "line_end": 220,
+      "signature": "interface DebugPlan {",
+      "children": []
+    },
+    {
+      "type": "function",
+      "name": "fmtValue",
+      "line_start": 222,
+      "line_end": 226,
+      "signature": "function fmtValue(v: any): string {"
+    },
+    {
+      "type": "function",
+      "name": "runDebugSession",
+      "line_start": 231,
+      "line_end": 351,
+      "signature": "async function runDebugSession(client: DapClient, plan: DebugPlan, root: string): Promise<string> {",
+      "async": true
+    },
+    {
+      "type": "interface",
+      "name": "DebugConfig",
+      "line_start": 357,
+      "line_end": 369,
+      "signature": "interface DebugConfig {",
+      "children": []
+    },
+    {
+      "type": "function",
+      "name": "loadDebugConfig",
+      "line_start": 371,
+      "line_end": 388,
+      "signature": "function loadDebugConfig(root: string): { cfg: DebugConfig | null; error: string | null } {"
+    },
+    {
+      "type": "constant",
+      "name": "DEBUG_SETUP_HELP",
+      "line_start": 390,
+      "line_end": 394,
+      "signature": "const DEBUG_SETUP_HELP = `No debugger configured yet. Create .smol/debug.json in this workspace, for example for Python (debugpy speaks DAP over a socket):"
+    },
+    {
+      "type": "interface",
+      "name": "DebugQuery",
+      "line_start": 396,
+      "line_end": 399,
+      "signature": "interface DebugQuery {",
+      "children": []
+    },
+    {
+      "type": "function",
+      "name": "queryDebug",
+      "line_start": 402,
+      "line_end": 499,
+      "signature": "async function queryDebug(root: string, args: DebugQuery, opts?: { canWrite?: boolean }, signal?: AbortSignal): Promise<string> {",
+      "async": true
+    }
+  ]
+}

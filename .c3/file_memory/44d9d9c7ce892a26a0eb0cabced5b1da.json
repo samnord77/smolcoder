@@ -1,0 +1,169 @@
+{
+  "path": "src/git.ts",
+  "content_hash": "14ff420e53b035798e4c6fb94cc48561",
+  "updated_at": "2026-09-27T19:17:49",
+  "lines": 239,
+  "size_bytes": 9376,
+  "mtime_ns": 1790533046615223900,
+  "language": "typescript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "import",
+      "name": "import { spawnSync } from \"child_process\";",
+      "line_start": 6,
+      "line_end": 6,
+      "signature": "import { spawnSync } from \"child_process\";"
+    },
+    {
+      "type": "import",
+      "name": "import * as fs from \"fs\";",
+      "line_start": 7,
+      "line_end": 7,
+      "signature": "import * as fs from \"fs\";"
+    },
+    {
+      "type": "import",
+      "name": "import * as path from \"path\";",
+      "line_start": 8,
+      "line_end": 8,
+      "signature": "import * as path from \"path\";"
+    },
+    {
+      "type": "import",
+      "name": "import { resolveInWorkspace } from \"./sandbox\";",
+      "line_start": 9,
+      "line_end": 9,
+      "signature": "import { resolveInWorkspace } from \"./sandbox\";"
+    },
+    {
+      "type": "constant",
+      "name": "GIT_TIMEOUT_MS",
+      "line_start": 11,
+      "line_end": 11,
+      "signature": "const GIT_TIMEOUT_MS = 30_000;"
+    },
+    {
+      "type": "constant",
+      "name": "OUTPUT_CAP",
+      "line_start": 12,
+      "line_end": 12,
+      "signature": "const OUTPUT_CAP = 8000;"
+    },
+    {
+      "type": "interface",
+      "name": "GitRun",
+      "line_start": 14,
+      "line_end": 17,
+      "signature": "interface GitRun {",
+      "children": []
+    },
+    {
+      "type": "function",
+      "name": "cap",
+      "line_start": 19,
+      "line_end": 22,
+      "signature": "function cap(s: string): string {"
+    },
+    {
+      "type": "function",
+      "name": "runGit",
+      "line_start": 25,
+      "line_end": 47,
+      "signature": "function runGit(root: string, args: string[]): GitRun {"
+    },
+    {
+      "type": "function",
+      "name": "isGitRepo",
+      "line_start": 49,
+      "line_end": 57,
+      "signature": "function isGitRepo(root: string): boolean {"
+    },
+    {
+      "type": "function",
+      "name": "needRepo",
+      "line_start": 59,
+      "line_end": 64,
+      "signature": "function needRepo(root: string): string | null {"
+    },
+    {
+      "type": "function",
+      "name": "gitStatus",
+      "line_start": 66,
+      "line_end": 76,
+      "signature": "function gitStatus(root: string): string {"
+    },
+    {
+      "type": "function",
+      "name": "gitDiff",
+      "line_start": 78,
+      "line_end": 96,
+      "signature": "function gitDiff(root: string, opts?: { staged?: boolean; path?: string; stat?: boolean }): string {"
+    },
+    {
+      "type": "function",
+      "name": "gitLog",
+      "line_start": 98,
+      "line_end": 105,
+      "signature": "function gitLog(root: string, count = 10): string {"
+    },
+    {
+      "type": "function",
+      "name": "gitBlame",
+      "line_start": 107,
+      "line_end": 141,
+      "signature": "function gitBlame(root: string, relPath: string, line?: number): string {"
+    },
+    {
+      "type": "function",
+      "name": "gitBranch",
+      "line_start": 143,
+      "line_end": 149,
+      "signature": "function gitBranch(root: string): string {"
+    },
+    {
+      "type": "function",
+      "name": "gitStage",
+      "line_start": 151,
+      "line_end": 167,
+      "signature": "function gitStage(root: string, paths: string[]): string {"
+    },
+    {
+      "type": "function",
+      "name": "gitCommit",
+      "line_start": 169,
+      "line_end": 182,
+      "signature": "function gitCommit(root: string, message: string): string {"
+    },
+    {
+      "type": "interface",
+      "name": "GitQuery",
+      "line_start": 184,
+      "line_end": 192,
+      "signature": "interface GitQuery {",
+      "children": []
+    },
+    {
+      "type": "constant",
+      "name": "READ_ACTIONS",
+      "line_start": 194,
+      "line_end": 194,
+      "signature": "const READ_ACTIONS = new Set([\"status\", \"diff\", \"log\", \"blame\", \"branch\"]);"
+    },
+    {
+      "type": "constant",
+      "name": "GIT_ACTIONS",
+      "line_start": 196,
+      "line_end": 196,
+      "signature": "const GIT_ACTIONS = [\"status\", \"diff\", \"log\", \"blame\", \"branch\", \"stage\", \"commit\"];"
+    },
+    {
+      "type": "function",
+      "name": "queryGit",
+      "line_start": 199,
+      "line_end": 239,
+      "signature": "function queryGit(root: string, args: GitQuery, opts?: { canWrite?: boolean }): string {"
+    }
+  ]
+}

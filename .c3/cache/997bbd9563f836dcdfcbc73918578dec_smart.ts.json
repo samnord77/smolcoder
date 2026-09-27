@@ -1,0 +1,9 @@
+{
+  "original_tokens": 5856,
+  "compressed_tokens": 411,
+  "saved_tokens": 5445,
+  "savings_pct": 93.0,
+  "compressed": "# index.ts (.ts) \u2014 544 lines\nimport * as fs from \"fs\";\nimport { Plan } from \"../plan\";\nimport { ToolSpec } from \"../providers/types\";\nimport { editFile, listFiles, readFile, writeFile } from \"./fs-tools\";\nimport { fetchUrl } from \"./web\";\nimport { queryCode } from \"../lsp-pro\";\nimport { McpBridge } from \"../mcp\";\nimport { listSkills, readSkill, saveSkill } from \"../skills\";\nimport { syntaxCheck } from \"./check\";\nimport { runCommand } from \"./shell\";\nimport { TaskManager } from \"./tasks\";\nimport { CoworkBoard } from \"./cowork\";\nimport { resolveInWorkspace, SandboxError } from \"../sandbox\";\nimport { truncateMiddle } from \"../util\";\nimport { searchFilesBounded } from \"./search-worker\";\nimport { LoadedPlugin } from \"../plugins\";\n\nexport type Mode = \"ro\" | \"edit\" | \"bypass\";\nexport const MODE_LABELS: Record<Mode, string> =\nconst TOOL_RESULT_CAP = 10000; // chars \u2014 final safety net over per-tool caps\nfunction workTool(canWrite: boolean): ToolSpec\nexport function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): ToolSpec[]\nexport interface UndoEntry\nconst UNDO_CAP = 20;\nconst UNDO_SKIP_BYTES = 1024 * 1024; // >1 Mo : skip silencieuse, pas d'entr\u00e9e undo\nfunction capturePrev(workspace: string, rel: unknown): { abs: string; prev: string | null } | null\nfunction pushUndo( ctx: ToolContext, captured: { abs: string; prev: string | null } | null,\nexport interface ToolContext\nexport async function executeTool( name: string, args: Record<string, any>,\nfunction afterWrite(workspace: string, relPath: string): string\nexport function commandOf(name: string, args: Record<string, any>): string | null",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\tools\\index.ts"
+}

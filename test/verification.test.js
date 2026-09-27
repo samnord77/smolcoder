@@ -209,7 +209,10 @@ test('periodic project checks break API investigation cycles with edits without 
     assert.match(agent.messages[1].content,/exit code 42/);
   });
   await agent.runTurn('Build');
-  assert.equal(progressChecks,1);assert.equal(calls,26);assert.equal(agent.outcome,'completed');
+  // calls counts every model request including the background-compaction
+  // summary: 19 tool specs (vs 14) push the prompt estimate over the 60%
+  // background threshold one investigation cycle earlier, hence 27, not 26.
+  assert.equal(progressChecks,1);assert.equal(calls,27);assert.equal(agent.outcome,'completed');
   assert.equal(agent.verificationResult.attempts,1);
 });
 

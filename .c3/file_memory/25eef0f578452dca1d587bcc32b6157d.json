@@ -1,0 +1,20 @@
+{
+  "path": "MEMORY.md",
+  "content_hash": "f7996e8226d04d618ed9f9b10de05001",
+  "updated_at": "2026-09-27T19:10:50",
+  "lines": 16,
+  "size_bytes": 4367,
+  "mtime_ns": 1790509561815627100,
+  "language": "markdown",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "heading",
+      "name": "h1: M\u00e9moire durable du projet",
+      "line_start": 1,
+      "line_end": 16,
+      "signature": "# M\u00e9moire durable du projet"
+    }
+  ]
+}

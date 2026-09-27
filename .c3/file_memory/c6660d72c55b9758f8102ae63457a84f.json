@@ -1,10 +1,10 @@
 {
   "path": "src/tools/index.ts",
-  "content_hash": "d35e4e068931b65bb74182ffcaf78e7b",
-  "updated_at": "2026-09-26T17:59:05",
-  "lines": 538,
-  "size_bytes": 23638,
-  "mtime_ns": 1790426448283178900,
+  "content_hash": "dfba768b3359225bd4dd901c0e66b7f1",
+  "updated_at": "2026-09-27T19:42:59",
+  "lines": 654,
+  "size_bytes": 29569,
+  "mtime_ns": 1790534524000614300,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -46,10 +46,10 @@
     },
     {
       "type": "import",
-      "name": "import { querySymbols } from \"../lsp\";",
+      "name": "import { queryCode } from \"../lsp-pro\";",
       "line_start": 14,
       "line_end": 14,
-      "signature": "import { querySymbols } from \"../lsp\";"
+      "signature": "import { queryCode } from \"../lsp-pro\";"
     },
     {
       "type": "import",
@@ -95,135 +95,163 @@
     },
     {
       "type": "import",
-      "name": "import { resolveInWorkspace, SandboxError } from \"../sandbox\";",
+      "name": "import { queryIndex } from \"../codeindex\";",
       "line_start": 21,
       "line_end": 21,
+      "signature": "import { queryIndex } from \"../codeindex\";"
+    },
+    {
+      "type": "import",
+      "name": "import { queryGit } from \"../git\";",
+      "line_start": 22,
+      "line_end": 22,
+      "signature": "import { queryGit } from \"../git\";"
+    },
+    {
+      "type": "import",
+      "name": "import { queryDebug } from \"../debug\";",
+      "line_start": 23,
+      "line_end": 23,
+      "signature": "import { queryDebug } from \"../debug\";"
+    },
+    {
+      "type": "import",
+      "name": "import { formatFile } from \"../format\";",
+      "line_start": 24,
+      "line_end": 24,
+      "signature": "import { formatFile } from \"../format\";"
+    },
+    {
+      "type": "import",
+      "name": "import { resolveInWorkspace, SandboxError } from \"../sandbox\";",
+      "line_start": 25,
+      "line_end": 25,
       "signature": "import { resolveInWorkspace, SandboxError } from \"../sandbox\";"
     },
     {
       "type": "import",
       "name": "import { truncateMiddle } from \"../util\";",
-      "line_start": 22,
-      "line_end": 22,
+      "line_start": 26,
+      "line_end": 26,
       "signature": "import { truncateMiddle } from \"../util\";"
     },
     {
       "type": "import",
       "name": "import { searchFilesBounded } from \"./search-worker\";",
-      "line_start": 23,
-      "line_end": 23,
+      "line_start": 27,
+      "line_end": 27,
       "signature": "import { searchFilesBounded } from \"./search-worker\";"
     },
     {
       "type": "import",
-      "name": "import { LoadedPlugin } from \"../plugins\";",
-      "line_start": 24,
-      "line_end": 24,
-      "signature": "import { LoadedPlugin } from \"../plugins\";"
+      "name": "import { LoadedPlugin, describePlugins } from \"../plugins\";",
+      "line_start": 28,
+      "line_end": 28,
+      "signature": "import { LoadedPlugin, describePlugins } from \"../plugins\";"
     },
     {
       "type": "type",
       "name": "Mode",
-      "line_start": 26,
-      "line_end": 26,
+      "line_start": 30,
+      "line_end": 30,
       "signature": "type Mode = \"ro\" | \"edit\" | \"bypass\";",
       "children": []
     },
     {
       "type": "constant",
       "name": "MODE_LABELS",
-      "line_start": 28,
-      "line_end": 32,
+      "line_start": 32,
+      "line_end": 36,
       "signature": "const MODE_LABELS: Record<Mode, string> = {"
     },
     {
       "type": "constant",
       "name": "TOOL_RESULT_CAP",
-      "line_start": 34,
-      "line_end": 34,
+      "line_start": 38,
+      "line_end": 38,
       "signature": "const TOOL_RESULT_CAP = 10000; // chars \u2014 final safety net over per-tool caps"
     },
     {
       "type": "function",
       "name": "workTool",
-      "line_start": 36,
-      "line_end": 58,
+      "line_start": 40,
+      "line_end": 62,
       "signature": "function workTool(canWrite: boolean): ToolSpec {"
     },
     {
       "type": "function",
       "name": "buildToolSpecs",
-      "line_start": 60,
-      "line_end": 255,
+      "line_start": 64,
+      "line_end": 334,
       "signature": "function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): ToolSpec[] {"
     },
     {
       "type": "interface",
       "name": "UndoEntry",
-      "line_start": 260,
-      "line_end": 266,
+      "line_start": 339,
+      "line_end": 345,
       "signature": "interface UndoEntry {",
       "children": []
     },
     {
       "type": "constant",
       "name": "UNDO_CAP",
-      "line_start": 268,
-      "line_end": 268,
+      "line_start": 347,
+      "line_end": 347,
       "signature": "const UNDO_CAP = 20;"
     },
     {
       "type": "constant",
       "name": "UNDO_SKIP_BYTES",
-      "line_start": 269,
-      "line_end": 269,
+      "line_start": 348,
+      "line_end": 348,
       "signature": "const UNDO_SKIP_BYTES = 1024 * 1024; // >1 Mo : skip silencieuse, pas d'entr\u00e9e undo"
     },
     {
       "type": "function",
       "name": "capturePrev",
-      "line_start": 273,
-      "line_end": 288,
+      "line_start": 352,
+      "line_end": 367,
       "signature": "function capturePrev(workspace: string, rel: unknown): { abs: string; prev: string | null } | null {",
       "doc": "Capture le contenu AVANT \u00e9criture. Retourne null quand il n'y a rien \u00e0"
     },
     {
       "type": "function",
       "name": "pushUndo",
-      "line_start": 291,
-      "line_end": 310,
+      "line_start": 370,
+      "line_end": 389,
       "signature": "function pushUndo(",
       "doc": "Enregistre l'\u00e9criture APRES succ\u00e8s (cap 20, redo vid\u00e9e \u00e0 chaque nouvel edit)."
     },
     {
       "type": "interface",
       "name": "ToolContext",
-      "line_start": 312,
-      "line_end": 339,
+      "line_start": 391,
+      "line_end": 418,
       "signature": "interface ToolContext {",
       "children": []
     },
     {
       "type": "function",
       "name": "executeTool",
-      "line_start": 341,
-      "line_end": 516,
+      "line_start": 420,
+      "line_end": 632,
       "signature": "async function executeTool(",
       "async": true
     },
     {
       "type": "function",
       "name": "afterWrite",
-      "line_start": 521,
-      "line_end": 530,
+      "line_start": 637,
+      "line_end": 646,
       "signature": "function afterWrite(workspace: string, relPath: string): string {",
       "doc": "Post-write hook: parse what was just written and coach on the first"
     },
     {
       "type": "function",
       "name": "commandOf",
-      "line_start": 534,
-      "line_end": 538,
+      "line_start": 650,
+      "line_end": 654,
       "signature": "function commandOf(name: string, args: Record<string, any>): string | null {"
     }
   ]

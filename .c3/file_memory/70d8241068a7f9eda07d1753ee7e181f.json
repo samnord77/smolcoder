@@ -1,10 +1,10 @@
 {
   "path": "src/lsp.ts",
-  "content_hash": "c028175701ada49ffa7c9d3d07d64cfc",
-  "updated_at": "2026-09-25T16:09:45",
-  "lines": 347,
-  "size_bytes": 12825,
-  "mtime_ns": 1790348982448611700,
+  "content_hash": "94767905641cc830603063515ad744db",
+  "updated_at": "2026-09-27T19:36:57",
+  "lines": 360,
+  "size_bytes": 13264,
+  "mtime_ns": 1790534135085442100,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -53,166 +53,173 @@
     },
     {
       "type": "function",
+      "name": "splitCommand",
+      "line_start": 23,
+      "line_end": 29,
+      "signature": "function splitCommand(raw: string): string[] {"
+    },
+    {
+      "type": "function",
       "name": "lspCommand",
-      "line_start": 21,
-      "line_end": 25,
+      "line_start": 31,
+      "line_end": 38,
       "signature": "function lspCommand(): string[] {"
     },
     {
       "type": "constant",
       "name": "LSP_TIMEOUT_MS",
-      "line_start": 27,
-      "line_end": 27,
+      "line_start": 40,
+      "line_end": 40,
       "signature": "const LSP_TIMEOUT_MS = 60_000;"
     },
     {
       "type": "constant",
       "name": "RESULT_CAP",
-      "line_start": 28,
-      "line_end": 28,
+      "line_start": 41,
+      "line_end": 41,
       "signature": "const RESULT_CAP = 4000;"
     },
     {
       "type": "constant",
       "name": "TS_EXTS",
-      "line_start": 30,
-      "line_end": 30,
+      "line_start": 43,
+      "line_end": 43,
       "signature": "const TS_EXTS = new Set([\".ts\", \".tsx\", \".js\", \".jsx\", \".mjs\", \".cjs\", \".mts\", \".cts\"]);"
     },
     {
       "type": "function",
       "name": "isTsLike",
-      "line_start": 32,
-      "line_end": 34,
+      "line_start": 45,
+      "line_end": 47,
       "signature": "function isTsLike(filePath: string): boolean {"
     },
     {
       "type": "function",
       "name": "encodeLsp",
-      "line_start": 37,
-      "line_end": 40,
+      "line_start": 50,
+      "line_end": 53,
       "signature": "function encodeLsp(body: string): Buffer {"
     },
     {
       "type": "interface",
       "name": "Pending",
-      "line_start": 42,
-      "line_end": 46,
+      "line_start": 55,
+      "line_end": 59,
       "signature": "interface Pending {",
       "children": []
     },
     {
       "type": "class",
       "name": "LspClient",
-      "line_start": 48,
-      "line_end": 197,
+      "line_start": 61,
+      "line_end": 210,
       "signature": "class LspClient {",
       "children": [
         {
           "type": "property",
           "name": "proc",
-          "line_start": 49,
-          "line_end": 49,
+          "line_start": 62,
+          "line_end": 62,
           "signature": "private proc: ChildProcess | null = null;",
           "access": "private"
         },
         {
           "type": "property",
           "name": "nextId",
-          "line_start": 50,
-          "line_end": 50,
+          "line_start": 63,
+          "line_end": 63,
           "signature": "private nextId = 1;",
           "access": "private"
         },
         {
           "type": "property",
           "name": "pending",
-          "line_start": 51,
-          "line_end": 51,
+          "line_start": 64,
+          "line_end": 64,
           "signature": "private pending = new Map<number, Pending>();",
           "access": "private"
         },
         {
           "type": "property",
           "name": "buf",
-          "line_start": 52,
-          "line_end": 52,
+          "line_start": 65,
+          "line_end": 65,
           "signature": "private buf = Buffer.alloc(0);",
           "access": "private"
         },
         {
           "type": "property",
           "name": "diagnostics",
-          "line_start": 53,
-          "line_end": 53,
+          "line_start": 66,
+          "line_end": 66,
           "signature": "private diagnostics: any[] = [];",
           "access": "private"
         },
         {
           "type": "property",
           "name": "dead",
-          "line_start": 54,
-          "line_end": 54,
+          "line_start": 67,
+          "line_end": 67,
           "signature": "private dead: Error | null = null;",
           "access": "private"
         },
         {
           "type": "method",
           "name": "constructor",
-          "line_start": 56,
-          "line_end": 59,
+          "line_start": 69,
+          "line_end": 72,
           "signature": "constructor("
         },
         {
           "type": "method",
           "name": "start",
-          "line_start": 61,
-          "line_end": 98,
+          "line_start": 74,
+          "line_end": 111,
           "signature": "async start(): Promise<void> {",
           "async": true
         },
         {
           "type": "method",
           "name": "failAll",
-          "line_start": 100,
-          "line_end": 108,
+          "line_start": 113,
+          "line_end": 121,
           "signature": "private failAll(err: Error): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "ingest",
-          "line_start": 110,
-          "line_end": 148,
+          "line_start": 123,
+          "line_end": 161,
           "signature": "private ingest(chunk: Buffer): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "notify",
-          "line_start": 150,
-          "line_end": 156,
+          "line_start": 163,
+          "line_end": 169,
           "signature": "notify(method: string, params: any): void {"
         },
         {
           "type": "method",
           "name": "request",
-          "line_start": 158,
-          "line_end": 175,
+          "line_start": 171,
+          "line_end": 188,
           "signature": "request(method: string, params: any, timeoutMs = LSP_TIMEOUT_MS): Promise<any> {"
         },
         {
           "type": "method",
           "name": "takeDiagnostics",
-          "line_start": 177,
-          "line_end": 181,
+          "line_start": 190,
+          "line_end": 194,
           "signature": "takeDiagnostics(): any[] {"
         },
         {
           "type": "method",
           "name": "close",
-          "line_start": 183,
-          "line_end": 196,
+          "line_start": 196,
+          "line_end": 209,
           "signature": "close(): void {"
         }
       ]
@@ -220,59 +227,59 @@
     {
       "type": "function",
       "name": "toUri",
-      "line_start": 199,
-      "line_end": 201,
+      "line_start": 212,
+      "line_end": 214,
       "signature": "function toUri(abs: string): string {"
     },
     {
       "type": "function",
       "name": "sameFile",
-      "line_start": 204,
-      "line_end": 215,
+      "line_start": 217,
+      "line_end": 228,
       "signature": "function sameFile(a: unknown, b: string): boolean {",
       "doc": "Compare document URIs loosely: servers normalize case and escapes."
     },
     {
       "type": "function",
       "name": "fmtLoc",
-      "line_start": 217,
-      "line_end": 226,
+      "line_start": 230,
+      "line_end": 239,
       "signature": "function fmtLoc(root: string, uri: string, range: any): string {"
     },
     {
       "type": "function",
       "name": "fmtHover",
-      "line_start": 228,
-      "line_end": 234,
+      "line_start": 241,
+      "line_end": 247,
       "signature": "function fmtHover(res: any): string {"
     },
     {
       "type": "function",
       "name": "fmtLocList",
-      "line_start": 236,
-      "line_end": 247,
+      "line_start": 249,
+      "line_end": 260,
       "signature": "function fmtLocList(root: string, res: any): string {"
     },
     {
       "type": "function",
       "name": "fmtDiagnostics",
-      "line_start": 249,
-      "line_end": 259,
+      "line_start": 262,
+      "line_end": 272,
       "signature": "function fmtDiagnostics(root: string, uri: string, diags: any[]): string {"
     },
     {
       "type": "type",
       "name": "SymbolAction",
-      "line_start": 261,
-      "line_end": 261,
+      "line_start": 274,
+      "line_end": 274,
       "signature": "type SymbolAction = \"hover\" | \"def\" | \"refs\" | \"diag\";",
       "children": []
     },
     {
       "type": "function",
       "name": "querySymbols",
-      "line_start": 265,
-      "line_end": 347,
+      "line_start": 278,
+      "line_end": 360,
       "signature": "async function querySymbols(",
       "async": true
     }

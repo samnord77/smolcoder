@@ -1,0 +1,9 @@
+{
+  "original_tokens": 1879,
+  "compressed_tokens": 426,
+  "saved_tokens": 1453,
+  "savings_pct": 77.3,
+  "compressed": "# AGENTS.md (.md) \u2014 67 lines\n# AGENTS.md \u2014 Protocole d'Excellence Ing\u00e9nierie (Standard Claude Code & Codex)  Ce fichier constitue la m\u00e9moire permanente et la directive absolue de smolcoder.\n## 1. Philosophie de Codage (Standard Claude Code & Codex)  - **Z\u00e9ro code tronqu\u00e9 / Z\u00e9ro placeholder :** Interdiction stricte de laisser des \"TODO\", \"mock\", \"impl\u00e9mentation future\" ou du code tronqu\u00e9. Tout code produit est complet, typ\u00e9, robuste et pr\u00eat pour la production.\n## 2. D\u00e9roulement M\u00e9thodique par \u00c9tape  Pour toute t\u00e2che complexe, suivre rigoureusement ce cycle\n## 3. Automatisation des Outils Locaux (Machine DELL)  smolcoder ex\u00e9cute via `run_command` les outils install\u00e9s sur le syst\u00e8me\n## 4. Gestion du Contexte & Auto-R\u00e9paration  - **\u00c9conomie de tokens :** Ne lire que les plages de lignes pertinentes avec `read_file`. \u00c9viter d'afficher des logs bruts d\u00e9mesur\u00e9s.\n## 5. Outils Natifs Avanc\u00e9s (Skills, ChromaDB, WebFetch, Think, Sub-Agents & MCP)  smolcoder int\u00e8gre d\u00e9sormais nativement six nouveaux outils de premier ordre (invoquables directement comme `read_file`)\n## 6. Protocole Multi-Sous-Agents & TDD (Standard Claude Code & Codex)  Pour atteindre le niveau d'excellence de Claude Code et Codex, smolcoder applique ce protocole\n## 7. Alignement d'Architecture Entreprise (Standard Oracle Fusion AI)  smolcoder applique rigoureusement les 4 piliers d'excellence d'[Oracle Fusion AI](https://www.oracle.com/applications/fusion-ai/)",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\extras\\secondary-agent-tools\\AGENTS.md"
+}

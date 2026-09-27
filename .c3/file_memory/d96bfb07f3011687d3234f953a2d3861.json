@@ -1,10 +1,10 @@
 {
   "path": "src/plugins.ts",
-  "content_hash": "9e19089f98fa1936ead7f0bdd99316e2",
-  "updated_at": "2026-09-25T15:59:42",
-  "lines": 81,
-  "size_bytes": 2532,
-  "mtime_ns": 1790348365724439800,
+  "content_hash": "e01444ab1667d07fb189b32a2b700ad2",
+  "updated_at": "2026-09-27T19:22:50",
+  "lines": 182,
+  "size_bytes": 6193,
+  "mtime_ns": 1790533244976860900,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -60,6 +60,50 @@
       "line_start": 36,
       "line_end": 81,
       "signature": "function loadPlugins(workspace: string): LoadedPlugin[] {"
+    },
+    {
+      "type": "interface",
+      "name": "PluginManifest",
+      "line_start": 91,
+      "line_end": 96,
+      "signature": "interface PluginManifest {",
+      "children": []
+    },
+    {
+      "type": "function",
+      "name": "readPluginManifest",
+      "line_start": 99,
+      "line_end": 126,
+      "signature": "function readPluginManifest(workspace: string, name: string): PluginManifest | null {"
+    },
+    {
+      "type": "interface",
+      "name": "PluginInfo",
+      "line_start": 128,
+      "line_end": 133,
+      "signature": "interface PluginInfo extends LoadedPlugin {",
+      "children": []
+    },
+    {
+      "type": "function",
+      "name": "listPluginInfos",
+      "line_start": 136,
+      "line_end": 154,
+      "signature": "function listPluginInfos(workspace: string): PluginInfo[] {"
+    },
+    {
+      "type": "constant",
+      "name": "PLUGIN_EXAMPLE",
+      "line_start": 156,
+      "line_end": 161,
+      "signature": "const PLUGIN_EXAMPLE = `module.exports = {"
+    },
+    {
+      "type": "function",
+      "name": "describePlugins",
+      "line_start": 164,
+      "line_end": 182,
+      "signature": "function describePlugins(workspace: string): string {"
     }
   ]
 }

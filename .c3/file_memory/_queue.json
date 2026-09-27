@@ -10,7 +10,18 @@
     "src/session.ts",
     "src/web/hub.ts",
     ".c3/MAP.md",
-    ".smol/plans/f593b42a.json"
+    ".smol/plans/f593b42a.json",
+    "src/lsp-pro.ts",
+    "src/plugins.ts",
+    "src/tools/index.ts",
+    "test/lsp.test.js",
+    "src/lsp.ts",
+    "test/codeindex.test.js",
+    "test/format.test.js",
+    "test/lsp-pro.test.js",
+    "src/codeindex.ts",
+    "test/mcp.test.js",
+    "test/verification.test.js"
   ],
   "inflight": [
     "desktop/preload-git.js"

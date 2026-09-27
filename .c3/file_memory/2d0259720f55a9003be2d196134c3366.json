@@ -1,0 +1,27 @@
+{
+  "path": "desktop/check-hub.js",
+  "content_hash": "baefce99da98d129dc06cbba5403ee7c",
+  "updated_at": "2026-09-27T19:10:49",
+  "lines": 4,
+  "size_bytes": 177,
+  "mtime_ns": 1790450085994727800,
+  "language": "javascript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "constant",
+      "name": "h",
+      "line_start": 1,
+      "line_end": 1,
+      "signature": "const h = require(\"./hub-client.js\");"
+    },
+    {
+      "type": "constant",
+      "name": "rec",
+      "line_start": 2,
+      "line_end": 2,
+      "signature": "const rec = h.readHubRecord();"
+    }
+  ]
+}

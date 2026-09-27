@@ -1,0 +1,106 @@
+{
+  "path": "src/format.ts",
+  "content_hash": "d07c988adabefdd184d2f35a51076642",
+  "updated_at": "2026-09-27T19:22:50",
+  "lines": 151,
+  "size_bytes": 5235,
+  "mtime_ns": 1790533169106000300,
+  "language": "typescript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "import",
+      "name": "import { spawnSync } from \"child_process\";",
+      "line_start": 5,
+      "line_end": 5,
+      "signature": "import { spawnSync } from \"child_process\";"
+    },
+    {
+      "type": "import",
+      "name": "import * as fs from \"fs\";",
+      "line_start": 6,
+      "line_end": 6,
+      "signature": "import * as fs from \"fs\";"
+    },
+    {
+      "type": "import",
+      "name": "import * as path from \"path\";",
+      "line_start": 7,
+      "line_end": 7,
+      "signature": "import * as path from \"path\";"
+    },
+    {
+      "type": "import",
+      "name": "import { resolveInWorkspace } from \"./sandbox\";",
+      "line_start": 8,
+      "line_end": 8,
+      "signature": "import { resolveInWorkspace } from \"./sandbox\";"
+    },
+    {
+      "type": "import",
+      "name": "import { resolveCommand } from \"./mcp\";",
+      "line_start": 9,
+      "line_end": 9,
+      "signature": "import { resolveCommand } from \"./mcp\";"
+    },
+    {
+      "type": "constant",
+      "name": "FORMAT_TIMEOUT_MS",
+      "line_start": 11,
+      "line_end": 11,
+      "signature": "const FORMAT_TIMEOUT_MS = 30_000;"
+    },
+    {
+      "type": "constant",
+      "name": "MAX_FILE_BYTES",
+      "line_start": 12,
+      "line_end": 12,
+      "signature": "const MAX_FILE_BYTES = 1024 * 1024;"
+    },
+    {
+      "type": "interface",
+      "name": "FormatAttempt",
+      "line_start": 14,
+      "line_end": 17,
+      "signature": "interface FormatAttempt {",
+      "children": []
+    },
+    {
+      "type": "function",
+      "name": "attemptsFor",
+      "line_start": 19,
+      "line_end": 46,
+      "signature": "function attemptsFor(ext: string): FormatAttempt[] {"
+    },
+    {
+      "type": "function",
+      "name": "runFormatter",
+      "line_start": 48,
+      "line_end": 59,
+      "signature": "function runFormatter(root: string, cmd: string[], abs: string): { code: number; out: string } {"
+    },
+    {
+      "type": "interface",
+      "name": "FormatResult",
+      "line_start": 61,
+      "line_end": 64,
+      "signature": "interface FormatResult {",
+      "children": []
+    },
+    {
+      "type": "function",
+      "name": "formatFile",
+      "line_start": 69,
+      "line_end": 129,
+      "signature": "function formatFile(root: string, relPath: string): FormatResult {"
+    },
+    {
+      "type": "function",
+      "name": "formattersStatus",
+      "line_start": 131,
+      "line_end": 151,
+      "signature": "function formattersStatus(): string {"
+    }
+  ]
+}

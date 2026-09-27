@@ -1,0 +1,282 @@
+{
+  "path": "src/codeindex.ts",
+  "content_hash": "8f6387ac71f74cbb47f2b3fb1f2c2376",
+  "updated_at": "2026-09-27T19:42:59",
+  "lines": 375,
+  "size_bytes": 12684,
+  "mtime_ns": 1790534494686145400,
+  "language": "typescript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "import",
+      "name": "import * as fs from \"fs\";",
+      "line_start": 7,
+      "line_end": 7,
+      "signature": "import * as fs from \"fs\";"
+    },
+    {
+      "type": "import",
+      "name": "import * as path from \"path\";",
+      "line_start": 8,
+      "line_end": 8,
+      "signature": "import * as path from \"path\";"
+    },
+    {
+      "type": "import",
+      "name": "import { resolveInWorkspace } from \"./sandbox\";",
+      "line_start": 9,
+      "line_end": 9,
+      "signature": "import { resolveInWorkspace } from \"./sandbox\";"
+    },
+    {
+      "type": "interface",
+      "name": "CodeSymbol",
+      "line_start": 11,
+      "line_end": 19,
+      "signature": "interface CodeSymbol {",
+      "children": []
+    },
+    {
+      "type": "interface",
+      "name": "IndexStats",
+      "line_start": 21,
+      "line_end": 26,
+      "signature": "interface IndexStats {",
+      "children": []
+    },
+    {
+      "type": "constant",
+      "name": "INDEX_VERSION",
+      "line_start": 28,
+      "line_end": 28,
+      "signature": "const INDEX_VERSION = 1;"
+    },
+    {
+      "type": "constant",
+      "name": "MAX_FILES",
+      "line_start": 29,
+      "line_end": 29,
+      "signature": "const MAX_FILES = 3000;"
+    },
+    {
+      "type": "constant",
+      "name": "MAX_FILE_BYTES",
+      "line_start": 30,
+      "line_end": 30,
+      "signature": "const MAX_FILE_BYTES = 256 * 1024;"
+    },
+    {
+      "type": "constant",
+      "name": "MAX_SYMBOLS",
+      "line_start": 31,
+      "line_end": 31,
+      "signature": "const MAX_SYMBOLS = 60000;"
+    },
+    {
+      "type": "constant",
+      "name": "SKIP_DIRS",
+      "line_start": 33,
+      "line_end": 50,
+      "signature": "const SKIP_DIRS = new Set(["
+    },
+    {
+      "type": "constant",
+      "name": "KEYWORDS",
+      "line_start": 52,
+      "line_end": 54,
+      "signature": "const KEYWORDS = new Set(["
+    },
+    {
+      "type": "interface",
+      "name": "Rule",
+      "line_start": 56,
+      "line_end": 62,
+      "signature": "interface Rule {",
+      "children": []
+    },
+    {
+      "type": "interface",
+      "name": "LangRules",
+      "line_start": 64,
+      "line_end": 67,
+      "signature": "interface LangRules {",
+      "children": []
+    },
+    {
+      "type": "function",
+      "name": "tsRules",
+      "line_start": 69,
+      "line_end": 81,
+      "signature": "function tsRules(): Rule[] {"
+    },
+    {
+      "type": "constant",
+      "name": "LANGS",
+      "line_start": 83,
+      "line_end": 134,
+      "signature": "const LANGS: LangRules[] = ["
+    },
+    {
+      "type": "function",
+      "name": "rulesFor",
+      "line_start": 136,
+      "line_end": 141,
+      "signature": "function rulesFor(ext: string): Rule[] {"
+    },
+    {
+      "type": "function",
+      "name": "looksBinary",
+      "line_start": 143,
+      "line_end": 149,
+      "signature": "function looksBinary(buf: Buffer): boolean {"
+    },
+    {
+      "type": "function",
+      "name": "extractSymbols",
+      "line_start": 151,
+      "line_end": 169,
+      "signature": "function extractSymbols(rel: string, text: string): CodeSymbol[] {"
+    },
+    {
+      "type": "function",
+      "name": "scanWorkspace",
+      "line_start": 171,
+      "line_end": 219,
+      "signature": "function scanWorkspace(root: string): { symbols: CodeSymbol[]; files: number } {"
+    },
+    {
+      "type": "function",
+      "name": "cachePath",
+      "line_start": 225,
+      "line_end": 227,
+      "signature": "function cachePath(root: string): string {"
+    },
+    {
+      "type": "class",
+      "name": "CodeIndex",
+      "line_start": 229,
+      "line_end": 307,
+      "signature": "class CodeIndex {",
+      "children": [
+        {
+          "type": "property",
+          "name": "symbols",
+          "line_start": 230,
+          "line_end": 230,
+          "signature": "private symbols: CodeSymbol[] = [];",
+          "access": "private"
+        },
+        {
+          "type": "property",
+          "name": "stats",
+          "line_start": 231,
+          "line_end": 231,
+          "signature": "private stats: IndexStats = { files: 0, symbols: 0, ms: 0, updatedAt: 0 };",
+          "access": "private"
+        },
+        {
+          "type": "method",
+          "name": "constructor",
+          "line_start": 233,
+          "line_end": 233,
+          "signature": "constructor(private root: string) {}"
+        },
+        {
+          "type": "method",
+          "name": "refresh",
+          "line_start": 235,
+          "line_end": 250,
+          "signature": "refresh(): IndexStats {"
+        },
+        {
+          "type": "method",
+          "name": "loadCache",
+          "line_start": 252,
+          "line_end": 269,
+          "signature": "loadCache(): boolean {"
+        },
+        {
+          "type": "method",
+          "name": "search",
+          "line_start": 272,
+          "line_end": 287,
+          "signature": "search(query: string, limit = 30): CodeSymbol[] {",
+          "doc": "Ranked search: exact match first, then prefix, then substring."
+        },
+        {
+          "type": "method",
+          "name": "symbolsIn",
+          "line_start": 289,
+          "line_end": 298,
+          "signature": "symbolsIn(relPath: string): CodeSymbol[] {"
+        },
+        {
+          "type": "method",
+          "name": "getStats",
+          "line_start": 300,
+          "line_end": 302,
+          "signature": "getStats(): IndexStats {"
+        },
+        {
+          "type": "method",
+          "name": "isEmpty",
+          "line_start": 304,
+          "line_end": 306,
+          "signature": "isEmpty(): boolean {"
+        }
+      ]
+    },
+    {
+      "type": "constant",
+      "name": "indexes",
+      "line_start": 309,
+      "line_end": 309,
+      "signature": "const indexes = new Map<string, CodeIndex>();"
+    },
+    {
+      "type": "function",
+      "name": "indexFor",
+      "line_start": 311,
+      "line_end": 318,
+      "signature": "function indexFor(root: string): CodeIndex {"
+    },
+    {
+      "type": "function",
+      "name": "clearIndexCache",
+      "line_start": 321,
+      "line_end": 323,
+      "signature": "function clearIndexCache(): void {"
+    },
+    {
+      "type": "function",
+      "name": "fmtSym",
+      "line_start": 325,
+      "line_end": 327,
+      "signature": "function fmtSym(s: CodeSymbol): string {"
+    },
+    {
+      "type": "interface",
+      "name": "IndexQuery",
+      "line_start": 329,
+      "line_end": 334,
+      "signature": "interface IndexQuery {",
+      "children": []
+    },
+    {
+      "type": "constant",
+      "name": "INDEX_ACTIONS",
+      "line_start": 336,
+      "line_end": 336,
+      "signature": "const INDEX_ACTIONS = [\"search\", \"file\", \"stats\", \"refresh\"];"
+    },
+    {
+      "type": "function",
+      "name": "queryIndex",
+      "line_start": 340,
+      "line_end": 375,
+      "signature": "function queryIndex(root: string, args: IndexQuery, opts?: { canRefresh?: boolean; canWrite?: boolean }): string {"
+    }
+  ]
+}

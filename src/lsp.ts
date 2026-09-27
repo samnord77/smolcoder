@@ -18,9 +18,22 @@ export function lspDisabled(): boolean {
   return process.env.SMOLCODER_LSP_DISABLE === "1";
 }
 
+/** Split a command line on whitespace, respecting "double" and 'single'
+ * quotes so install paths with spaces (Windows) survive. */
+export function splitCommand(raw: string): string[] {
+  const parts: string[] = [];
+  const re = /"([^"]*)"|'([^']*)'|(\S+)/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(raw)) !== null) parts.push(m[1] ?? m[2] ?? m[3]);
+  return parts;
+}
+
 function lspCommand(): string[] {
   const raw = (process.env.SMOLCODER_LSP_COMMAND ?? "").trim();
-  if (raw) return raw.split(/\s+/);
+  if (raw) {
+    const parts = splitCommand(raw);
+    if (parts.length) return parts;
+  }
   return ["npx", "typescript-language-server", "--stdio"];
 }
 
