@@ -1,16 +1,26 @@
 {
   "schema_version": 1,
-  "fencing": 107,
+  "fencing": 108,
   "locks": [
     {
       "relpath": "src/web/client.ts",
       "agent_id": "claude-code:20260927",
       "session_id": "20260927_164838_0239733e7ab3",
       "fencing_token": 107,
-      "intent": "Banni\u00e8re d'erreur visible au lieu de pannes silencieuses",
+      "intent": "Clic panneau sans session : message au lieu de silence",
       "acquired_at": 1790550080.4886994,
-      "expires_at": 1790550980.4886994,
+      "expires_at": 1790551428.3623245,
       "lock_id": "0ccd7f283ea446e3bc15b92343c9a767"
+    },
+    {
+      "relpath": "src/agent.ts",
+      "agent_id": "claude-code:20260927",
+      "session_id": "20260927_164838_0239733e7ab3",
+      "fencing_token": 108,
+      "intent": "Avertit apr\u00e8s 60 s sans premier token (chargement mod\u00e8le ?)",
+      "acquired_at": 1790550506.3744936,
+      "expires_at": 1790551406.3744936,
+      "lock_id": "f2d8a444d41a4bc0aef63d95221642c3"
     }
   ]
 }

@@ -545,10 +545,25 @@ export class Agent {
 
         this.ui.startSpinner("thinking");
         let result: ChatResult;
+        // After 60s without a first token the backend is (usually) loading
+        // the model into memory — say so instead of spinning silently.
+        // Never fails the turn; Esc still cancels.
+        let slowTimer: NodeJS.Timeout | null = setTimeout(() => {
+          try {
+            this.ui.status(
+              "· still waiting for the first token — the model may be loading into memory (fresh loads take minutes); check Ollama / LM Studio, Esc cancels"
+            );
+          } catch {
+            /* a hint must never break a turn */
+          }
+        }, 60000);
         try {
+          if (typeof (slowTimer as any)?.unref === "function") (slowTimer as any).unref();
           result = await this.chatWithRetry(signal, actionOnlyCalls > 0);
           if (actionOnlyCalls > 0) actionOnlyCalls--;
         } finally {
+          if (slowTimer) clearTimeout(slowTimer);
+          slowTimer = null;
           this.ui.stopSpinner();
         }
         this.ctxMgr.calibrate(result.promptTokens, this.messages, this.tools);

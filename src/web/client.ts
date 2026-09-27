@@ -935,7 +935,7 @@ function closeTab(v, t) {
 }
 function togglePanelKind(kind) {
   const v = active;
-  if (!v) return;
+  if (!v) { showToast("Ouvrez d’abord une session dans la barre latérale.", "warn"); return; }
   const cur = curTab(v);
   if (v.panelOpen && cur && cur.kind === kind) { v.panelOpen = false; savePanel(v); renderPanel(); return; }
   const existing = v.tabs.filter((t) => t.kind === kind).pop();
