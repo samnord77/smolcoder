@@ -7,6 +7,7 @@ const http = require("node:http");
 const os = require("node:os");
 const path = require("node:path");
 const { WebHub } = require("../dist/web/hub");
+const { runCommand, liveShellList } = require("../dist/tools/shell");
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function until(fn, ms = 4000, label = "condition") {
@@ -473,5 +474,42 @@ test("code api: inline edit generates a preview without writing", async () => {
     assert.match((await request(hub, "GET", `/code/inline/result${k}&id=nope`)).body, /unknown edit job/);
   } finally {
     hub.close();
+  }
+});
+
+test("shell api: live list, extend and cancel act on a real run", async () => {
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "smol-shellapi-"));
+  const hub = new WebHub({ port: 0, prefs: {}, help: "help", version: "9.9.9", dataDir, factory: stubFactory([]), quiet: true });
+  await hub.start();
+  const k = "?k=" + hub.authToken;
+  try {
+    const idle = JSON.parse((await request(hub, "GET", "/shell/live" + k)).body);
+    assert.deepEqual(idle, { items: [] }, "nothing running yet");
+    const miss = JSON.parse((await request(hub, "POST", "/shell" + k, { action: "detach", command: "nope" })).body);
+    assert.equal(miss.ok, false);
+    assert.match(miss.reason, /no longer running/);
+
+    const cmd = 'node -e "setTimeout(()=>{},6000)"';
+    const p = runCommand(cmd, process.cwd(), undefined, () => {});
+    await until(() => liveShellList().some((i) => i.command === cmd), 3000, "run registered");
+    const live = JSON.parse((await request(hub, "GET", "/shell/live" + k)).body);
+    const mine = live.items.filter((i) => i.command === cmd);
+    assert.equal(mine.length, 1, "the run shows up with a real deadline");
+    assert.ok(mine[0].deadline > Date.now());
+
+    const ext = JSON.parse((await request(hub, "POST", "/shell" + k, { action: "extend", command: cmd, ms: 60000 })).body);
+    assert.equal(ext.ok, true, "extend accepted");
+    assert.ok(ext.deadline >= mine[0].deadline, "the deadline moved out");
+    const bad = JSON.parse((await request(hub, "POST", "/shell" + k, { action: "unknown-action", command: cmd })).body);
+    assert.equal(bad.ok, false, "unknown actions are refused with a reason");
+
+    const cancel = JSON.parse((await request(hub, "POST", "/shell" + k, { action: "cancel", command: cmd })).body);
+    assert.equal(cancel.ok, true, "cancel acts for real");
+    assert.match(await p, /cancelled/, "and the run resolves as cancelled");
+    const gone = JSON.parse((await request(hub, "GET", "/shell/live" + k)).body);
+    assert.ok(!gone.items.some((i) => i.command === cmd), "a finished run leaves the list");
+  } finally {
+    hub.close();
+    fs.rmSync(dataDir, { recursive: true, force: true });
   }
 });

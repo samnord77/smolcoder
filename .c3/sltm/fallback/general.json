@@ -141,5 +141,18 @@
     },
     "timestamp": "2026-09-28T11:28:27.288270+00:00",
     "category": "general"
+  },
+  {
+    "id": "c9f39d619df4",
+    "text": "test/client-smoke.test.js \u2014 le stub DOM makeEl doit d\u00e9finir querySelector() \u2192 null et querySelectorAll() \u2192 []. Sans elles, applyReviewFilter() (client.ts, appel\u00e9 en fin de rendu du review) throw dans le stub : le catch remplace TOUT le contenu de la liste par un message d'erreur, alors que le test croyait avoir rendu les boutons (classes() sur allElements() les voyait cr\u00e9\u00e9s mais d\u00e9tach\u00e9s). Toujours walker c.els (conteneurs par id) et jamais c.allElements() pour lire le DOM vivant. Vague unstage livr\u00e9e en 73cf328 : gitUnstage/gitApplyHunk(unstage) + endpoint /code/diff/unstage + boutons Unstage dans le panneau revue (mode staged : ni Stage, ni Revert, ni s\u00e9lection de lignes), suite 326 pass / 1 skip / 1 flaky recovery pr\u00e9-existant.",
+    "metadata": {
+      "fact_id": "c9f39d619df4",
+      "source_session": "20260928_112948_915b31715629",
+      "source": "memory_store",
+      "timestamp": "2026-09-28T14:44:41.458440+00:00",
+      "category": "general"
+    },
+    "timestamp": "2026-09-28T14:44:41.458440+00:00",
+    "category": "general"
   }
 ]

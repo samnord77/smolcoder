@@ -9,14 +9,14 @@
 import * as fs from "fs";
 import { Plan } from "../plan";
 import { ToolSpec } from "../providers/types";
-import { editFile, listFiles, readFile, writeFile } from "./fs-tools";
+import { createFolder, deletePath, editFile, listFiles, movePath, readFile, writeFile } from "./fs-tools";
 import { fetchUrl } from "./web";
 import { queryCode } from "../lsp-pro";
 import { setupLsp } from "../lsp-install";
 import { McpBridge } from "../mcp";
 import { listSkills, readSkill, saveSkill } from "../skills";
 import { syntaxCheck } from "./check";
-import { runCommand } from "./shell";
+import { runCommand, type ShellControl } from "./shell";
 import { TaskManager } from "./tasks";
 import { CoworkBoard } from "./cowork";
 import { queryIndex } from "../codeindex";
@@ -224,6 +224,44 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
       },
     },
     {
+      name: "move_path",
+      description:
+        'Move or rename a file or folder. Example: {"from": "draft.ts", "to": "src/draft.ts"}. Creates missing parent folders. Refuses to overwrite an existing destination — delete_path it first. Undo is git.',
+      parameters: {
+        type: "object",
+        properties: {
+          from: { type: "string", description: "Current path (file or folder), relative to the workspace" },
+          to: { type: "string", description: "Destination path, relative to the workspace" },
+        },
+        required: ["from", "to"],
+      },
+    },
+    {
+      name: "delete_path",
+      description:
+        'Delete one file or one folder. Example: {"path": "build/output.log"}. A folder that still has items needs {"recursive": true}. A small text file comes back with /undo; a folder never does.',
+      parameters: {
+        type: "object",
+        properties: {
+          path: { type: "string", description: "Path to delete, relative to the workspace" },
+          recursive: { type: "boolean", description: "Required to delete a folder that is not empty" },
+        },
+        required: ["path"],
+      },
+    },
+    {
+      name: "create_folder",
+      description:
+        'Create a folder (and any missing parents). Example: {"path": "src/components"}. Safe to call when it already exists.',
+      parameters: {
+        type: "object",
+        properties: {
+          path: { type: "string", description: "Folder path relative to the workspace" },
+        },
+        required: ["path"],
+      },
+    },
+    {
       name: "format",
       description:
         'Format one code file in place with the project formatter (prettier, black/ruff, rustfmt, gofmt). Example: {"path": "src/agent.ts"}. Undoable like any edit. If no formatter is installed, the answer is the install command.',
@@ -348,7 +386,7 @@ export interface UndoEntry {
   abs: string;
   prev: string | null;
   next: string;
-  kind: "write" | "edit";
+  kind: "write" | "edit" | "delete";
   oldText?: string;
 }
 
@@ -379,7 +417,7 @@ function pushUndo(
   ctx: ToolContext,
   captured: { abs: string; prev: string | null } | null,
   next: unknown,
-  kind: "write" | "edit" = "write",
+  kind: "write" | "edit" | "delete" = "write",
   oldText?: unknown
 ): void {
   if (!captured || typeof next !== "string") return;
@@ -509,11 +547,46 @@ export async function executeTool(
         }
         break;
       }
+      case "move_path":
+        if (ctx.canWrite === false) {
+          return "Error: moving files is unavailable in read-only mode. Switch to edit mode to reorganize files.";
+        }
+        result = movePath(ctx.workspace, args);
+        if (!result.startsWith("Error")) {
+          ctx.filesTouched.add(String(args.from));
+          ctx.filesTouched.add(String(args.to));
+        }
+        break;
+      case "delete_path": {
+        if (ctx.canWrite === false) {
+          return "Error: deleting files is unavailable in read-only mode. Switch to edit mode to remove files.";
+        }
+        const undoCap = capturePrev(ctx.workspace, args.path);
+        result = deletePath(ctx.workspace, args);
+        if (!result.startsWith("Error")) {
+          // A plain text file restores on /undo; capturePrev already returns
+          // null for folders and oversized files, so nothing is claimed wrongly.
+          pushUndo(ctx, undoCap, "", "delete");
+          ctx.filesTouched.add(String(args.path));
+        }
+        break;
+      }
+      case "create_folder":
+        if (ctx.canWrite === false) {
+          return "Error: creating folders is unavailable in read-only mode. Switch to edit mode to reorganize files.";
+        }
+        result = createFolder(ctx.workspace, args);
+        if (!result.startsWith("Error")) ctx.filesTouched.add(String(args.path));
+        break;
       case "run_command":
         if (typeof args.command !== "string" || !args.command.trim()) {
           return 'Error: command is required. Example: {"command": "npm test"}';
         }
-        result = await runCommand(args.command, ctx.workspace, signal);
+        result = await runCommand(args.command, ctx.workspace, signal, (ctl: ShellControl) => {
+          // Offload path: the UI hands this live process to the background
+          // runner instead of waiting for the 120s kill.
+          ctl.adopt = (proc, cmd, seed) => ctx.taskManager.adopt(proc, cmd, seed);
+        });
         ctx.commandsRun.push(`${args.command} → ${result.split("\n").at(-1)}`);
         if (ctx.commandsRun.length > 50) ctx.commandsRun.splice(0, ctx.commandsRun.length - 50);
         break;

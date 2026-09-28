@@ -38,6 +38,7 @@ import { Plan } from "../plan";
 import { renderEditDiff } from "./diff";
 import { AgentUI } from "../ui";
 import { ToolContext } from "../tools/index";
+import { findLiveShell, liveShellList } from "../tools/shell";
 import { gitApplyHunk, gitCommit, gitDiffFiles, gitRevertFile, gitStage, gitStageLines, gitStatusMap, gitUnstage } from "../git";
 
 export type SessionFactory = (ui: SessionChannel, workspace: string, prefs: SessionPrefs, planKey?: string) => Promise<Session>;
@@ -942,6 +943,11 @@ export class WebHub {
           } catch (err: any) { json(400, { error: String(err?.message ?? err).slice(0, 500) }); }
           return;
         }
+        case "/shell/live": {
+          // What the offload card counts down against: real deadlines.
+          json(200, { items: liveShellList() });
+          return;
+        }
         case "/code/inline/result": {
           const id = String(url.searchParams.get("id") ?? "");
           const job = this.inlineJobs.get(id);
@@ -1401,6 +1407,25 @@ export class WebHub {
       case "/code/commit": {
         const l = this.editLive(sid);
         return { message: gitCommit(l.workspace, String(d.message ?? "")) };
+      }
+      case "/shell": {
+        const command = String(d.command ?? "");
+        const ctl = command ? findLiveShell(command) : null;
+        if (!ctl) return { ok: false, reason: "that command is no longer running" };
+        const action = String(d.action ?? "");
+        if (action === "extend") {
+          const ok = ctl.extend(Number(d.ms) || 60_000);
+          return { ok, deadline: ok ? ctl.deadline : null };
+        }
+        if (action === "detach") {
+          const taskId = ctl.detach();
+          return { ok: Boolean(taskId), taskId: taskId ?? null };
+        }
+        if (action === "cancel") {
+          ctl.cancel();
+          return { ok: true };
+        }
+        return { ok: false, reason: 'action must be "extend", "detach" or "cancel"' };
       }
       case "/code/inline/start": {
         const l = live();

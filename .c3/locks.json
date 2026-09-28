@@ -1,16 +1,56 @@
 {
   "schema_version": 1,
-  "fencing": 164,
+  "fencing": 185,
   "locks": [
     {
-      "relpath": "test/client-smoke.test.js",
+      "relpath": "src/web/client.ts",
       "agent_id": "claude-code:20260928",
       "session_id": "20260928_112948_915b31715629",
-      "fencing_token": 164,
+      "fencing_token": 181,
       "intent": "editing via c3_edit",
-      "acquired_at": 1790605737.3229868,
-      "expires_at": 1790607253.6227746,
-      "lock_id": "9b340eac95a24eaba62750e12d1add0c"
+      "acquired_at": 1790610182.7533925,
+      "expires_at": 1790611354.4619322,
+      "lock_id": "989366ad4ed641efb79aad852571bdd1"
+    },
+    {
+      "relpath": "src/web/styles.ts",
+      "agent_id": "claude-code:20260928",
+      "session_id": "20260928_112948_915b31715629",
+      "fencing_token": 182,
+      "intent": "editing via c3_edit",
+      "acquired_at": 1790610523.2316246,
+      "expires_at": 1790611423.2316246,
+      "lock_id": "18963ccef4ce461da700bda500a0f3bd"
+    },
+    {
+      "relpath": "test/lsp-pro.test.js",
+      "agent_id": "claude-code:20260928",
+      "session_id": "20260928_112948_915b31715629",
+      "fencing_token": 183,
+      "intent": "editing via c3_edit",
+      "acquired_at": 1790610785.6073294,
+      "expires_at": 1790611685.6073294,
+      "lock_id": "164b4bbb68c944078e137778b3fe86a0"
+    },
+    {
+      "relpath": "test/lsp.test.js",
+      "agent_id": "claude-code:20260928",
+      "session_id": "20260928_112948_915b31715629",
+      "fencing_token": 184,
+      "intent": "editing via c3_edit",
+      "acquired_at": 1790610845.335896,
+      "expires_at": 1790611745.335896,
+      "lock_id": "be596c73726d452faf2932864c82a75f"
+    },
+    {
+      "relpath": "test/mcp.test.js",
+      "agent_id": "claude-code:20260928",
+      "session_id": "20260928_112948_915b31715629",
+      "fencing_token": 185,
+      "intent": "editing via c3_edit",
+      "acquired_at": 1790610879.7106025,
+      "expires_at": 1790611779.7106025,
+      "lock_id": "724a4de548344bac9d885ad41152340c"
     }
   ]
 }

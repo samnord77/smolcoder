@@ -49,7 +49,10 @@
     "test/network.test.js",
     "src/network.ts",
     "test/web.test.js",
-    "test/detect.test.js"
+    "test/detect.test.js",
+    "src/tools/shell.ts",
+    "src/tools/tasks.ts",
+    "test/offload.test.js"
   ],
   "inflight": [
     "desktop/preload-git.js"

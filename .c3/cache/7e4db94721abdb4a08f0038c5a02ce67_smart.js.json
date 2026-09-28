@@ -1,0 +1,9 @@
+{
+  "original_tokens": 3263,
+  "compressed_tokens": 129,
+  "saved_tokens": 3134,
+  "savings_pct": 96.0,
+  "compressed": "# client-smoke.test.js (.js) \u2014 338 lines\nconst test = require(\"node:test\");\nconst assert = require(\"node:assert/strict\");\nconst fs = require(\"node:fs\");\nconst path = require(\"node:path\");\nconst vm = require(\"node:vm\");\nfunction makeEl(all)\nfunction boot(treeEntries, diffPayload)\nconst TREE = [ { name: \"src\", path: \"src\", dir: true }, { name: \"a.ts\", path: \"a.ts\", dir: false },\nconst DIFF =\nfunction emitHub(ctx, sid = \"s1\", startedAt = 1000)",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\client-smoke.test.js"
+}

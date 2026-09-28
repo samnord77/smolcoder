@@ -1,0 +1,34 @@
+{
+  "path": "test/offload.test.js",
+  "content_hash": "b643925a91bd5363d39d96c676d8dbdc",
+  "updated_at": "2026-09-28T16:37:05",
+  "lines": 64,
+  "size_bytes": 3495,
+  "mtime_ns": 1790609362762949200,
+  "language": "javascript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "constant",
+      "name": "test",
+      "line_start": 5,
+      "line_end": 5,
+      "signature": "const test = require(\"node:test\");"
+    },
+    {
+      "type": "constant",
+      "name": "assert",
+      "line_start": 6,
+      "line_end": 6,
+      "signature": "const assert = require(\"node:assert/strict\");"
+    },
+    {
+      "type": "function",
+      "name": "sleep",
+      "line_start": 10,
+      "line_end": 10,
+      "signature": "const sleep = (ms) => new Promise((r) => setTimeout(r, ms));"
+    }
+  ]
+}

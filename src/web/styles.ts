@@ -144,6 +144,16 @@ export const STYLES = String.raw`
   .tool .name { color: var(--accent); font-weight: 600; }
   .result { color: var(--dim); padding: 8px 14px; margin: 4px 0 10px; background: rgba(0, 0, 0, 0.25); border-left: 2px solid var(--line); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
   .result.err { color: var(--red); border-left-color: var(--red); background: rgba(244, 63, 94, 0.06); }
+
+  /* ---- offload card: real countdown on a long-running command ---- */
+  .offload-card { margin: 8px 0 4px; padding: 10px 14px; background: rgba(245, 158, 11, 0.07); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: var(--radius-sm); max-width: 620px; font-family: 'JetBrains Mono', ui-monospace, Consolas, monospace; font-size: 12px; line-height: 1.5; }
+  .offload-title { font-weight: 700; color: var(--yellow); }
+  .offload-count { color: var(--dim); margin: 4px 0 10px; min-height: 18px; }
+  .offload-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .offload-btn { font: inherit; font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: var(--radius-sm); border: 1px solid var(--line); background: rgba(255, 255, 255, 0.04); color: var(--fg); cursor: pointer; transition: var(--transition); }
+  .offload-btn:hover { border-color: var(--accent); background: rgba(56, 189, 248, 0.1); }
+  .offload-btn.primary { background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%); border-color: rgba(255, 255, 255, 0.15); color: #fff; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35); }
+  .offload-btn.primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(2, 132, 199, 0.55); }
   .plan { background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: var(--radius-md); padding: 12px 16px; margin: 12px 0; box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
   .plan .hdr { font-weight: 700; color: #f0f6fc; } .plan .hdr small { color: var(--dim); font-weight: 400; }
   .plan .done { color: var(--gray); text-decoration: line-through; }
@@ -273,10 +283,31 @@ export const STYLES = String.raw`
   .filediagnostic.warning { box-shadow: inset 3px 0 #c99a34; }
   .filediagnostic-note { color: var(--dim); }
   .filediagnostic-note.error { color: var(--red); }
-  .reviewlist { flex: 1; min-height: 0; overflow: auto; padding: 6px 8px; }
-  .reviewfile { display: flex; gap: 6px; align-items: center; font-weight: 700; font-size: 12px; margin: 10px 0 4px; color: var(--fg); }
-  .reviewfile .iconbtn { font-size: 11px; padding: 2px 8px; }
-  .tabbody.review .bar input, .tabbody.review .bar select { min-width: 0; background: var(--box); border: 1px solid var(--line); color: var(--fg); font: inherit; font-size: 12px; padding: 4px 7px; border-radius: 4px; }
+  .reviewpanes { flex: 1; min-height: 0; display: flex; align-items: stretch; }
+  .reviewfiles { display: flex; flex-direction: column; width: min(360px, 46%); min-width: 190px; border-right: 1px solid var(--line); background: rgba(0,0,0,.14); }
+  .reviewlist { flex: 1; min-height: 0; overflow: auto; padding: 6px; }
+  .reviewtotals { flex: none; display: flex; justify-content: space-between; gap: 8px; padding: 6px 8px; border-top: 1px solid var(--line); color: var(--dim); font-size: 11px; }
+  .reviewtotals .plus { color: var(--green); }
+  .reviewtotals .minus { color: var(--red); }
+  .reviewfilerow { display: flex; gap: 6px; align-items: center; width: 100%; text-align: left; border: 0; background: transparent; color: var(--fg); font: inherit; font-size: 12px; padding: 5px 7px; border-radius: 5px; cursor: pointer; }
+  .reviewfilerow:hover { background: rgba(255,255,255,.06); }
+  .reviewfilerow.sel { background: rgba(56,189,248,.13); box-shadow: inset 2px 0 var(--accent); }
+  .reviewfilerow .fstat { flex: none; width: 15px; font-weight: 700; text-align: center; font-size: 11px; }
+  .reviewfilerow .fstat.a { color: var(--green); }
+  .reviewfilerow .fstat.m { color: var(--yellow); }
+  .reviewfilerow .fstat.d { color: var(--red); }
+  .reviewfilerow .fstat.r { color: var(--magenta); }
+  .reviewfilerow .fpath { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .reviewfilerow .fdelta { flex: none; font-family: ui-monospace, Consolas, monospace; font-size: 10.5px; white-space: nowrap; }
+  .reviewfilerow .fdelta .plus { color: var(--green); }
+  .reviewfilerow .fdelta .minus { color: var(--red); }
+  .reviewnav { flex: none; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 0; border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
+  .reviewnav .badge-n { min-width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; border-radius: 10px; background: var(--accent); color: #06121b; font: 700 11px/1 ui-monospace, Consolas, monospace; }
+  .reviewdiff { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .reviewdifftop { flex: none; display: flex; gap: 8px; align-items: center; padding: 6px 10px; border-bottom: 1px solid var(--line); font-size: 11.5px; color: var(--dim); }
+  .reviewdifftop .reviewpath { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: ui-monospace, Consolas, monospace; color: var(--fg); }
+  .reviewdiffbody { flex: 1; min-height: 0; overflow: auto; padding: 8px 10px; }
+  .tabbody.review .bar input { min-width: 0; background: var(--box); border: 1px solid var(--line); color: var(--fg); font: inherit; font-size: 12px; padding: 4px 7px; border-radius: 4px; }
   .tabbody.review .bar input { flex: 1; }
   .gutter { display: inline-block; width: 34px; flex: none; text-align: right; margin-right: 8px; color: var(--dim); opacity: .7; user-select: none; }
   .sbsgrid { border: 1px solid var(--line); border-radius: 6px; margin: 0 0 8px; overflow: hidden; }

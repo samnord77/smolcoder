@@ -149,7 +149,45 @@ export function killTree(pid: number): void {
 }
 
 const OUTPUT_CAP = 8000;
-const DEFAULT_TIMEOUT_MS = 120_000;
+/** Override with SMOL_SHELL_TIMEOUT_MS (used by the demo and by tests). */
+function shellTimeoutMs(): number {
+	const raw = Number(process.env.SMOL_SHELL_TIMEOUT_MS);
+	return Number.isFinite(raw) && raw >= 1000 ? Math.floor(raw) : 120_000;
+}
+const DEFAULT_TIMEOUT_MS = shellTimeoutMs();
+
+/**
+ * Live handle on a running shell command. The UI reads it to show real time
+ * left, and acts on it: extend the deadline, hand the process to the
+ * background task runner, or cancel it for real.
+ */
+export interface ShellControl {
+	readonly command: string;
+	readonly startedAt: number;
+	/** Absolute ms epoch of the auto-kill; null once detached or finished. */
+	deadline: number | null;
+	/** Assigned by the caller: hands the still-running process to the task runner. */
+	adopt?: (proc: import("child_process").ChildProcess, command: string, seed: string) => string;
+	/** Push the auto-kill deadline out by `ms`; false when the run is over. */
+	extend(ms: number): boolean;
+	/** Stop waiting, keep the process alive in the background; returns its task id. */
+	detach(): string | null;
+	/** Kill it now and resolve the run as cancelled. */
+	cancel(): void;
+}
+
+/** Runs currently waiting on a timeout, most recent first on lookup. */
+const liveShells = new Set<ShellControl>();
+
+export function liveShellList(): { command: string; startedAt: number; deadline: number | null }[] {
+	return [...liveShells].map((c) => ({ command: c.command, startedAt: c.startedAt, deadline: c.deadline }));
+}
+
+export function findLiveShell(command: string): ShellControl | null {
+	let found: ShellControl | null = null;
+	for (const c of liveShells) if (c.command === command && c.startedAt >= (found?.startedAt ?? 0)) found = c;
+	return found;
+}
 
 /** Keep bash alive while ordinary background jobs own its output pipes. On
  * Windows taskkill cannot find descendants after their shell has exited. */
@@ -234,6 +272,7 @@ export function runCommand(
 	command: string,
 	cwd: string,
 	signal?: AbortSignal,
+	onCtl?: (ctl: ShellControl) => void,
 ): Promise<string> {
 	if (signal?.aborted)
 		return Promise.resolve("Error: command cancelled before starting");
@@ -242,6 +281,7 @@ export function runCommand(
 		let output = "";
 		let finished = false;
 		const started = Date.now();
+		let timeoutMs = DEFAULT_TIMEOUT_MS;
 		const procEnv = shellEnv();
 		const projectCommand = process.platform === "win32" &&
 			/(?:^|[\s;&|])(?:npm|npx|pnpm|yarn)(?:\.cmd)?(?:\s|$)/i.test(command);
@@ -272,15 +312,28 @@ export function runCommand(
 		proc.stdout.on("data", append);
 		proc.stderr.on("data", append);
 
-		// User interrupt (esc / ctrl+c / web stop button): kill the whole tree now.
-		const onAbort = () => {
-			if (finished) return;
+		const release = () => liveShells.delete(ctl);
+		const stopWaiting = () => {
 			finished = true;
 			clearTimeout(timer);
 			cleanup();
-			killTree(proc.pid!);
-			proc.stdout.destroy();
-			proc.stderr.destroy();
+		};
+		const destroy = () => {
+			try {
+				killTree(proc.pid!);
+				proc.stdout.destroy();
+				proc.stderr.destroy();
+			} catch {
+				/* déjà parti */
+			}
+		};
+
+		// User interrupt (esc / ctrl+c / web stop button): kill the whole tree now.
+		const onAbort = () => {
+			if (finished) return;
+			stopWaiting();
+			release();
+			destroy();
 			resolve(
 				(output.trim() ? truncateMiddle(output, OUTPUT_CAP) + "\n" : "") +
 					"[command cancelled by the user before it finished]",
@@ -289,33 +342,72 @@ export function runCommand(
 		signal?.addEventListener("abort", onAbort, { once: true });
 		const cleanup = () => signal?.removeEventListener("abort", onAbort);
 
-		const timer = setTimeout(() => {
+		const killTimeout = () => {
 			if (finished) return;
-			finished = true;
-			cleanup();
-			killTree(proc.pid!);
-			proc.stdout.destroy();
-			proc.stderr.destroy();
+			stopWaiting();
+			release();
+			destroy();
 			resolve(
 				"Error: " +
 					truncateMiddle(output, OUTPUT_CAP) +
-					`\n[command timed out after ${DEFAULT_TIMEOUT_MS / 1000}s and was killed. For tests/builds, isolate the stuck test or phase and inspect its loop or initialization before rerunning. For a persistent dev server, use task {"action": "start"}.]`,
+					`\n[command timed out after ${Math.round(timeoutMs / 1000)}s and was killed. For tests/builds, isolate the stuck test or phase and inspect its loop or initialization before rerunning. For a persistent dev server, use task {"action": "start"}.]`,
 			);
-		}, DEFAULT_TIMEOUT_MS);
+		};
+		let timer = setTimeout(killTimeout, timeoutMs);
+
+		const ctl: ShellControl = {
+			command,
+			startedAt: started,
+			deadline: started + timeoutMs,
+			extend(ms: number) {
+				if (finished || ctl.deadline === null) return false;
+				const extra = Math.max(1000, Math.floor(ms));
+				clearTimeout(timer);
+				timeoutMs += extra;
+				ctl.deadline = ctl.deadline + extra;
+				timer = setTimeout(killTimeout, Math.max(1, ctl.deadline - Date.now()));
+				return true;
+			},
+			detach(): string | null {
+				if (finished || ctl.deadline === null) return null;
+				if (!ctl.adopt) return null;
+				stopWaiting();
+				release();
+				ctl.deadline = null;
+				const id = ctl.adopt(proc, command, output);
+				const seed = output.trim() ? truncateMiddle(output, OUTPUT_CAP) : "";
+				resolve(
+					`[moved to background as task ${id} — the process keeps running. ` +
+						`Check it with task {"action": "logs", "task_id": "${id}"}; a status line arrives when it finishes.]` +
+					(seed ? `\nOutput so far:\n${seed}` : ""),
+				);
+				return id;
+			},
+			cancel() {
+				if (finished) return;
+				stopWaiting();
+				release();
+				destroy();
+				resolve(
+					(output.trim() ? truncateMiddle(output, OUTPUT_CAP) + "\n" : "") +
+						"[command cancelled by the user]",
+				);
+			},
+		};
+		liveShells.add(ctl);
+		onCtl?.(ctl);
 
 		proc.on("error", (err) => {
 			if (finished) return;
-			finished = true;
-			clearTimeout(timer);
-			cleanup();
+			stopWaiting();
+			release();
 			resolve(`Error: could not start command: ${err.message}`);
 		});
 
 		proc.on("close", (code) => {
 			if (finished) return;
-			finished = true;
-			clearTimeout(timer);
-			cleanup();
+			stopWaiting();
+			release();
 			const secs = ((Date.now() - started) / 1000).toFixed(1);
 			const body = output.trim()
 				? truncateMiddle(output, OUTPUT_CAP)

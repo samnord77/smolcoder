@@ -300,7 +300,13 @@ async function runHeadless(args: CliArgs): Promise<void> {
     }
   );
   provider.setEffort(effortForBackend(cfg, chosen.backend, args.effort));
-  const taskManager = new TaskManager(args.workspace);
+  const taskManager = new TaskManager(args.workspace, (t) => {
+    try {
+      ui.status(`· background task ${t.id} finished (exit code ${t.exitCode ?? "?"}) — ${t.command.slice(0, 140)}`);
+    } catch {
+      /* status must never break startup or an exit */
+    }
+  });
   let headlessPlugins: ToolContext["plugins"] = [];
   try {
     headlessPlugins = loadPlugins(args.workspace);

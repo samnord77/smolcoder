@@ -1,0 +1,9 @@
+{
+  "original_tokens": 3381,
+  "compressed_tokens": 196,
+  "saved_tokens": 3185,
+  "savings_pct": 94.2,
+  "compressed": "# shell.ts (.ts) \u2014 422 lines\nimport { spawn, spawnSync } from \"child_process\";\nimport * as fs from \"fs\";\nimport * as path from \"path\";\nimport { truncateMiddle } from \"../util\";\n\nexport interface ShellInfo\nlet cached: ShellInfo | null = null;\nexport function pickShell(): ShellInfo\nexport function killTree(pid: number): void\nconst OUTPUT_CAP = 8000;\nfunction shellTimeoutMs(): number\nconst DEFAULT_TIMEOUT_MS = shellTimeoutMs();\nexport interface ShellControl\nconst liveShells = new Set<ShellControl>();\nexport function liveShellList(): { command: string; startedAt: number; deadline: number | null }[]\nexport function findLiveShell(command: string): ShellControl | null\nexport function managedCommand(shell: ShellInfo, command: string): string\nexport function shellEnv(): NodeJS.ProcessEnv\nexport function runCommand( command: string, cwd: string,",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\tools\\shell.ts"
+}

@@ -21,17 +21,24 @@ function makeEl(all) {
     title: "",
     type: "",
     className: "",
-    appendChild(c) { el.children.push(c); return c; },
-    append(...cs) { el.children.push(...cs); },
-    prepend(...cs) { el.children.unshift(...cs); },
+    appendChild(c) { c.parent = el; el.children.push(c); return c; },
+    append(...cs) { cs.forEach((c) => (c.parent = el)); el.children.push(...cs); },
+    prepend(...cs) { cs.forEach((c) => (c.parent = el)); el.children.unshift(...cs); },
     insertBefore(c, ref) {
+      c.parent = el;
       const i = ref ? el.children.indexOf(ref) : -1;
       if (i < 0) el.children.push(c);
       else el.children.splice(i, 0, c);
       return c;
     },
-    replaceChildren(...cs) { el.children.length = 0; el.children.push(...cs); },
-    remove() {},
+    replaceChildren(...cs) { el.children.length = 0; cs.forEach((c) => (c.parent = el)); el.children.push(...cs); },
+    remove() {
+      const p = el.parent;
+      if (!p) return;
+      const i = p.children.indexOf(el);
+      if (i >= 0) p.children.splice(i, 1);
+      el.parent = null;
+    },
     addEventListener() {},
     removeEventListener() {},
     setAttribute() {},
@@ -60,10 +67,11 @@ function makeEl(all) {
   });
 }
 
-function boot(treeEntries, diffPayload) {
+function boot(treeEntries, diffPayload, shellItems = []) {
   const all = [];
   const els = {};
   const urls = [];
+  const posts = [];
   const doc = {
     createElement: () => makeEl(all),
     createTextNode: (text) => {
@@ -122,7 +130,13 @@ function boot(treeEntries, diffPayload) {
       urls.push(String(url));
       const u = String(url);
       let body = {};
-      if (u.includes("/workspace/tree")) body = { path: ".", entries: treeEntries, workspace: "/ws" };
+      if (u.includes("/shell/live")) body = { items: shellItems };
+      else if (u.includes("/shell") && opts && opts.method === "POST") {
+        const parsed = opts.body ? JSON.parse(opts.body) : {};
+        posts.push({ url: u, body: parsed });
+        body = { ok: true, taskId: "t3", deadline: Date.now() + 90000 };
+      }
+      else if (u.includes("/workspace/tree")) body = { path: ".", entries: treeEntries, workspace: "/ws" };
       else if (u.includes("/workspace/file") && (!opts || opts.method !== "POST")) body = { path: "a.ts", content: "const x = 1;\n", mtimeMs: 1 };
       else if (u.includes("/code/diff") && !u.includes("/hunk")) body = diffPayload;
       else if (u.includes("/plan")) body = { exists: false, steps: [], current: -1, done: 0, total: 0 };
@@ -157,7 +171,7 @@ function boot(treeEntries, diffPayload) {
   };
   const errors = () => (els.smolerror && els.smolerror.textContent ? els.smolerror.textContent : "");
   const flush = async (ms = 120) => new Promise((r) => setTimeout(r, ms));
-  return { context, els, urls, classes, errors, flush, es: () => esInstance, allElements: () => all };
+  return { context, els, urls, posts, classes, errors, flush, es: () => esInstance, allElements: () => all };
 }
 
 const TREE = [
@@ -293,6 +307,21 @@ test("agent file activity shows live and refreshes review", async () => {
   const texts = [];
   for (const e of c.allElements()) if (e.textContent) texts.push(e.textContent);
   assert.ok(texts.some((t) => t.includes("🤖 write_file")), "agent chip shows the live tool call");
+
+  // The reload happens when the tool FINISHES — the tool event alone used to
+  // leave the panel frozen on the pre-change state (the abandoned panel).
+  const beforeTree = () => c.urls.filter((u) => u.includes("/workspace/tree")).length;
+  const atStart = beforeTree();
+  c.es().onmessage({ data: JSON.stringify({ t: "result", sid: "s1", line: "done", body: "done" }) });
+  await c.flush(1500);
+  assert.ok(beforeTree() > atStart, "the tree reloads when the write finishes");
+
+  // A move through the new shape tool follows the same path.
+  const afterWrite = beforeTree();
+  c.es().onmessage({ data: JSON.stringify({ t: "tool", sid: "s1", name: "move_path", summary: "a.ts → src/a.ts" }) });
+  c.es().onmessage({ data: JSON.stringify({ t: "result", sid: "s1", line: "Moved file a.ts", body: "Moved file a.ts" }) });
+  await c.flush(1500);
+  assert.ok(beforeTree() > afterWrite, "a move also reloads the tree");
 });
 
 test("side-by-side toggle renders paired columns", async () => {
@@ -335,4 +364,67 @@ test("page reloads itself when the hub restarts underneath", async () => {
   emitHub(c, "s1", 2000);
   await c.flush(120);
   assert.equal(c.context.location.reloads, 1);
+});
+
+const OFFLOAD_COMMAND = 'node -e "long build"';
+function startRun(c) {
+  c.es().onmessage({ data: JSON.stringify({ t: "tool", sid: "s1", name: "run_command", summary: OFFLOAD_COMMAND }) });
+}
+
+const cardsOf = (c) => c.allElements().filter((e) => String(e.className || "").split(/\s+/).indexOf("offload-card") >= 0);
+const buttonsOf = (card) => (card.children[2] ? card.children[2].children : []);
+
+test("the offload card shows the real countdown and detach really moves the run", async () => {
+  const c = boot(TREE, DIFF, [{ command: OFFLOAD_COMMAND, startedAt: Date.now() - 2000, deadline: Date.now() + 500 }]);
+  emitHub(c);
+  await c.flush();
+  startRun(c);
+  await c.flush(250);
+  const cards = cardsOf(c);
+  assert.equal(cards.length, 1, "the card appears when the deadline is close");
+  const card = cards[0];
+  const lines = card.children.map((x) => [x, ...x.children].map((y) => y.textContent).join(" "));
+  assert.ok(lines.some((t) => /Tool running longer — about to offload/.test(t)), "copilot-style title");
+  assert.ok(lines.some((t) => /Detaching in \d+s/.test(t)), "a live countdown against the server deadline");
+  assert.deepEqual(buttonsOf(card).map((b) => b.textContent), [
+    "Move to background now",
+    "Don't auto-offload",
+    "Delay offload",
+    "Extend timeout",
+    "Cancel",
+  ], "all five actions");
+  assert.ok(card.parent && card.parent.open === true, "the card forces its tool entry open");
+
+  buttonsOf(card)[0].onclick();
+  await c.flush(150);
+  const det = c.posts.find((p) => p.body && p.body.action === "detach");
+  assert.ok(det, "the primary button calls the server");
+  assert.equal(det.body.command, OFFLOAD_COMMAND, "for the command that owns the card");
+  assert.ok(/task t3/.test(card.children[1].textContent), "the card reports where it went");
+
+  c.es().onmessage({ data: JSON.stringify({ t: "result", sid: "s1", line: "moved", body: "moved" }) });
+  await c.flush(150);
+  assert.equal(card.parent, null, "the card leaves with the tool result");
+});
+
+test("Extend timeout pushes the deadline and Don't auto-offload stands down", async () => {
+  const c = boot(TREE, DIFF, [{ command: OFFLOAD_COMMAND, startedAt: Date.now(), deadline: Date.now() + 400 }]);
+  emitHub(c);
+  await c.flush();
+  startRun(c);
+  await c.flush(250);
+  const card = cardsOf(c)[0];
+  assert.ok(card, "the card is up");
+  buttonsOf(card)[3].onclick();
+  await c.flush(150);
+  const ext = c.posts.filter((p) => p.body.action === "extend").pop();
+  assert.ok(ext && ext.body.ms === 120000, "extend asks for two more minutes");
+  assert.match(card.children[1].textContent, /Detaching in 8[0-9]s|Detaching in 9[0-9]s/, "countdown follows the new deadline");
+
+  buttonsOf(card)[1].onclick();
+  await c.flush(50);
+  assert.equal(card.parent, null, "the user stood down: the card is gone");
+  c.es().onmessage({ data: JSON.stringify({ t: "result", sid: "s1", line: "ok", body: "ok" }) });
+  await c.flush(120);
+  assert.equal(cardsOf(c).filter((e) => e.parent).length, 0, "and it stays gone");
 });

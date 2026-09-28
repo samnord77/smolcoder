@@ -1,10 +1,10 @@
 {
   "path": "src/tools/index.ts",
-  "content_hash": "bed32d755734d6b6d5fd2f47c8ade948",
-  "updated_at": "2026-09-28T11:52:02",
-  "lines": 692,
-  "size_bytes": 32098,
-  "mtime_ns": 1790592653720319500,
+  "content_hash": "6afc86ae154f9849ddbd925354ab1bcf",
+  "updated_at": "2026-09-28T16:20:03",
+  "lines": 765,
+  "size_bytes": 35442,
+  "mtime_ns": 1790608651385430300,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -32,10 +32,10 @@
     },
     {
       "type": "import",
-      "name": "import { editFile, listFiles, readFile, writeFile } from \"./fs-tools\";",
+      "name": "import { createFolder, deletePath, editFile, listFiles, movePath, readFile, writeFile } from \"./fs-tools\";",
       "line_start": 12,
       "line_end": 12,
-      "signature": "import { editFile, listFiles, readFile, writeFile } from \"./fs-tools\";"
+      "signature": "import { createFolder, deletePath, editFile, listFiles, movePath, readFile, writeFile } from \"./fs-tools\";"
     },
     {
       "type": "import",
@@ -81,10 +81,10 @@
     },
     {
       "type": "import",
-      "name": "import { runCommand } from \"./shell\";",
+      "name": "import { runCommand, type ShellControl } from \"./shell\";",
       "line_start": 19,
       "line_end": 19,
-      "signature": "import { runCommand } from \"./shell\";"
+      "signature": "import { runCommand, type ShellControl } from \"./shell\";"
     },
     {
       "type": "import",
@@ -189,76 +189,76 @@
       "type": "function",
       "name": "buildToolSpecs",
       "line_start": 65,
-      "line_end": 342,
+      "line_end": 380,
       "signature": "function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): ToolSpec[] {"
     },
     {
       "type": "interface",
       "name": "UndoEntry",
-      "line_start": 347,
-      "line_end": 353,
+      "line_start": 385,
+      "line_end": 391,
       "signature": "interface UndoEntry {",
       "children": []
     },
     {
       "type": "constant",
       "name": "UNDO_CAP",
-      "line_start": 355,
-      "line_end": 355,
+      "line_start": 393,
+      "line_end": 393,
       "signature": "const UNDO_CAP = 20;"
     },
     {
       "type": "constant",
       "name": "UNDO_SKIP_BYTES",
-      "line_start": 356,
-      "line_end": 356,
+      "line_start": 394,
+      "line_end": 394,
       "signature": "const UNDO_SKIP_BYTES = 1024 * 1024; // >1 Mo : skip silencieuse, pas d'entr\u00e9e undo"
     },
     {
       "type": "function",
       "name": "capturePrev",
-      "line_start": 360,
-      "line_end": 375,
+      "line_start": 398,
+      "line_end": 413,
       "signature": "function capturePrev(workspace: string, rel: unknown): { abs: string; prev: string | null } | null {",
       "doc": "Capture le contenu AVANT \u00e9criture. Retourne null quand il n'y a rien \u00e0"
     },
     {
       "type": "function",
       "name": "pushUndo",
-      "line_start": 378,
-      "line_end": 397,
+      "line_start": 416,
+      "line_end": 435,
       "signature": "function pushUndo(",
       "doc": "Enregistre l'\u00e9criture APRES succ\u00e8s (cap 20, redo vid\u00e9e \u00e0 chaque nouvel edit)."
     },
     {
       "type": "interface",
       "name": "ToolContext",
-      "line_start": 399,
-      "line_end": 428,
+      "line_start": 437,
+      "line_end": 466,
       "signature": "interface ToolContext {",
       "children": []
     },
     {
       "type": "function",
       "name": "executeTool",
-      "line_start": 430,
-      "line_end": 670,
+      "line_start": 468,
+      "line_end": 743,
       "signature": "async function executeTool(",
       "async": true
     },
     {
       "type": "function",
       "name": "afterWrite",
-      "line_start": 675,
-      "line_end": 684,
+      "line_start": 748,
+      "line_end": 757,
       "signature": "function afterWrite(workspace: string, relPath: string): string {",
       "doc": "Post-write hook: parse what was just written and coach on the first"
     },
     {
       "type": "function",
       "name": "commandOf",
-      "line_start": 688,
-      "line_end": 692,
+      "line_start": 761,
+      "line_end": 765,
       "signature": "function commandOf(name: string, args: Record<string, any>): string | null {"
     }
   ]

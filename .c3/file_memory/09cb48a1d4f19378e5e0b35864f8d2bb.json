@@ -1,10 +1,10 @@
 {
   "path": "test/code-api.test.js",
-  "content_hash": "c147eb2dc2c083c9e9503711d0908ce4",
-  "updated_at": "2026-09-28T15:28:02",
-  "lines": 477,
-  "size_bytes": 22571,
-  "mtime_ns": 1790605445118492100,
+  "content_hash": "4bf44f413c3e6cdb9e1c650d4afd7c83",
+  "updated_at": "2026-09-28T16:54:05",
+  "lines": 515,
+  "size_bytes": 24799,
+  "mtime_ns": 1790609889255321100,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -54,37 +54,37 @@
     {
       "type": "function",
       "name": "sleep",
-      "line_start": 11,
-      "line_end": 11,
+      "line_start": 12,
+      "line_end": 12,
       "signature": "const sleep = (ms) => new Promise((r) => setTimeout(r, ms));"
     },
     {
       "type": "function",
       "name": "until",
-      "line_start": 12,
-      "line_end": 20,
+      "line_start": 13,
+      "line_end": 21,
       "signature": "async function until(fn, ms = 4000, label = \"condition\") {",
       "async": true
     },
     {
       "type": "function",
       "name": "stubFactory",
-      "line_start": 22,
-      "line_end": 43,
+      "line_start": 23,
+      "line_end": 44,
       "signature": "function stubFactory(calls) {"
     },
     {
       "type": "function",
       "name": "request",
-      "line_start": 45,
-      "line_end": 59,
+      "line_start": 46,
+      "line_end": 60,
       "signature": "function request(hub, method, p, body) {"
     },
     {
       "type": "function",
       "name": "followShare",
-      "line_start": 100,
-      "line_end": 128,
+      "line_start": 101,
+      "line_end": 129,
       "signature": "function followShare(hub, path) {"
     }
   ]

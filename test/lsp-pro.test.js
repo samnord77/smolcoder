@@ -191,7 +191,11 @@ test("symbols schema exposes the 10 pro actions; new tools are visible per mode"
     assert.ok(!names("ro").includes(n), `${n} is hidden in read-only mode`);
     assert.ok(names("edit").includes(n) && names("bypass").includes(n));
   }
-  assert.equal(edit.length, 19);
+  for (const n of ["move_path", "delete_path", "create_folder"]) {
+    assert.ok(names("edit").includes(n), `${n} is offered in edit mode`);
+    assert.ok(names("bypass").includes(n), `${n} is offered in bypass mode`);
+  }
+  assert.equal(edit.length, 22);
 });
 
 test("diagStructured returns panel rows through the mock server", async () => {

@@ -1,0 +1,62 @@
+{
+  "path": "test/fs-manage.test.js",
+  "content_hash": "f3c11075f47f2223bddff7b112048359",
+  "updated_at": "2026-09-28T16:09:02",
+  "lines": 93,
+  "size_bytes": 5925,
+  "mtime_ns": 1790607835838528300,
+  "language": "javascript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "constant",
+      "name": "test",
+      "line_start": 4,
+      "line_end": 4,
+      "signature": "const test = require(\"node:test\");"
+    },
+    {
+      "type": "constant",
+      "name": "assert",
+      "line_start": 5,
+      "line_end": 5,
+      "signature": "const assert = require(\"node:assert/strict\");"
+    },
+    {
+      "type": "constant",
+      "name": "fs",
+      "line_start": 6,
+      "line_end": 6,
+      "signature": "const fs = require(\"fs\");"
+    },
+    {
+      "type": "constant",
+      "name": "os",
+      "line_start": 7,
+      "line_end": 7,
+      "signature": "const os = require(\"os\");"
+    },
+    {
+      "type": "constant",
+      "name": "path",
+      "line_start": 8,
+      "line_end": 8,
+      "signature": "const path = require(\"path\");"
+    },
+    {
+      "type": "function",
+      "name": "scratch",
+      "line_start": 14,
+      "line_end": 25,
+      "signature": "function scratch(files = {}) {"
+    },
+    {
+      "type": "function",
+      "name": "ctxFor",
+      "line_start": 26,
+      "line_end": 28,
+      "signature": "function ctxFor(dir) {"
+    }
+  ]
+}

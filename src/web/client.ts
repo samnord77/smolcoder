@@ -190,7 +190,7 @@ function getView(sid) {
   if (!v) {
     v = {
       sid, logEl: el("div", "log"), state: { commands: [] }, curText: null, curThought: null, thoughtBuf: "", thoughtStart: 0,
-      busyLabel: null, busyStart: 0, unread: false, draft: "", scrollTop: null, followBottom: true, asks: new Map(), curTool: null, planEl: null, curSub: null,
+      busyLabel: null, busyStart: 0, unread: false, draft: "", scrollTop: null, followBottom: true, asks: new Map(), curTool: null, planEl: null, curSub: null, lastTool: null,
       terms: new Map(), tabs: [], activeTab: null, panelOpen: false, panelEl: el("div", "panelview"),
     };
     v.logEl.hidden = true; logsEl.appendChild(v.logEl);
@@ -356,6 +356,23 @@ function setBusy(v, label) {
   v.busyLabel = label || null;
   if (label) v.busyStart = Date.now();
   if (v === active) renderBusy();
+  // A long command writes files while it runs: heartbeat the tree and the
+  // review every few seconds so neither goes stale behind an agent at work.
+  if (v === active && label && !busyRefreshTimer) {
+    busyRefreshTimer = setInterval(() => {
+      if (!active || !active.busyLabel) {
+        if (busyRefreshTimer) { clearInterval(busyRefreshTimer); busyRefreshTimer = null; }
+        return;
+      }
+      try {
+        const wants = active.tabs.some((t) => t.kind === "review" || t.kind === "files");
+        if (wants) scheduleWorkspaceRefresh(active);
+      } catch (e) {}
+    }, 4000);
+  } else if (!label && busyRefreshTimer && !(active && active.busyLabel)) {
+    clearInterval(busyRefreshTimer);
+    busyRefreshTimer = null;
+  }
 }
 const SPIN_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 let spinTimer = null, spinIdx = 0;
@@ -500,31 +517,125 @@ function renderPlan(v, p) {
 }
 
 // ---- event handling -------------------------------------------------------
-const AGENT_FILE_TOOLS = ["read_file", "write_file", "edit_file", "list_files", "search"];
+// The chip follows every tool that touches files. The TREE and the REVIEW
+// reload when such a tool FINISHES — a "tool" event fires at its start, too
+// early to show what the call actually changed (that was the panel that
+// never moved). Long commands get a slow heartbeat from setBusy instead.
+const CHIP_TOOLS = ["read_file", "write_file", "edit_file", "list_files", "search", "move_path", "delete_path", "create_folder", "run_command", "git"];
+const DISK_TOOLS = ["write_file", "edit_file", "move_path", "delete_path", "create_folder", "format", "run_command", "task", "git", "debug"];
 let agentRefreshTimer = null;
-// Live agent presence: every file tool call updates the files tab chip,
-// writes also refresh the open review tab + tree (debounced).
+let busyRefreshTimer = null;
+function scheduleWorkspaceRefresh(v) {
+  if (agentRefreshTimer) clearTimeout(agentRefreshTimer);
+  agentRefreshTimer = setTimeout(() => {
+    agentRefreshTimer = null;
+    try {
+      const rv = v.tabs.find((x) => x.kind === "review");
+      if (rv && rv.reload) rv.reload();
+      const ff = v.tabs.find((x) => x.kind === "files");
+      if (ff && ff.refreshFiles) ff.refreshFiles();
+    } catch (e) {}
+  }, 1200);
+}
 function notifyAgentFileActivity(v, m) {
-  if (!m || AGENT_FILE_TOOLS.indexOf(m.name) < 0) return;
+  if (!m) return;
   try {
-    const ft = v.tabs.find((x) => x.kind === "files");
-    if (ft && ft.agentLine) {
-      ft.agentLine.textContent = "🤖 " + m.name + (m.summary ? " " + m.summary : "");
-      ft.agentLine.hidden = false;
+    if (CHIP_TOOLS.indexOf(m.name) >= 0) {
+      const ft = v.tabs.find((x) => x.kind === "files");
+      if (ft && ft.agentLine) {
+        ft.agentLine.textContent = "🤖 " + m.name + (m.summary ? " " + m.summary : "");
+        ft.agentLine.hidden = false;
+      }
     }
-    if (m.name === "write_file" || m.name === "edit_file") {
-      if (agentRefreshTimer) clearTimeout(agentRefreshTimer);
-      agentRefreshTimer = setTimeout(() => {
-        agentRefreshTimer = null;
-        try {
-          const rv = v.tabs.find((x) => x.kind === "review");
-          if (rv && rv.reload) rv.reload();
-          const ff = v.tabs.find((x) => x.kind === "files");
-          if (ff && ff.refreshFiles) ff.refreshFiles();
-        } catch (e) {}
-      }, 1200);
-    }
+    if (DISK_TOOLS.indexOf(m.name) >= 0) scheduleWorkspaceRefresh(v);
   } catch (e) {}
+}
+
+// ---- offload card ----------------------------------------------------------
+// Countdown against the server's REAL shell deadline. Every button acts on
+// the live process: move it to a background task, push the deadline out, or
+// cancel it — nothing here is cosmetic, the run either keeps going or it dies.
+const OFFLOAD_LEAD_MS = 30000;
+function clearOffload(v) {
+  const o = v && v.offload;
+  if (!o) return;
+  clearTimeout(o.arm); clearInterval(o.tick);
+  if (o.card) { try { o.card.remove(); } catch (e) {} }
+  v.offload = null;
+}
+function armOffload(v, host, summary) {
+  clearOffload(v);
+  const o = { arm: 0, tick: 0, card: null, host: host, command: String(summary || ""), deadline: 0 };
+  v.offload = o;
+  fetch("/shell/live?k=" + k)
+    .then((r) => (r && r.ok ? r.json() : null))
+    .then((j) => {
+      if (v.offload !== o || !j || !Array.isArray(j.items)) return;
+      const items = j.items.filter((i) => i && i.deadline);
+      if (!items.length) return;
+      const key = o.command.trim().toLowerCase();
+      let hit = key ? items.find((i) => String(i.command || "").toLowerCase().indexOf(key) >= 0) : null;
+      if (!hit) hit = items.reduce((a, b) => (b.startedAt > a.startedAt ? b : a));
+      o.command = hit.command;
+      o.deadline = hit.deadline;
+      const wait = Math.max(0, o.deadline - Date.now() - OFFLOAD_LEAD_MS);
+      if (wait === 0) showOffloadCard(v, o);
+      else o.arm = setTimeout(() => { if (v.offload === o) showOffloadCard(v, o); }, wait);
+    })
+    .catch(() => {});
+}
+function showOffloadCard(v, o) {
+  if (v.offload !== o || !o.host || o.card) return;
+  const card = el("div", "offload-card");
+  const title = el("div", "offload-title", "Tool running longer — about to offload");
+  const count = el("div", "offload-count", "");
+  const row = el("div", "offload-actions");
+  const refresh = () => {
+    const left = o.deadline - Date.now();
+    count.textContent = left > 0
+      ? "Detaching in " + Math.ceil(left / 1000) + "s — the command is killed at zero"
+      : "the shell timeout is firing now…";
+  };
+  const send = (action, ms) => post("/shell", { action: action, command: o.command, ms: ms || 0 });
+  const button = (label, primary, fn) => {
+    const b = el("button", "offload-btn" + (primary ? " primary" : ""), label);
+    b.onclick = () => { try { fn(); } catch (e) {} };
+    return b;
+  };
+  const rearmShow = (deadline) => {
+    const wait = Math.max(0, deadline - Date.now() - OFFLOAD_LEAD_MS);
+    o.arm = setTimeout(() => { if (v.offload === o) showOffloadCard(v, o); }, wait);
+  };
+  row.appendChild(button("Move to background now", true, () => {
+    send("detach").then((r) => {
+      if (r && r.ok && r.taskId) count.textContent = "Moved to background as task " + r.taskId + " — the agent keeps working.";
+      else count.textContent = "It finished before it could be moved.";
+    });
+  }));
+  row.appendChild(button("Don't auto-offload", false, () => clearOffload(v)));
+  row.appendChild(button("Delay offload", false, () => {
+    send("extend", 60000).then((r) => {
+      if (!r || !r.deadline) { clearOffload(v); return; }
+      o.deadline = r.deadline;
+      if (o.card) { clearInterval(o.tick); try { o.card.remove(); } catch (e) {} o.card = null; }
+      rearmShow(r.deadline);
+    });
+  }));
+  row.appendChild(button("Extend timeout", false, () => {
+    send("extend", 120000).then((r) => {
+      if (r && r.deadline) { o.deadline = r.deadline; refresh(); }
+      else clearOffload(v);
+    });
+  }));
+  row.appendChild(button("Cancel", false, () => {
+    send("cancel").then(() => clearOffload(v));
+  }));
+  card.appendChild(title); card.appendChild(count); card.appendChild(row);
+  o.host.appendChild(card);
+  try { o.host.open = true; } catch (e) {}
+  o.card = card;
+  refresh();
+  o.tick = setInterval(refresh, 1000);
 }
 function handle(m) {
   if (m.t === "hub") { onHub(m); return; }
@@ -567,6 +678,7 @@ function handle(m) {
       const d = el("details", "tool");
       const summary = el("summary"); summary.appendChild(el("span", "name", m.name.replace(/_/g, " "))); summary.appendChild(el("span", "tool-args", m.summary || ""));
       d.appendChild(summary); v.curTool = d;
+      v.lastTool = m;
       if (typeof m.diff === "string" && m.diff) {
         const pre = document.createElement("pre");
         pre.className = "diff";
@@ -580,13 +692,17 @@ function handle(m) {
       }
       subAdd(v, d);
       notifyAgentFileActivity(v, m);
+      if (m.name === "run_command") armOffload(v, d, m.summary || "");
+      else clearOffload(v);
       break;
     }
     case "result": {
+      clearOffload(v);
       endThought(v); v.curText = null;
       const body = el("pre", "result" + (m.err ? " err" : ""), m.body || m.line);
       if (v.curTool) { v.curTool.classList.add(m.err ? "failed" : "finished"); v.curTool.appendChild(body); if (m.err) v.curTool.open = true; v.curTool = null; }
       else add(v, body);
+      notifyAgentFileActivity(v, v.lastTool);
       break;
     }
       case "plan": endThought(v); v.curText = null; renderPlan(v, m); v.planCache = m; { const pt = v.tabs.find((t) => t.kind === "plan"); if (pt && pt.renderSteps) { try { pt.renderSteps(m); } catch (e) {} } } break;
@@ -1963,10 +2079,7 @@ function buildReviewTab(v, t) {
   const bar = el("div", "bar");
   const refresh = el("button", "iconbtn", "↻"); refresh.title = "refresh review";
   const staged = el("button", "iconbtn", "staged"); staged.title = "show staged changes instead of unstaged";
-  const fileSelect = document.createElement("select");
-  fileSelect.title = "jump to file";
-  fileSelect.setAttribute("aria-label", "Jump to file in review");
-  bar.appendChild(refresh); bar.appendChild(staged); bar.appendChild(fileSelect);
+  bar.appendChild(refresh); bar.appendChild(staged);
   const sbsBtn = el("button", "iconbtn", "⇄"); sbsBtn.type = "button"; sbsBtn.title = "side-by-side view";
   bar.appendChild(sbsBtn);
   let sbsMode = false;
@@ -1985,23 +2098,13 @@ function buildReviewTab(v, t) {
   bar.appendChild(reviewFilter); bar.appendChild(navUp); bar.appendChild(navDown);
   const applyReviewFilter = () => {
     const q = reviewFilter.value.trim().toLowerCase();
-    for (const fileHead of list.querySelectorAll("[data-reviewfile]")) {
-      let visible = 0;
-      let node = fileHead.nextSibling;
-      while (node && !(node.getAttribute && node.getAttribute("data-reviewfile") !== null)) {
-        if (node.classList && node.classList.contains("reviewhunk")) {
-          const hit = !q || (node.textContent || "").toLowerCase().includes(q);
-          node.hidden = !hit;
-          if (hit) visible++;
-        }
-        node = node.nextSibling;
-      }
-      fileHead.hidden = !(!q || visible > 0 || (fileHead.textContent || "").toLowerCase().includes(q));
+    for (const row of list.querySelectorAll("[data-reviewfile]")) {
+      row.hidden = !(!q || (row.textContent || "").toLowerCase().includes(q));
     }
   };
   reviewFilter.oninput = applyReviewFilter;
   const jumpHunk = (dir) => {
-    const hunks = [...list.querySelectorAll(".reviewhunk")].filter((h) => !h.hidden);
+    const hunks = [...diffBody.querySelectorAll(".reviewhunk")].filter((h) => !h.hidden);
     if (!hunks.length) return;
     const y = window.scrollY || 0;
     const tops = hunks.map((h) => h.getBoundingClientRect ? h.getBoundingClientRect().top + y : 0);
@@ -2021,12 +2124,30 @@ function buildReviewTab(v, t) {
   const commitBtn = el("button", "iconbtn", "Commit"); commitBtn.type = "button"; commitBtn.title = "commit staged changes";
   commitRow.appendChild(commitInput); commitRow.appendChild(commitBtn);
   const list = el("div", "reviewlist");
+  const totals = el("div", "reviewtotals", "");
+  const listCol = el("div", "reviewfiles");
+  listCol.appendChild(list); listCol.appendChild(totals);
+  const diffPath = el("span", "reviewpath", "no changes");
+  const fileActions = el("span", "reviewfileacts");
+  const diffTop = el("div", "reviewdifftop");
+  diffTop.appendChild(diffPath); diffTop.appendChild(fileActions);
+  const diffBody = el("div", "reviewdiffbody");
+  const diffCol = el("div", "reviewdiff");
+  diffCol.appendChild(diffTop); diffCol.appendChild(diffBody);
+  const navBadge = el("span", "badge-n", "–");
+  const navPrev = el("button", "iconbtn", "↑"); navPrev.type = "button"; navPrev.title = "Previous file";
+  const navNext = el("button", "iconbtn", "↓"); navNext.type = "button"; navNext.title = "Next file";
+  const navRail = el("div", "reviewnav");
+  navRail.appendChild(navPrev); navRail.appendChild(navBadge); navRail.appendChild(navNext);
+  const panes = el("div", "reviewpanes");
+  panes.appendChild(listCol); panes.appendChild(navRail); panes.appendChild(diffCol);
   const note = el("div", "filemeta", "uncommitted changes");
-  body.appendChild(bar); body.appendChild(commitRow); body.appendChild(list); body.appendChild(note);
+  body.appendChild(bar); body.appendChild(commitRow); body.appendChild(panes); body.appendChild(note);
   v.panelEl.appendChild(body);
   t.el = body;
-  t.reviewCollapsed = new Set();
   let showStaged = false;
+  let files = [];
+  let selected = null;
   const doCommit = () => {
     const message = commitInput.value.trim();
     if (!message) { note.textContent = "Write a commit message first."; return; }
@@ -2043,10 +2164,49 @@ function buildReviewTab(v, t) {
   };
   commitBtn.onclick = doCommit;
   commitInput.onkeydown = (e) => { if (e.key === "Enter") doCommit(); };
-  fileSelect.onchange = () => {
-    const target = list.querySelector('[data-reviewfile="' + fileSelect.value + '"]');
-    if (target && target.scrollIntoView) target.scrollIntoView();
+  const statusOf = (f) => {
+    if (f && f.status) return String(f.status).slice(0, 1).toUpperCase();
+    const hdr = ((((f || {}).hunks) || [])[0] || {}).header || "";
+    if (/new file mode/.test(hdr)) return "A";
+    if (/deleted file mode/.test(hdr)) return "D";
+    if (/rename/.test(hdr)) return "R";
+    return "M";
   };
+  const renderDiffTop = (list2) => {
+    fileActions.replaceChildren();
+    const f = (list2 || []).find((x) => x.file === selected);
+    if (!f) {
+      diffPath.textContent = (list2 || []).length ? "select a file" : "no changes";
+      navBadge.textContent = "–";
+      navRail.title = "No file selected";
+      return;
+    }
+    const pos = (list2 || []).indexOf(f) + 1;
+    diffPath.textContent = f.file;
+    navBadge.textContent = String(pos);
+    navRail.title = "File " + pos + " of " + (list2 || []).length + " · prev/next file";
+    if (!showStaged) {
+      const sf = el("button", "iconbtn", "Stage file"); sf.type = "button"; sf.title = "stage the whole file";
+      const rf = el("button", "iconbtn", "Revert"); rf.type = "button"; rf.title = "revert the whole file to HEAD";
+      sf.onclick = () => fileAction("/code/diff/stage", { sid: v.sid, path: f.file }, sf);
+      rf.onclick = () => { if (confirm("Revert " + f.file + " to HEAD? Unstaged changes will be lost.")) fileAction("/code/diff/revert-file", { sid: v.sid, path: f.file }, rf); };
+      fileActions.appendChild(sf); fileActions.appendChild(rf);
+    } else {
+      const uf = el("button", "iconbtn", "Unstage"); uf.type = "button"; uf.title = "take the file back out of the staging area";
+      uf.onclick = () => fileAction("/code/diff/unstage", { sid: v.sid, path: f.file }, uf);
+      fileActions.appendChild(uf);
+    }
+  };
+  const stepFile = (dir) => {
+    if (!files.length) return;
+    let i = files.findIndex((f) => f.file === selected);
+    if (i < 0) i = 0;
+    i = Math.min(files.length - 1, Math.max(0, i + dir));
+    selected = files[i].file;
+    load();
+  };
+  navPrev.onclick = () => stepFile(-1);
+  navNext.onclick = () => stepFile(1);
   const fileAction = (endpoint, body, btn) => {
     btn.disabled = true;
     post(endpoint, body).then((r) => {
@@ -2074,19 +2234,13 @@ function buildReviewTab(v, t) {
       .then((r) => r.json()).then((d) => {
         if (d.error) throw new Error(d.error);
         list.replaceChildren();
-        note.textContent = d.note || ((d.files || []).length + " file(s) with uncommitted changes");
-        fileSelect.replaceChildren();
-        const allOpt = document.createElement("option");
-        allOpt.value = "";
-        allOpt.textContent = (d.files || []).length + " file(s)";
-        fileSelect.appendChild(allOpt);
-        (d.files || []).forEach((f, fi) => {
-          const opt = document.createElement("option");
-          opt.value = String(fi);
-          opt.textContent = f.file;
-          fileSelect.appendChild(opt);
-        });
-        for (const [fi, f] of (d.files || []).entries()) {
+        diffBody.replaceChildren();
+        files = d.files || [];
+        if (!files.some((f) => f.file === selected)) selected = files[0] ? files[0].file : null;
+        note.textContent = d.note || (files.length + " file(s) with uncommitted changes");
+        let allAdds = 0, allDels = 0;
+        renderDiffTop(files);
+        for (const [fi, f] of files.entries()) {
           let adds = 0, dels = 0;
           for (const h of f.hunks || []) {
             for (const ln of h.lines || []) {
@@ -2094,32 +2248,19 @@ function buildReviewTab(v, t) {
               else if (ln.startsWith("-")) dels++;
             }
           }
-          const head = el("div", "reviewfile");
-          head.setAttribute("data-reviewfile", String(fi));
-          const collapsed = t.reviewCollapsed.has(f.file);
-          const tg = el("button", "treetoggle", collapsed ? "▸" : "▾");
-          tg.type = "button"; tg.title = collapsed ? "expand" : "collapse";
-          tg.onclick = () => {
-            if (t.reviewCollapsed.has(f.file)) t.reviewCollapsed.delete(f.file);
-            else t.reviewCollapsed.add(f.file);
-            load();
-          };
-          const title = el("span", "", f.file + " (+" + adds + " −" + dels + ")");
-          title.style.flex = "1";
-          head.appendChild(tg); head.appendChild(title);
-          if (!showStaged) {
-            const sf = el("button", "iconbtn", "Stage file"); sf.type = "button"; sf.title = "stage the whole file";
-            const rf = el("button", "iconbtn", "Revert"); rf.type = "button"; rf.title = "revert the whole file to HEAD";
-            sf.onclick = () => fileAction("/code/diff/stage", { sid: v.sid, path: f.file }, sf);
-            rf.onclick = () => { if (confirm("Revert " + f.file + " to HEAD? Unstaged changes will be lost.")) fileAction("/code/diff/revert-file", { sid: v.sid, path: f.file }, rf); };
-            head.appendChild(sf); head.appendChild(rf);
-          } else {
-            const uf = el("button", "iconbtn", "Unstage"); uf.type = "button"; uf.title = "take the file back out of the staging area";
-            uf.onclick = () => fileAction("/code/diff/unstage", { sid: v.sid, path: f.file }, uf);
-            head.appendChild(uf);
-          }
-          list.appendChild(head);
-          if (collapsed) continue;
+          const row = el("div", "reviewfilerow" + (f.file === selected ? " sel" : ""));
+          row.setAttribute("data-reviewfile", String(fi));
+          const st = statusOf(f);
+          const stEl = el("span", "fstat " + st.toLowerCase(), st);
+          const fp = el("span", "fpath", f.file);
+          const fd = el("span", "fdelta", "");
+          fd.appendChild(el("span", "plus", "+" + adds));
+          fd.appendChild(el("span", "minus", " −" + dels));
+          row.appendChild(stEl); row.appendChild(fp); row.appendChild(fd);
+          row.onclick = () => { selected = f.file; load(); };
+          allAdds += adds; allDels += dels;
+          list.appendChild(row);
+          if (f.file !== selected) continue;
           for (const h of f.hunks || []) {
             const block = el("div", "reviewhunk");
             if (sbsMode) renderSbsHunk(block, h);
@@ -2184,10 +2325,14 @@ function buildReviewTab(v, t) {
               row.appendChild(sb); row.appendChild(rb); row.appendChild(sl);
             }
             block.appendChild(row);
-            list.appendChild(block);
+            diffBody.appendChild(block);
           }
         }
-        if (!(d.files || []).length && !d.note) list.appendChild(el("div", "filediagnostic-note", "Working tree clean."));
+        totals.replaceChildren(el("span", "plus", "+" + allAdds), el("span", "minus", " −" + allDels));
+        if (!files.length) {
+          list.appendChild(el("div", "filediagnostic-note", "Working tree clean."));
+          diffBody.replaceChildren();
+        }
         applyReviewFilter();
       }).catch((e) => { list.replaceChildren(el("div", "filediagnostic-note error", String((e && e.message) || e))); });
   };

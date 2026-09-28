@@ -148,6 +148,94 @@ export function writeFile(root: string, args: any): string {
 }
 
 // ---------------------------------------------------------------------------
+// move / delete / folder: the file-shape operations an agent needs to
+// reorganize a project. Every path runs the same sandbox checks as read and
+// write, nothing is ever overwritten silently, and the workspace root itself
+// is never a delete target.
+// ---------------------------------------------------------------------------
+
+export function movePath(root: string, args: any): string {
+  const from = typeof args.from === "string" ? args.from : "";
+  const to = typeof args.to === "string" ? args.to : "";
+  if (!from.trim() || !to.trim()) {
+    return 'Error: both "from" and "to" are required. Example: {"from": "notes/draft.ts", "to": "src/draft.ts"}.';
+  }
+  const absFrom = resolveInWorkspace(root, from);
+  const absTo = resolveInWorkspace(root, to);
+  assertFinalInside(root, absFrom, from);
+  if (path.resolve(absFrom) === path.resolve(absTo)) return `Nothing to do: "${from}" is already at that path.`;
+  if (!fs.existsSync(absFrom)) {
+    return `Error: "${from}" does not exist — nothing to move. Use list_files to check the path.`;
+  }
+  if (fs.existsSync(absTo)) {
+    const what = fs.statSync(absTo).isDirectory() ? "a folder" : "a file";
+    return `Error: "${to}" already exists (${what}) — nothing is overwritten silently. Remove it first with delete_path, then move.`;
+  }
+  try {
+    fs.mkdirSync(path.dirname(absTo), { recursive: true });
+    fs.renameSync(absFrom, absTo);
+  } catch (err: any) {
+    return `Error: could not move "${from}" to "${to}" (${err?.code || err?.message || "unknown reason"}).`;
+  }
+  const kind = fs.statSync(absTo).isDirectory() ? "folder" : "file";
+  return `Moved ${kind} "${from}" → "${to}". (Moves are not undoable with /undo — git restores the previous layout.)`;
+}
+
+export function deletePath(root: string, args: any): string {
+  const rel = typeof args.path === "string" ? args.path : "";
+  if (!rel.trim()) return 'Error: path is required. Example: {"path": "src/old.ts"}.';
+  const abs = resolveInWorkspace(root, rel);
+  assertFinalInside(root, abs, rel);
+  if (path.resolve(abs) === path.resolve(root)) {
+    return "Error: the workspace root itself cannot be deleted. Delete what is inside it instead.";
+  }
+  if (!fs.existsSync(abs)) return `Error: "${rel}" does not exist — nothing to delete.`;
+  const recursive = args.recursive === true || args.recursive === "true";
+  let isDir = false;
+  try {
+    isDir = fs.statSync(abs).isDirectory();
+  } catch (err: any) {
+    return `Error: cannot inspect "${rel}" (${err?.code || err?.message || "unknown reason"}).`;
+  }
+  if (isDir) {
+    const entries = fs.readdirSync(abs);
+    if (entries.length && !recursive) {
+      return `Error: "${rel}" is a folder with ${entries.length} item(s). Re-send with {"path": "${rel}", "recursive": true} to confirm — a folder delete cannot be undone here.`;
+    }
+    try {
+      fs.rmSync(abs, { recursive: true, force: true });
+    } catch (err: any) {
+      return `Error: could not delete "${rel}" (${err?.code || err?.message || "unknown reason"}).`;
+    }
+    return `Deleted folder "${rel}" (${entries.length} item(s)). This one cannot be undone here — git is the recovery.`;
+  }
+  try {
+    fs.unlinkSync(abs);
+  } catch (err: any) {
+    return `Error: could not delete "${rel}" (${err?.code || err?.message || "unknown reason"}).`;
+  }
+  return `Deleted file "${rel}". ( /undo puts a small text file back. )`;
+}
+
+export function createFolder(root: string, args: any): string {
+  const rel = typeof args.path === "string" ? args.path : "";
+  if (!rel.trim()) return 'Error: path is required. Example: {"path": "src/components"}.';
+  const abs = resolveInWorkspace(root, rel);
+  assertFinalInside(root, abs, rel);
+  if (path.resolve(abs) === path.resolve(root)) return `"${rel}" is the workspace root — it already exists.`;
+  if (fs.existsSync(abs)) {
+    if (fs.statSync(abs).isDirectory()) return `Folder "${rel}" already exists — nothing to do.`;
+    return `Error: "${rel}" exists as a file, not a folder. Move it away first if you need the name.`;
+  }
+  try {
+    fs.mkdirSync(abs, { recursive: true });
+  } catch (err: any) {
+    return `Error: could not create "${rel}" (${err?.code || err?.message || "unknown reason"}).`;
+  }
+  return `Created folder "${rel}".`;
+}
+
+// ---------------------------------------------------------------------------
 // edit_file: exact match first, then a line-trimmed (whitespace-forgiving)
 // fallback, then a "closest match" coaching error. Small models paraphrase
 // whitespace constantly; forgiving matching is the difference between a usable

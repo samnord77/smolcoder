@@ -1,10 +1,10 @@
 {
   "path": "src/tools/fs-tools.ts",
-  "content_hash": "50c28b8890d83d9275cf220e81750e64",
-  "updated_at": "2026-09-24T23:39:38",
-  "lines": 412,
-  "size_bytes": 17447,
-  "mtime_ns": 1790289545542327800,
+  "content_hash": "00b79873bb9aad292e5350189c8a50bc",
+  "updated_at": "2026-09-28T16:02:03",
+  "lines": 500,
+  "size_bytes": 21868,
+  "mtime_ns": 1790607699075579600,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -124,37 +124,58 @@
     },
     {
       "type": "function",
-      "name": "findTrimmedMatch",
+      "name": "movePath",
       "line_start": 157,
-      "line_end": 167,
+      "line_end": 182,
+      "signature": "function movePath(root: string, args: any): string {"
+    },
+    {
+      "type": "function",
+      "name": "deletePath",
+      "line_start": 184,
+      "line_end": 218,
+      "signature": "function deletePath(root: string, args: any): string {"
+    },
+    {
+      "type": "function",
+      "name": "createFolder",
+      "line_start": 220,
+      "line_end": 236,
+      "signature": "function createFolder(root: string, args: any): string {"
+    },
+    {
+      "type": "function",
+      "name": "findTrimmedMatch",
+      "line_start": 245,
+      "line_end": 255,
       "signature": "function findTrimmedMatch(fileLines: string[], oldLines: string[]): number[] {"
     },
     {
       "type": "function",
       "name": "closestSnippet",
-      "line_start": 169,
-      "line_end": 197,
+      "line_start": 257,
+      "line_end": 285,
       "signature": "function closestSnippet(fileLines: string[], oldText: string): { text: string; offset: number; limit: number } | null {"
     },
     {
       "type": "function",
       "name": "editFile",
-      "line_start": 199,
-      "line_end": 263,
+      "line_start": 287,
+      "line_end": 351,
       "signature": "function editFile(root: string, args: any): string {"
     },
     {
       "type": "function",
       "name": "listFiles",
-      "line_start": 265,
-      "line_end": 309,
+      "line_start": 353,
+      "line_end": 397,
       "signature": "function listFiles(root: string, args: any): string {"
     },
     {
       "type": "function",
       "name": "searchFiles",
-      "line_start": 311,
-      "line_end": 410,
+      "line_start": 399,
+      "line_end": 498,
       "signature": "function searchFiles(root: string, args: any): string {"
     }
   ]

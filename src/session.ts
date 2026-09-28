@@ -483,7 +483,13 @@ export class Session {
       }
     );
     provider.setEffort(this.effort);
-    this.taskManager = new TaskManager(workspace);
+    this.taskManager = new TaskManager(workspace, (t) => {
+      try {
+        ui.status(`· background task ${t.id} finished (exit code ${t.exitCode ?? "?"}) — ${t.command.slice(0, 140)}`);
+      } catch {
+        /* a chat line must never break the exit path */
+      }
+    });
     let plugins: ToolContext["plugins"] = [];
     try {
       plugins = loadPlugins(workspace);
@@ -747,10 +753,18 @@ export class Session {
         const n = cur.split(entry.oldText).length - 1;
         if (n !== 1) return fail(`anchor found ${n} times (need exactly 1) — file changed since undo`);
         fs.writeFileSync(entry.abs, cur.replace(entry.oldText, entry.next), "utf8");
+      } else if (entry.kind === "delete") {
+        // Undo restored the text; redo takes it back out again.
+        try {
+          fs.unlinkSync(entry.abs);
+        } catch (err: any) {
+          if (err?.code !== "ENOENT") throw err;
+        }
+        ui.println(`· redo: ${rel} re-deleted`);
       } else {
         fs.writeFileSync(entry.abs, entry.next, "utf8");
+        ui.println(`· redo: ${rel} re-applied`);
       }
-      ui.println(`· redo: ${rel} re-applied`);
       stack.push(entry);
     } catch (err: any) {
       fail(`could not re-apply (${err?.message ?? err})`);

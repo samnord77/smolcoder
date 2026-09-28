@@ -7,7 +7,7 @@
 import { ChildProcess, spawn } from "child_process";
 import { pickShell, killTree, managedCommand, shellEnv } from "./shell";
 
-interface Task {
+export interface Task {
   id: string;
   command: string;
   proc: ChildProcess;
@@ -15,6 +15,8 @@ interface Task {
   status: "running" | "exited" | "stopped";
   exitCode: number | null;
   startedAt: number;
+  /** Started life as a shell run the user moved to the background. */
+  adopted?: boolean;
 }
 
 const RING_SIZE = 300;
@@ -24,7 +26,7 @@ export class TaskManager {
   private counter = 0;
   private static readonly MAX_KEPT = 50;
 
-  constructor(private cwd: string) {}
+  constructor(private cwd: string, private onExit?: (t: Task) => void) {}
 
   private prune(): void {
     if (this.tasks.size <= TaskManager.MAX_KEPT) return;
@@ -32,6 +34,40 @@ export class TaskManager {
     for (const t of done.slice(0, this.tasks.size - TaskManager.MAX_KEPT)) {
       this.tasks.delete(t.id);
     }
+  }
+
+  /** Wire output/status on a process this manager now owns (start and adopt). */
+  private attach(task: Task, seed?: string): void {
+    const push = (chunk: Buffer) => {
+      for (const line of chunk.toString("utf8").split(/\r?\n/)) {
+        if (line === "") continue;
+        task.lines.push(line);
+        if (task.lines.length > RING_SIZE) task.lines.shift();
+      }
+    };
+    if (seed) push(Buffer.from(seed, "utf8"));
+    task.proc.stdout?.on("data", push);
+    task.proc.stderr?.on("data", push);
+    task.proc.on("error", (err) => {
+      task.lines.push(`[failed to start: ${err.message}]`);
+      if (task.status === "running") {
+        task.status = "exited";
+        task.exitCode = -1;
+      }
+    });
+    task.proc.on("close", (code) => {
+      if (task.status === "running") {
+        task.status = "exited";
+        task.exitCode = code;
+      }
+      if (task.adopted) {
+        try {
+          this.onExit?.(task);
+        } catch {
+          /* a broken notifier must not swallow the exit */
+        }
+      }
+    });
   }
 
   start(command: string): string {
@@ -53,27 +89,27 @@ export class TaskManager {
       exitCode: null,
       startedAt: Date.now(),
     };
-    const push = (chunk: Buffer) => {
-      for (const line of chunk.toString("utf8").split(/\r?\n/)) {
-        if (line === "") continue;
-        task.lines.push(line);
-        if (task.lines.length > RING_SIZE) task.lines.shift();
-      }
-    };
-    proc.stdout?.on("data", push);
-    proc.stderr?.on("data", push);
-    proc.on("error", (err) => {
-      task.lines.push(`[failed to start: ${err.message}]`);
-      task.status = "exited";
-      task.exitCode = -1;
-    });
-    proc.on("close", (code) => {
-      if (task.status === "running") {
-        task.status = "exited";
-        task.exitCode = code;
-      }
-    });
     this.tasks.set(id, task);
+    this.attach(task);
+    this.prune();
+    return id;
+  }
+
+  /** Take over a process that was already running (a shell run moved to the background). */
+  adopt(proc: ChildProcess, command: string, seed = ""): string {
+    const id = `t${++this.counter}`;
+    const task: Task = {
+      id,
+      command,
+      proc,
+      lines: [],
+      status: "running",
+      exitCode: null,
+      startedAt: Date.now(),
+      adopted: true,
+    };
+    this.tasks.set(id, task);
+    this.attach(task, seed);
     this.prune();
     return id;
   }
