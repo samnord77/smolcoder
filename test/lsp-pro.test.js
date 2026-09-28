@@ -118,6 +118,23 @@ assert.equal(serverForFile("x.md").lang, "markdown");
   }
 });
 
+test("availability tells the truth: ok only when the binary really exists", () => {
+  // Regression guard. resolveCommand() echoes its input back when a binary is
+  // missing, so using it for availability reported all 37 languages as
+  // installed. Availability must use findCommand and reflect reality.
+  const { findCommand } = require("../dist/mcp");
+  const { serverDefForLang } = require("../dist/lsp-pro");
+  const avail = lspAvailability();
+  for (const a of avail) {
+    const def = serverDefForLang(a.lang);
+    const reallyThere = def.candidates.some((c) => !!findCommand(c[0]));
+    assert.equal(a.ok, reallyThere, a.lang + " availability must match the real filesystem");
+  }
+  // A command that cannot exist anywhere must never be reported as installed.
+  assert.equal(findCommand("definitely-not-a-real-lsp-binary-xyz"), null);
+  assert.equal(findCommand(""), null);
+});
+
 test("splitCommand respects quotes", () => {
   assert.deepEqual(splitCommand("pylsp"), ["pylsp"]);
   assert.deepEqual(splitCommand('"C:\\a b\\node.exe" mock.cjs --stdio'), ["C:\\a b\\node.exe", "mock.cjs", "--stdio"]);

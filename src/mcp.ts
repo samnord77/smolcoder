@@ -75,7 +75,22 @@ function isRunnableFile(full: string): boolean {
  * extension-less commands against PATH, the caller's PATH separator rules and
  * the usual install folders, in that order. Exported for tests. */
 export function resolveCommand(cmd: string): string {
-  if (process.platform !== "win32" || /[\\/]/.test(cmd) || /\.[A-Za-z0-9]+$/.test(cmd)) return cmd;
+  return findCommand(cmd) ?? cmd;
+}
+
+/** The absolute path of `cmd` on this machine, or null when it is not
+ * installed. resolveCommand() is deliberately forgiving (it echoes the input
+ * back so spawning can produce a useful "not found" error), so callers that
+ * must tell "installed" from "missing" apart — like the language-server
+ * availability report — have to use this instead. Never throws. */
+export function findCommand(cmd: string): string | null {
+  if (!cmd) return null;
+  if (path.isAbsolute(cmd) || /[\\/]/.test(cmd)) return isRunnableFile(cmd) ? cmd : null;
+  if (process.platform !== "win32" && !/\.[A-Za-z0-9]+$/.test(cmd)) {
+    // On POSIX an extensionless name may still be an executable file.
+    return isRunnableFile(cmd) ? cmd : null;
+  }
+  if (/\.[A-Za-z0-9]+$/.test(cmd) && isRunnableFile(cmd)) return cmd;
   const fromExt = (process.env.PATHEXT ?? ".COM;.EXE;.BAT;.CMD")
     .split(";")
     .map((e) => e.trim().toLowerCase())
@@ -94,7 +109,7 @@ export function resolveCommand(cmd: string): string {
       if (isRunnableFile(full)) return full;
     }
   }
-  return cmd;
+  return null;
 }
 
 /** User-scope servers (your machine), merged under the workspace ones.

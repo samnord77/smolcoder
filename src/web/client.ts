@@ -1424,6 +1424,11 @@ function buildFilesTab(v, t) {
   const editor = document.createElement("textarea");
   editor.className = "fileeditor"; editor.spellcheck = false; editor.placeholder = "Select a file…";
   const gutter = document.createElement("div"); gutter.className = "filegutter"; gutter.setAttribute("aria-hidden", "true");
+  const minimap = document.createElement("div"); minimap.className = "fileminimap"; minimap.title = "Minimap — cliquer pour naviguer";
+  minimap.setAttribute("role", "scrollbar"); minimap.setAttribute("aria-label", "Minimap du fichier");
+  const mmBars = document.createElement("div"); mmBars.className = "minimap-bars";
+  const mmBox = document.createElement("div"); mmBox.className = "minimap-box";
+  minimap.appendChild(mmBars); minimap.appendChild(mmBox);
   editor.addEventListener("scroll", () => { gutter.scrollTop = editor.scrollTop; });
   /** Line numbers, kept in step with the editor's line count and scroll.
    * Called from paint() and displayTab(), so it tracks every edit. */
@@ -1446,7 +1451,7 @@ function buildFilesTab(v, t) {
   const currentReplaceAll = el("button", "iconbtn", "Tout remplacer"); currentReplaceAll.type = "button"; currentReplaceAll.hidden = true;
   const currentFindClose = el("button", "iconbtn", "×"); currentFindClose.type = "button"; currentFindClose.title = "Fermer la recherche";
   fileFindBar.append(currentFindInput, currentFindPrev, currentFindNext, currentFindCount, currentReplaceInput, currentReplaceOne, currentReplaceAll, currentFindClose);
-  editorWrap.appendChild(tabsBar); editorWrap.appendChild(gutter); editorWrap.appendChild(code); editorWrap.appendChild(editor);
+  editorWrap.appendChild(tabsBar); editorWrap.appendChild(gutter); editorWrap.appendChild(code); editorWrap.appendChild(editor); editorWrap.appendChild(minimap);
   const completePop = el("div", "completepop"); completePop.hidden = true;
   completePop.setAttribute("role", "listbox");
   editorWrap.appendChild(completePop);
@@ -1528,7 +1533,59 @@ function buildFilesTab(v, t) {
     code.innerHTML = html;
     code.scrollTop = editor.scrollTop; code.scrollLeft = editor.scrollLeft;
     updateGutter();
+    paintMinimap();
   };
+
+  /** Minimap: a read-only, scaled-down copy of the document. It never touches
+   * editor.value, so the dirty flag, the CRDT sync, saving and the agent
+   * reload all keep working unchanged. Click or drag to scroll. */
+  const paintMinimap = () => {
+    const lines = editor.value.split("\n");
+    const rows = Math.min(lines.length, 4000);
+    const out = [];
+    for (let i = 0; i < rows; i++) {
+      const raw = lines[i] || "";
+      const indent = raw.length - raw.replace(/^\s+/, "").length;
+      const len = Math.min(Math.max(raw.trim().length - indent, 0), 60);
+      out.push("<i style=\"width:" + (len * 1.6) + "px;margin-left:" + Math.min(indent, 12) * 1.6 + "px\"></i>");
+    }
+    // On ecrit dans mmBars, jamais dans minimap : sinon innerHTML effacerait
+    // le cadre de viewport (mmBox) et il disparaitrait au premier rendu.
+    mmBars.innerHTML = out.join("");
+    paintMinimapViewport();
+  };
+  const paintMinimapViewport = () => {
+    const mm = minimap.getBoundingClientRect ? minimap.getBoundingClientRect() : null;
+    if (!mm || !mm.height) return;
+    const ed = editor.getBoundingClientRect ? editor.getBoundingClientRect() : null;
+    if (!ed || !ed.height) return;
+    const scrollRange = Math.max(1, editor.scrollHeight - ed.height);
+    const frac = Math.min(1, Math.max(0, editor.scrollTop / scrollRange));
+    const boxH = Math.max(18, (ed.height / Math.max(1, editor.scrollHeight)) * mm.height);
+    mmBox.style.height = boxH + "px";
+    mmBox.style.transform = "translateY(" + frac * (mm.height - boxH) + "px)";
+  };
+  const scrollFromMinimap = (clientY) => {
+    const mm = minimap.getBoundingClientRect ? minimap.getBoundingClientRect() : null;
+    if (!mm || !mm.height) return;
+    const ed = editor.getBoundingClientRect ? editor.getBoundingClientRect() : null;
+    if (!ed) return;
+    const frac = Math.min(1, Math.max(0, (clientY - mm.top) / mm.height));
+    const scrollRange = Math.max(0, editor.scrollHeight - ed.height);
+    editor.scrollTop = frac * scrollRange;
+    code.scrollTop = editor.scrollTop;
+    gutter.scrollTop = editor.scrollTop;
+    paintMinimapViewport();
+  };
+  let mmDragging = false;
+  minimap.addEventListener("mousedown", (e) => {
+    mmDragging = true;
+    scrollFromMinimap(e.clientY);
+    e.preventDefault();
+  });
+  minimap.addEventListener("mousemove", (e) => { if (mmDragging) scrollFromMinimap(e.clientY); });
+  window.addEventListener("mouseup", () => { mmDragging = false; });
+  editor.addEventListener("scroll", paintMinimapViewport);
 
   const showError = (message) => {
     meta.textContent = String(message || "");

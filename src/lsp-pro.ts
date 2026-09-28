@@ -19,7 +19,7 @@ import { type ChildProcess, spawn } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { encodeLsp, isTsLike, lspDisabled, querySymbols, splitCommand } from "./lsp";
-import { resolveCommand } from "./mcp";
+import { findCommand, resolveCommand } from "./mcp";
 import { resolveInWorkspace } from "./sandbox";
 
 export { splitCommand };
@@ -415,12 +415,10 @@ export function lspAvailability(): LspAvailability[] {
   return LSP_LANGS.map((lang) => {
     const def = serverDefForLang(lang)!;
     for (const [exe] of def.candidates) {
-      try {
-        resolveCommand(exe);
-        return { lang, ok: true, hint: def.installHint };
-      } catch {
-        /* try the next candidate */
-      }
+      // findCommand, NOT resolveCommand: resolveCommand echoes its input back
+      // when the binary is missing, so using it here would report every
+      // language as installed and the panel would lie to the user.
+      if (findCommand(exe)) return { lang, ok: true, hint: def.installHint };
     }
     return { lang, ok: false, hint: def.installHint };
   });

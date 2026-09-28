@@ -371,7 +371,12 @@ export const STYLES = String.raw`
   .filetab-label { max-width: 175px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 4px 8px; }
   .filetab-close { color: var(--dim); padding: 4px 7px; }
   .filetab-close:hover { background: rgba(255,255,255,.1); }
-  .filecode, .fileeditor { position: absolute; inset: 35px 0 0 48px; height: calc(100% - 35px); margin: 0; padding: 10px 12px; font: 12.5px/1.5 Consolas, monospace; tab-size: 2; white-space: pre-wrap; overflow: auto; word-wrap: break-word; }
+  .filecode, .fileeditor { position: absolute; inset: 35px 78px 0 48px; height: calc(100% - 35px); margin: 0; padding: 10px 12px; font: 12.5px/1.5 Consolas, monospace; tab-size: 2; white-space: pre-wrap; overflow: auto; word-wrap: break-word; }
+  .fileminimap { position: absolute; top: 35px; right: 0; bottom: 0; width: 30px; padding: 10px 4px; overflow: hidden; background: #0d1114; border-left: 1px solid var(--line); cursor: pointer; }
+  .fileminimap i { display: block; height: 2px; margin-bottom: 1px; background: var(--gray); opacity: .45; border-radius: 1px; }
+  .fileminimap i:nth-child(3n) { opacity: .7; }
+  .minimap-bars { position: absolute; inset: 10px 4px; }
+  .minimap-box { position: absolute; left: 0; right: 0; top: 0; background: rgba(56,189,248,.14); border-top: 1px solid rgba(56,189,248,.5); border-bottom: 1px solid rgba(56,189,248,.5); pointer-events: none; }
   .filecode { pointer-events: none; color: var(--fg); }
   .fileeditor { resize: none; border: 0; outline: 0; background: transparent; color: transparent; caret-color: #fff; }
   .fileeditor:focus { outline: 1px solid var(--accent); outline-offset: -1px; }
