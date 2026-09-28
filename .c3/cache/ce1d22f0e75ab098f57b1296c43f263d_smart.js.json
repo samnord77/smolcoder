@@ -1,0 +1,9 @@
+{
+  "original_tokens": 2963,
+  "compressed_tokens": 100,
+  "saved_tokens": 2863,
+  "savings_pct": 96.6,
+  "compressed": "# detect.test.js (.js) \u2014 223 lines\nconst test = require(\"node:test\");\nconst assert = require(\"node:assert/strict\");\nconst fs = require(\"node:fs\");\nconst http = require(\"node:http\");\nconst os = require(\"node:os\");\nconst path = require(\"node:path\");\nasync function serve(routes)\nconst OLLAMA = { \"/api/tags\": { models: [{ name: \"local-test:latest\" }] } };\nconst LMSTUDIO =",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\detect.test.js"
+}

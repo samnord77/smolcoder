@@ -36,6 +36,8 @@ function makeEl(all) {
     removeEventListener() {},
     setAttribute() {},
     getAttribute() { return null; },
+    querySelector() { return null; },
+    querySelectorAll() { return []; },
     focus() {},
     select() {},
     setSelectionRange() {},
@@ -217,6 +219,37 @@ test("review tab builds and renders colored hunks", async () => {
   const cls = c.classes();
   assert.ok(cls.has("reviewpatch"), "review patch rendered");
   assert.ok(cls.has("add") && cls.has("del"), "hunk lines carry add/del classes");
+});
+
+test("review staged view offers Unstage, never a Stage that would do nothing", async () => {
+  const c = boot(TREE, DIFF);
+  emitHub(c);
+  await c.flush();
+  c.els.btnreview.onclick();
+  await c.flush(200);
+  const texts = () => {
+    const out = [];
+    const walk = (el) => {
+      if (!el) return;
+      if (el.textContent) out.push(String(el.textContent));
+      for (const ch of el.children || []) walk(ch);
+    };
+    for (const id of Object.keys(c.els)) walk(c.els[id]);
+    return out;
+  };
+  assert.ok(texts().some((t) => t === "Stage file"), "the unstaged view stages");
+
+  const toggle = c.allElements().find((e) => e.title === "show staged changes instead of unstaged");
+  assert.ok(toggle, "the staged toggle exists");
+  toggle.onclick();
+  await c.flush(200);
+  assert.equal(c.errors(), "", "no page error toggling to the staged view");
+  assert.ok(c.urls.some((u) => u.includes("staged=1")), "the staged diff was requested");
+  const now = texts();
+  assert.ok(now.some((t) => t === "Unstage"), "staged content offers Unstage");
+  assert.ok(!now.some((t) => t === "Stage file"), "no Stage that would be a no-op");
+  assert.ok(!now.some((t) => t === "Revert"), "no Revert on the index behind the user's back");
+  assert.ok(!now.some((t) => t === "Stage ✓"), "no line staging while staged");
 });
 
 test("panel click without a session explains instead of dying silently", async () => {

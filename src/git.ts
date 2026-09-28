@@ -167,6 +167,36 @@ export function gitStage(root: string, paths: string[]): string {
   return `Staged: ${safe.join(", ")}. Review with {"action": "diff", "staged": true} before committing.`;
 }
 
+/** Take paths back out of the staging area. The index is reset to HEAD; the
+ * working tree is never touched, so nothing the user wrote is lost. On a repo
+ * with no commit yet there is no HEAD to reset to — those paths are dropped
+ * from the empty index instead. */
+export function gitUnstage(root: string, paths: string[]): string {
+  const blocked = needRepo(root);
+  if (blocked) return blocked;
+  if (!paths.length) return 'Error: unstage needs at least one path. Example: {"action": "unstage", "path": "src/agent.ts"} (use "." for everything).';
+  const safe: string[] = [];
+  for (const p of paths) {
+    try {
+      const abs = resolveInWorkspace(root, p);
+      safe.push(path.relative(root, abs) || ".");
+    } catch (err: any) {
+      return `Error: ${err?.message ?? err}`;
+    }
+  }
+  const staged = runGit(root, ["diff", "--cached", "--name-only", "--", ...safe]);
+  if (staged.code !== 0) return `Error: could not inspect the staging area (${staged.out.slice(0, 200)}).`;
+  if (!staged.out.trim()) return `Nothing staged for ${safe.join(", ")} — the index already matches HEAD there.`;
+  let r = runGit(root, ["reset", "-q", "HEAD", "--", ...safe]);
+  if (r.code !== 0) {
+    // No commit yet: reset has no HEAD to point at. Drop the paths from the
+    // empty index instead (git rm --cached leaves the working tree alone).
+    r = runGit(root, ["rm", "-r", "-q", "--cached", "--ignore-unmatch", "--", ...safe]);
+  }
+  if (r.code !== 0) return `Error: git could not unstage (${r.out.slice(0, 300)}).`;
+  return `Unstaged: ${safe.join(", ")}. The working tree keeps every change.`;
+}
+
 export function gitCommit(root: string, message: string): string {
   const blocked = needRepo(root);
   if (blocked) return blocked;
@@ -346,7 +376,7 @@ export function gitDiffFiles(root: string, staged = false): DiffFilesResult {
 /** Stage or revert exactly one hunk. The patch is rebuilt from a fresh diff
  * so a changed file fails loudly instead of applying the wrong hunk. Never
  * throws. */
-export function gitApplyHunk(root: string, file: string, index: number, action: "stage" | "revert"): string {
+export function gitApplyHunk(root: string, file: string, index: number, action: "stage" | "revert" | "unstage"): string {
   if (!isGitRepo(root)) return "Error: this workspace is not a git repository.";
   if (typeof file !== "string" || !file || file.includes("..")) {
     return "Error: a file path inside the repository is required.";
@@ -355,21 +385,35 @@ export function gitApplyHunk(root: string, file: string, index: number, action: 
   if (!Number.isSafeInteger(idx) || idx < 0) {
     return "Error: hunk must be the hunk number from the review (starting at 0).";
   }
-  if (action !== "stage" && action !== "revert") {
-    return 'Error: action must be "stage" or "revert".';
+  if (action !== "stage" && action !== "revert" && action !== "unstage") {
+    return 'Error: action must be "stage", "unstage" or "revert".';
   }
-  const full = runGit(root, ["diff", "--no-color", "--no-ext-diff", "-U3", "--", file]);
+  // Unstaging reads what the index holds; staging and reverting read the
+  // working tree — the two diffs git keeps side by side.
+  const head = action === "unstage" ? ["diff", "--cached"] : ["diff"];
+  const full = runGit(root, [...head, "--no-color", "--no-ext-diff", "-U3", "--", file]);
   if (full.code !== 0) return `Error: git diff failed (${full.out.slice(0, 200)}).`;
   const parsed = parseDiffHunks(full.out).find((f) => f.file === file);
   const hunk = parsed?.hunks[idx];
-  if (!hunk) return `Error: hunk ${idx} no longer exists for "${file}" — refresh the review, the file changed.`;
+  if (!hunk) {
+    return action === "unstage"
+      ? `Error: hunk ${idx} is not staged for "${file}" — refresh the review.`
+      : `Error: hunk ${idx} no longer exists for "${file}" — refresh the review, the file changed.`;
+  }
   const patch = [...fileHeaderFor(full.out, file), hunk.header, ...hunk.lines].join("\n") + "\n";
-  const args = action === "stage" ? ["apply", "--cached", "-"] : ["apply", "-R", "-"];
+  const args =
+    action === "stage"
+      ? ["apply", "--cached", "-"]
+      : action === "unstage"
+        ? ["apply", "-R", "--cached", "-"]
+        : ["apply", "-R", "-"];
   const r = applyPatch(root, args, patch);
   if (r.code !== 0) {
     return `Error: git could not ${action} that hunk (${r.out.slice(0, 300)}). The file probably changed — refresh the review.`;
   }
-  return action === "stage" ? `Staged hunk ${idx} of "${file}".` : `Reverted hunk ${idx} of "${file}".`;
+  if (action === "stage") return `Staged hunk ${idx} of "${file}".`;
+  if (action === "unstage") return `Unstaged hunk ${idx} of "${file}". The working tree keeps the change.`;
+  return `Reverted hunk ${idx} of "${file}".`;
 }
 
 /** Rewrite a hunk header with recounts after filtering lines (git apply
@@ -612,7 +656,7 @@ export interface GitQuery {
 
 const READ_ACTIONS = new Set(["status", "diff", "log", "blame", "branch", "review"]);
 
-export const GIT_ACTIONS = ["status", "diff", "log", "blame", "branch", "stage", "commit", "review", "stage_hunk", "revert_hunk", "stage_lines"];
+export const GIT_ACTIONS = ["status", "diff", "log", "blame", "branch", "stage", "unstage", "commit", "review", "stage_hunk", "unstage_hunk", "revert_hunk", "stage_lines"];
 
 /** Render hunk review as capped text for the agent. */
 export function formatReview(root: string, staged = false): string {
@@ -668,12 +712,22 @@ export function queryGit(root: string, args: GitQuery, opts?: { canWrite?: boole
         .filter(Boolean);
       return gitStage(root, paths);
     }
+    case "unstage": {
+      const raw = typeof args.path === "string" ? args.path : "";
+      const paths = raw
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      return gitUnstage(root, paths);
+    }
     case "commit":
       return gitCommit(root, typeof args.message === "string" ? args.message : "");
     case "review":
       return formatReview(root, args.staged === true);
     case "stage_hunk":
       return gitApplyHunk(root, typeof args.path === "string" ? args.path : "", Number(args.hunk), "stage");
+    case "unstage_hunk":
+      return gitApplyHunk(root, typeof args.path === "string" ? args.path : "", Number(args.hunk), "unstage");
     case "revert_hunk":
       return gitApplyHunk(root, typeof args.path === "string" ? args.path : "", Number(args.hunk), "revert");
     case "stage_lines": {

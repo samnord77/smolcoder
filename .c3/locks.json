@@ -1,26 +1,16 @@
 {
   "schema_version": 1,
-  "fencing": 158,
+  "fencing": 164,
   "locks": [
     {
-      "relpath": "src/detect.ts",
+      "relpath": "test/client-smoke.test.js",
       "agent_id": "claude-code:20260928",
       "session_id": "20260928_112948_915b31715629",
-      "fencing_token": 157,
+      "fencing_token": 164,
       "intent": "editing via c3_edit",
-      "acquired_at": 1790604515.6154337,
-      "expires_at": 1790605415.6154337,
-      "lock_id": "909e6d8391374227ac30972fa554e7cc"
-    },
-    {
-      "relpath": "test/detect.test.js",
-      "agent_id": "claude-code:20260928",
-      "session_id": "20260928_112948_915b31715629",
-      "fencing_token": 158,
-      "intent": "test : le note de contexte n'affirme plus de marque",
-      "acquired_at": 1790604603.5878491,
-      "expires_at": 1790605532.7851303,
-      "lock_id": "0759bdf464974ba388d52e05ee2dd165"
+      "acquired_at": 1790605737.3229868,
+      "expires_at": 1790607253.6227746,
+      "lock_id": "9b340eac95a24eaba62750e12d1add0c"
     }
   ]
 }

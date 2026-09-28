@@ -2113,6 +2113,10 @@ function buildReviewTab(v, t) {
             sf.onclick = () => fileAction("/code/diff/stage", { sid: v.sid, path: f.file }, sf);
             rf.onclick = () => { if (confirm("Revert " + f.file + " to HEAD? Unstaged changes will be lost.")) fileAction("/code/diff/revert-file", { sid: v.sid, path: f.file }, rf); };
             head.appendChild(sf); head.appendChild(rf);
+          } else {
+            const uf = el("button", "iconbtn", "Unstage"); uf.type = "button"; uf.title = "take the file back out of the staging area";
+            uf.onclick = () => fileAction("/code/diff/unstage", { sid: v.sid, path: f.file }, uf);
+            head.appendChild(uf);
           }
           list.appendChild(head);
           if (collapsed) continue;
@@ -2124,7 +2128,7 @@ function buildReviewTab(v, t) {
             const sel = new Set();
             const paint = (text, cls, oldLn, newLn, li, change) => {
               const wrap = el("div", "reviewline");
-              if (change) {
+              if (change && !showStaged) {
                 const cb = document.createElement("input");
                 cb.type = "checkbox"; cb.className = "reviewpick"; cb.title = "stage this line";
                 cb.onchange = () => { if (cb.checked) sel.add(li); else sel.delete(li); };
@@ -2154,22 +2158,31 @@ function buildReviewTab(v, t) {
             block.appendChild(pre);
             }
             const row = el("div", "reviewactions");
-            const sb = el("button", "iconbtn", "Stage"); sb.title = "stage this hunk";
-            const rb = el("button", "iconbtn", "Revert"); rb.title = "revert this hunk in the working tree";
-            const sl = el("button", "iconbtn", "Stage ✓"); sl.title = "stage checked lines only";
-            sb.onclick = () => actHunk(f.file, h.index, "stage", sb);
-            rb.onclick = () => { if (confirm("Revert this hunk in " + f.file + "? The change will be lost.")) actHunk(f.file, h.index, "revert", rb); };
-            sl.onclick = () => {
-              sl.disabled = true;
-              post("/code/diff/stage-lines", { sid: v.sid, path: f.file, hunk: h.index, lines: [...sel] }).then((r) => {
-                if (!r || r.error || (typeof r.message === "string" && /^Error/.test(r.message))) {
-                  alert((r && (r.error || r.message)) || "Stage failed");
-                  return;
-                }
-                load();
-              }).catch((e) => alert(String((e && e.message) || e))).finally(() => { sl.disabled = false; });
-            };
-            row.appendChild(sb); row.appendChild(rb); row.appendChild(sl);
+            if (showStaged) {
+              // Staged hunks can only come out of the index: staging is a no-op
+              // and a revert here would rewrite the working tree behind the
+              // user's back.
+              const ub = el("button", "iconbtn", "Unstage"); ub.title = "take this hunk back out of the staging area";
+              ub.onclick = () => actHunk(f.file, h.index, "unstage", ub);
+              row.appendChild(ub);
+            } else {
+              const sb = el("button", "iconbtn", "Stage"); sb.title = "stage this hunk";
+              const rb = el("button", "iconbtn", "Revert"); rb.title = "revert this hunk in the working tree";
+              const sl = el("button", "iconbtn", "Stage ✓"); sl.title = "stage checked lines only";
+              sb.onclick = () => actHunk(f.file, h.index, "stage", sb);
+              rb.onclick = () => { if (confirm("Revert this hunk in " + f.file + "? The change will be lost.")) actHunk(f.file, h.index, "revert", rb); };
+              sl.onclick = () => {
+                sl.disabled = true;
+                post("/code/diff/stage-lines", { sid: v.sid, path: f.file, hunk: h.index, lines: [...sel] }).then((r) => {
+                  if (!r || r.error || (typeof r.message === "string" && /^Error/.test(r.message))) {
+                    alert((r && (r.error || r.message)) || "Stage failed");
+                    return;
+                  }
+                  load();
+                }).catch((e) => alert(String((e && e.message) || e))).finally(() => { sl.disabled = false; });
+              };
+              row.appendChild(sb); row.appendChild(rb); row.appendChild(sl);
+            }
             block.appendChild(row);
             list.appendChild(block);
           }

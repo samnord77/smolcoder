@@ -135,6 +135,53 @@ test("git: stage and revert one hunk without touching the other", () => {
   assert.equal(unstaged.trim(), "", "nothing left unstaged");
 });
 
+test("git: unstage returns the index to HEAD while the working tree keeps every change", () => {
+  if (!gitAvailable()) return;
+  const { gitUnstage, gitApplyHunk } = require("../dist/git");
+  const repo = scratchHunkRepo();
+  const changed = Array.from({ length: 20 }, (_, i) => `line${i + 1}`);
+  changed[1] = "CHANGED2";
+  changed[17] = "CHANGED18";
+  fs.writeFileSync(path.join(repo, "app.txt"), changed.join("\n") + "\n");
+  const cached = () => spawnSync("git", ["diff", "--cached"], { cwd: repo, encoding: "utf8", windowsHide: true }).stdout;
+
+  assert.match(gitUnstage(repo, ["app.txt"]), /Nothing staged for app\.txt/, "says so before anything is staged");
+  assert.match(queryGit(repo, { action: "stage", path: "app.txt" }), /Staged: app\.txt/);
+  assert.match(gitUnstage(repo, ["app.txt"]), /Unstaged: app\.txt/);
+  assert.equal(cached().trim(), "", "the index is back to HEAD");
+  const onDisk = fs.readFileSync(path.join(repo, "app.txt"), "utf8");
+  assert.match(onDisk, /CHANGED2/, "the working tree keeps every change");
+  assert.match(onDisk, /CHANGED18/);
+
+  // one hunk staged, then taken back out of the index
+  assert.match(gitApplyHunk(repo, "app.txt", 0, "stage"), /Staged hunk 0/);
+  assert.match(cached(), /CHANGED2/);
+  assert.match(gitApplyHunk(repo, "app.txt", 0, "unstage"), /Unstaged hunk 0/);
+  assert.equal(cached().trim(), "", "the hunk left the index");
+  assert.match(fs.readFileSync(path.join(repo, "app.txt"), "utf8"), /CHANGED2/, "still in the working tree");
+  assert.match(gitApplyHunk(repo, "app.txt", 0, "unstage"), /not staged/, "an honest second try");
+  assert.match(gitApplyHunk(repo, "app.txt", 0, "explode"), /action must be/);
+
+  assert.match(queryGit(repo, { action: "unstage", path: "app.txt" }, { canWrite: false }), /read-only/);
+  assert.match(queryGit(repo, { action: "unstage_hunk", path: "app.txt", hunk: 0 }, { canWrite: false }), /read-only/);
+  assert.match(queryGit(repo, {}), /unstage_hunk/, "the help lists it");
+});
+
+test("git: unstage also works before the first commit", () => {
+  if (!gitAvailable()) return;
+  const { gitUnstage } = require("../dist/git");
+  const ws = scratchRepo();
+  fs.writeFileSync(path.join(ws, "a.txt"), "hi\n");
+  spawnSync("git", ["add", "a.txt"], { cwd: ws, windowsHide: true });
+  assert.match(gitUnstage(ws, ["a.txt"]), /Unstaged: a\.txt/);
+  assert.equal(
+    spawnSync("git", ["diff", "--cached", "--name-only"], { cwd: ws, encoding: "utf8", windowsHide: true }).stdout.trim(),
+    "",
+    "the path left the empty index"
+  );
+  assert.ok(fs.existsSync(path.join(ws, "a.txt")), "the file itself is untouched");
+});
+
 test("git: review actions through the tool, gated in read-only", () => {
   if (!gitAvailable()) return;
   const repo = scratchHunkRepo();

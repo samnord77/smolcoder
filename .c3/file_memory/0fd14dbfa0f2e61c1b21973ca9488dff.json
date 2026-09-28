@@ -1,10 +1,10 @@
 {
   "path": "src/detect.ts",
-  "content_hash": "a3108296e18070ece0d20cd9a27d89cf",
-  "updated_at": "2026-09-27T21:22:22",
-  "lines": 515,
-  "size_bytes": 23250,
-  "mtime_ns": 1790540386051560800,
+  "content_hash": "90c958a2554e6a2ba79b15c2132293a0",
+  "updated_at": "2026-09-28T15:21:01",
+  "lines": 517,
+  "size_bytes": 23366,
+  "mtime_ns": 1790604515625949200,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -249,15 +249,15 @@
       "type": "function",
       "name": "identifyServer",
       "line_start": 280,
-      "line_end": 311,
+      "line_end": 313,
       "signature": "async function identifyServer(base: string, timeoutMs = NETWORK_PROBE_TIMEOUT_MS): Promise<ServerInfo | null> {",
       "async": true
     },
     {
       "type": "interface",
       "name": "ServerGroup",
-      "line_start": 317,
-      "line_end": 321,
+      "line_start": 319,
+      "line_end": 323,
       "signature": "interface ServerGroup {",
       "children": [],
       "doc": "Spellings of ONE server, tried in order until one answers. Different"
@@ -265,62 +265,62 @@
     {
       "type": "function",
       "name": "groupServers",
-      "line_start": 325,
-      "line_end": 335,
+      "line_start": 327,
+      "line_end": 337,
       "signature": "function groupServers(urls: string[], timeoutMs: number, host?: string): ServerGroup[] {"
     },
     {
       "type": "function",
       "name": "probeGroup",
-      "line_start": 337,
-      "line_end": 343,
+      "line_start": 339,
+      "line_end": 345,
       "signature": "async function probeGroup(group: ServerGroup): Promise<ServerInfo | null> {",
       "async": true
     },
     {
       "type": "interface",
       "name": "DetectOptions",
-      "line_start": 345,
-      "line_end": 353,
+      "line_start": 347,
+      "line_end": 355,
       "signature": "interface DetectOptions {",
       "children": []
     },
     {
       "type": "interface",
       "name": "HostStatus",
-      "line_start": 355,
-      "line_end": 358,
+      "line_start": 357,
+      "line_end": 360,
       "signature": "interface HostStatus {",
       "children": []
     },
     {
       "type": "function",
       "name": "probeHosts",
-      "line_start": 361,
-      "line_end": 368,
+      "line_start": 363,
+      "line_end": 370,
       "signature": "async function probeHosts(hosts: SavedHost[]): Promise<HostStatus[]> {",
       "async": true
     },
     {
       "type": "function",
       "name": "detectAll",
-      "line_start": 370,
-      "line_end": 417,
+      "line_start": 372,
+      "line_end": 419,
       "signature": "async function detectAll(opts: DetectOptions = {}): Promise<DetectedModel[]> {",
       "async": true
     },
     {
       "type": "constant",
       "name": "DEFAULT_OLLAMA_CTX_CAP",
-      "line_start": 419,
-      "line_end": 419,
+      "line_start": 421,
+      "line_end": 421,
       "signature": "const DEFAULT_OLLAMA_CTX_CAP = 32768; // avoid surprise VRAM blowups on huge-window models"
     },
     {
       "type": "function",
       "name": "resolveContextWindow",
-      "line_start": 431,
-      "line_end": 515,
+      "line_start": 433,
+      "line_end": 517,
       "signature": "async function resolveContextWindow(",
       "async": true
     }

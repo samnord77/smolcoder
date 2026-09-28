@@ -38,7 +38,7 @@ import { Plan } from "../plan";
 import { renderEditDiff } from "./diff";
 import { AgentUI } from "../ui";
 import { ToolContext } from "../tools/index";
-import { gitApplyHunk, gitCommit, gitDiffFiles, gitRevertFile, gitStage, gitStageLines, gitStatusMap } from "../git";
+import { gitApplyHunk, gitCommit, gitDiffFiles, gitRevertFile, gitStage, gitStageLines, gitStatusMap, gitUnstage } from "../git";
 
 export type SessionFactory = (ui: SessionChannel, workspace: string, prefs: SessionPrefs, planKey?: string) => Promise<Session>;
 
@@ -1370,7 +1370,7 @@ export class WebHub {
       case "/code/diff/hunk": {
         const l = this.editLive(sid);
         const action = String(d.action ?? "");
-        if (action !== "stage" && action !== "revert") throw new Error('action must be "stage" or "revert"');
+        if (action !== "stage" && action !== "unstage" && action !== "revert") throw new Error('action must be "stage", "unstage" or "revert"');
         return { message: gitApplyHunk(l.workspace, String(d.path ?? ""), Number(d.hunk), action) };
       }
       case "/code/diff/stage": {
@@ -1378,6 +1378,12 @@ export class WebHub {
         const p = String(d.path ?? "");
         if (!p) throw new Error("path is required");
         return { message: gitStage(l.workspace, [p]) };
+      }
+      case "/code/diff/unstage": {
+        const l = this.editLive(sid);
+        const p = String(d.path ?? "");
+        if (!p) throw new Error("path is required");
+        return { message: gitUnstage(l.workspace, [p]) };
       }
       case "/code/diff/stage-lines": {
         const l = this.editLive(sid);

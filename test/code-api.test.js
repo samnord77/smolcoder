@@ -247,6 +247,22 @@ test("code api: review file actions with read-only guard", async () => {
     const stagedView = JSON.parse((await request(hub, "GET", `/code/diff${k}&sid=${id}&staged=1`)).body);
     assert.equal(stagedView.files.length, 1);
 
+    // unstage: file and hunk leave the index, the working tree is untouched
+    const un = JSON.parse((await post("/code/diff/unstage", { path: "a.txt" })).body);
+    assert.match(un.message, /Unstaged: a\.txt/);
+    assert.match(un.message, /working tree keeps every change/i);
+    assert.equal(
+      JSON.parse((await request(hub, "GET", `/code/diff${k}&sid=${id}&staged=1`)).body).files.length,
+      0,
+      "the file left the staging area"
+    );
+    assert.match(JSON.parse((await post("/code/diff/unstage", { path: "a.txt" })).body).message, /Nothing staged/);
+    assert.match(
+      JSON.parse((await post("/code/diff/hunk", { path: "a.txt", hunk: 0, action: "unstage" })).body).message,
+      /not staged/
+    );
+    assert.match(JSON.parse((await post("/code/diff/stage", { path: "a.txt" })).body).message, /Staged/);
+
     const rv = JSON.parse((await post("/code/diff/revert-file", { path: "b.txt" })).body);
     assert.match(rv.message, /Reverted/);
     assert.equal(fs.readFileSync(path.join(ws, "b.txt"), "utf8").replace(/\r\n/g, "\n"), "two\n");
@@ -261,9 +277,11 @@ test("code api: review file actions with read-only guard", async () => {
     hub.live.get(id).session.agent.mode = "ro";
     for (const [p, body] of [
       ["/code/diff/stage", { path: "a.txt" }],
+      ["/code/diff/unstage", { path: "a.txt" }],
       ["/code/diff/revert-file", { path: "a.txt" }],
       ["/code/commit", { message: "x" }],
       ["/code/diff/hunk", { path: "a.txt", hunk: 0, action: "stage" }],
+      ["/code/diff/hunk", { path: "a.txt", hunk: 0, action: "unstage" }],
       ["/code/diff/stage-lines", { path: "a.txt", hunk: 0, lines: [0] }],
     ]) {
       assert.match((await post(p, body)).body, /read-only/, p + " is gated");
