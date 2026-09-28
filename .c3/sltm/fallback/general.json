@@ -128,5 +128,18 @@
     },
     "timestamp": "2026-09-28T10:39:45.786734+00:00",
     "category": "general"
+  },
+  {
+    "id": "4d345021f430",
+    "text": "Session summary (20260927): Files (modified): src/lsp-pro.ts, src/tools/index.ts, src/codeindex.ts, src/git.ts, src/debug.ts, src/format.ts, src/plugins.ts, src/web/hub.ts, test/lsp-pro.test.js, test/lsp.test.js",
+    "metadata": {
+      "fact_id": "4d345021f430",
+      "source_session": "20260927_164838_0239733e7ab3",
+      "source": "memory_store",
+      "timestamp": "2026-09-28T11:28:27.288270+00:00",
+      "category": "general"
+    },
+    "timestamp": "2026-09-28T11:28:27.288270+00:00",
+    "category": "general"
   }
 ]

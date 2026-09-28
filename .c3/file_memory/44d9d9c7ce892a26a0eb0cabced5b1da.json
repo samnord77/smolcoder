@@ -1,10 +1,10 @@
 {
   "path": "src/git.ts",
-  "content_hash": "1a0e6fc86d84e65ae3b8ba91277b6a4c",
-  "updated_at": "2026-09-28T10:44:58",
-  "lines": 508,
-  "size_bytes": 20038,
-  "mtime_ns": 1790588654978844200,
+  "content_hash": "be1f468abe7b4cac8e77e00dc78632e0",
+  "updated_at": "2026-09-28T12:38:07",
+  "lines": 623,
+  "size_bytes": 25522,
+  "mtime_ns": 1790595464920425800,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -170,100 +170,114 @@
       "type": "function",
       "name": "parseDiffHunks",
       "line_start": 204,
-      "line_end": 234,
+      "line_end": 241,
       "signature": "function parseDiffHunks(diffText: string): FileDiff[] {"
     },
     {
       "type": "function",
       "name": "fileHeaderFor",
-      "line_start": 238,
-      "line_end": 253,
+      "line_start": 245,
+      "line_end": 260,
       "signature": "function fileHeaderFor(diffText: string, file: string): string[] {"
     },
     {
       "type": "function",
       "name": "applyPatch",
-      "line_start": 255,
-      "line_end": 274,
+      "line_start": 262,
+      "line_end": 281,
       "signature": "function applyPatch(root: string, args: string[], patch: string): GitRun {"
     },
     {
       "type": "interface",
       "name": "DiffFilesResult",
-      "line_start": 276,
-      "line_end": 279,
+      "line_start": 283,
+      "line_end": 286,
       "signature": "interface DiffFilesResult {",
       "children": []
     },
     {
       "type": "function",
       "name": "gitDiffFiles",
-      "line_start": 283,
-      "line_end": 310,
+      "line_start": 290,
+      "line_end": 317,
       "signature": "function gitDiffFiles(root: string, staged = false): DiffFilesResult {"
     },
     {
       "type": "function",
       "name": "gitApplyHunk",
-      "line_start": 315,
-      "line_end": 339,
+      "line_start": 322,
+      "line_end": 346,
       "signature": "function gitApplyHunk(root: string, file: string, index: number, action: \"stage\" | \"revert\"): string {"
     },
     {
       "type": "function",
+      "name": "rewriteHunkHeader",
+      "line_start": 350,
+      "line_end": 354,
+      "signature": "function rewriteHunkHeader(header: string, keptDel: number, keptAdd: number, keptCtx: number): string {"
+    },
+    {
+      "type": "function",
+      "name": "gitStageLines",
+      "line_start": 358,
+      "line_end": 445,
+      "signature": "function gitStageLines(root: string, file: string, index: number, selected: number[]): string {"
+    },
+    {
+      "type": "function",
       "name": "gitRevertFile",
-      "line_start": 343,
-      "line_end": 362,
+      "line_start": 449,
+      "line_end": 468,
       "signature": "function gitRevertFile(root: string, relPath: string): string {"
     },
     {
       "type": "function",
       "name": "gitStatusMap",
-      "line_start": 366,
-      "line_end": 384,
+      "line_start": 472,
+      "line_end": 490,
       "signature": "function gitStatusMap(root: string, dirAbs: string): Map<string, string> {"
     },
     {
       "type": "function",
       "name": "gitTurnSummary",
-      "line_start": 389,
-      "line_end": 426,
+      "line_start": 495,
+      "line_end": 532,
       "signature": "function gitTurnSummary(root: string, files: Set<string> | string[]): string | null {"
     },
     {
       "type": "interface",
       "name": "GitQuery",
-      "line_start": 428,
-      "line_end": 437,
+      "line_start": 534,
+      "line_end": 544,
       "signature": "interface GitQuery {",
       "children": []
     },
     {
       "type": "constant",
       "name": "READ_ACTIONS",
-      "line_start": 439,
-      "line_end": 439,
+      "line_start": 546,
+      "line_end": 546,
       "signature": "const READ_ACTIONS = new Set([\"status\", \"diff\", \"log\", \"blame\", \"branch\", \"review\"]);"
     },
     {
       "type": "constant",
       "name": "GIT_ACTIONS",
-      "line_start": 441,
-      "line_end": 441,
-      "signature": "const GIT_ACTIONS = [\"status\", \"diff\", \"log\", \"blame\", \"branch\", \"stage\", \"commit\", \"review\", \"stage_hunk\", \"revert_hunk\"];"
+      "line_start": 548,
+      "line_end": 548,
+      "signature": "const GIT_ACTIONS = [\"status\", \"diff\", \"log\", \"blame\", \"branch\", \"stage\", \"commit\", \"review\", \"stage_hunk\", \"revert_hunk\", \"stage_lines\"];"
     },
     {
       "type": "function",
       "name": "formatReview",
-      "line_start": 444,
-      "line_end": 458,
+      "line_start": 551,
+      "line_end": 565,
       "signature": "function formatReview(root: string, staged = false): string {"
     },
     {
       "type": "function",
       "name": "queryGit",
-      "line_start": 462,
-      "line_end": 508,
+      "line_start": 569,
+      "line_end": 623,
       "signature": "function queryGit(root: string, args: GitQuery, opts?: { canWrite?: boolean }): string {"
     }
   ]

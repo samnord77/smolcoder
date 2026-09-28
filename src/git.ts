@@ -5,6 +5,7 @@
 // strings, never throws.
 import { spawnSync } from "child_process";
 import * as fs from "fs";
+import * as os from "os";
 import * as path from "path";
 import { resolveInWorkspace } from "./sandbox";
 
@@ -227,7 +228,14 @@ export function parseDiffHunks(diffText: string): FileDiff[] {
       curHunk = { index: cur.hunks.length, header: line.slice(0, 120), lines: [] };
       continue;
     }
-    if (curHunk && curHunk.lines.length < 200) curHunk.lines.push(line.slice(0, 300));
+    // Unified-diff bodies hold only " ", "+", "-", "\\" lines (a blank
+    // context line arrives as " ", never ""). Anything else — a bare ""
+    // from splitting, or git's CRLF warning glued from stderr — is not
+    // diff content; keeping it corrupts counts and patches alike.
+    if (curHunk && curHunk.lines.length < 200) {
+      const c = line[0];
+      if (c === " " || c === "+" || c === "-" || c === "\\") curHunk.lines.push(line.slice(0, 300));
+    }
   }
   pushHunk();
   return files.filter((f) => f.hunks.length > 0);
@@ -250,6 +258,32 @@ export function fileHeaderFor(diffText: string, file: string): string[] {
     out.push(line);
   }
   return out;
+}
+
+/** git stdout WITHOUT runGit's trim and 8 KB cap — staging needs
+ * byte-exact file content — and stderr kept out so a warning can never
+ * corrupt a patch. Never throws. */
+function gitStdout(root: string, args: string[]): GitRun {
+  try {
+    const res = spawnSync("git", args, {
+      cwd: root,
+      encoding: "utf8",
+      timeout: GIT_TIMEOUT_MS,
+      windowsHide: true,
+      maxBuffer: 16 * 1024 * 1024,
+    });
+    const err = res.error as any;
+    if (err) {
+      if (err.code === "ENOENT") return { code: 1, out: "Error: git is not installed or not on PATH." };
+      return { code: 1, out: `Error: git failed to run (${err?.message ?? err}).` };
+    }
+    const code = res.status ?? 1;
+    const stdout = res.stdout ?? "";
+    if (code !== 0 && !stdout) return { code, out: (res.stderr ?? "").trim() || `git exited with code ${code}.` };
+    return { code, out: stdout };
+  } catch (err: any) {
+    return { code: 1, out: `Error: git failed (${err?.message ?? err}).` };
+  }
 }
 
 function applyPatch(root: string, args: string[], patch: string): GitRun {
@@ -336,6 +370,145 @@ export function gitApplyHunk(root: string, file: string, index: number, action: 
     return `Error: git could not ${action} that hunk (${r.out.slice(0, 300)}). The file probably changed — refresh the review.`;
   }
   return action === "stage" ? `Staged hunk ${idx} of "${file}".` : `Reverted hunk ${idx} of "${file}".`;
+}
+
+/** Rewrite a hunk header with recounts after filtering lines (git apply
+ * verifies counts, so a filtered patch must be honest). Pure. */
+export function rewriteHunkHeader(header: string, keptDel: number, keptAdd: number, keptCtx: number): string {
+  const m = /^(@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@)(.*)$/.exec(header);
+  if (!m) return header;
+  return `@@ -${m[2]},${keptCtx + keptDel} +${m[4]},${keptCtx + keptAdd} @@${m[6]}`;
+}
+
+/** Rebuild what the index should hold after staging only `sel` change
+ * lines of hunk `targetIdx` (indices into each hunk's `lines`). Within one
+ * change block: staged additions land first, then deletions that are NOT
+ * staged (they stay put). Hunks outside the selection keep the index as-is.
+ * Pure (exported for tests). */
+export function stagedContentFrom(base: string, hunks: DiffHunk[], targetIdx: number, sel: Set<number>): string {
+  const src = base.split("\n");
+  const out: string[] = [];
+  let o = 0;
+  for (let hi = 0; hi < hunks.length; hi++) {
+    const h = hunks[hi];
+    const m = /^@@ -(\d+)/.exec(h.header);
+    const start = m ? Math.max(0, Number(m[1]) - 1) : o;
+    while (o < start && o < src.length) out.push(src[o++]);
+    const active = hi === targetIdx ? sel : null;
+    const lines = h.lines;
+    let i = 0;
+    while (i < lines.length) {
+      const c = lines[i][0];
+      if (c === "\\") {
+        i++;
+        continue;
+      }
+      if (c === "-") {
+        const minus: number[] = [];
+        const plus: number[] = [];
+        while (i < lines.length && (lines[i][0] === "-" || lines[i][0] === "+")) {
+          (lines[i][0] === "-" ? minus : plus).push(i);
+          i++;
+        }
+        const added: string[] = [];
+        const kept: string[] = [];
+        for (const j of minus) {
+          if (active && active.has(j)) o++;
+          else kept.push(src[o++] ?? "");
+        }
+        for (const j of plus) if (active && active.has(j)) added.push(lines[j].slice(1));
+        out.push(...added, ...kept);
+        continue;
+      }
+      if (c === "+") {
+        if (active && active.has(i)) out.push(lines[i].slice(1));
+        i++;
+        continue;
+      }
+      out.push(src[o++] ?? "");
+      i++;
+    }
+  }
+  while (o < src.length) out.push(src[o++]);
+  return out.join("\n");
+}
+
+/** Diff two exact strings via git (temp files) and return only the hunk
+ * body — git computes positions and counts itself, nothing is hand-counted.
+ * code 0 = body in out, code 1 + empty out = strings are identical,
+ * code 2 = error message in out. Never throws. */
+function stagedPatchBody(root: string, from: string, to: string): GitRun {
+  let tmp = "";
+  try {
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), "smol-stage-"));
+    const a = path.join(tmp, "index");
+    const b = path.join(tmp, "staged");
+    fs.writeFileSync(a, from, "utf8");
+    fs.writeFileSync(b, to, "utf8");
+    const d = gitStdout(root, ["diff", "--no-color", "--no-ext-diff", "-U3", "--no-index", "--", a, b]);
+    if (d.code > 1) return { code: 2, out: `Error: could not build the staged patch (${d.out.slice(0, 200)}).` };
+    const lines = d.out.split("\n");
+    const at = lines.findIndex((l) => l.startsWith("@@"));
+    if (at < 0) return { code: 1, out: "" };
+    return { code: 0, out: lines.slice(at).join("\n").replace(/\n+$/, "") };
+  } catch (err: any) {
+    return { code: 2, out: `Error: could not compute the staged patch (${err?.message ?? err}).` };
+  } finally {
+    if (tmp) {
+      try {
+        fs.rmSync(tmp, { recursive: true, force: true });
+      } catch {
+        /* best effort */
+      }
+    }
+  }
+}
+
+/** Stage only the selected change lines of one hunk (indices into
+ * hunk.lines). The index content is rebuilt from the selection first, then
+ * git computes the patch itself — positions are always honest, never
+ * hand-counted. Never throws. */
+export function gitStageLines(root: string, file: string, index: number, selected: number[]): string {
+  if (!isGitRepo(root)) return "Error: this workspace is not a git repository.";
+  if (typeof file !== "string" || !file || file.includes("..")) {
+    return "Error: a file path inside the repository is required.";
+  }
+  const idx = Math.floor(Number(index));
+  if (!Number.isSafeInteger(idx) || idx < 0) {
+    return "Error: hunk must be the hunk number from the review (starting at 0).";
+  }
+  const sel = new Set((Array.isArray(selected) ? selected : []).map(Number).filter((n) => Number.isSafeInteger(n) && n >= 0));
+  if (!sel.size) return "Error: select at least one + or - line to stage.";
+  const full = runGit(root, ["diff", "--no-color", "--no-ext-diff", "-U3", "--", file]);
+  if (full.code !== 0) return `Error: git diff failed (${full.out.slice(0, 200)}).`;
+  const parsed = parseDiffHunks(full.out).find((f) => f.file === file);
+  const hunk = parsed && idx < parsed.hunks.length ? parsed.hunks[idx] : undefined;
+  if (!parsed || !hunk) return `Error: hunk ${idx} no longer exists for "${file}" — refresh the review, the file changed.`;
+  if (parsed.hunks.some((h) => h.lines.length >= 200)) {
+    return `Error: a hunk of "${file}" is too big for line-by-line staging — stage the whole hunk or the whole file instead.`;
+  }
+  const picked = hunk.lines.reduce((n, l, j) => n + (sel.has(j) && (l[0] === "-" || l[0] === "+") ? 1 : 0), 0);
+  if (!picked) {
+    return "Error: none of the selected lines are +/- lines (or the file changed) — refresh the review.";
+  }
+  const baseRun = gitStdout(root, ["show", `:${file}`]);
+  if (baseRun.code !== 0) {
+    return `Error: "${file}" is not in the index yet — stage the whole file first (${baseRun.out.slice(0, 160)}).`;
+  }
+  const base = baseRun.out;
+  const next = stagedContentFrom(base, parsed.hunks, idx, sel);
+  if (next === base) return "Nothing to stage — those lines already match the index.";
+  const header = fileHeaderFor(full.out, file);
+  if (!header.length) return `Error: could not rebuild the patch header for "${file}" — refresh the review.`;
+  const body = stagedPatchBody(root, base, next);
+  if (body.code === 2) return body.out;
+  if (body.code === 1) return "Nothing to stage — those lines already match the index.";
+  const patch = [...header, body.out].join("\n") + "\n";
+  const r = applyPatch(root, ["apply", "--cached", "-"], patch);
+  if (r.code !== 0) {
+    return `Error: git could not stage those lines (${r.out.slice(0, 300)}). Refresh the review and try again.`;
+  }
+  return `Staged ${picked} line(s) of hunk ${idx} in "${file}".`;
 }
 
 /** Revert one tracked file to HEAD (destructive; recovery lives in git
@@ -434,11 +607,12 @@ export interface GitQuery {
   staged?: unknown;
   stat?: unknown;
   hunk?: unknown;
+  lines?: unknown;
 }
 
 const READ_ACTIONS = new Set(["status", "diff", "log", "blame", "branch", "review"]);
 
-export const GIT_ACTIONS = ["status", "diff", "log", "blame", "branch", "stage", "commit", "review", "stage_hunk", "revert_hunk"];
+export const GIT_ACTIONS = ["status", "diff", "log", "blame", "branch", "stage", "commit", "review", "stage_hunk", "revert_hunk", "stage_lines"];
 
 /** Render hunk review as capped text for the agent. */
 export function formatReview(root: string, staged = false): string {
@@ -502,6 +676,14 @@ export function queryGit(root: string, args: GitQuery, opts?: { canWrite?: boole
       return gitApplyHunk(root, typeof args.path === "string" ? args.path : "", Number(args.hunk), "stage");
     case "revert_hunk":
       return gitApplyHunk(root, typeof args.path === "string" ? args.path : "", Number(args.hunk), "revert");
+    case "stage_lines": {
+      const raw = typeof args.lines === "string" ? args.lines : "";
+      const lines = raw
+        .split(",")
+        .map((s) => Number(s.trim()))
+        .filter((n) => Number.isSafeInteger(n));
+      return gitStageLines(root, typeof args.path === "string" ? args.path : "", Number(args.hunk), lines);
+    }
     default:
       return `Error: action must be one of ${GIT_ACTIONS.map((a) => `"${a}"`).join(", ")}.`;
   }

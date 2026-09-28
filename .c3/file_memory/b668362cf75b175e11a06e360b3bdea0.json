@@ -1,10 +1,10 @@
 {
   "path": "src/web/hub.ts",
-  "content_hash": "d8f9214eaa5bc6e7fc0eb62a8f71656e",
-  "updated_at": "2026-09-28T10:36:57",
-  "lines": 1871,
-  "size_bytes": 75964,
-  "mtime_ns": 1790588133274185400,
+  "content_hash": "114ed8f461d87e757f4630814e5b6b87",
+  "updated_at": "2026-09-28T12:12:04",
+  "lines": 1878,
+  "size_bytes": 76366,
+  "mtime_ns": 1790593247016862500,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -207,10 +207,10 @@
     },
     {
       "type": "import",
-      "name": "import { gitApplyHunk, gitCommit, gitDiffFiles, gitRevertFile, gitStage, gitStatusMap } from \"../git\";",
+      "name": "import { gitApplyHunk, gitCommit, gitDiffFiles, gitRevertFile, gitStage, gitStageLines, gitStatusMap } from \"../git\";",
       "line_start": 41,
       "line_end": 41,
-      "signature": "import { gitApplyHunk, gitCommit, gitDiffFiles, gitRevertFile, gitStage, gitStatusMap } from \"../git\";"
+      "signature": "import { gitApplyHunk, gitCommit, gitDiffFiles, gitRevertFile, gitStage, gitStageLines, gitStatusMap } from \"../git\";"
     },
     {
       "type": "type",
@@ -405,7 +405,7 @@
       "type": "class",
       "name": "WebHub",
       "line_start": 290,
-      "line_end": 1871,
+      "line_end": 1878,
       "signature": "class WebHub {",
       "children": [
         {
@@ -899,15 +899,15 @@
           "type": "method",
           "name": "handlePost",
           "line_start": 1242,
-          "line_end": 1414,
+          "line_end": 1421,
           "signature": "private handlePost(p: string, d: any): any {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "workspaceTree",
-          "line_start": 1418,
-          "line_end": 1457,
+          "line_start": 1425,
+          "line_end": 1464,
           "signature": "private workspaceTree(sidRaw: string | null, relRaw: string | null): any {",
           "access": "private",
           "doc": "Structured project tree for the web IDE panel. It is deliberately"
@@ -915,24 +915,24 @@
         {
           "type": "method",
           "name": "workspaceFile",
-          "line_start": 1459,
-          "line_end": 1496,
+          "line_start": 1466,
+          "line_end": 1503,
           "signature": "private workspaceFile(res: http.ServerResponse, url: URL): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "saveWorkspaceFile",
-          "line_start": 1498,
-          "line_end": 1529,
+          "line_start": 1505,
+          "line_end": 1536,
           "signature": "private saveWorkspaceFile(sid: string, d: any): any {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "editLive",
-          "line_start": 1532,
-          "line_end": 1539,
+          "line_start": 1539,
+          "line_end": 1546,
           "signature": "private editLive(sid: string): Live & { session: Session } {",
           "access": "private",
           "doc": "Guard for every mutating workspace-file endpoint."
@@ -940,32 +940,32 @@
         {
           "type": "method",
           "name": "createWorkspaceEntry",
-          "line_start": 1541,
-          "line_end": 1560,
+          "line_start": 1548,
+          "line_end": 1567,
           "signature": "private createWorkspaceEntry(sid: string, d: any): any {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "renameWorkspaceEntry",
-          "line_start": 1562,
-          "line_end": 1582,
+          "line_start": 1569,
+          "line_end": 1589,
           "signature": "private renameWorkspaceEntry(sid: string, d: any): any {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "deleteWorkspaceEntry",
-          "line_start": 1584,
-          "line_end": 1600,
+          "line_start": 1591,
+          "line_end": 1607,
           "signature": "private deleteWorkspaceEntry(sid: string, d: any): any {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "editKey",
-          "line_start": 1603,
-          "line_end": 1605,
+          "line_start": 1610,
+          "line_end": 1612,
           "signature": "private editKey(workspace: string, rel: string): string {",
           "access": "private",
           "doc": "Collab document key: one live doc per workspace file."
@@ -973,16 +973,16 @@
         {
           "type": "method",
           "name": "readEditFile",
-          "line_start": 1607,
-          "line_end": 1633,
+          "line_start": 1614,
+          "line_end": 1640,
           "signature": "private readEditFile(workspace: string, rel: string): { abs: string; text: string } {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "openEditDoc",
-          "line_start": 1638,
-          "line_end": 1651,
+          "line_start": 1645,
+          "line_end": 1658,
           "signature": "private openEditDoc(workspace: string, rel: string): { text: string; version: number } {",
           "access": "private",
           "doc": "(Re)bootstrap the shared doc from disk. The file stays authoritative:"
@@ -990,8 +990,8 @@
         {
           "type": "method",
           "name": "applyEditOps",
-          "line_start": 1655,
-          "line_end": 1676,
+          "line_start": 1662,
+          "line_end": 1683,
           "signature": "private applyEditOps(workspace: string, rel: string, rawOps: unknown): { version: number; applied: number } {",
           "access": "private",
           "doc": "Apply broadcast ops to the shared doc and relay the accepted ones."
@@ -999,8 +999,8 @@
         {
           "type": "method",
           "name": "prepareInlineEdit",
-          "line_start": 1680,
-          "line_end": 1699,
+          "line_start": 1687,
+          "line_end": 1706,
           "signature": "private prepareInlineEdit(",
           "access": "private",
           "doc": "Sync validation + file read for an inline edit (throws immediately so"
@@ -1008,8 +1008,8 @@
         {
           "type": "method",
           "name": "runInlineEdit",
-          "line_start": 1704,
-          "line_end": 1762,
+          "line_start": 1711,
+          "line_end": 1769,
           "signature": "private async runInlineEdit(live: Live, d: any): Promise<any> {",
           "async": true,
           "access": "private",
@@ -1018,8 +1018,8 @@
         {
           "type": "method",
           "name": "planView",
-          "line_start": 1765,
-          "line_end": 1784,
+          "line_start": 1772,
+          "line_end": 1791,
           "signature": "private planView(live: Live): {",
           "access": "private",
           "doc": "Serializable plan for the checklist tab. Never throws."
@@ -1027,8 +1027,8 @@
         {
           "type": "method",
           "name": "statusReport",
-          "line_start": 1787,
-          "line_end": 1858,
+          "line_start": 1794,
+          "line_end": 1865,
           "signature": "private async statusReport(url: URL): Promise<any> {",
           "async": true,
           "access": "private",
@@ -1037,8 +1037,8 @@
         {
           "type": "method",
           "name": "agentDraft",
-          "line_start": 1862,
-          "line_end": 1869,
+          "line_start": 1869,
+          "line_end": 1876,
           "signature": "private agentDraft(workspace: string, roleName: string, task: string): any {",
           "access": "private",
           "doc": "The delegation message for a role. subagents.ts stays the single source of"

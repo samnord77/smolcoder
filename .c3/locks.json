@@ -1,56 +1,16 @@
 {
   "schema_version": 1,
-  "fencing": 137,
+  "fencing": 148,
   "locks": [
     {
-      "relpath": "src/web/client.ts",
-      "agent_id": "claude-code:20260927",
-      "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 128,
-      "intent": "Tampon null : pas de recharge au premier snapshot",
-      "acquired_at": 1790589184.9727478,
-      "expires_at": 1790592288.446935,
-      "lock_id": "08ab05ee31884571add9fd60b7039a16"
-    },
-    {
-      "relpath": "src/session.ts",
-      "agent_id": "claude-code:20260927",
-      "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 134,
-      "intent": "Fonction pure au niveau module",
-      "acquired_at": 1790590925.7774544,
-      "expires_at": 1790592161.3517017,
-      "lock_id": "25424539f5c2425189788500959fa1a5"
-    },
-    {
-      "relpath": "test/session-mentions.test.js",
-      "agent_id": "claude-code:20260927",
-      "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 135,
-      "intent": "Traversal test\u00e9 en slashes, sans \u00e9chappement",
-      "acquired_at": 1790591289.2269669,
-      "expires_at": 1790592698.166458,
-      "lock_id": "04cc6c1b126f44e7b0bd97f62fb5b3b3"
-    },
-    {
-      "relpath": "test/client-smoke.test.js",
-      "agent_id": "claude-code:20260927",
-      "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 136,
-      "intent": "Test recharge auto au red\u00e9marrage hub",
-      "acquired_at": 1790591289.2601516,
-      "expires_at": 1790592228.7311487,
-      "lock_id": "d1418b2afbda4dc490c98555e76bc537"
-    },
-    {
-      "relpath": "test/build-check.test.js",
-      "agent_id": "claude-code:20260927",
-      "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 137,
-      "intent": "Tests d\u00e9tection build manquant/obsol\u00e8te/OK",
-      "acquired_at": 1790591289.325837,
-      "expires_at": 1790592189.325837,
-      "lock_id": "6a8239ee47a74f858883021afd6e2cd6"
+      "relpath": "src/git.ts",
+      "agent_id": "claude-code:20260928",
+      "session_id": "20260928_112948_915b31715629",
+      "fencing_token": 148,
+      "intent": "editing via c3_edit",
+      "acquired_at": 1790595823.0929353,
+      "expires_at": 1790597515.025471,
+      "lock_id": "557b7dfbef74448ca1730e2dd76d85a0"
     }
   ]
 }

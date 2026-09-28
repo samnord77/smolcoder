@@ -277,6 +277,23 @@ test("side-by-side toggle renders paired columns", async () => {
   assert.ok(c.classes().has("sbsrow"), "paired rows rendered");
 });
 
+test("split opens a second files panel loading the tree again", async () => {
+  const c = boot(TREE, DIFF);
+  emitHub(c);
+  await c.flush();
+  c.els.btnfiles.onclick();
+  await c.flush(200);
+  const before = c.urls.filter((u) => u.includes("/workspace/tree")).length;
+  assert.ok(before >= 1);
+  const split = c.allElements().find((e) => e.title === "split: second files panel");
+  assert.ok(split, "split button present");
+  split.onclick();
+  await c.flush(200);
+  assert.equal(c.errors(), "", "no page error on split");
+  const after = c.urls.filter((u) => u.includes("/workspace/tree")).length;
+  assert.ok(after > before, "second panel loads its own tree");
+});
+
 test("page reloads itself when the hub restarts underneath", async () => {
   const c = boot(TREE, DIFF);
   emitHub(c, "s1", 1000);

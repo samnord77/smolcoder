@@ -38,7 +38,7 @@ import { Plan } from "../plan";
 import { renderEditDiff } from "./diff";
 import { AgentUI } from "../ui";
 import { ToolContext } from "../tools/index";
-import { gitApplyHunk, gitCommit, gitDiffFiles, gitRevertFile, gitStage, gitStatusMap } from "../git";
+import { gitApplyHunk, gitCommit, gitDiffFiles, gitRevertFile, gitStage, gitStageLines, gitStatusMap } from "../git";
 
 export type SessionFactory = (ui: SessionChannel, workspace: string, prefs: SessionPrefs, planKey?: string) => Promise<Session>;
 
@@ -1378,6 +1378,13 @@ export class WebHub {
         const p = String(d.path ?? "");
         if (!p) throw new Error("path is required");
         return { message: gitStage(l.workspace, [p]) };
+      }
+      case "/code/diff/stage-lines": {
+        const l = this.editLive(sid);
+        const p = String(d.path ?? "");
+        if (!p) throw new Error("path is required");
+        const lines = Array.isArray(d.lines) ? d.lines.map(Number).filter((n: number) => Number.isSafeInteger(n)) : [];
+        return { message: gitStageLines(l.workspace, p, Number(d.hunk), lines) };
       }
       case "/code/diff/revert-file": {
         const l = this.editLive(sid);

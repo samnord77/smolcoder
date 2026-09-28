@@ -1,10 +1,10 @@
 {
   "path": "src/tools/index.ts",
-  "content_hash": "c914624ef627c97fe46be8b37fb298b9",
-  "updated_at": "2026-09-27T23:22:44",
-  "lines": 691,
-  "size_bytes": 31949,
-  "mtime_ns": 1790547609439874400,
+  "content_hash": "bed32d755734d6b6d5fd2f47c8ade948",
+  "updated_at": "2026-09-28T11:52:02",
+  "lines": 692,
+  "size_bytes": 32098,
+  "mtime_ns": 1790592653720319500,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -189,76 +189,76 @@
       "type": "function",
       "name": "buildToolSpecs",
       "line_start": 65,
-      "line_end": 341,
+      "line_end": 342,
       "signature": "function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): ToolSpec[] {"
     },
     {
       "type": "interface",
       "name": "UndoEntry",
-      "line_start": 346,
-      "line_end": 352,
+      "line_start": 347,
+      "line_end": 353,
       "signature": "interface UndoEntry {",
       "children": []
     },
     {
       "type": "constant",
       "name": "UNDO_CAP",
-      "line_start": 354,
-      "line_end": 354,
+      "line_start": 355,
+      "line_end": 355,
       "signature": "const UNDO_CAP = 20;"
     },
     {
       "type": "constant",
       "name": "UNDO_SKIP_BYTES",
-      "line_start": 355,
-      "line_end": 355,
+      "line_start": 356,
+      "line_end": 356,
       "signature": "const UNDO_SKIP_BYTES = 1024 * 1024; // >1 Mo : skip silencieuse, pas d'entr\u00e9e undo"
     },
     {
       "type": "function",
       "name": "capturePrev",
-      "line_start": 359,
-      "line_end": 374,
+      "line_start": 360,
+      "line_end": 375,
       "signature": "function capturePrev(workspace: string, rel: unknown): { abs: string; prev: string | null } | null {",
       "doc": "Capture le contenu AVANT \u00e9criture. Retourne null quand il n'y a rien \u00e0"
     },
     {
       "type": "function",
       "name": "pushUndo",
-      "line_start": 377,
-      "line_end": 396,
+      "line_start": 378,
+      "line_end": 397,
       "signature": "function pushUndo(",
       "doc": "Enregistre l'\u00e9criture APRES succ\u00e8s (cap 20, redo vid\u00e9e \u00e0 chaque nouvel edit)."
     },
     {
       "type": "interface",
       "name": "ToolContext",
-      "line_start": 398,
-      "line_end": 427,
+      "line_start": 399,
+      "line_end": 428,
       "signature": "interface ToolContext {",
       "children": []
     },
     {
       "type": "function",
       "name": "executeTool",
-      "line_start": 429,
-      "line_end": 669,
+      "line_start": 430,
+      "line_end": 670,
       "signature": "async function executeTool(",
       "async": true
     },
     {
       "type": "function",
       "name": "afterWrite",
-      "line_start": 674,
-      "line_end": 683,
+      "line_start": 675,
+      "line_end": 684,
       "signature": "function afterWrite(workspace: string, relPath: string): string {",
       "doc": "Post-write hook: parse what was just written and coach on the first"
     },
     {
       "type": "function",
       "name": "commandOf",
-      "line_start": 687,
-      "line_end": 691,
+      "line_start": 688,
+      "line_end": 692,
       "signature": "function commandOf(name: string, args: Record<string, any>): string | null {"
     }
   ]

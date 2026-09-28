@@ -167,15 +167,16 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
         properties: {
           action: {
             type: "string",
-            enum: ["status", "diff", "log", "blame", "branch", "stage", "commit", "review", "stage_hunk", "revert_hunk"],
+            enum: ["status", "diff", "log", "blame", "branch", "stage", "commit", "review", "stage_hunk", "revert_hunk", "stage_lines"],
           },
-          path: { type: "string", description: "File path (for diff, blame, stage, stage_hunk, revert_hunk); comma-separated for stage" },
+          path: { type: "string", description: "File path (for diff, blame, stage, stage_hunk, revert_hunk, stage_lines); comma-separated for stage" },
           message: { type: "string", description: "Commit message (only for commit)" },
           count: { type: "number", description: "Commits to show (only for log, default 10)" },
           line: { type: "number", description: "Line number (only for blame)" },
           staged: { type: "boolean", description: "Show staged changes (for diff and review)" },
           stat: { type: "boolean", description: "Show file summary instead of full patch (only for diff)" },
           hunk: { type: "number", description: "Hunk number from review (only for stage_hunk and revert_hunk)" },
+          lines: { type: "string", description: "Hunk line indices to stage, comma-separated (only for stage_lines)" },
         },
         required: ["action"],
       },

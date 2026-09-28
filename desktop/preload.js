@@ -14,7 +14,7 @@ contextBridge.exposeInMainWorld("smolEd", {
   read: (rel) => ipcRenderer.invoke("ed:read", rel),
   search: (query) => ipcRenderer.invoke("ed:search", query),
   diagnostics: (rel) => ipcRenderer.invoke("ed:diagnostics", rel),
-  save: (rel, content) => ipcRenderer.invoke("ed:save", rel, content),
+  save: (rel, content, expectedMtimeMs) => ipcRenderer.invoke("ed:save", rel, content, expectedMtimeMs),
   createEntry: (rel, dir) => ipcRenderer.invoke("ed:new", rel, dir),
   renameEntry: (rel, to) => ipcRenderer.invoke("ed:rename", rel, to),
   deleteEntry: (rel) => ipcRenderer.invoke("ed:delete", rel),

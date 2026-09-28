@@ -162,6 +162,34 @@ test("git: revert one file to HEAD", () => {
   assert.match(gitRevertFile(repo, "missing.txt"), /does not exist|failed/);
 });
 
+test("git: stage selected lines with honest recounts", () => {
+  const { rewriteHunkHeader } = require("../dist/git");
+  assert.equal(rewriteHunkHeader("@@ -5,7 +5,6 @@ fn", 1, 2, 3), "@@ -5,4 +5,5 @@ fn");
+  assert.equal(rewriteHunkHeader("garbage", 1, 1, 1), "garbage");
+  if (!gitAvailable()) return;
+  const { gitStageLines, gitDiffFiles } = require("../dist/git");
+  const repo = scratchHunkRepo();
+  const changed = Array.from({ length: 20 }, (_, i) => `line${i + 1}`);
+  changed[1] = "L2x";
+  changed[2] = "L3x";
+  fs.writeFileSync(path.join(repo, "app.txt"), changed.join("\n") + "\n");
+  const { files } = gitDiffFiles(repo);
+  assert.equal(files.length, 1);
+  const hunk = files[0].hunks[0];
+  const delIdx = hunk.lines.findIndex((l) => l.startsWith("-"));
+  const addIdx = hunk.lines.findIndex((l) => l.startsWith("+"));
+  assert.ok(delIdx >= 0 && addIdx >= 0);
+  assert.match(gitStageLines(repo, "app.txt", 0, []), /at least one/);
+  assert.match(gitStageLines(repo, "app.txt", 9, [delIdx]), /no longer exists/);
+  assert.match(gitStageLines(repo, "app.txt", 0, [delIdx, addIdx]), /Staged 2 line\(s\)/);
+  const { spawnSync } = require("node:child_process");
+  const staged = spawnSync("git", ["diff", "--cached"], { cwd: repo, encoding: "utf8", windowsHide: true }).stdout;
+  assert.match(staged, /L2x/);
+  assert.doesNotMatch(staged, /L3x/);
+  const unstaged = spawnSync("git", ["diff"], { cwd: repo, encoding: "utf8", windowsHide: true }).stdout;
+  assert.match(unstaged, /L3x/);
+});
+
 test("git: turn summary counts +/-, newcomers, and status badges", () => {
   if (!gitAvailable()) return;
   const { gitTurnSummary, gitStatusMap } = require("../dist/git");

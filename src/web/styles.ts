@@ -290,11 +290,15 @@ export const STYLES = String.raw`
   .reviewactions { display: flex; gap: 6px; padding: 6px 8px; border-top: 1px solid var(--line); background: #101416; }
   .sharebanner { padding: 8px 14px; background: #1c2b1f; border-bottom: 1px solid #2f5b38; color: #c9f0d4; font-size: 12.5px; }
   pre.diff { margin: 6px 0; padding: 6px 8px; background: #0c1013; border: 1px solid var(--line); border-radius: 6px; font-size: 11.5px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
-  pre.diff span, .reviewpatch span { display: block; padding: 0 4px; }
+  pre.diff > span, .reviewpatch > span { display: block; padding: 0 4px; }
   pre.diff span.add, .reviewpatch span.add { color: #7ee787; background: rgba(63,185,80,.13); }
   pre.diff span.del, .reviewpatch span.del { color: #ffa198; background: rgba(248,81,73,.13); }
   pre.diff span.same, .reviewpatch span.same { color: var(--dim); }
   pre.diff span.hunk, .reviewpatch span.hunk { color: #79c0ff; }
+  .reviewline { display: flex; gap: 6px; align-items: flex-start; }
+  .reviewline > span:last-child { flex: 1; min-width: 0; }
+  .reviewline .gutter { display: inline-block; }
+  .reviewpick { margin-top: 3px; flex: none; }
   .planlist { flex: 1; min-height: 0; overflow: auto; padding: 6px 8px; }
   .planstep { display: flex; gap: 8px; align-items: flex-start; width: 100%; text-align: left; border: 0; background: transparent; color: var(--fg); font: inherit; font-size: 12px; padding: 6px 8px; border-bottom: 1px solid var(--line); cursor: pointer; }
   .planstep:hover { background: rgba(255,255,255,.06); }
@@ -317,6 +321,8 @@ export const STYLES = String.raw`
   .completeitem .kind { color: var(--dim); }
   .planchip { border: 1px solid var(--line); background: var(--box); color: var(--fg); border-radius: 20px; font: inherit; font-size: 11px; padding: 2px 10px; cursor: pointer; margin-left: 8px; white-space: nowrap; }
   .planchip:hover { border-color: var(--accent); }
+  #panel.split2 { display: flex; }
+  #panel.split2 > .tabbody.files { flex: 1; min-width: 0; }
   .filetabs { position: absolute; z-index: 2; inset: 0 0 auto; height: 35px; display: flex; overflow-x: auto; background: #171c1f; border-bottom: 1px solid var(--line); }
   .filetab { display: flex; align-items: center; flex: none; max-width: 220px; background: #202629; border-right: 1px solid var(--line); }
   .filetab.active { background: #0f1417; border-top: 1px solid var(--accent); }

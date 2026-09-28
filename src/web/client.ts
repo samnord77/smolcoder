@@ -958,12 +958,20 @@ function renderPanel() {
   tabsEl.appendChild(el("span", "grow"));
   const nb = el("button", "iconbtn", "+◎"); nb.title = "new browser tab"; nb.onclick = () => openBrowserTab(v);
   const nf = el("button", "iconbtn", "+▤"); nf.title = "project files"; nf.onclick = () => openFilesTab(v);
+  const ns = el("button", "iconbtn", "+⊞"); ns.title = "split: second files panel"; ns.onclick = () => openFilesTab(v, false, true);
   const nr = el("button", "iconbtn", "+Δ"); nr.title = "review uncommitted changes"; nr.onclick = () => openReviewTab(v);
   const np = el("button", "iconbtn", "+☑"); np.title = "task list"; np.onclick = () => openPlanTab(v);
   const nt = el("button", "iconbtn", "+>_"); nt.title = "new terminal"; nt.onclick = () => openTerminalTab(v);
   const cl = el("button", "iconbtn", "»"); cl.title = "hide panel"; cl.onclick = () => { v.panelOpen = false; savePanel(v); renderPanel(); };
-  tabsEl.appendChild(nb); tabsEl.appendChild(nf); tabsEl.appendChild(nr); tabsEl.appendChild(np); tabsEl.appendChild(nt); tabsEl.appendChild(cl);
+  tabsEl.appendChild(nb); tabsEl.appendChild(nf); tabsEl.appendChild(ns); tabsEl.appendChild(nr); tabsEl.appendChild(np); tabsEl.appendChild(nt); tabsEl.appendChild(cl);
   for (const t of v.tabs) if (t.el) t.el.hidden = t !== cur;
+  const fileTabs = v.tabs.filter((t) => t.kind === "files" && t.el);
+  if (open && cur && cur.kind === "files" && fileTabs.length > 1) {
+    v.panelEl.classList.add("split2");
+    for (const t of fileTabs) t.el.hidden = false;
+  } else {
+    v.panelEl.classList.remove("split2");
+  }
 }
 function closeTab(v, t) {
   const i = v.tabs.indexOf(t);
@@ -1087,8 +1095,8 @@ function buildBrowserTab(v, t) {
 }
 
 // workspace files/editor tab
-function openFilesTab(v, focusSearch) {
-  const existing = v.tabs.find((x) => x.kind === "files");
+function openFilesTab(v, focusSearch, forceNew) {
+  const existing = forceNew ? null : v.tabs.find((x) => x.kind === "files");
   if (existing) {
     v.activeTab = existing.id; v.panelOpen = true; savePanel(v); renderPanel();
     if (focusSearch && existing.findInput) existing.findInput.focus(); else if (existing.pathInput) existing.pathInput.focus();
@@ -1641,7 +1649,10 @@ function buildFilesTab(v, t) {
         }
       }).catch(() => {});
   };
-  editor.addEventListener("focus", () => { try { checkAgentChange(); } catch (e) {} });
+  editor.addEventListener("focus", () => {
+    if (v.activeTab !== t.id) { v.activeTab = t.id; savePanel(v); renderPanel(); }
+    try { checkAgentChange(); } catch (e) {}
+  });
   let lastCursorKey = "";
   let lastCursorAt = 0;
   const broadcastCursor = (line) => {
@@ -2110,7 +2121,15 @@ function buildReviewTab(v, t) {
             if (sbsMode) renderSbsHunk(block, h);
             else {
             const pre = el("pre", "reviewpatch");
-            const paint = (text, cls, oldLn, newLn) => {
+            const sel = new Set();
+            const paint = (text, cls, oldLn, newLn, li, change) => {
+              const wrap = el("div", "reviewline");
+              if (change) {
+                const cb = document.createElement("input");
+                cb.type = "checkbox"; cb.className = "reviewpick"; cb.title = "stage this line";
+                cb.onchange = () => { if (cb.checked) sel.add(li); else sel.delete(li); };
+                wrap.appendChild(cb);
+              }
               const s = document.createElement("span");
               s.className = cls;
               if (oldLn !== null && oldLn !== undefined) {
@@ -2119,26 +2138,38 @@ function buildReviewTab(v, t) {
                 s.appendChild(g1); s.appendChild(g2);
               }
               s.appendChild(document.createTextNode(text + "\n"));
-              pre.appendChild(s);
+              wrap.appendChild(s);
+              pre.appendChild(wrap);
             };
-            paint(h.header, "hunk", null, null);
+            paint(h.header, "hunk", null, null, -1, false);
             const hm = /^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/.exec(h.header || "");
             let oldLn = hm ? Number(hm[1]) : 1;
             let newLn = hm ? Number(hm[3]) : 1;
-            for (const ln of h.lines || []) {
-              if (ln.startsWith("+")) { paint(ln, "add", "", String(newLn)); newLn++; }
-              else if (ln.startsWith("-")) { paint(ln, "del", String(oldLn), ""); oldLn++; }
-              else if (ln.startsWith("\\")) { paint(ln, "same", "", ""); }
-              else { paint(ln, "same", String(oldLn), String(newLn)); oldLn++; newLn++; }
-            }
+            h.lines.forEach((ln, li) => {
+              if (ln.startsWith("+")) { paint(ln, "add", "", String(newLn), li, true); newLn++; }
+              else if (ln.startsWith("-")) { paint(ln, "del", String(oldLn), "", li, true); oldLn++; }
+              else if (ln.startsWith("\\")) { paint(ln, "same", "", "", li, false); }
+              else { paint(ln, "same", String(oldLn), String(newLn), li, false); oldLn++; newLn++; }
+            });
             block.appendChild(pre);
             }
             const row = el("div", "reviewactions");
             const sb = el("button", "iconbtn", "Stage"); sb.title = "stage this hunk";
             const rb = el("button", "iconbtn", "Revert"); rb.title = "revert this hunk in the working tree";
+            const sl = el("button", "iconbtn", "Stage ✓"); sl.title = "stage checked lines only";
             sb.onclick = () => actHunk(f.file, h.index, "stage", sb);
             rb.onclick = () => { if (confirm("Revert this hunk in " + f.file + "? The change will be lost.")) actHunk(f.file, h.index, "revert", rb); };
-            row.appendChild(sb); row.appendChild(rb);
+            sl.onclick = () => {
+              sl.disabled = true;
+              post("/code/diff/stage-lines", { sid: v.sid, path: f.file, hunk: h.index, lines: [...sel] }).then((r) => {
+                if (!r || r.error || (typeof r.message === "string" && /^Error/.test(r.message))) {
+                  alert((r && (r.error || r.message)) || "Stage failed");
+                  return;
+                }
+                load();
+              }).catch((e) => alert(String((e && e.message) || e))).finally(() => { sl.disabled = false; });
+            };
+            row.appendChild(sb); row.appendChild(rb); row.appendChild(sl);
             block.appendChild(row);
             list.appendChild(block);
           }

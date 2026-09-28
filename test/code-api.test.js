@@ -255,12 +255,16 @@ test("code api: review file actions with read-only guard", async () => {
     const cm = JSON.parse((await post("/code/commit", { message: "Second" })).body);
     assert.match(cm.message, /Second|master|main|create/i);
 
+    const sl1 = JSON.parse((await post("/code/diff/stage-lines", { sid: id, path: "app.txt", hunk: 0, lines: [] })).body);
+    assert.match(sl1.message, /at least one|no longer exists/);
+
     hub.live.get(id).session.agent.mode = "ro";
     for (const [p, body] of [
       ["/code/diff/stage", { path: "a.txt" }],
       ["/code/diff/revert-file", { path: "a.txt" }],
       ["/code/commit", { message: "x" }],
       ["/code/diff/hunk", { path: "a.txt", hunk: 0, action: "stage" }],
+      ["/code/diff/stage-lines", { path: "a.txt", hunk: 0, lines: [0] }],
     ]) {
       assert.match((await post(p, body)).body, /read-only/, p + " is gated");
     }
