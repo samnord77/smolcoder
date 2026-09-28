@@ -1867,13 +1867,54 @@ function buildReviewTab(v, t) {
   const bar = el("div", "bar");
   const refresh = el("button", "iconbtn", "↻"); refresh.title = "refresh review";
   const staged = el("button", "iconbtn", "staged"); staged.title = "show staged changes instead of unstaged";
-  bar.appendChild(refresh); bar.appendChild(staged);
+  const fileSelect = document.createElement("select");
+  fileSelect.title = "jump to file";
+  fileSelect.setAttribute("aria-label", "Jump to file in review");
+  bar.appendChild(refresh); bar.appendChild(staged); bar.appendChild(fileSelect);
+  const commitRow = el("div", "bar");
+  const commitInput = document.createElement("input");
+  commitInput.placeholder = "Commit message…";
+  commitInput.setAttribute("aria-label", "Commit message");
+  const commitBtn = el("button", "iconbtn", "Commit"); commitBtn.type = "button"; commitBtn.title = "commit staged changes";
+  commitRow.appendChild(commitInput); commitRow.appendChild(commitBtn);
   const list = el("div", "reviewlist");
   const note = el("div", "filemeta", "uncommitted changes");
-  body.appendChild(bar); body.appendChild(list); body.appendChild(note);
+  body.appendChild(bar); body.appendChild(commitRow); body.appendChild(list); body.appendChild(note);
   v.panelEl.appendChild(body);
   t.el = body;
+  t.reviewCollapsed = new Set();
   let showStaged = false;
+  const doCommit = () => {
+    const message = commitInput.value.trim();
+    if (!message) { note.textContent = "Write a commit message first."; return; }
+    commitBtn.disabled = true;
+    post("/code/commit", { sid: v.sid, message }).then((r) => {
+      if (!r || r.error || (typeof r.message === "string" && /^Error/.test(r.message))) {
+        note.textContent = (r && (r.error || r.message)) || "Commit failed";
+        return;
+      }
+      commitInput.value = "";
+      note.textContent = r.message;
+      load();
+    }).catch((e) => { note.textContent = String((e && e.message) || e); }).finally(() => { commitBtn.disabled = false; });
+  };
+  commitBtn.onclick = doCommit;
+  commitInput.onkeydown = (e) => { if (e.key === "Enter") doCommit(); };
+  fileSelect.onchange = () => {
+    const target = list.querySelector('[data-reviewfile="' + fileSelect.value + '"]');
+    if (target && target.scrollIntoView) target.scrollIntoView();
+  };
+  const fileAction = (endpoint, body, btn) => {
+    btn.disabled = true;
+    post(endpoint, body).then((r) => {
+      if (!r || r.error || (typeof r.message === "string" && /^Error/.test(r.message))) {
+        alert((r && (r.error || r.message)) || "Review action failed");
+        return;
+      }
+      note.textContent = r.message || "Done.";
+      load();
+    }).catch((e) => alert(String((e && e.message) || e))).finally(() => { btn.disabled = false; });
+  };
   const actHunk = (file, index, action, btn) => {
     btn.disabled = true;
     post("/code/diff/hunk", { sid: v.sid, path: file, hunk: index, action }).then((r) => {
@@ -1891,17 +1932,71 @@ function buildReviewTab(v, t) {
         if (d.error) throw new Error(d.error);
         list.replaceChildren();
         note.textContent = d.note || ((d.files || []).length + " file(s) with uncommitted changes");
-        for (const f of d.files || []) {
-          list.appendChild(el("div", "reviewfile", f.file));
+        fileSelect.replaceChildren();
+        const allOpt = document.createElement("option");
+        allOpt.value = "";
+        allOpt.textContent = (d.files || []).length + " file(s)";
+        fileSelect.appendChild(allOpt);
+        (d.files || []).forEach((f, fi) => {
+          const opt = document.createElement("option");
+          opt.value = String(fi);
+          opt.textContent = f.file;
+          fileSelect.appendChild(opt);
+        });
+        for (const [fi, f] of (d.files || []).entries()) {
+          let adds = 0, dels = 0;
+          for (const h of f.hunks || []) {
+            for (const ln of h.lines || []) {
+              if (ln.startsWith("+")) adds++;
+              else if (ln.startsWith("-")) dels++;
+            }
+          }
+          const head = el("div", "reviewfile");
+          head.setAttribute("data-reviewfile", String(fi));
+          const collapsed = t.reviewCollapsed.has(f.file);
+          const tg = el("button", "treetoggle", collapsed ? "▸" : "▾");
+          tg.type = "button"; tg.title = collapsed ? "expand" : "collapse";
+          tg.onclick = () => {
+            if (t.reviewCollapsed.has(f.file)) t.reviewCollapsed.delete(f.file);
+            else t.reviewCollapsed.add(f.file);
+            load();
+          };
+          const title = el("span", "", f.file + " (+" + adds + " −" + dels + ")");
+          title.style.flex = "1";
+          head.appendChild(tg); head.appendChild(title);
+          if (!showStaged) {
+            const sf = el("button", "iconbtn", "Stage file"); sf.type = "button"; sf.title = "stage the whole file";
+            const rf = el("button", "iconbtn", "Revert"); rf.type = "button"; rf.title = "revert the whole file to HEAD";
+            sf.onclick = () => fileAction("/code/diff/stage", { sid: v.sid, path: f.file }, sf);
+            rf.onclick = () => { if (confirm("Revert " + f.file + " to HEAD? Unstaged changes will be lost.")) fileAction("/code/diff/revert-file", { sid: v.sid, path: f.file }, rf); };
+            head.appendChild(sf); head.appendChild(rf);
+          }
+          list.appendChild(head);
+          if (collapsed) continue;
           for (const h of f.hunks || []) {
             const block = el("div", "reviewhunk");
             const pre = el("pre", "reviewpatch");
-            const paint = (text, cls) => {
+            const paint = (text, cls, oldLn, newLn) => {
               const s = document.createElement("span");
-              s.className = cls; s.textContent = text + "\n"; pre.appendChild(s);
+              s.className = cls;
+              if (oldLn !== null && oldLn !== undefined) {
+                const g1 = document.createElement("span"); g1.className = "gutter"; g1.textContent = oldLn;
+                const g2 = document.createElement("span"); g2.className = "gutter"; g2.textContent = newLn;
+                s.appendChild(g1); s.appendChild(g2);
+              }
+              s.appendChild(document.createTextNode(text + "\n"));
+              pre.appendChild(s);
             };
-            paint(h.header, "hunk");
-            for (const ln of h.lines || []) paint(ln, ln.startsWith("+") ? "add" : ln.startsWith("-") ? "del" : "same");
+            paint(h.header, "hunk", null, null);
+            const hm = /^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/.exec(h.header || "");
+            let oldLn = hm ? Number(hm[1]) : 1;
+            let newLn = hm ? Number(hm[3]) : 1;
+            for (const ln of h.lines || []) {
+              if (ln.startsWith("+")) { paint(ln, "add", "", String(newLn)); newLn++; }
+              else if (ln.startsWith("-")) { paint(ln, "del", String(oldLn), ""); oldLn++; }
+              else if (ln.startsWith("\\")) { paint(ln, "same", "", ""); }
+              else { paint(ln, "same", String(oldLn), String(newLn)); oldLn++; newLn++; }
+            }
             block.appendChild(pre);
             const row = el("div", "reviewactions");
             const sb = el("button", "iconbtn", "Stage"); sb.title = "stage this hunk";

@@ -1,10 +1,10 @@
 {
   "path": "test/client-smoke.test.js",
-  "content_hash": "efe9931ea337e7d7c774a97983c4a5fb",
-  "updated_at": "2026-09-28T01:28:01",
-  "lines": 215,
-  "size_bytes": 7026,
-  "mtime_ns": 1790554985108580100,
+  "content_hash": "56baeed604e833ded0ebb4294329f9ec",
+  "updated_at": "2026-09-28T01:32:00",
+  "lines": 231,
+  "size_bytes": 7658,
+  "mtime_ns": 1790555387244494200,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -48,35 +48,35 @@
       "type": "function",
       "name": "makeEl",
       "line_start": 12,
-      "line_end": 53,
+      "line_end": 59,
       "signature": "function makeEl(all) {"
     },
     {
       "type": "function",
       "name": "boot",
-      "line_start": 55,
-      "line_end": 148,
+      "line_start": 61,
+      "line_end": 154,
       "signature": "function boot(treeEntries, diffPayload) {"
     },
     {
       "type": "constant",
       "name": "TREE",
-      "line_start": 150,
-      "line_end": 153,
+      "line_start": 156,
+      "line_end": 159,
       "signature": "const TREE = ["
     },
     {
       "type": "constant",
       "name": "DIFF",
-      "line_start": 154,
-      "line_end": 157,
+      "line_start": 160,
+      "line_end": 163,
       "signature": "const DIFF = {"
     },
     {
       "type": "function",
       "name": "emitHub",
-      "line_start": 159,
-      "line_end": 172,
+      "line_start": 165,
+      "line_end": 178,
       "signature": "function emitHub(ctx, sid = \"s1\") {"
     }
   ]

@@ -146,3 +146,18 @@ test("git: review actions through the tool, gated in read-only", () => {
   assert.match(queryGit(repo, { action: "stage_hunk", path: "app.txt", hunk: 5 }), /no longer exists/);
   assert.match(queryGit(repo, {}), /stage_hunk/);
 });
+
+test("git: revert one file to HEAD", () => {
+  if (!gitAvailable()) return;
+  const { gitRevertFile } = require("../dist/git");
+  const repo = scratchHunkRepo();
+  const changed = Array.from({ length: 20 }, (_, i) => `line${i + 1}`);
+  changed[1] = "CHANGED2";
+  fs.writeFileSync(path.join(repo, "app.txt"), changed.join("\n") + "\n");
+  assert.match(gitRevertFile(repo, "app.txt"), /Reverted "app\.txt" to HEAD/);
+  assert.ok(fs.readFileSync(path.join(repo, "app.txt"), "utf8").includes("line2"));
+  assert.doesNotMatch(fs.readFileSync(path.join(repo, "app.txt"), "utf8"), /CHANGED2/);
+  assert.match(gitRevertFile(repo, "."), /whole workspace/);
+  assert.match(gitRevertFile(repo, "../evil.txt"), /inside the repository/);
+  assert.match(gitRevertFile(repo, "missing.txt"), /does not exist|failed/);
+});

@@ -57,7 +57,19 @@ export class Terminal {
     try {
       proc = spawn(this.shell.exe, args, {
         cwd: this.cwd,
-        env: { ...shellEnv(), TERM: "dumb" },
+        // Human terminal, never model input: force colors on (programs see
+        // no TTY over pipes and would otherwise stay monochrome).
+        // run_command stays plain on purpose — the model reasons on it.
+        env: {
+          ...shellEnv(),
+          TERM: "xterm-256color",
+          FORCE_COLOR: "1",
+          CLICOLOR_FORCE: "1",
+          GH_FORCE_TTY: "1",
+          GIT_CONFIG_COUNT: "1",
+          GIT_CONFIG_KEY_0: "color.ui",
+          GIT_CONFIG_VALUE_0: "always",
+        },
         detached: process.platform !== "win32",
         windowsHide: true,
         stdio: ["pipe", "pipe", "pipe"],

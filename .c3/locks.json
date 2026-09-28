@@ -1,26 +1,86 @@
 {
   "schema_version": 1,
-  "fencing": 110,
+  "fencing": 118,
   "locks": [
+    {
+      "relpath": "src/web/terminal.ts",
+      "agent_id": "claude-code:20260927",
+      "session_id": "20260927_164838_0239733e7ab3",
+      "fencing_token": 111,
+      "intent": "Couleurs forc\u00e9es dans les terminaux humains",
+      "acquired_at": 1790586965.9254627,
+      "expires_at": 1790587865.9254627,
+      "lock_id": "e2978d7fa1894239af82a58218168a99"
+    },
+    {
+      "relpath": "src/git.ts",
+      "agent_id": "claude-code:20260927",
+      "session_id": "20260927_164838_0239733e7ab3",
+      "fencing_token": 112,
+      "intent": "Revert d'un fichier vers HEAD",
+      "acquired_at": 1790587017.0899403,
+      "expires_at": 1790587917.0899403,
+      "lock_id": "8525fa64116744e792ef9cf704bff336"
+    },
+    {
+      "relpath": "src/web/hub.ts",
+      "agent_id": "claude-code:20260927",
+      "session_id": "20260927_164838_0239733e7ab3",
+      "fencing_token": 113,
+      "intent": "Garde ro + stage/revert/commit par fichier",
+      "acquired_at": 1790587017.1504776,
+      "expires_at": 1790587934.5141091,
+      "lock_id": "5b10610035d742dab464134728c9b471"
+    },
     {
       "relpath": "src/web/client.ts",
       "agent_id": "claude-code:20260927",
       "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 109,
-      "intent": "Libell\u00e9s revue/plan au lieu du crash terminal",
-      "acquired_at": 1790554453.2650845,
-      "expires_at": 1790556306.2723856,
-      "lock_id": "cd7e0f8705bb404d8444e7333b225ffe"
+      "fencing_token": 114,
+      "intent": "Action fichier g\u00e9n\u00e9rique (stage/revert + recharge)",
+      "acquired_at": 1790587065.6568408,
+      "expires_at": 1790588025.7799673,
+      "lock_id": "8f77c8dbb6f84aaaab4e9e8485586138"
+    },
+    {
+      "relpath": "src/web/styles.ts",
+      "agent_id": "claude-code:20260927",
+      "session_id": "20260927_164838_0239733e7ab3",
+      "fencing_token": 115,
+      "intent": "CSS goutti\u00e8res + ent\u00eates + commit",
+      "acquired_at": 1790587142.9310412,
+      "expires_at": 1790588042.9310412,
+      "lock_id": "6bdcfd5a40bd49b8a80ec64518ef962a"
+    },
+    {
+      "relpath": "test/code-api.test.js",
+      "agent_id": "claude-code:20260927",
+      "session_id": "20260927_164838_0239733e7ab3",
+      "fencing_token": 116,
+      "intent": "Normalise CRLF (autocrlf Windows)",
+      "acquired_at": 1790587168.01575,
+      "expires_at": 1790588144.101998,
+      "lock_id": "1358cf481c5c4efe97ba397a19619513"
+    },
+    {
+      "relpath": "test/git.test.js",
+      "agent_id": "claude-code:20260927",
+      "session_id": "20260927_164838_0239733e7ab3",
+      "fencing_token": 117,
+      "intent": "Test revert de fichier",
+      "acquired_at": 1790587186.0813098,
+      "expires_at": 1790588086.0813098,
+      "lock_id": "d13a0788b64d4113a40b06dd5699bd7f"
     },
     {
       "relpath": "test/client-smoke.test.js",
       "agent_id": "claude-code:20260927",
       "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 110,
-      "intent": "Stub insertBefore fid\u00e8le au DOM",
-      "acquired_at": 1790554694.8486261,
-      "expires_at": 1790556287.2386088,
-      "lock_id": "625a3beaaf204fcc98a58db1985aee21"
+      "fencing_token": 118,
+      "intent": "Stub createTextNode",
+      "acquired_at": 1790587478.340588,
+      "expires_at": 1790588378.340588,
+      "lock_id": "6925d682cd6148adbf4befab4fc1aa5f"
     }
   ]
 }

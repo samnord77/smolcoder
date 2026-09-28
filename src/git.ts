@@ -338,6 +338,29 @@ export function gitApplyHunk(root: string, file: string, index: number, action: 
   return action === "stage" ? `Staged hunk ${idx} of "${file}".` : `Reverted hunk ${idx} of "${file}".`;
 }
 
+/** Revert one tracked file to HEAD (destructive; recovery lives in git
+ * itself via reflog/stash, not in the undo stack). Never throws. */
+export function gitRevertFile(root: string, relPath: string): string {
+  const blocked = needRepo(root);
+  if (blocked) return blocked;
+  if (typeof relPath !== "string" || !relPath || relPath.includes("..")) {
+    return "Error: a file path inside the repository is required.";
+  }
+  let abs: string;
+  try {
+    abs = resolveInWorkspace(root, relPath);
+  } catch (err: any) {
+    return `Error: ${err?.message ?? err}`;
+  }
+  const rel = path.relative(root, abs) || ".";
+  if (rel === ".") return "Error: refusing to revert the whole workspace — pick one file.";
+  const r = runGit(root, ["checkout", "--", rel]);
+  if (r.code !== 0) {
+    return `Error: git checkout failed (${r.out.slice(0, 300)}). Untracked files cannot be reverted — delete them instead.`;
+  }
+  return `Reverted "${rel}" to HEAD.`;
+}
+
 export interface GitQuery {
   action?: unknown;
   path?: unknown;

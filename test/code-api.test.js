@@ -208,6 +208,68 @@ test("code api: share links, presence, and hunk review", async () => {
   }
 });
 
+test("code api: review file actions with read-only guard", async () => {
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "smol-codeapi5-"));
+  const ws = path.join(dataDir, "proj");
+  fs.mkdirSync(ws);
+  let haveGit = false;
+  try {
+    const { spawnSync } = require("node:child_process");
+    const run = (a) => spawnSync("git", a, { cwd: ws, encoding: "utf8", timeout: 15000, windowsHide: true });
+    if (run(["--version"]).status === 0) {
+      run(["init", "-b", "main"]);
+      if (run(["rev-parse", "--is-inside-work-tree"]).status !== 0) run(["init"]);
+      run(["config", "user.email", "t@t"]);
+      run(["config", "user.name", "t"]);
+      fs.writeFileSync(path.join(ws, "a.txt"), "one\n");
+      fs.writeFileSync(path.join(ws, "b.txt"), "two\n");
+      run(["add", "."]);
+      run(["commit", "-m", "base"]);
+      fs.writeFileSync(path.join(ws, "a.txt"), "ONE\n");
+      fs.writeFileSync(path.join(ws, "b.txt"), "TWO\n");
+      haveGit = run(["diff", "--name-only"]).status === 0;
+    }
+  } catch {
+    haveGit = false;
+  }
+  if (!haveGit) return;
+  const calls = [];
+  const hub = new WebHub({ port: 0, prefs: {}, help: "help", version: "9.9.9", dataDir, factory: stubFactory(calls), quiet: true });
+  await hub.start();
+  const k = "?k=" + hub.authToken;
+  try {
+    const { id } = JSON.parse((await request(hub, "POST", "/sessions/new" + k, { workspace: ws })).body);
+    await until(() => calls.length === 1, 3000, "factory call");
+    const post = (p, body) => request(hub, "POST", p + k, { sid: id, ...body });
+
+    const st = JSON.parse((await post("/code/diff/stage", { path: "a.txt" })).body);
+    assert.match(st.message, /Staged/);
+    const stagedView = JSON.parse((await request(hub, "GET", `/code/diff${k}&sid=${id}&staged=1`)).body);
+    assert.equal(stagedView.files.length, 1);
+
+    const rv = JSON.parse((await post("/code/diff/revert-file", { path: "b.txt" })).body);
+    assert.match(rv.message, /Reverted/);
+    assert.equal(fs.readFileSync(path.join(ws, "b.txt"), "utf8").replace(/\r\n/g, "\n"), "two\n");
+    assert.match(JSON.parse((await post("/code/diff/revert-file", { path: "missing.txt" })).body).message, /does not exist|failed/);
+
+    const cm = JSON.parse((await post("/code/commit", { message: "Second" })).body);
+    assert.match(cm.message, /Second|master|main|create/i);
+
+    hub.live.get(id).session.agent.mode = "ro";
+    for (const [p, body] of [
+      ["/code/diff/stage", { path: "a.txt" }],
+      ["/code/diff/revert-file", { path: "a.txt" }],
+      ["/code/commit", { message: "x" }],
+      ["/code/diff/hunk", { path: "a.txt", hunk: 0, action: "stage" }],
+    ]) {
+      assert.match((await post(p, body)).body, /read-only/, p + " is gated");
+    }
+    hub.live.get(id).session.agent.mode = "edit";
+  } finally {
+    hub.close();
+  }
+});
+
 test("code api: file ops, plan checklist, and cursor presence", async () => {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "smol-codeapi3-"));
   const ws = path.join(dataDir, "proj");

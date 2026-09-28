@@ -64,6 +64,11 @@ function boot(treeEntries, diffPayload) {
   const urls = [];
   const doc = {
     createElement: () => makeEl(all),
+    createTextNode: (text) => {
+      const el = makeEl(all);
+      el.textContent = String(text);
+      return el;
+    },
     getElementById: (id) => els[id] || (els[id] = makeEl(all)),
     querySelector: () => null,
     querySelectorAll: () => [],

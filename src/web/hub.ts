@@ -38,7 +38,7 @@ import { Plan } from "../plan";
 import { renderEditDiff } from "./diff";
 import { AgentUI } from "../ui";
 import { ToolContext } from "../tools/index";
-import { gitApplyHunk, gitDiffFiles } from "../git";
+import { gitApplyHunk, gitCommit, gitDiffFiles, gitRevertFile, gitStage } from "../git";
 
 export type SessionFactory = (ui: SessionChannel, workspace: string, prefs: SessionPrefs, planKey?: string) => Promise<Session>;
 
@@ -1368,10 +1368,26 @@ export class WebHub {
         return this.applyEditOps(l.workspace, String(d.path ?? ""), d.ops);
       }
       case "/code/diff/hunk": {
-        const l = live();
+        const l = this.editLive(sid);
         const action = String(d.action ?? "");
         if (action !== "stage" && action !== "revert") throw new Error('action must be "stage" or "revert"');
         return { message: gitApplyHunk(l.workspace, String(d.path ?? ""), Number(d.hunk), action) };
+      }
+      case "/code/diff/stage": {
+        const l = this.editLive(sid);
+        const p = String(d.path ?? "");
+        if (!p) throw new Error("path is required");
+        return { message: gitStage(l.workspace, [p]) };
+      }
+      case "/code/diff/revert-file": {
+        const l = this.editLive(sid);
+        const p = String(d.path ?? "");
+        if (!p) throw new Error("path is required");
+        return { message: gitRevertFile(l.workspace, p) };
+      }
+      case "/code/commit": {
+        const l = this.editLive(sid);
+        return { message: gitCommit(l.workspace, String(d.message ?? "")) };
       }
       case "/code/inline/start": {
         const l = live();

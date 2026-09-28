@@ -274,7 +274,11 @@ export const STYLES = String.raw`
   .filediagnostic-note { color: var(--dim); }
   .filediagnostic-note.error { color: var(--red); }
   .reviewlist { flex: 1; min-height: 0; overflow: auto; padding: 6px 8px; }
-  .reviewfile { font-weight: 700; font-size: 12px; margin: 10px 0 4px; color: var(--fg); }
+  .reviewfile { display: flex; gap: 6px; align-items: center; font-weight: 700; font-size: 12px; margin: 10px 0 4px; color: var(--fg); }
+  .reviewfile .iconbtn { font-size: 11px; padding: 2px 8px; }
+  .tabbody.review .bar input, .tabbody.review .bar select { min-width: 0; background: var(--box); border: 1px solid var(--line); color: var(--fg); font: inherit; font-size: 12px; padding: 4px 7px; border-radius: 4px; }
+  .tabbody.review .bar input { flex: 1; }
+  .gutter { display: inline-block; width: 34px; flex: none; text-align: right; margin-right: 8px; color: var(--dim); opacity: .7; user-select: none; }
   .reviewhunk { border: 1px solid var(--line); border-radius: 6px; margin: 0 0 8px; overflow: hidden; }
   .reviewpatch { margin: 0; padding: 6px 8px; font-size: 11px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; background: #0c1013; max-height: 220px; overflow: auto; }
   .reviewactions { display: flex; gap: 6px; padding: 6px 8px; border-top: 1px solid var(--line); background: #101416; }
