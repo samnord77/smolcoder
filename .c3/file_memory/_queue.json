@@ -48,7 +48,8 @@
     "src/mcp.ts",
     "test/network.test.js",
     "src/network.ts",
-    "test/web.test.js"
+    "test/web.test.js",
+    "test/detect.test.js"
   ],
   "inflight": [
     "desktop/preload-git.js"

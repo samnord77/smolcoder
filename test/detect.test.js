@@ -155,6 +155,19 @@ test("an Ollama server's OpenAI-compatible listing does not make it look like LM
   }
 });
 
+test("a server only it can identify is described by what it does, never by a brand guess", async () => {
+  const server = await serve({ "/v1/models": { object: "list", data: [{ id: "some-model" }] } });
+  try {
+    const info = await identifyServer(`http://127.0.0.1:${server.port}`, 2000);
+    assert.equal(info.backend, "lmstudio");
+    assert.equal(info.models[0].contextWindow, 4096, "stays conservative without a known limit");
+    assert.match(info.models[0].note, /context window unknown on this server \(OpenAI-compatible\)/);
+    assert.doesNotMatch(info.models[0].note, /LM Studio/, "the note must not name a brand it cannot see");
+  } finally {
+    await server.close();
+  }
+});
+
 test("detection falls back between loopback spellings and merges every server found", async () => {
   const ollama = await serve(OLLAMA);
   const lmstudio = await serve(LMSTUDIO);

@@ -293,7 +293,9 @@ export async function identifyServer(base: string, timeoutMs = NETWORK_PROBE_TIM
 
   const v0 = parseLmStudioV0(await tryFetchJson(`${base}/api/v0/models`, undefined, timeoutMs), base);
   if (v0) return { backend: "lmstudio", baseUrl: base, models: v0 };
-  // Older LM Studio builds: fall back to the OpenAI-compat listing (no context info).
+  // OpenAI-compatible servers we can't identify (older LM Studio included): the
+  // listing carries no context info, so we stay conservative and say only what
+  // we actually know.
   const compat = await tryFetchJson(`${base}/v1/models`, undefined, timeoutMs);
   if (compat && Array.isArray(compat.data)) {
     const models = compat.data
@@ -303,7 +305,7 @@ export async function identifyServer(base: string, timeoutMs = NETWORK_PROBE_TIM
         backend: "lmstudio" as const,
         baseUrl: base,
         contextWindow: LMSTUDIO_JIT_GUESS,
-        note: "context window unknown (older LM Studio) — assuming 4096 to be safe.",
+        note: "context window unknown on this server (OpenAI-compatible) — assuming 4096 to be safe.",
       }));
     return { backend: "lmstudio", baseUrl: base, models };
   }

@@ -1,10 +1,10 @@
 {
   "path": "test/web.test.js",
-  "content_hash": "7c0d6e5095592a69c128459c625e04b5",
-  "updated_at": "2026-09-26T18:05:05",
-  "lines": 565,
-  "size_bytes": 28563,
-  "mtime_ns": 1790426360913468300,
+  "content_hash": "1da1405d7d089b2ee62efdf92d68082e",
+  "updated_at": "2026-09-28T14:28:01",
+  "lines": 623,
+  "size_bytes": 32017,
+  "mtime_ns": 1790601960538501700,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -84,22 +84,22 @@
       "type": "function",
       "name": "fakeFactory",
       "line_start": 243,
-      "line_end": 274,
+      "line_end": 285,
       "signature": "function fakeFactory(log) {",
       "doc": "A stand-in for Session: echoes each input back, honours /exit."
     },
     {
       "type": "function",
       "name": "request",
-      "line_start": 276,
-      "line_end": 290,
+      "line_start": 287,
+      "line_end": 301,
       "signature": "function request(hub, method, p, body) {"
     },
     {
       "type": "function",
       "name": "readEvents",
-      "line_start": 293,
-      "line_end": 312,
+      "line_start": 304,
+      "line_end": 323,
       "signature": "function readEvents(hub, stopWhen) {",
       "doc": "Read SSE events from /events until one satisfies `stopWhen` (or 3s pass)."
     }
