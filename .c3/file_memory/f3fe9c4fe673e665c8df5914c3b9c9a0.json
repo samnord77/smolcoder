@@ -1,10 +1,10 @@
 {
   "path": "src/session.ts",
-  "content_hash": "1b42d12327641b6ec9a5967059343238",
-  "updated_at": "2026-09-27T21:22:20",
-  "lines": 1159,
-  "size_bytes": 46268,
-  "mtime_ns": 1790540347408324100,
+  "content_hash": "d87047eb32fb2d01b13d26fbdad97cc3",
+  "updated_at": "2026-09-28T11:28:59",
+  "lines": 1190,
+  "size_bytes": 47539,
+  "mtime_ns": 1790591261361772900,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -25,576 +25,590 @@
     },
     {
       "type": "import",
-      "name": "import { Attachment } from \"./attachments\";",
+      "name": "import { Attachment, MAX_UPLOAD_BYTES, mimeForExt } from \"./attachments\";",
       "line_start": 8,
       "line_end": 8,
-      "signature": "import { Attachment } from \"./attachments\";"
+      "signature": "import { Attachment, MAX_UPLOAD_BYTES, mimeForExt } from \"./attachments\";"
+    },
+    {
+      "type": "import",
+      "name": "import { resolveInWorkspace } from \"./sandbox\";",
+      "line_start": 9,
+      "line_end": 9,
+      "signature": "import { resolveInWorkspace } from \"./sandbox\";"
     },
     {
       "type": "import",
       "name": "import * as os from \"os\";",
-      "line_start": 9,
-      "line_end": 9,
+      "line_start": 10,
+      "line_end": 10,
       "signature": "import * as os from \"os\";"
     },
     {
       "type": "import",
       "name": "import * as path from \"path\";",
-      "line_start": 10,
-      "line_end": 10,
+      "line_start": 11,
+      "line_end": 11,
       "signature": "import * as path from \"path\";"
     },
     {
       "type": "import",
       "name": "import { Agent } from \"./agent\";",
-      "line_start": 11,
-      "line_end": 11,
+      "line_start": 12,
+      "line_end": 12,
       "signature": "import { Agent } from \"./agent\";"
     },
     {
       "type": "import",
       "name": "import { Config, effortForBackend, loadConfig, updateConfig } from \"./config\";",
-      "line_start": 12,
-      "line_end": 12,
+      "line_start": 13,
+      "line_end": 13,
       "signature": "import { Config, effortForBackend, loadConfig, updateConfig } from \"./config\";"
     },
     {
       "type": "import",
       "name": "import { ContextManager } from \"./context\";",
-      "line_start": 13,
-      "line_end": 13,
+      "line_start": 14,
+      "line_end": 14,
       "signature": "import { ContextManager } from \"./context\";"
     },
     {
       "type": "import",
       "name": "import { detectAll, DetectedModel, resolveContextWindow } from \"./detect\";",
-      "line_start": 14,
-      "line_end": 14,
+      "line_start": 15,
+      "line_end": 15,
       "signature": "import { detectAll, DetectedModel, resolveContextWindow } from \"./detect\";"
     },
     {
       "type": "import",
       "name": "import { EventBus } from \"./events\";",
-      "line_start": 15,
-      "line_end": 15,
+      "line_start": 16,
+      "line_end": 16,
       "signature": "import { EventBus } from \"./events\";"
     },
     {
       "type": "import",
       "name": "import { findModelsOnNetwork, FlowUI, manageHosts } from \"./network\";",
-      "line_start": 16,
-      "line_end": 16,
+      "line_start": 17,
+      "line_end": 17,
       "signature": "import { findModelsOnNetwork, FlowUI, manageHosts } from \"./network\";"
     },
     {
       "type": "import",
       "name": "import { Plan, PlanStep } from \"./plan\";",
-      "line_start": 17,
-      "line_end": 17,
+      "line_start": 18,
+      "line_end": 18,
       "signature": "import { Plan, PlanStep } from \"./plan\";"
     },
     {
       "type": "import",
       "name": "import { buildSystemPrompt, loadAgentsMd, loadMemoryMd } from \"./prompt\";",
-      "line_start": 18,
-      "line_end": 18,
+      "line_start": 19,
+      "line_end": 19,
       "signature": "import { buildSystemPrompt, loadAgentsMd, loadMemoryMd } from \"./prompt\";"
     },
     {
       "type": "import",
       "name": "import { LmStudioProvider } from \"./providers/lmstudio\";",
-      "line_start": 19,
-      "line_end": 19,
+      "line_start": 20,
+      "line_end": 20,
       "signature": "import { LmStudioProvider } from \"./providers/lmstudio\";"
     },
     {
       "type": "import",
       "name": "import { OllamaProvider } from \"./providers/ollama\";",
-      "line_start": 20,
-      "line_end": 20,
+      "line_start": 21,
+      "line_end": 21,
       "signature": "import { OllamaProvider } from \"./providers/ollama\";"
     },
     {
       "type": "import",
       "name": "import { Effort, Msg, Provider } from \"./providers/types\";",
-      "line_start": 21,
-      "line_end": 21,
+      "line_start": 22,
+      "line_end": 22,
       "signature": "import { Effort, Msg, Provider } from \"./providers/types\";"
     },
     {
       "type": "import",
       "name": "import { Mode, MODE_LABELS, ToolContext } from \"./tools/index\";",
-      "line_start": 22,
-      "line_end": 22,
+      "line_start": 23,
+      "line_end": 23,
       "signature": "import { Mode, MODE_LABELS, ToolContext } from \"./tools/index\";"
     },
     {
       "type": "import",
       "name": "import { createMcpBridge } from \"./mcp\";",
-      "line_start": 23,
-      "line_end": 23,
+      "line_start": 24,
+      "line_end": 24,
       "signature": "import { createMcpBridge } from \"./mcp\";"
     },
     {
       "type": "import",
       "name": "import { formatReview } from \"./git\";",
-      "line_start": 24,
-      "line_end": 24,
+      "line_start": 25,
+      "line_end": 25,
       "signature": "import { formatReview } from \"./git\";"
     },
     {
       "type": "import",
       "name": "import { queryCode } from \"./lsp-pro\";",
-      "line_start": 25,
-      "line_end": 25,
+      "line_start": 26,
+      "line_end": 26,
       "signature": "import { queryCode } from \"./lsp-pro\";"
     },
     {
       "type": "import",
       "name": "import { lspDoctor, setupLsp } from \"./lsp-install\";",
-      "line_start": 26,
-      "line_end": 26,
+      "line_start": 27,
+      "line_end": 27,
       "signature": "import { lspDoctor, setupLsp } from \"./lsp-install\";"
     },
     {
       "type": "import",
       "name": "import { RoutingProvider, routeProvider } from \"./router\";",
-      "line_start": 27,
-      "line_end": 27,
+      "line_start": 28,
+      "line_end": 28,
       "signature": "import { RoutingProvider, routeProvider } from \"./router\";"
     },
     {
       "type": "import",
       "name": "import { listSkills } from \"./skills\";",
-      "line_start": 28,
-      "line_end": 28,
+      "line_start": 29,
+      "line_end": 29,
       "signature": "import { listSkills } from \"./skills\";"
     },
     {
       "type": "import",
       "name": "import { loadPlugins } from \"./plugins\";",
-      "line_start": 29,
-      "line_end": 29,
+      "line_start": 30,
+      "line_end": 30,
       "signature": "import { loadPlugins } from \"./plugins\";"
     },
     {
       "type": "import",
       "name": "import { readFile } from \"./tools/fs-tools\";",
-      "line_start": 30,
-      "line_end": 30,
+      "line_start": 31,
+      "line_end": 31,
       "signature": "import { readFile } from \"./tools/fs-tools\";"
     },
     {
       "type": "import",
       "name": "import { pickShell, runCommand } from \"./tools/shell\";",
-      "line_start": 31,
-      "line_end": 31,
+      "line_start": 32,
+      "line_end": 32,
       "signature": "import { pickShell, runCommand } from \"./tools/shell\";"
     },
     {
       "type": "import",
       "name": "import { TaskManager } from \"./tools/tasks\";",
-      "line_start": 32,
-      "line_end": 32,
+      "line_start": 33,
+      "line_end": 33,
       "signature": "import { TaskManager } from \"./tools/tasks\";"
     },
     {
       "type": "import",
       "name": "import { renderPlan, SelectOption, SessionUI, SlashCommand } from \"./ui\";",
-      "line_start": 33,
-      "line_end": 33,
+      "line_start": 34,
+      "line_end": 34,
       "signature": "import { renderPlan, SelectOption, SessionUI, SlashCommand } from \"./ui\";"
     },
     {
       "type": "import",
       "name": "import { c, truncateEnd, truncateMiddle } from \"./util\";",
-      "line_start": 34,
-      "line_end": 34,
+      "line_start": 35,
+      "line_end": 35,
       "signature": "import { c, truncateEnd, truncateMiddle } from \"./util\";"
     },
     {
       "type": "interface",
       "name": "SessionPrefs",
-      "line_start": 38,
-      "line_end": 46,
+      "line_start": 39,
+      "line_end": 47,
       "signature": "interface SessionPrefs {",
       "children": []
     },
     {
       "type": "constant",
       "name": "SLASH_COMMANDS",
-      "line_start": 48,
-      "line_end": 74,
+      "line_start": 49,
+      "line_end": 75,
       "signature": "const SLASH_COMMANDS: SlashCommand[] = ["
     },
     {
       "type": "constant",
       "name": "MODE_ORDER",
-      "line_start": 76,
-      "line_end": 76,
+      "line_start": 77,
+      "line_end": 77,
       "signature": "const MODE_ORDER: Mode[] = [\"ro\", \"edit\", \"bypass\"];"
     },
     {
       "type": "function",
       "name": "outputBudget",
-      "line_start": 83,
-      "line_end": 85,
+      "line_start": 84,
+      "line_end": 86,
       "signature": "function outputBudget(window: number): number {"
     },
     {
       "type": "function",
       "name": "makeProvider",
-      "line_start": 87,
-      "line_end": 92,
+      "line_start": 88,
+      "line_end": 93,
       "signature": "function makeProvider(m: DetectedModel): Provider {"
     },
     {
       "type": "function",
       "name": "effortAdvice",
-      "line_start": 97,
-      "line_end": 104,
+      "line_start": 98,
+      "line_end": 105,
       "signature": "function effortAdvice(m: DetectedModel, effort: Effort | null): string | null {"
     },
     {
       "type": "function",
       "name": "reportCompactions",
-      "line_start": 108,
-      "line_end": 116,
+      "line_start": 109,
+      "line_end": 117,
       "signature": "function reportCompactions(bus: EventBus, ui: { status: (s: string) => void; warn: (s: string) => void }): void {"
     },
     {
       "type": "function",
       "name": "autoPickModel",
-      "line_start": 120,
-      "line_end": 144,
+      "line_start": 121,
+      "line_end": 145,
       "signature": "function autoPickModel("
     },
     {
       "type": "function",
       "name": "noBackendsMessage",
-      "line_start": 146,
-      "line_end": 157,
+      "line_start": 147,
+      "line_end": 158,
       "signature": "function noBackendsMessage(): string {"
     },
     {
       "type": "function",
       "name": "backendLabel",
-      "line_start": 160,
-      "line_end": 162,
+      "line_start": 161,
+      "line_end": 163,
       "signature": "function backendLabel(m: DetectedModel): string {"
     },
     {
       "type": "function",
       "name": "sessionLine",
-      "line_start": 164,
-      "line_end": 166,
+      "line_start": 165,
+      "line_end": 167,
       "signature": "function sessionLine(m: DetectedModel, mode: Mode): string {"
     },
     {
       "type": "function",
       "name": "yoloBanner",
-      "line_start": 169,
-      "line_end": 174,
+      "line_start": 170,
+      "line_end": 175,
       "signature": "function yoloBanner(): string {"
     },
     {
       "type": "function",
       "name": "fmtTokens",
-      "line_start": 176,
-      "line_end": 178,
+      "line_start": 177,
+      "line_end": 179,
       "signature": "function fmtTokens(n: number): string {"
     },
     {
       "type": "function",
       "name": "modeColored",
-      "line_start": 180,
-      "line_end": 185,
+      "line_start": 181,
+      "line_end": 186,
       "signature": "function modeColored(mode: Mode): string {"
     },
     {
       "type": "function",
       "name": "prepareModel",
-      "line_start": 189,
-      "line_end": 209,
+      "line_start": 190,
+      "line_end": 210,
       "signature": "async function prepareModel(",
       "async": true
     },
     {
       "type": "function",
       "name": "modelOptions",
-      "line_start": 212,
-      "line_end": 220,
+      "line_start": 213,
+      "line_end": 221,
       "signature": "function modelOptions(models: DetectedModel[], current?: DetectedModel): SelectOption[] {"
     },
     {
       "type": "constant",
       "name": "FIND_ROW",
-      "line_start": 222,
-      "line_end": 222,
+      "line_start": 223,
+      "line_end": 223,
       "signature": "const FIND_ROW: SelectOption = { label: \"+ Find models on another machine\u2026\", hint: \"search my network or enter an address\" };"
     },
     {
       "type": "constant",
       "name": "HOSTS_ROW",
-      "line_start": 223,
-      "line_end": 223,
+      "line_start": 224,
+      "line_end": 224,
       "signature": "const HOSTS_ROW: SelectOption = { label: \"Network hosts\u2026\", hint: \"rename, remove or re-find added machines\" };"
     },
     {
       "type": "function",
       "name": "setupWithoutLocalModels",
-      "line_start": 228,
-      "line_end": 255,
+      "line_start": 229,
+      "line_end": 256,
       "signature": "async function setupWithoutLocalModels(ui: FlowUI, prefs: SessionPrefs): Promise<DetectedModel | null> {",
       "async": true
     },
     {
       "type": "function",
       "name": "suggestTitle",
-      "line_start": 262,
-      "line_end": 289,
+      "line_start": 263,
+      "line_end": 290,
       "signature": "async function suggestTitle(messages: Msg[], provider: Provider): Promise<string | null> {",
       "async": true
     },
     {
       "type": "function",
       "name": "cleanTitle",
-      "line_start": 292,
-      "line_end": 307,
+      "line_start": 293,
+      "line_end": 308,
       "signature": "function cleanTitle(raw: string): string | null {"
     },
     {
       "type": "interface",
       "name": "SessionSnapshot",
-      "line_start": 312,
-      "line_end": 325,
+      "line_start": 313,
+      "line_end": 326,
       "signature": "interface SessionSnapshot {",
       "children": []
     },
     {
       "type": "interface",
       "name": "SessionOptions",
-      "line_start": 327,
-      "line_end": 338,
+      "line_start": 328,
+      "line_end": 339,
       "signature": "interface SessionOptions {",
       "children": []
     },
     {
+      "type": "function",
+      "name": "expandMentionsInWorkspace",
+      "line_start": 345,
+      "line_end": 380,
+      "signature": "function expandMentionsInWorkspace(workspace: string, text: string, images: Attachment[]): string {"
+    },
+    {
       "type": "class",
       "name": "Session",
-      "line_start": 340,
-      "line_end": 1159,
+      "line_start": 382,
+      "line_end": 1190,
       "signature": "class Session {",
       "children": [
         {
           "type": "property",
           "name": "workspace",
-          "line_start": 341,
-          "line_end": 341,
+          "line_start": 383,
+          "line_end": 383,
           "signature": "readonly workspace: string;"
         },
         {
           "type": "property",
           "name": "chosen",
-          "line_start": 342,
-          "line_end": 342,
+          "line_start": 384,
+          "line_end": 384,
           "signature": "chosen: DetectedModel;"
         },
         {
           "type": "property",
           "name": "effort",
-          "line_start": 343,
-          "line_end": 343,
+          "line_start": 385,
+          "line_end": 385,
           "signature": "effort: Effort | null;"
         },
         {
           "type": "property",
           "name": "agent",
-          "line_start": 344,
-          "line_end": 344,
+          "line_start": 386,
+          "line_end": 386,
           "signature": "readonly agent: Agent;"
         },
         {
           "type": "property",
           "name": "toolCtx",
-          "line_start": 345,
-          "line_end": 345,
+          "line_start": 387,
+          "line_end": 387,
           "signature": "readonly toolCtx: ToolContext;"
         },
         {
           "type": "property",
           "name": "taskManager",
-          "line_start": 346,
-          "line_end": 346,
+          "line_start": 388,
+          "line_end": 388,
           "signature": "readonly taskManager: TaskManager;"
         },
         {
           "type": "property",
           "name": "ctxMgr",
-          "line_start": 347,
-          "line_end": 347,
+          "line_start": 389,
+          "line_end": 389,
           "signature": "readonly ctxMgr: ContextManager;"
         },
         {
           "type": "property",
           "name": "bus",
-          "line_start": 348,
-          "line_end": 348,
+          "line_start": 390,
+          "line_end": 390,
           "signature": "readonly bus = new EventBus();"
         },
         {
           "type": "property",
           "name": "shell",
-          "line_start": 349,
-          "line_end": 349,
+          "line_start": 391,
+          "line_end": 391,
           "signature": "readonly shell = pickShell();"
         },
         {
           "type": "property",
           "name": "onExit",
-          "line_start": 351,
-          "line_end": 351,
+          "line_start": 393,
+          "line_end": 393,
           "signature": "onExit: (() => void) | null = null;",
           "doc": "Host hook: fired once when the session has shut down (/exit, ctrl+c)."
         },
         {
           "type": "property",
           "name": "onTurnDone",
-          "line_start": 354,
-          "line_end": 354,
+          "line_start": 396,
+          "line_end": 396,
           "signature": "onTurnDone: (() => void) | null = null;",
           "doc": "Host hook: fired after each completed user turn (the web hub names the"
         },
         {
           "type": "property",
           "name": "agentsMd",
-          "line_start": 356,
-          "line_end": 356,
+          "line_start": 398,
+          "line_end": 398,
           "signature": "private readonly agentsMd: string | null;",
           "access": "private"
         },
         {
           "type": "property",
           "name": "memoryMd",
-          "line_start": 357,
-          "line_end": 357,
+          "line_start": 399,
+          "line_end": 399,
           "signature": "private readonly memoryMd: string | null;",
           "access": "private"
         },
         {
           "type": "property",
           "name": "prefs",
-          "line_start": 358,
-          "line_end": 358,
+          "line_start": 400,
+          "line_end": 400,
           "signature": "private readonly prefs: SessionPrefs;",
           "access": "private"
         },
         {
           "type": "property",
           "name": "help",
-          "line_start": 359,
-          "line_end": 359,
+          "line_start": 401,
+          "line_end": 401,
           "signature": "private readonly help: string;",
           "access": "private"
         },
         {
           "type": "property",
           "name": "hubRec",
-          "line_start": 360,
-          "line_end": 360,
+          "line_start": 402,
+          "line_end": 402,
           "signature": "private readonly hubRec: any;",
           "access": "private"
         },
         {
           "type": "property",
           "name": "ended",
-          "line_start": 361,
-          "line_end": 361,
+          "line_start": 403,
+          "line_end": 403,
           "signature": "private ended = false;",
           "access": "private"
         },
         {
           "type": "method",
           "name": "constructor",
-          "line_start": 363,
-          "line_end": 428,
+          "line_start": 405,
+          "line_end": 470,
           "signature": "constructor("
         },
         {
           "type": "method",
           "name": "sysPrompt",
-          "line_start": 430,
-          "line_end": 432,
+          "line_start": 472,
+          "line_end": 474,
           "signature": "private sysPrompt(mode: Mode): string {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "persist",
-          "line_start": 434,
-          "line_end": 443,
+          "line_start": 476,
+          "line_end": 485,
           "signature": "private persist(): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "statusLine",
-          "line_start": 446,
-          "line_end": 465,
+          "line_start": 488,
+          "line_end": 507,
           "signature": "statusLine(): string {",
           "doc": "The TUI's status row: mode \u00b7 model \u00b7 effort \u00b7 context \u00b7 plan \u00b7 tasks."
         },
         {
           "type": "method",
           "name": "planLine",
-          "line_start": 469,
-          "line_end": 481,
+          "line_start": 511,
+          "line_end": 523,
           "signature": "planLine(): string | null {",
           "doc": "One-line plan progress for sidebars and menus (\"Plan 2/5 \u00b7 write tests\")."
         },
         {
           "type": "method",
           "name": "state",
-          "line_start": 483,
-          "line_end": 512,
+          "line_start": 525,
+          "line_end": 554,
           "signature": "state(): Record<string, any> {"
         },
         {
           "type": "method",
           "name": "announce",
-          "line_start": 515,
-          "line_end": 521,
+          "line_start": 557,
+          "line_end": 563,
           "signature": "announce(): void {",
           "doc": "The opening lines: backend \u00b7 model \u00b7 mode, workspace, AGENTS.md, advice."
         },
         {
           "type": "method",
           "name": "snapshot",
-          "line_start": 523,
-          "line_end": 537,
+          "line_start": 565,
+          "line_end": 579,
           "signature": "snapshot(): SessionSnapshot {"
         },
         {
           "type": "method",
           "name": "suggestTitle",
-          "line_start": 540,
-          "line_end": 542,
+          "line_start": 582,
+          "line_end": 584,
           "signature": "suggestTitle(): Promise<string | null> {",
           "doc": "A model-written name for this session, or null to keep the fallback."
         },
         {
           "type": "method",
           "name": "restore",
-          "line_start": 546,
-          "line_end": 554,
+          "line_start": 588,
+          "line_end": 596,
           "signature": "restore(s: SessionSnapshot): void {",
           "doc": "Bring a saved transcript back (the system message is rebuilt for the"
         },
         {
           "type": "method",
           "name": "handleUserMessage",
-          "line_start": 559,
-          "line_end": 587,
+          "line_start": 601,
+          "line_end": 630,
           "signature": "private async handleUserMessage(input: string, attachments: Attachment[]): Promise<void> {",
           "async": true,
           "access": "private",
@@ -603,17 +617,16 @@
         {
           "type": "method",
           "name": "expandMentions",
-          "line_start": 591,
-          "line_end": 603,
-          "signature": "private expandMentions(text: string): string {",
-          "access": "private",
-          "doc": "Replace each @path with the file's content (cap 9000 chars). A failure"
+          "line_start": 632,
+          "line_end": 634,
+          "signature": "private expandMentions(text: string, images: Attachment[]): string {",
+          "access": "private"
         },
         {
           "type": "method",
           "name": "undoEdit",
-          "line_start": 606,
-          "line_end": 634,
+          "line_start": 637,
+          "line_end": 665,
           "signature": "private undoEdit(): void {",
           "access": "private",
           "doc": "Restore the last file write (prev null = the file was created \u2192 delete)."
@@ -621,8 +634,8 @@
         {
           "type": "method",
           "name": "redoEdit",
-          "line_start": 638,
-          "line_end": 672,
+          "line_start": 669,
+          "line_end": 703,
           "signature": "private redoEdit(): void {",
           "access": "private",
           "doc": "Re-apply the last undone write. Edits replay old_text -> next on the"
@@ -630,8 +643,8 @@
         {
           "type": "method",
           "name": "openEditor",
-          "line_start": 677,
-          "line_end": 739,
+          "line_start": 708,
+          "line_end": 770,
           "signature": "private async openEditor(draft: string): Promise<string | null> {",
           "async": true,
           "access": "private",
@@ -640,8 +653,8 @@
         {
           "type": "method",
           "name": "exportTranscript",
-          "line_start": 742,
-          "line_end": 758,
+          "line_start": 773,
+          "line_end": 789,
           "signature": "private exportTranscript(): void {",
           "access": "private",
           "doc": "Write the transcript as timestamped markdown under .smol/exports/."
@@ -649,8 +662,8 @@
         {
           "type": "method",
           "name": "copyLastReply",
-          "line_start": 761,
-          "line_end": 791,
+          "line_start": 792,
+          "line_end": 822,
           "signature": "private copyLastReply(): void {",
           "access": "private",
           "doc": "Copy the last assistant reply to the OS clipboard (best effort)."
@@ -658,8 +671,8 @@
         {
           "type": "method",
           "name": "run",
-          "line_start": 795,
-          "line_end": 1012,
+          "line_start": 826,
+          "line_end": 1043,
           "signature": "async run(): Promise<void> {",
           "async": true,
           "doc": "The input loop. Returns after /exit (or after the host asked the UI to"
@@ -667,8 +680,8 @@
         {
           "type": "method",
           "name": "shutdown",
-          "line_start": 1016,
-          "line_end": 1033,
+          "line_start": 1047,
+          "line_end": 1064,
           "signature": "async shutdown(): Promise<void> {",
           "async": true,
           "doc": "Idempotent: end-of-session hook, kill background tasks, close the UI,"
@@ -676,8 +689,8 @@
         {
           "type": "method",
           "name": "switchModel",
-          "line_start": 1035,
-          "line_end": 1095,
+          "line_start": 1066,
+          "line_end": 1126,
           "signature": "private async switchModel(): Promise<void> {",
           "async": true,
           "access": "private"
@@ -685,8 +698,8 @@
         {
           "type": "method",
           "name": "setMode",
-          "line_start": 1097,
-          "line_end": 1126,
+          "line_start": 1128,
+          "line_end": 1157,
           "signature": "private async setMode(arg?: string): Promise<void> {",
           "async": true,
           "access": "private"
@@ -694,8 +707,8 @@
         {
           "type": "method",
           "name": "setEffort",
-          "line_start": 1128,
-          "line_end": 1158,
+          "line_start": 1159,
+          "line_end": 1189,
           "signature": "private async setEffort(arg?: string): Promise<void> {",
           "async": true,
           "access": "private"

@@ -1,10 +1,10 @@
 {
   "path": "desktop/main.js",
-  "content_hash": "3305dc618b54f9030fb79b435c22a457",
-  "updated_at": "2026-09-28T10:38:57",
-  "lines": 746,
-  "size_bytes": 28039,
-  "mtime_ns": 1790588257081783700,
+  "content_hash": "61f3ded92865db6b9803738234661419",
+  "updated_at": "2026-09-28T11:23:59",
+  "lines": 728,
+  "size_bytes": 27444,
+  "mtime_ns": 1790590847130499800,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -68,149 +68,149 @@
     {
       "type": "function",
       "name": "distState",
-      "line_start": 24,
-      "line_end": 57,
+      "line_start": 22,
+      "line_end": 33,
       "signature": "function distState() {",
-      "doc": "dist/ est ignor\u00e9 par git : sans compilation, l'app tourne sur l'ancien"
+      "doc": "dist/ state via the shared checker when built, else a local fallback."
     },
     {
       "type": "function",
       "name": "runBuild",
-      "line_start": 59,
-      "line_end": 84,
+      "line_start": 35,
+      "line_end": 66,
       "signature": "function runBuild() {"
     },
     {
       "type": "variable",
       "name": "hubRec",
-      "line_start": 88,
-      "line_end": 88,
+      "line_start": 70,
+      "line_end": 70,
       "signature": "let hubRec = null;"
     },
     {
       "type": "variable",
       "name": "hubBase",
-      "line_start": 89,
-      "line_end": 89,
+      "line_start": 71,
+      "line_end": 71,
       "signature": "let hubBase = \"\";"
     },
     {
       "type": "variable",
       "name": "activeSid",
-      "line_start": 90,
-      "line_end": 90,
+      "line_start": 72,
+      "line_end": 72,
       "signature": "let activeSid = null;"
     },
     {
       "type": "variable",
       "name": "mainWin",
-      "line_start": 91,
-      "line_end": 91,
+      "line_start": 73,
+      "line_end": 73,
       "signature": "let mainWin = null;"
     },
     {
       "type": "variable",
       "name": "editorWin",
-      "line_start": 92,
-      "line_end": 92,
+      "line_start": 74,
+      "line_end": 74,
       "signature": "let editorWin = null;"
     },
     {
       "type": "variable",
       "name": "editorRoot",
-      "line_start": 93,
-      "line_end": 93,
+      "line_start": 75,
+      "line_end": 75,
       "signature": "let editorRoot = null;"
     },
     {
       "type": "variable",
       "name": "currentProjectDir",
-      "line_start": 94,
-      "line_end": 94,
+      "line_start": 76,
+      "line_end": 76,
       "signature": "let currentProjectDir = ROOT;"
     },
     {
       "type": "variable",
       "name": "hubWatchTimer",
-      "line_start": 95,
-      "line_end": 95,
+      "line_start": 77,
+      "line_end": 77,
       "signature": "let hubWatchTimer = null;"
     },
     {
       "type": "function",
       "name": "hubMsg",
-      "line_start": 97,
-      "line_end": 99,
+      "line_start": 79,
+      "line_end": 81,
       "signature": "function hubMsg(text) {"
     },
     {
       "type": "function",
       "name": "errBox",
-      "line_start": 101,
-      "line_end": 103,
+      "line_start": 83,
+      "line_end": 85,
       "signature": "function errBox(msg) {"
     },
     {
       "type": "function",
       "name": "stopHubWatchdog",
-      "line_start": 105,
-      "line_end": 110,
+      "line_start": 87,
+      "line_end": 92,
       "signature": "function stopHubWatchdog() {"
     },
     {
       "type": "function",
       "name": "startHubWatchdog",
-      "line_start": 112,
-      "line_end": 139,
+      "line_start": 94,
+      "line_end": 121,
       "signature": "function startHubWatchdog(win) {"
     },
     {
       "type": "function",
       "name": "openMainWindow",
-      "line_start": 141,
-      "line_end": 175,
+      "line_start": 123,
+      "line_end": 157,
       "signature": "function openMainWindow() {"
     },
     {
       "type": "function",
       "name": "openEditor",
-      "line_start": 177,
-      "line_end": 193,
+      "line_start": 159,
+      "line_end": 175,
       "signature": "function openEditor() {"
     },
     {
       "type": "variable",
       "name": "panelWin",
-      "line_start": 195,
-      "line_end": 195,
+      "line_start": 177,
+      "line_end": 177,
       "signature": "let panelWin = null;"
     },
     {
       "type": "variable",
       "name": "gitWin",
-      "line_start": 196,
-      "line_end": 196,
+      "line_start": 178,
+      "line_end": 178,
       "signature": "let gitWin = null;"
     },
     {
       "type": "function",
       "name": "openGit",
-      "line_start": 198,
-      "line_end": 207,
+      "line_start": 180,
+      "line_end": 189,
       "signature": "function openGit() {"
     },
     {
       "type": "function",
       "name": "openPanel",
-      "line_start": 209,
-      "line_end": 225,
+      "line_start": 191,
+      "line_end": 207,
       "signature": "function openPanel() {"
     },
     {
       "type": "function",
       "name": "openShare",
-      "line_start": 228,
-      "line_end": 245,
+      "line_start": 210,
+      "line_end": 227,
       "signature": "async function openShare() {",
       "async": true,
       "doc": "Read-only live-follow link for the current session (copied to clipboard)."
@@ -218,29 +218,29 @@
     {
       "type": "function",
       "name": "buildMenu",
-      "line_start": 247,
-      "line_end": 341,
+      "line_start": 229,
+      "line_end": 323,
       "signature": "function buildMenu() {"
     },
     {
       "type": "function",
       "name": "assertRoot",
-      "line_start": 344,
-      "line_end": 347,
+      "line_start": 326,
+      "line_end": 329,
       "signature": "function assertRoot() {"
     },
     {
       "type": "constant",
       "name": "SKIP_DIRS",
-      "line_start": 349,
-      "line_end": 349,
+      "line_start": 331,
+      "line_end": 331,
       "signature": "const SKIP_DIRS = new Set([\"node_modules\", \".git\", \"dist\", \".smolcoder\"]);"
     },
     {
       "type": "function",
       "name": "activeWorkspace",
-      "line_start": 508,
-      "line_end": 518,
+      "line_start": 490,
+      "line_end": 500,
       "signature": "async function activeWorkspace() {",
       "async": true
     }

@@ -18,45 +18,27 @@ try {
   /* version inconnue : la garde anti-vieux-hub est désactivée */
 }
 
-/** dist/ est ignoré par git : sans compilation, l'app tourne sur l'ancien
- * code (ou pas du tout). "missing" = rien à lancer, "stale" = source plus
- * récente que le build, "ok"/"unknown" = on continue. */
+/** dist/ state via the shared checker when built, else a local fallback. */
 function distState() {
   try {
-    if (!fs.existsSync(DIST_INDEX)) return "missing";
-    const built = fs.statSync(DIST_INDEX).mtimeMs;
-    let newest = 0;
-    const stack = [path.join(ROOT, "src")];
-    while (stack.length) {
-      const dir = stack.pop();
-      let entries = [];
-      try {
-        entries = fs.readdirSync(dir, { withFileTypes: true });
-      } catch {
-        continue;
-      }
-      for (const e of entries) {
-        const abs = path.join(dir, e.name);
-        if (e.isDirectory()) {
-          if (!e.name.startsWith(".")) stack.push(abs);
-          continue;
-        }
-        if (!e.name.endsWith(".ts")) continue;
-        try {
-          const m = fs.statSync(abs).mtimeMs;
-          if (m > newest) newest = m;
-        } catch {
-          /* ignore */
-        }
-      }
-    }
-    return newest > built + 2000 ? "stale" : "ok";
+    return require(path.join(ROOT, "dist", "build-check.js")).distState(ROOT);
   } catch {
+    try {
+      if (!fs.existsSync(DIST_INDEX)) return "missing";
+    } catch {
+      return "unknown";
+    }
     return "unknown";
   }
 }
 
 function runBuild() {
+  try {
+    const checker = require(path.join(ROOT, "dist", "build-check.js"));
+    return checker.runBuild(ROOT, () => {});
+  } catch {
+    /* fall through to the local npm hunt below */
+  }
   const candidates = ["npm", "npm.cmd"];
   try {
     for (const base of [process.env.ProgramFiles, "C:\\Program Files", "C:\\Program Files (x86)"]) {

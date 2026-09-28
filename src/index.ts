@@ -12,6 +12,7 @@ import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 import { Agent } from "./agent";
+import { ensureBuilt } from "./build-check";
 import { effortForBackend, loadConfig } from "./config";
 import { ContextManager } from "./context";
 import { detectAll } from "./detect";
@@ -249,6 +250,13 @@ async function main(): Promise<void> {
   if (args.version) {
     console.log(VERSION);
     return;
+  }
+  // dist/ is git-ignored: guarantee fresh code on every entry point instead
+  // of silently running last month's build. Cheap when fresh (one mtime walk).
+  const ROOT = path.resolve(__dirname, "..");
+  if (!ensureBuilt(ROOT, (s) => console.log(`  ${s}`))) {
+    console.error("Cannot run without dist/. Run `npm run build` in the project, then retry.");
+    process.exit(1);
   }
   if (args.verify && (!args.print || args.web)) throw new Error('--verify requires a headless -p run');
   if (args.verifyAttempts !== undefined && !args.verify) throw new Error('--verify-attempts requires --verify');

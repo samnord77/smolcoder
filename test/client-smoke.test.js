@@ -78,7 +78,7 @@ function boot(treeEntries, diffPayload) {
     addEventListener() {},
   };
   doc.body = makeEl(all);
-  const loc = { search: "", hash: "", pathname: "/", origin: "http://127.0.0.1:1" };
+  const loc = { search: "", hash: "", pathname: "/", origin: "http://127.0.0.1:1", reloads: 0, reload() { loc.reloads++; } };
   const store = {};
   let esInstance = null;
   const context = {
@@ -167,14 +167,14 @@ const DIFF = {
   note: "",
 };
 
-function emitHub(ctx, sid = "s1") {
+function emitHub(ctx, sid = "s1", startedAt = 1000) {
   ctx.es().onmessage({
     data: JSON.stringify({
       t: "hub",
       version: "9.9.9",
       home: "/h",
       sep: "/",
-      startedAt: Date.now(),
+      startedAt,
       workspaces: [
         { path: "/ws", name: "ws", display: "~/ws", last: 1, sessions: [{ id: sid, title: "t", status: "idle", live: true, createdAt: 1, updatedAt: 1, model: "m", terminals: [], viewers: [], plan: "Plan 1/2 · beta", editing: [] }] },
       ],
@@ -275,4 +275,14 @@ test("side-by-side toggle renders paired columns", async () => {
   assert.equal(c.errors(), "", "no page error in side-by-side");
   assert.ok(c.classes().has("sbsgrid"), "paired grid rendered");
   assert.ok(c.classes().has("sbsrow"), "paired rows rendered");
+});
+
+test("page reloads itself when the hub restarts underneath", async () => {
+  const c = boot(TREE, DIFF);
+  emitHub(c, "s1", 1000);
+  await c.flush();
+  assert.equal(c.context.location.reloads || 0, 0);
+  emitHub(c, "s1", 2000);
+  await c.flush(120);
+  assert.equal(c.context.location.reloads, 1);
 });

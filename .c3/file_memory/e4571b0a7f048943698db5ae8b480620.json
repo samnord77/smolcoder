@@ -1,10 +1,10 @@
 {
   "path": "test/client-smoke.test.js",
-  "content_hash": "22855d83fd7d3a4b3c0c311dbdd1ea84",
-  "updated_at": "2026-09-28T10:57:59",
-  "lines": 278,
-  "size_bytes": 9486,
-  "mtime_ns": 1790589319162368800,
+  "content_hash": "92923358cb8b188ad063448fc6888387",
+  "updated_at": "2026-09-28T11:29:00",
+  "lines": 288,
+  "size_bytes": 9835,
+  "mtime_ns": 1790591328738173400,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -77,7 +77,7 @@
       "name": "emitHub",
       "line_start": 170,
       "line_end": 183,
-      "signature": "function emitHub(ctx, sid = \"s1\") {"
+      "signature": "function emitHub(ctx, sid = \"s1\", startedAt = 1000) {"
     }
   ]
 }

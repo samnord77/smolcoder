@@ -5,7 +5,8 @@
 
 import { spawnSync } from "child_process";
 import * as fs from "fs";
-import { Attachment } from "./attachments";
+import { Attachment, MAX_UPLOAD_BYTES, mimeForExt } from "./attachments";
+import { resolveInWorkspace } from "./sandbox";
 import * as os from "os";
 import * as path from "path";
 import { Agent } from "./agent";
@@ -337,6 +338,47 @@ export interface SessionOptions {
   hubRec?: any;
 }
 
+/** Replace each @path with the file's content (cap 9000 chars). Image
+ * paths become vision attachments instead (collected into `images`) so
+ * CLI/TUI users get screenshots exactly like web uploads. A failure
+ * becomes an inline error text — never an exception. Pure in workspace. */
+export function expandMentionsInWorkspace(workspace: string, text: string, images: Attachment[]): string {
+  if (!text.includes("@")) return text;
+  return text.replace(/@([^\s`"'()[\]{}<>]+)/g, (m, p: string) => {
+    const rel = p.replace(/[.,;:!?]+$/, "");
+    if (!rel) return m;
+    try {
+      const abs = resolveInWorkspace(workspace, rel);
+      const st = fs.statSync(abs);
+      if (st.isFile()) {
+        const mime = mimeForExt(path.extname(abs).slice(1));
+        if (mime.startsWith("image/")) {
+          if (st.size > MAX_UPLOAD_BYTES) {
+            return `[image @${rel}: too large (${Math.round(st.size / 1048576)} MB; limit 20 MB)]`;
+          }
+          images.push({
+            id: `at-${Date.now().toString(36)}-${images.length}`,
+            name: path.basename(abs),
+            kind: "image",
+            mime,
+            size: st.size,
+            path: abs,
+          });
+          return `[image @${rel} attached below]`;
+        }
+      }
+    } catch {
+      /* not an image — fall through to the text read */
+    }
+    try {
+      const content = readFile(workspace, { path: rel }, 9000);
+      return `[file @${rel}:]\n${content}`;
+    } catch (err: any) {
+      return `[file @${rel}: ${err?.message ?? err}]`;
+    }
+  });
+}
+
 export class Session {
   readonly workspace: string;
   chosen: DetectedModel;
@@ -572,9 +614,10 @@ export class Session {
       }
       return;
     }
-    const expanded = this.expandMentions(input);
+    const imageRefs: Attachment[] = [];
+    const expanded = this.expandMentions(input, imageRefs);
     try {
-      await agent.runTurn(expanded, attachments);
+      await agent.runTurn(expanded, [...attachments, ...imageRefs]);
       this.onTurnDone?.();
     } catch (err: any) {
       ui.error(`\n${err?.message ?? err}`);
@@ -586,20 +629,8 @@ export class Session {
     }
   }
 
-  /** Replace each @path with the file's content (cap 9000 chars). A failure
-   * becomes an inline error text — never an exception. */
-  private expandMentions(text: string): string {
-    if (!text.includes("@")) return text;
-    return text.replace(/@([^\s`"'()[\]{}<>]+)/g, (m, p: string) => {
-      const rel = p.replace(/[.,;:!?]+$/, "");
-      if (!rel) return m;
-      try {
-        const content = readFile(this.workspace, { path: rel }, 9000);
-        return `[file @${rel}:]\n${content}`;
-      } catch (err: any) {
-        return `[file @${rel}: ${err?.message ?? err}]`;
-      }
-    });
+  private expandMentions(text: string, images: Attachment[]): string {
+    return expandMentionsInWorkspace(this.workspace, text, images);
   }
 
   /** Restore the last file write (prev null = the file was created → delete). */

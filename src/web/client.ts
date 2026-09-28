@@ -49,6 +49,7 @@ const sessInfo = new Map();   // sid -> sidebar entry from the last hub snapshot
 const views = new Map();      // sid -> per-session view state
 let active = null;
 let pendingSelect = null;
+let hubStartedAt = null;
 let busyTimer = null;
 let uidCounter = 0;
 const uid = () => "u" + (++uidCounter) + "_" + Date.now().toString(36);
@@ -706,6 +707,11 @@ function onHub(m) {
   for (const w of m.workspaces) for (const s of w.sessions) sessInfo.set(s.id, Object.assign({ workspace: w.path, wsname: w.name }, s));
   for (const v of views.values()) reconcileTerms(v);
   $("ver").textContent = "v" + m.version;
+  if (typeof hubStartedAt === "undefined" || hubStartedAt === null) hubStartedAt = m.startedAt || 0;
+  else if (m.startedAt && m.startedAt !== hubStartedAt) {
+    location.reload();
+    return;
+  }
   if (m.startedAt) {
     const when = new Date(m.startedAt);
     let hh = "?", mm = "?";

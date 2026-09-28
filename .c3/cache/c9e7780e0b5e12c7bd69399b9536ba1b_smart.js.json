@@ -1,0 +1,9 @@
+{
+  "original_tokens": 299,
+  "compressed_tokens": 62,
+  "saved_tokens": 237,
+  "savings_pct": 79.3,
+  "compressed": "# build-check.test.js (.js) \u2014 28 lines\nconst test = require(\"node:test\");\nconst assert = require(\"node:assert/strict\");\nconst fs = require(\"node:fs\");\nconst os = require(\"node:os\");\nconst path = require(\"node:path\");\nfunction scratchRoot()",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\build-check.test.js"
+}

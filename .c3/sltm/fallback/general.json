@@ -115,5 +115,18 @@
     },
     "timestamp": "2026-09-28T09:46:04.255932+00:00",
     "category": "general"
+  },
+  {
+    "id": "2e768e9c9d6f",
+    "text": "smolcoder phase v\u00e9rit\u00e9 (2026-09-28) : src/build-check.ts (ensureBuilt partout : CLI/TUI/web/bureau), recharge auto page au restart hub, @image.png vision CLI/TUI (expandMentionsInWorkspace), shrink screenshots canvas avant envoi. Vision : d\u00e9tection ollama capabilities + LMStudio vlm, coaching si non-vision. Suites : 179/180 + 136/137 (seul flake pr\u00e9-existant).",
+    "metadata": {
+      "fact_id": "2e768e9c9d6f",
+      "source_session": "20260927_164838_0239733e7ab3",
+      "source": "memory_store",
+      "timestamp": "2026-09-28T10:39:45.786734+00:00",
+      "category": "general"
+    },
+    "timestamp": "2026-09-28T10:39:45.786734+00:00",
+    "category": "general"
   }
 ]

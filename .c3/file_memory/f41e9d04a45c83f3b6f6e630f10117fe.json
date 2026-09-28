@@ -1,10 +1,10 @@
 {
   "path": "src/index.ts",
-  "content_hash": "e4d90e0a62d7fa4705fb20122afe366e",
-  "updated_at": "2026-09-27T21:50:28",
-  "lines": 501,
-  "size_bytes": 19748,
-  "mtime_ns": 1790542227590148900,
+  "content_hash": "23548fcd7572389c6a781f845e17315e",
+  "updated_at": "2026-09-28T11:23:59",
+  "lines": 509,
+  "size_bytes": 20183,
+  "mtime_ns": 1790590847080190800,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -39,248 +39,255 @@
     },
     {
       "type": "import",
-      "name": "import { effortForBackend, loadConfig } from \"./config\";",
+      "name": "import { ensureBuilt } from \"./build-check\";",
       "line_start": 15,
       "line_end": 15,
+      "signature": "import { ensureBuilt } from \"./build-check\";"
+    },
+    {
+      "type": "import",
+      "name": "import { effortForBackend, loadConfig } from \"./config\";",
+      "line_start": 16,
+      "line_end": 16,
       "signature": "import { effortForBackend, loadConfig } from \"./config\";"
     },
     {
       "type": "import",
       "name": "import { ContextManager } from \"./context\";",
-      "line_start": 16,
-      "line_end": 16,
+      "line_start": 17,
+      "line_end": 17,
       "signature": "import { ContextManager } from \"./context\";"
     },
     {
       "type": "import",
       "name": "import { detectAll } from \"./detect\";",
-      "line_start": 17,
-      "line_end": 17,
+      "line_start": 18,
+      "line_end": 18,
       "signature": "import { detectAll } from \"./detect\";"
     },
     {
       "type": "import",
       "name": "import { routeProvider } from \"./router\";",
-      "line_start": 18,
-      "line_end": 18,
+      "line_start": 19,
+      "line_end": 19,
       "signature": "import { routeProvider } from \"./router\";"
     },
     {
       "type": "import",
       "name": "import { EventBus } from \"./events\";",
-      "line_start": 19,
-      "line_end": 19,
+      "line_start": 20,
+      "line_end": 20,
       "signature": "import { EventBus } from \"./events\";"
     },
     {
       "type": "import",
       "name": "import { terminalLogo } from \"./logo\";",
-      "line_start": 20,
-      "line_end": 20,
+      "line_start": 21,
+      "line_end": 21,
       "signature": "import { terminalLogo } from \"./logo\";"
     },
     {
       "type": "import",
       "name": "import { Plan } from \"./plan\";",
-      "line_start": 21,
-      "line_end": 21,
+      "line_start": 22,
+      "line_end": 22,
       "signature": "import { Plan } from \"./plan\";"
     },
     {
       "type": "import",
       "name": "import { buildSystemPrompt, loadAgentsMd, loadMemoryMd } from \"./prompt\";",
-      "line_start": 22,
-      "line_end": 22,
+      "line_start": 23,
+      "line_end": 23,
       "signature": "import { buildSystemPrompt, loadAgentsMd, loadMemoryMd } from \"./prompt\";"
     },
     {
       "type": "import",
       "name": "import { Effort } from \"./providers/types\";",
-      "line_start": 23,
-      "line_end": 23,
+      "line_start": 24,
+      "line_end": 24,
       "signature": "import { Effort } from \"./providers/types\";"
     },
     {
       "type": "import",
       "name": "import {",
-      "line_start": 24,
-      "line_end": 35,
+      "line_start": 25,
+      "line_end": 36,
       "signature": "import {"
     },
     {
       "type": "import",
       "name": "import { Mode, ToolContext } from \"./tools/index\";",
-      "line_start": 36,
-      "line_end": 36,
+      "line_start": 37,
+      "line_end": 37,
       "signature": "import { Mode, ToolContext } from \"./tools/index\";"
     },
     {
       "type": "import",
       "name": "import { createMcpBridge } from \"./mcp\";",
-      "line_start": 37,
-      "line_end": 37,
+      "line_start": 38,
+      "line_end": 38,
       "signature": "import { createMcpBridge } from \"./mcp\";"
     },
     {
       "type": "import",
       "name": "import { loadPlugins } from \"./plugins\";",
-      "line_start": 38,
-      "line_end": 38,
+      "line_start": 39,
+      "line_end": 39,
       "signature": "import { loadPlugins } from \"./plugins\";"
     },
     {
       "type": "import",
       "name": "import { pickShell } from \"./tools/shell\";",
-      "line_start": 39,
-      "line_end": 39,
+      "line_start": 40,
+      "line_end": 40,
       "signature": "import { pickShell } from \"./tools/shell\";"
     },
     {
       "type": "import",
       "name": "import { TaskManager } from \"./tools/tasks\";",
-      "line_start": 40,
-      "line_end": 40,
+      "line_start": 41,
+      "line_end": 41,
       "signature": "import { TaskManager } from \"./tools/tasks\";"
     },
     {
       "type": "import",
       "name": "import { Tui } from \"./tui/tui\";",
-      "line_start": 41,
-      "line_end": 41,
+      "line_start": 42,
+      "line_end": 42,
       "signature": "import { Tui } from \"./tui/tui\";"
     },
     {
       "type": "import",
       "name": "import { UI } from \"./ui\";",
-      "line_start": 42,
-      "line_end": 42,
+      "line_start": 43,
+      "line_end": 43,
       "signature": "import { UI } from \"./ui\";"
     },
     {
       "type": "import",
       "name": "import { c } from \"./util\";",
-      "line_start": 43,
-      "line_end": 43,
+      "line_start": 44,
+      "line_end": 44,
       "signature": "import { c } from \"./util\";"
     },
     {
       "type": "import",
       "name": "import { askHubToOpen, hubVersion, pingHub, readHubRecord, WebHub } from \"./web/hub\";",
-      "line_start": 44,
-      "line_end": 44,
+      "line_start": 45,
+      "line_end": 45,
       "signature": "import { askHubToOpen, hubVersion, pingHub, readHubRecord, WebHub } from \"./web/hub\";"
     },
     {
       "type": "import",
       "name": "import { launchApp } from \"./web/app\";",
-      "line_start": 45,
-      "line_end": 45,
+      "line_start": 46,
+      "line_end": 46,
       "signature": "import { launchApp } from \"./web/app\";"
     },
     {
       "type": "constant",
       "name": "VERSION",
-      "line_start": 47,
-      "line_end": 47,
+      "line_start": 48,
+      "line_end": 48,
       "signature": "const VERSION = require(\"../package.json\").version as string;"
     },
     {
       "type": "constant",
       "name": "DEFAULT_WEB_PORT",
-      "line_start": 48,
-      "line_end": 48,
+      "line_start": 49,
+      "line_end": 49,
       "signature": "const DEFAULT_WEB_PORT = 7433;"
     },
     {
       "type": "interface",
       "name": "CliArgs",
-      "line_start": 50,
-      "line_end": 69,
+      "line_start": 51,
+      "line_end": 70,
       "signature": "interface CliArgs {",
       "children": []
     },
     {
       "type": "function",
       "name": "parseArgs",
-      "line_start": 71,
-      "line_end": 154,
+      "line_start": 72,
+      "line_end": 155,
       "signature": "function parseArgs(argv: string[]): CliArgs {"
     },
     {
       "type": "constant",
       "name": "HELP",
-      "line_start": 156,
-      "line_end": 209,
+      "line_start": 157,
+      "line_end": 210,
       "signature": "const HELP = `"
     },
     {
       "type": "function",
       "name": "installSignalCleanup",
-      "line_start": 215,
-      "line_end": 230,
+      "line_start": 216,
+      "line_end": 231,
       "signature": "function installSignalCleanup(cleanup: () => void): void {",
       "doc": "Node fires 'exit' on normal termination but NOT on a killing signal, so"
     },
     {
       "type": "function",
       "name": "printLogo",
-      "line_start": 233,
-      "line_end": 235,
+      "line_start": 234,
+      "line_end": 236,
       "signature": "function printLogo(): void {",
       "doc": "The SMOL banner that opens every interactive session."
     },
     {
       "type": "function",
       "name": "prefsOf",
-      "line_start": 237,
-      "line_end": 239,
+      "line_start": 238,
+      "line_end": 240,
       "signature": "function prefsOf(args: CliArgs): SessionPrefs {"
     },
     {
       "type": "function",
       "name": "main",
-      "line_start": 243,
-      "line_end": 264,
+      "line_start": 244,
+      "line_end": 272,
       "signature": "async function main(): Promise<void> {",
       "async": true
     },
     {
       "type": "function",
       "name": "runHeadless",
-      "line_start": 268,
-      "line_end": 368,
+      "line_start": 276,
+      "line_end": 376,
       "signature": "async function runHeadless(args: CliArgs): Promise<void> {",
       "async": true
     },
     {
       "type": "function",
       "name": "runInteractive",
-      "line_start": 372,
-      "line_end": 421,
+      "line_start": 380,
+      "line_end": 429,
       "signature": "async function runInteractive(args: CliArgs): Promise<void> {",
       "async": true
     },
     {
       "type": "function",
       "name": "isHomeOrRoot",
-      "line_start": 427,
-      "line_end": 431,
+      "line_start": 435,
+      "line_end": 439,
       "signature": "function isHomeOrRoot(p: string): boolean {",
       "doc": "The home folder or a drive root is not a project: launching there opens"
     },
     {
       "type": "function",
       "name": "runWeb",
-      "line_start": 433,
-      "line_end": 484,
+      "line_start": 441,
+      "line_end": 492,
       "signature": "async function runWeb(args: CliArgs): Promise<void> {",
       "async": true
     },
     {
       "type": "function",
       "name": "openAppWindow",
-      "line_start": 487,
-      "line_end": 496,
+      "line_start": 495,
+      "line_end": 504,
       "signature": "function openAppWindow(url: string): void {",
       "doc": "Open the hub like a desktop app and say what happened. Never throws."
     }
