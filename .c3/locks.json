@@ -3,23 +3,13 @@
   "fencing": 130,
   "locks": [
     {
-      "relpath": "src/git.ts",
-      "agent_id": "claude-code:20260927",
-      "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 119,
-      "intent": "Parse robuste au rognage des statuts git",
-      "acquired_at": 1790587994.6412954,
-      "expires_at": 1790589554.9693122,
-      "lock_id": "ac672a8aba564b0d93a5e7ab3821a65d"
-    },
-    {
       "relpath": "src/web/client.ts",
       "agent_id": "claude-code:20260927",
       "session_id": "20260927_164838_0239733e7ab3",
       "fencing_token": 128,
-      "intent": "Rendu c\u00f4te \u00e0 c\u00f4te appari\u00e9 del/add",
+      "intent": "R\u00e9duction screenshots avant envoi (canvas)",
       "acquired_at": 1790589184.9727478,
-      "expires_at": 1790590192.5564387,
+      "expires_at": 1790590976.0661545,
       "lock_id": "08ab05ee31884571add9fd60b7039a16"
     },
     {

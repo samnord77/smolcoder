@@ -2387,12 +2387,13 @@ function addFiles(files) {
   input.focus();
 }
 async function upload(v, file) {
-  const type = file.type || "application/octet-stream";
-  const name = file.name || (type.startsWith("image/") ? "pasted-image." + (type.split("/")[1] || "png").replace("jpeg", "jpg") : "pasted.txt");
-  const entry = { id: null, name, size: file.size, kind: type.startsWith("image/") ? "image" : "text", uploading: true };
+  const payload = await shrinkImage(file);
+  const type = payload.type || "application/octet-stream";
+  const name = payload.name || (type.startsWith("image/") ? "pasted-image." + (type.split("/")[1] || "png").replace("jpeg", "jpg") : "pasted.txt");
+  const entry = { id: null, name, size: payload.size, kind: type.startsWith("image/") ? "image" : "text", uploading: true };
   pendingOf(v).push(entry); renderAttachments();
   try {
-    const r = await fetch("/upload?k=" + k + "&sid=" + v.sid + "&name=" + encodeURIComponent(name), { method: "POST", headers: { "content-type": type }, body: file });
+    const r = await fetch("/upload?k=" + k + "&sid=" + v.sid + "&name=" + encodeURIComponent(name), { method: "POST", headers: { "content-type": type }, body: payload });
     const d = await r.json().catch(() => ({}));
     if (!r.ok || d.error) throw new Error(d.error || ("upload failed (" + r.status + ")"));
     Object.assign(entry, d, { uploading: false });
@@ -2401,6 +2402,39 @@ async function upload(v, file) {
     alert(String((err && err.message) || err));
   }
   renderAttachments();
+}
+// Shrink big screenshots before upload (canvas, no dependency): local vision
+// models choke on 4K PNGs. Animated GIFs and small files pass through;
+// anything failing falls back to the original file.
+async function shrinkImage(file) {
+  try {
+    if (!file || !file.type || !file.type.startsWith("image/")) return file;
+    if (file.type === "image/gif") return file;
+    if (typeof createImageBitmap !== "function" || typeof document === "undefined") return file;
+    const bmp = await createImageBitmap(file);
+    try {
+      const MAX = 1568;
+      if (Math.max(bmp.width, bmp.height) <= MAX && file.size <= 1536 * 1024) return file;
+      const scale = MAX / Math.max(bmp.width, bmp.height);
+      const cv = document.createElement("canvas");
+      cv.width = Math.max(1, Math.round(bmp.width * scale));
+      cv.height = Math.max(1, Math.round(bmp.height * scale));
+      const ctx2d = cv.getContext("2d");
+      if (!ctx2d) return file;
+      ctx2d.drawImage(bmp, 0, 0, cv.width, cv.height);
+      const blob = await new Promise((res) => {
+        try {
+          cv.toBlob(res, file.type === "image/png" ? "image/png" : "image/jpeg", 0.85);
+        } catch (e) { res(null); }
+      });
+      if (!blob || blob.size >= file.size) return file;
+      return new File([blob], file.name || "pasted-image", { type: blob.type || file.type });
+    } finally {
+      try { bmp.close(); } catch (e) {}
+    }
+  } catch (e) {
+    return file;
+  }
 }
 function removeAttachment(a) {
   if (!active) return;
