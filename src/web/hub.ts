@@ -23,7 +23,9 @@ import { ContextManager } from "../context";
 import { applyOp, type CrdOp, docFromText } from "../crdt";
 import { EventBus } from "../events";
 import { gitApplyHunk, gitCommit, gitDiffFiles, gitRevertFile, gitStage, gitStageLines, gitStatusMap, gitUnstage } from "../git";
-import { lspAvailability, queryCode, queryDiagStructured } from "../lsp-pro";
+import { LSP_LANGS, lspAvailability, queryCode, queryDiagStructured } from "../lsp-pro";
+import { loadMcpConfig } from "../mcp";
+import { installLspServer } from "../lsp-install";
 import { Plan } from "../plan";
 import { resolveInWorkspace, SandboxError } from "../sandbox";
 import { noBackendsMessage, prepareModel, Session, type SessionPrefs, type SessionSnapshot, setupWithoutLocalModels } from "../session";
@@ -1465,6 +1467,17 @@ export class WebHub {
         if (!p) throw new Error("path is required");
         return { message: gitStage(l.workspace, [p]) };
       }
+      // Turns the 37-language catalogue into something usable: the panel can
+      // only be trusted when a missing server can be installed from it.
+      case "/code/lsp/install": {
+        const want = String(d.lang ?? "").trim().toLowerCase();
+        if (!want) throw new Error("lang is required");
+        if (!LSP_LANGS.includes(want)) {
+          throw new Error(`unknown language "${want}" - GET /code/availability lists the supported ones`);
+        }
+        const l = this.editLive(sid);
+        return installLspServer(want, l.workspace);
+      }
       case "/code/diff/unstage": {
         const l = this.editLive(sid);
         const p = String(d.path ?? "");
@@ -1922,11 +1935,17 @@ export class WebHub {
         // Cold starts for npx/uvx and office bridges routinely exceed six
         // seconds. Keep the UI from marking a usable server offline.
         const rows = await bridge.status(20000);
+        const off = new Set(
+          loadMcpConfig(session?.toolCtx?.workspace ?? "")
+            .filter((c) => c.enabled === false)
+            .map((c) => c.name.toLowerCase())
+        );
         mcp = rows.map((r) => ({
           name: r.name,
           ok: !!r.ok,
           tools: Array.isArray(r.tools) ? r.tools.length : 0,
           error: r.error ? String(r.error).slice(0, 200) : null,
+          enabled: !off.has(r.name.toLowerCase()),
         }));
       }
     } catch {

@@ -3107,7 +3107,7 @@ function ccTools(d) {
 
 function ccMcp(d) {
   const wrap = el("div", "cc-anim");
-  wrap.appendChild(ccSection("État des serveurs", ccLights(d.mcp || [])));
+  wrap.appendChild(ccSection("�tat des serveurs", ccLights(d.mcp || [])));
   const bad = (d.mcp || []).filter((m) => !m.ok);
   if (bad.length) {
     const list = el("div", "cc-list");
@@ -3119,10 +3119,36 @@ function ccMcp(d) {
       b.type = "button";
       b.onclick = () => { ccSend("/mcp debug " + m.name); closeCC(); };
       it.appendChild(b);
+      const off = el("button", "cc-act", "Désactiver");
+      off.type = "button";
+      off.title = "Arrête de démarrer ce serveur et l'enregistre dans .smol/mcp.json";
+      off.onclick = () => { ccSend("/mcp off " + m.name); closeCC(); };
+      it.appendChild(off);
       list.appendChild(it);
     }
     wrap.appendChild(ccSection("Serveurs hors ligne", list));
   }
+  // Every server gets a switch: a server you never use should not be probed
+  // on every /status refresh.
+  const all = el("div", "cc-list");
+  for (const m of d.mcp || []) {
+    const it = el("div", "cc-item");
+    it.appendChild(el("span", "nm", m.name));
+    const disabled = m.enabled === false;
+    it.appendChild(el("span", "ds", disabled ? "désactivé" : m.ok ? (m.tools + " outils") : "injoignable"));
+    const t = el("button", "cc-act", disabled ? "Activer" : "Désactiver");
+    t.type = "button";
+    t.onclick = () => { ccSend("/mcp " + (disabled ? "on " : "off ") + m.name); closeCC(); };
+    it.appendChild(t);
+    if (disabled) {
+      const back = el("button", "cc-act", "Diagnostiquer");
+      back.type = "button";
+      back.onclick = () => { ccSend("/mcp debug " + m.name); closeCC(); };
+      it.appendChild(back);
+    }
+    all.appendChild(it);
+  }
+  if ((d.mcp || []).length) wrap.appendChild(ccSection("Interrupteurs (" + (d.mcp || []).length + ")", all));
   return wrap;
 }
 function ccC3(d) {

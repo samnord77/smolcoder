@@ -59,6 +59,18 @@ function fallbackBinDirs(): string[] {
   push(path.join(local, "Microsoft", "WindowsApps")); // winget/store shims
   push(path.join(roaming, "Python", "Scripts"));
   push(path.join(local, "Programs", "Python", "Scripts"));
+  // ~/.local/bin is where the modern toolchain installers put their binaries:
+  // uv/uvx, cargo, pipx, bun, deno, and friends. Without it a perfectly good
+  // install looks "not found" and every MCP server that shells out to one of
+  // them is reported as broken.
+  push(path.join(os.homedir(), ".local", "bin"));
+  push(path.join(os.homedir(), ".local", "share", "pnpm"));
+  push(path.join(os.homedir(), ".bun", "bin"));
+  push(path.join(os.homedir(), ".deno", "bin"));
+  push(path.join(os.homedir(), ".cargo", "bin"));
+  push(path.join(os.homedir(), ".npm-global", "bin"));
+  push(path.join(os.homedir(), "go", "bin")); // gopls: `go install` default
+  push(path.join(os.homedir(), "bin"));
   return out;
 }
 

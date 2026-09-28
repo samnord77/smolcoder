@@ -5,7 +5,7 @@
 // one line; nothing here throws.
 import { spawnSync } from "node:child_process";
 import { LSP_LANGS, lspAvailability, serverDefForLang } from "./lsp-pro";
-import { resolveCommand } from "./mcp";
+import { findCommand, resolveCommand } from "./mcp";
 
 const INSTALL_TIMEOUT_MS = 120_000;
 
@@ -64,12 +64,10 @@ function tsPeerNote(cwd: string): string {
 
 function serverResolves(def: { candidates: string[][] }): string | null {
   for (const [exe] of def.candidates) {
-    try {
-      resolveCommand(exe);
-      return exe;
-    } catch {
-      /* try next */
-    }
+    // findCommand, not resolveCommand: resolveCommand echoes its input back
+    // when the binary is missing, so this used to report every language as
+    // "already installed" and the installer would never install anything.
+    if (findCommand(exe)) return exe;
   }
   return null;
 }
