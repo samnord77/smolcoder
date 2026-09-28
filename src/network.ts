@@ -21,6 +21,8 @@ export interface FlowUI {
   warn(s: string): void;
   startSpinner(label: string): void;
   stopSpinner(): void;
+  /** esc / the stop button while a flow waits. Unset before a session exists. */
+  onCancel?: (() => void) | null;
 }
 
 const BACKEND_NAMES = { ollama: "Ollama", lmstudio: "LM Studio" } as const;

@@ -206,7 +206,59 @@ export async function prepareModel(
   if (models.length === 0) return null;
   const chosen = autoPickModel(models, prefs.model, cfg.lastModel, url);
   progress?.(`loading ${chosen.id}`);
-  return resolveContextWindow(chosen, prefs.ctx);
+  return resolveWithHint(chosen, prefs.ctx, (label) => progress?.(label));
+}
+
+/** First load of a model can mean minutes of total silence while it fills
+ * memory. After this long, say so, so a slow load never looks like a freeze. */
+export const LOAD_HINT_AFTER_MS = 8000;
+
+/** resolveContextWindow with a heartbeat: after `afterMs` the caller hears
+ * back with a label it can show, once. `cancel` (when given) wins the race
+ * and ends the wait. Exported for tests. */
+export async function resolveWithHint(
+  model: DetectedModel,
+  ctxOverride: number | undefined,
+  onHint: (label: string) => void,
+  afterMs = LOAD_HINT_AFTER_MS,
+  cancel?: Promise<never>
+): Promise<DetectedModel> {
+  const timer = setTimeout(() => {
+    try {
+      onHint(`loading ${model.id} — first load fills memory, allow 1-3 min`);
+    } catch {
+      /* a UI that went away must never break the load */
+    }
+  }, afterMs);
+  try {
+    const load = resolveContextWindow(model, ctxOverride);
+    if (!cancel) return await load;
+    load.catch(() => {}); // if the cancel wins, a later failure must not crash
+    return await Promise.race([load, cancel]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+export const LOAD_CANCELLED_MSG = "load cancelled — pick the model again once its server is ready";
+
+/** Load a model with esc wired to THIS wait (not to quitting, not to killing
+ * the turn): the previous onCancel is parked and restored by the caller. */
+async function loadModelCancellable(
+  ui: FlowUI,
+  model: DetectedModel,
+  ctxOverride: number | undefined,
+  onHint: (label: string) => void
+): Promise<DetectedModel> {
+  const outer = ui.onCancel ?? null;
+  let reject!: (err: Error) => void;
+  const cancelled = new Promise<never>((_, rej) => (reject = rej));
+  ui.onCancel = () => reject(new Error(LOAD_CANCELLED_MSG));
+  try {
+    return await resolveWithHint(model, ctxOverride, onHint, LOAD_HINT_AFTER_MS, cancelled);
+  } finally {
+    ui.onCancel = outer;
+  }
 }
 
 /** Picker rows for a model list: this computer first, then each network host. */
@@ -248,7 +300,10 @@ export async function setupWithoutLocalModels(ui: FlowUI, prefs: SessionPrefs): 
     if (idx === null) continue;
     ui.startSpinner(`loading ${models[idx].id}`);
     try {
-      return await resolveContextWindow(models[idx], prefs.ctx);
+      return await loadModelCancellable(ui, models[idx], prefs.ctx, (label) => ui.startSpinner(label));
+    } catch (err: any) {
+      ui.warn(String(err?.message ?? err));
+      continue; // cancelled: back to the picker, not out of the flow
     } finally {
       ui.stopSpinner();
     }
@@ -1090,7 +1145,7 @@ export class Session {
     let next: DetectedModel;
     ui.startSpinner(`loading ${fresh[idx].id}`);
     try {
-      next = await resolveContextWindow(fresh[idx], this.prefs.ctx);
+      next = await loadModelCancellable(ui, fresh[idx], this.prefs.ctx, (label) => ui.startSpinner(label));
     } catch (err: any) {
       ui.error(String(err?.message ?? err));
       return;

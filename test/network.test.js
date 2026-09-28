@@ -16,7 +16,7 @@ const { loadConfig, saveConfig, updateConfig, effortForBackend } = require("../d
 const { addHost, hostLabel, hostUrls, isPrivateHost, parseAddress, removeHost, renameHost } = require("../dist/hosts");
 const { localSubnets, scanSubnets } = require("../dist/netscan");
 const { findModelsOnNetwork, manageHosts, notFoundHelp } = require("../dist/network");
-const { autoPickModel, modelOptions, setupWithoutLocalModels } = require("../dist/session");
+const { autoPickModel, modelOptions, resolveWithHint, setupWithoutLocalModels } = require("../dist/session");
 
 async function serveOllama(names = ["remote-model:latest"]) {
   const server = http.createServer((req, res) => {
@@ -269,7 +269,75 @@ test("with nothing on this computer, startup offers the network instead of givin
   }
 });
 
+test("esc during a startup model load cancels the wait, not the app", async () => {
+  // Every endpoint answers slowly, as a first load into memory would.
+  const server = http.createServer((req, res) => {
+    setTimeout(() => {
+      res.setHeader("content-type", "application/json");
+      res.end(JSON.stringify(req.url === "/api/tags" ? { models: [{ name: "late:7b" }] } : {}));
+    }, 300);
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  try {
+    saveConfig({});
+    // A dev box may run its own model server, which also shows up: pick ours
+    // by name when there is a choice, and tolerate there being none.
+    const picks = ["Find models on another machine", "Enter an address", /^late:7b$/, null];
+    const texts = [`127.0.0.1:${server.address().port}`];
+    const ui = {
+      shown: { lines: [] },
+      async select(title, options) {
+        const want = picks.shift();
+        if (want == null) return null;
+        const i = options.findIndex((o) => (want instanceof RegExp ? want.test(o.label) : o.label === want));
+        return i >= 0 ? i : null;
+      },
+      async prompt() {
+        return texts.shift() ?? null;
+      },
+      status: (s) => ui.shown.lines.push(s),
+      warn: (s) => ui.shown.lines.push(s),
+      stopSpinner() {},
+      onCancel: null,
+      startSpinner(label) {
+        if (/^loading /.test(label)) setTimeout(() => ui.onCancel?.(), 30);
+      },
+    };
+    const chosen = await setupWithoutLocalModels(ui, {});
+    assert.equal(chosen, null); // cancelled → back to the picker → backed out
+    assert.ok(
+      ui.shown.lines.some((l) => /load cancelled — pick the model again/.test(l)),
+      ui.shown.lines.join(" | ")
+    );
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
 // ---- picking ---------------------------------------------------------------
+
+test("a slow model load announces itself instead of looking frozen", async () => {
+  // A first load can sit silent for minutes in "loading …" — once the load
+  // outlasts the hint delay, the caller hears back once with an explanation.
+  const server = http.createServer((req, res) => {
+    setTimeout(() => {
+      res.setHeader("content-type", "application/json");
+      res.end(JSON.stringify({ models: [{ name: "slow:7b" }] }));
+    }, 300);
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  try {
+    const model = { id: "slow:7b", backend: "ollama", baseUrl: `http://127.0.0.1:${server.address().port}`, contextWindow: 4096 };
+    const hints = [];
+    const out = await resolveWithHint(model, undefined, (label) => hints.push(label), 50);
+    assert.equal(out.id, "slow:7b");
+    assert.equal(hints.length, 1);
+    assert.match(hints[0], /first load fills memory, allow 1-3 min/);
+    assert.match(hints[0], /slow:7b/);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
 
 test("the same model id on two machines stays unambiguous", () => {
   const here = { id: "qwen:27b", backend: "ollama", baseUrl: "http://127.0.0.1:11434", contextWindow: 0 };

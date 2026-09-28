@@ -45,7 +45,9 @@
     "src/web/terminal.ts",
     "test/git.test.js",
     "test/highlight-display.test.js",
-    "src/mcp.ts"
+    "src/mcp.ts",
+    "test/network.test.js",
+    "src/network.ts"
   ],
   "inflight": [
     "desktop/preload-git.js"

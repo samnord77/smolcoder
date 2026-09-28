@@ -1,10 +1,10 @@
 {
   "path": "src/mcp.ts",
-  "content_hash": "6cb7e7d07aaa0f19724460d4cc12b107",
-  "updated_at": "2026-09-26T17:57:05",
-  "lines": 628,
-  "size_bytes": 25008,
-  "mtime_ns": 1790418305360024500,
+  "content_hash": "869a7a68586bd972b5a6e8ff7b3fe858",
+  "updated_at": "2026-09-28T13:28:04",
+  "lines": 673,
+  "size_bytes": 27102,
+  "mtime_ns": 1790597592384823900,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -352,10 +352,24 @@
       "children": []
     },
     {
+      "type": "constant",
+      "name": "STATUS_TTL_MS",
+      "line_start": 503,
+      "line_end": 503,
+      "signature": "const STATUS_TTL_MS = 60_000;"
+    },
+    {
+      "type": "constant",
+      "name": "STATUS_MAX_MS",
+      "line_start": 505,
+      "line_end": 505,
+      "signature": "const STATUS_MAX_MS = 45_000;"
+    },
+    {
       "type": "function",
       "name": "createMcpBridge",
-      "line_start": 501,
-      "line_end": 628,
+      "line_start": 507,
+      "line_end": 673,
       "signature": "function createMcpBridge(workspace: string): McpBridge {"
     }
   ]

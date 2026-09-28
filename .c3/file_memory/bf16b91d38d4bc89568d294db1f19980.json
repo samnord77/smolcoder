@@ -1,10 +1,10 @@
 {
   "path": "src/tui/tui.ts",
-  "content_hash": "ba81145206a84d1ee8bc94d1eb935b21",
-  "updated_at": "2026-09-27T21:22:21",
-  "lines": 801,
-  "size_bytes": 26182,
-  "mtime_ns": 1790540414410263600,
+  "content_hash": "4a64c765789f9159067a15733098f2b0",
+  "updated_at": "2026-09-28T13:48:05",
+  "lines": 803,
+  "size_bytes": 26341,
+  "mtime_ns": 1790599556258956700,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -128,7 +128,7 @@
       "type": "class",
       "name": "Tui",
       "line_start": 61,
-      "line_end": 801,
+      "line_end": 803,
       "signature": "class Tui implements SessionUI {",
       "children": [
         {
@@ -412,135 +412,135 @@
           "type": "method",
           "name": "onData",
           "line_start": 181,
-          "line_end": 201,
+          "line_end": 203,
           "signature": "private onData(data: string): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "keyIdle",
-          "line_start": 203,
-          "line_end": 285,
+          "line_start": 205,
+          "line_end": 287,
           "signature": "private keyIdle(key: Key): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "submit",
-          "line_start": 287,
-          "line_end": 308,
+          "line_start": 289,
+          "line_end": 310,
           "signature": "private submit(menu: SlashCommand[]): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "historyPrev",
-          "line_start": 310,
-          "line_end": 319,
+          "line_start": 312,
+          "line_end": 321,
           "signature": "private historyPrev(): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "historyNext",
-          "line_start": 321,
-          "line_end": 330,
+          "line_start": 323,
+          "line_end": 332,
           "signature": "private historyNext(): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "keySelect",
-          "line_start": 332,
-          "line_end": 366,
+          "line_start": 334,
+          "line_end": 368,
           "signature": "private keySelect(key: Key): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "endSelect",
-          "line_start": 368,
-          "line_end": 375,
+          "line_start": 370,
+          "line_end": 377,
           "signature": "private endSelect(result: number | null): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "keyPrompt",
-          "line_start": 377,
-          "line_end": 428,
+          "line_start": 379,
+          "line_end": 430,
           "signature": "private keyPrompt(key: Key): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "filteredOptions",
-          "line_start": 430,
-          "line_end": 435,
+          "line_start": 432,
+          "line_end": 437,
           "signature": "private filteredOptions(): SelectOption[] {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "keyConfirm",
-          "line_start": 437,
-          "line_end": 455,
+          "line_start": 439,
+          "line_end": 457,
           "signature": "private keyConfirm(key: Key): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "menuEntries",
-          "line_start": 459,
-          "line_end": 470,
+          "line_start": 461,
+          "line_end": 472,
           "signature": "private menuEntries(): SlashCommand[] {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "width",
-          "line_start": 472,
-          "line_end": 474,
+          "line_start": 474,
+          "line_end": 476,
           "signature": "private width(): number {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "redraw",
-          "line_start": 476,
-          "line_end": 557,
+          "line_start": 478,
+          "line_end": 559,
           "signature": "private redraw(): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "writeFrame",
-          "line_start": 559,
-          "line_end": 580,
+          "line_start": 561,
+          "line_end": 582,
           "signature": "private writeFrame(lines: string[], cursorRow: number, cursorCol: number): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "hideFrame",
-          "line_start": 582,
-          "line_end": 592,
+          "line_start": 584,
+          "line_end": 594,
           "signature": "private hideFrame(): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "refresh",
-          "line_start": 595,
-          "line_end": 597,
+          "line_start": 597,
+          "line_end": 599,
           "signature": "refresh(): void {",
           "doc": "Redraw the frame if one is on screen (status bar refresh, etc.)."
         },
         {
           "type": "method",
           "name": "spinClear",
-          "line_start": 603,
-          "line_end": 605,
+          "line_start": 605,
+          "line_end": 607,
           "signature": "private spinClear(): void {",
           "access": "private",
           "doc": "Efface la ligne du spinner sans arreter son timer : le texte de"
@@ -548,127 +548,127 @@
         {
           "type": "method",
           "name": "out",
-          "line_start": 606,
-          "line_end": 616,
+          "line_start": 608,
+          "line_end": 618,
           "signature": "private out(s: string): void {",
           "access": "private"
         },
         {
           "type": "property",
           "name": "thinkBuf",
-          "line_start": 618,
-          "line_end": 618,
+          "line_start": 620,
+          "line_end": 620,
           "signature": "private thinkBuf = \"\";",
           "access": "private"
         },
         {
           "type": "property",
           "name": "thinkStart",
-          "line_start": 619,
-          "line_end": 619,
+          "line_start": 621,
+          "line_end": 621,
           "signature": "private thinkStart = 0;",
           "access": "private"
         },
         {
           "type": "property",
           "name": "tickerOn",
-          "line_start": 620,
-          "line_end": 620,
+          "line_start": 622,
+          "line_end": 622,
           "signature": "private tickerOn = false;",
           "access": "private"
         },
         {
           "type": "method",
           "name": "ensureLine",
-          "line_start": 622,
-          "line_end": 631,
+          "line_start": 624,
+          "line_end": 633,
           "signature": "private ensureLine(): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "token",
-          "line_start": 633,
-          "line_end": 638,
+          "line_start": 635,
+          "line_end": 640,
           "signature": "token(text: string): void {"
         },
         {
           "type": "method",
           "name": "thinking",
-          "line_start": 643,
-          "line_end": 659,
+          "line_start": 645,
+          "line_end": 661,
           "signature": "thinking(text: string): void {",
           "doc": "Reasoning streams as ONE grey line, cropped to the latest tail and"
         },
         {
           "type": "method",
           "name": "endTicker",
-          "line_start": 661,
-          "line_end": 667,
+          "line_start": 663,
+          "line_end": 669,
           "signature": "private endTicker(): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "toolCall",
-          "line_start": 669,
-          "line_end": 674,
+          "line_start": 671,
+          "line_end": 676,
           "signature": "toolCall(name: string, args: Record<string, any>): void {"
         },
         {
           "type": "method",
           "name": "toolResult",
-          "line_start": 676,
-          "line_end": 701,
+          "line_start": 678,
+          "line_end": 703,
           "signature": "toolResult(result: string): void {"
         },
         {
           "type": "method",
           "name": "resetResponse",
-          "line_start": 703,
-          "line_end": 707,
+          "line_start": 705,
+          "line_end": 709,
           "signature": "resetResponse(): void {"
         },
         {
           "type": "method",
           "name": "println",
-          "line_start": 709,
-          "line_end": 715,
+          "line_start": 711,
+          "line_end": 717,
           "signature": "println(s = \"\"): void {"
         },
         {
           "type": "method",
           "name": "status",
-          "line_start": 717,
-          "line_end": 719,
+          "line_start": 719,
+          "line_end": 721,
           "signature": "status(s: string): void {"
         },
         {
           "type": "method",
           "name": "turnEnd",
-          "line_start": 721,
-          "line_end": 730,
+          "line_start": 723,
+          "line_end": 732,
           "signature": "turnEnd(label: string): void {"
         },
         {
           "type": "method",
           "name": "planUpdated",
-          "line_start": 732,
-          "line_end": 744,
+          "line_start": 734,
+          "line_end": 746,
           "signature": "planUpdated(plan: Plan): void {"
         },
         {
           "type": "method",
           "name": "subagent",
-          "line_start": 746,
-          "line_end": 748,
+          "line_start": 748,
+          "line_end": 750,
           "signature": "subagent(phase: \"start\" | \"done\", label: string): void {"
         },
         {
           "type": "method",
           "name": "bell",
-          "line_start": 751,
-          "line_end": 757,
+          "line_start": 753,
+          "line_end": 759,
           "signature": "private bell(): void {",
           "access": "private",
           "doc": "Terminal bell: ping on approval prompts, finished turns and errors."
@@ -676,29 +676,29 @@
         {
           "type": "method",
           "name": "warn",
-          "line_start": 759,
-          "line_end": 761,
+          "line_start": 761,
+          "line_end": 763,
           "signature": "warn(s: string): void {"
         },
         {
           "type": "method",
           "name": "error",
-          "line_start": 763,
-          "line_end": 767,
+          "line_start": 765,
+          "line_end": 769,
           "signature": "error(s: string): void {"
         },
         {
           "type": "method",
           "name": "startSpinner",
-          "line_start": 769,
-          "line_end": 788,
+          "line_start": 771,
+          "line_end": 790,
           "signature": "startSpinner(label: string): void {"
         },
         {
           "type": "method",
           "name": "stopSpinner",
-          "line_start": 790,
-          "line_end": 800,
+          "line_start": 792,
+          "line_end": 802,
           "signature": "stopSpinner(): void {"
         }
       ]

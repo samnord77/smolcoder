@@ -1,26 +1,26 @@
 {
   "schema_version": 1,
-  "fencing": 150,
+  "fencing": 155,
   "locks": [
     {
-      "relpath": "src/mcp.ts",
+      "relpath": "test/network.test.js",
       "agent_id": "claude-code:20260928",
       "session_id": "20260928_112948_915b31715629",
-      "fencing_token": 149,
+      "fencing_token": 152,
       "intent": "editing via c3_edit",
-      "acquired_at": 1790597592.3701177,
-      "expires_at": 1790598492.3701177,
-      "lock_id": "c566e77e05cb47a3a4ccd8a8933db774"
+      "acquired_at": 1790599024.392828,
+      "expires_at": 1790601085.7086651,
+      "lock_id": "4327aa6b083a404a92a029a44b9eec5b"
     },
     {
-      "relpath": "test/mcp.test.js",
+      "relpath": "src/tui/tui.ts",
       "agent_id": "claude-code:20260928",
       "session_id": "20260928_112948_915b31715629",
-      "fencing_token": 150,
+      "fencing_token": 155,
       "intent": "editing via c3_edit",
-      "acquired_at": 1790597609.7685955,
-      "expires_at": 1790598509.7685955,
-      "lock_id": "93ef02e84bfc4135b0798adf243986b3"
+      "acquired_at": 1790600594.15898,
+      "expires_at": 1790601494.15898,
+      "lock_id": "0631472a44f3488cb4df8a2504bee6d5"
     }
   ]
 }
