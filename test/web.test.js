@@ -251,7 +251,7 @@ function fakeFactory(log) {
       onExit: null,
       restored: null,
       taskManager: { killAll() {}, runningSummary: () => [], recentUrls: () => ["http://localhost:5173"] },
-      state: () => ({ mode: prefs.mode || "edit", model: "fake-model", backend: "ollama", workspace, urls: ["http://localhost:5173"], commands: [] }),
+      state: () => ({ mode: prefs.mode || "edit", model: session.chosen.id, backend: "ollama", workspace, urls: ["http://localhost:5173"], commands: [] }),
       announce() { ui.status("· fake session ready"); },
       restore(s) { session.restored = s; },
       snapshot: () => ({ messages: [{ role: "user", content: "x" }], plan: [], filesTouched: [], commandsRun: [], originalRequest: "x", currentRequest: "x", mode: "edit", effort: null, model: "fake-model", backend: "ollama" }),
@@ -261,6 +261,17 @@ function fakeFactory(log) {
         for (;;) {
           const input = await ui.readInput();
           if (input === "/exit") { ui.close(); session.onExit && session.onExit(); return; }
+          if (input === "/models") {
+            const options = [{ label: "fake-model" }, { label: "late:7b" }];
+            const index = await ui.select("Select model", options);
+            if (index === null) { ui.warn("load cancelled — pick the model again once its server is ready"); continue; }
+            session.chosen = { id: options[index].label, backend: "ollama" };
+            ui.startSpinner("loading " + session.chosen.id);
+            await sleep(60);
+            ui.stopSpinner();
+            ui.turnEnd("model");
+            continue;
+          }
           ui.startSpinner("thinking");
           ui.token("echo: " + input);
           ui.stopSpinner();
@@ -409,6 +420,53 @@ test("hub: sessions start, echo, save, close, resume, delete; workspaces add and
     await request(hub, "POST", "/workspaces/remove" + k, { path: ws });
     assert.equal(hub.snapshot().workspaces.length, 0);
     assert.match((await request(hub, "POST", "/sessions/resume" + k, { id: "zzz" })).body, /unknown session/);
+  } finally {
+    hub.close();
+  }
+});
+
+test("hub: the /models picker reaches the page, backing out keeps the session alive, picking switches it", async () => {
+  const dataDir = tmpdir("smol-hub-models-");
+  const ws = path.join(dataDir, "proj");
+  fs.mkdirSync(ws);
+  const hub = new WebHub({ port: 0, prefs: {}, help: "help", version: "9.9.9", dataDir, factory: fakeFactory([]), quiet: true });
+  await hub.start();
+  const k = "?k=" + hub.authToken;
+  try {
+    const { id } = JSON.parse((await request(hub, "POST", "/sessions/new" + k, { workspace: ws })).body);
+    await until(() => hub.snapshot().workspaces[0].sessions[0].status === "idle", 2000, "idle session");
+
+    // The slash command opens a picker over the wire, and the page waits on it.
+    await request(hub, "POST", "/msg" + k, { sid: id, text: "/models" });
+    const picks = await readEvents(hub, (e) => e.t === "select" && e.sid === id);
+    const pick = picks.find((e) => e.t === "select" && e.sid === id);
+    assert.equal(pick.title, "Select model");
+    assert.deepEqual(pick.options.map((o) => o.label), ["fake-model", "late:7b"]);
+    assert.equal(hub.snapshot().workspaces[0].sessions[0].status, "waiting", "the session waits on the picker");
+
+    // Backing out says so plainly and leaves the session usable.
+    const cancelledSeen = readEvents(hub, (e) => e.t === "line" && e.kind === "warn" && e.sid === id);
+    await sleep(80); // let the event stream connect before the answer arrives
+    await request(hub, "POST", "/select" + k, { sid: id, id: pick.id, index: null });
+    assert.ok(
+      (await cancelledSeen).some((e) => e.t === "line" && e.kind === "warn" && /load cancelled — pick the model again/.test(e.s)),
+      "the cancel is reported in the transcript"
+    );
+    await until(() => hub.snapshot().workspaces[0].sessions[0].status === "idle", 2000, "idle after backing out");
+
+    // Picking one really switches the session's model, seen by the page.
+    await request(hub, "POST", "/msg" + k, { sid: id, text: "/models" });
+    const again = await readEvents(hub, (e) => e.t === "select" && e.sid === id && e.id !== pick.id);
+    const pick2 = again.find((e) => e.t === "select" && e.id !== pick.id);
+    assert.ok(pick2, "a second picker opens after the cancel");
+    const switchedSeen = readEvents(hub, (e) => e.t === "state" && e.sid === id && e.s && e.s.model === "late:7b");
+    await sleep(80); // ditto: the live state event only reaches open streams
+    await request(hub, "POST", "/select" + k, { sid: id, id: pick2.id, index: 1 });
+    assert.ok(
+      (await switchedSeen).some((e) => e.s && e.s.model === "late:7b"),
+      "the page sees the chosen model"
+    );
+    await until(() => hub.snapshot().workspaces[0].sessions[0].status === "idle", 2000, "idle after the pick");
   } finally {
     hub.close();
   }

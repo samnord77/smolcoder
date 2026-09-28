@@ -1,26 +1,16 @@
 {
   "schema_version": 1,
-  "fencing": 155,
+  "fencing": 156,
   "locks": [
     {
-      "relpath": "test/network.test.js",
+      "relpath": "test/web.test.js",
       "agent_id": "claude-code:20260928",
       "session_id": "20260928_112948_915b31715629",
-      "fencing_token": 152,
+      "fencing_token": 156,
       "intent": "editing via c3_edit",
-      "acquired_at": 1790599024.392828,
-      "expires_at": 1790601085.7086651,
-      "lock_id": "4327aa6b083a404a92a029a44b9eec5b"
-    },
-    {
-      "relpath": "src/tui/tui.ts",
-      "agent_id": "claude-code:20260928",
-      "session_id": "20260928_112948_915b31715629",
-      "fencing_token": 155,
-      "intent": "editing via c3_edit",
-      "acquired_at": 1790600594.15898,
-      "expires_at": 1790601494.15898,
-      "lock_id": "0631472a44f3488cb4df8a2504bee6d5"
+      "acquired_at": 1790601920.8349907,
+      "expires_at": 1790602860.5169313,
+      "lock_id": "106b66a561a24356948c09ac7de80d1e"
     }
   ]
 }
