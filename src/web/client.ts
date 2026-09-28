@@ -906,8 +906,8 @@ function renderPanel() {
   tabsEl.innerHTML = "";
   for (const t of v.tabs) {
     const b = el("div", "ptab" + (t === cur ? " on" : ""));
-    b.appendChild(el("span", "ico", t.kind === "browser" ? "◎" : t.kind === "files" ? "▤" : ">_"));
-    b.appendChild(el("span", "lbl", t.kind === "browser" ? (t.url ? t.url.replace(/^https?:\/\//, "") : "new tab") : t.kind === "files" ? "project files" : "terminal " + t.tid.replace(/^t/, "")));
+    b.appendChild(el("span", "ico", t.kind === "browser" ? "◎" : t.kind === "files" ? "▤" : t.kind === "review" ? "Δ" : t.kind === "plan" ? "☑" : ">_"));
+    b.appendChild(el("span", "lbl", t.kind === "browser" ? (t.url ? t.url.replace(/^https?:\/\//, "") : "new tab") : t.kind === "files" ? "project files" : t.kind === "review" ? "review" : t.kind === "plan" ? "tasks" : "terminal " + String(t.tid || "").replace(/^t/, "")));
     const x = el("span", "x", "×"); x.title = "close tab";
     x.onclick = (e) => { e.stopPropagation(); closeTab(v, t); };
     b.appendChild(x);
@@ -1015,8 +1015,9 @@ function buildBrowserTab(v, t) {
     if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(u)) u = "http://" + u;
     let parsed;
     try { parsed = new URL(u); } catch { urlIn.setCustomValidity("Enter a valid http or https URL"); urlIn.reportValidity(); return; }
-    if (!["http:", "https:"].includes(parsed.protocol) || parsed.origin === location.origin || (["localhost", "127.0.0.1", "[::1]"].includes(parsed.hostname) && parsed.port === location.port)) {
-      urlIn.setCustomValidity("Preview a separate app using http or https"); urlIn.reportValidity(); return;
+    const localWorkspacePreview = parsed.origin === location.origin && parsed.pathname === "/workspace/preview";
+    if (!["http:", "https:"].includes(parsed.protocol) || (!localWorkspacePreview && parsed.origin === location.origin) || (!localWorkspacePreview && ["localhost", "127.0.0.1", "[::1]"].includes(parsed.hostname) && parsed.port === location.port)) {
+      urlIn.setCustomValidity("Preview a separate app or a local HTML workspace file"); urlIn.reportValidity(); return;
     }
     urlIn.setCustomValidity(""); u = parsed.href;
     t.url = u; urlIn.value = u; ext.href = u;
@@ -1069,10 +1070,11 @@ function buildFilesTab(v, t) {
   const refresh = el("button", "iconbtn", "↻"); refresh.title = "refresh files";
   const save = el("button", "iconbtn", "save"); save.title = "save file";
   const diagnosticsButton = el("button", "iconbtn", "✓ problèmes"); diagnosticsButton.title = "Analyser le fichier avec le serveur de langage";
+  const previewButton = el("button", "iconbtn", "▣"); previewButton.title = "Aperçu local HTML";
   const findInput = document.createElement("input");
   findInput.placeholder = "Rechercher dans le projet…"; findInput.setAttribute("aria-label", "Rechercher dans les fichiers du projet");
   const findButton = el("button", "iconbtn", "⌕"); findButton.title = "search workspace";
-  bar.appendChild(up); bar.appendChild(pathInput); bar.appendChild(findInput); bar.appendChild(findButton); bar.appendChild(refresh); bar.appendChild(diagnosticsButton); bar.appendChild(save);
+  bar.appendChild(up); bar.appendChild(pathInput); bar.appendChild(findInput); bar.appendChild(findButton); bar.appendChild(refresh); bar.appendChild(diagnosticsButton); bar.appendChild(previewButton); bar.appendChild(save);
   const newFile = el("button", "iconbtn", "+F"); newFile.title = "new file in this folder";
   const newFolder = el("button", "iconbtn", "+D"); newFolder.title = "new folder here";
   const renameBtn = el("button", "iconbtn", "✎"); renameBtn.title = "rename the open file";
@@ -1096,8 +1098,8 @@ function buildFilesTab(v, t) {
   const inlineReject = el("button", "iconbtn", "Reject"); inlineReject.type = "button";
   inlineRow.append(inlineStatus, inlineAccept, inlineReject);
   inlinePreview.append(inlineDiff, inlineRow);
-  body.insertBefore(inlinePreview, results);
-  body.insertBefore(inlineBar, inlinePreview);
+  // NOTE: inserted into body below, next to the other appends — the
+  // results element does not exist yet at this point (TDZ).
   let inlineRange = null;
   const openInlineBar = () => {
     if (!t.filePath) { showError("Open a file first."); return; }
@@ -1275,6 +1277,8 @@ function buildFilesTab(v, t) {
   };
   split.appendChild(tree); split.appendChild(editorWrap);
   body.appendChild(bar); body.appendChild(results); body.appendChild(fileFindBar); body.appendChild(split); body.appendChild(diagnosticsPanel); body.appendChild(meta);
+  body.insertBefore(inlinePreview, results);
+  body.insertBefore(inlineBar, inlinePreview);
   v.panelEl.appendChild(body);
   t.el = body; t.pathInput = pathInput; t.findInput = findInput; t.tree = tree; t.editor = editor; t.code = code; t.tabsBar = tabsBar; t.tabStore = makeEditorTabStore(); t.saveBtn = save; t.meta = meta;
   t.filePath = ""; t.mtimeMs = 0; t.rel = ".";
@@ -1742,6 +1746,14 @@ function buildFilesTab(v, t) {
   t.refreshMode = (canWrite) => {
     save.disabled = !canWrite || !t.filePath;
     editor.readOnly = !canWrite;
+  };
+  previewButton.onclick = () => {
+    if (!t.filePath || !/\.(?:html?|HTML?)$/.test(t.filePath)) {
+      showError("Ouvrez un fichier HTML pour lancer son aperçu local.");
+      return;
+    }
+    const url = location.origin + "/workspace/preview?k=" + encodeURIComponent(k) + "&sid=" + encodeURIComponent(v.sid) + "&path=" + encodeURIComponent(t.filePath);
+    openBrowserTab(v, url);
   };
   pathInput.onkeydown = (e) => { if (e.key === "Enter") t.loadDir(pathInput.value.trim() || "."); };
   const search = async () => {
@@ -2226,6 +2238,7 @@ const CC_TABS = [
   { id: "skills", label: "Skills" },
   { id: "tools", label: "Outils" },
   { id: "mcp", label: "Serveurs MCP" },
+  { id: "c3", label: "C3 / mémoire" },
   { id: "options", label: "Options" },
 ];
 let cc = { tab: "overview", data: null, error: "", loading: false, at: 0 };
@@ -2389,8 +2402,8 @@ function ccOverview(d) {
     c3.enabled
       ? (c3.workspace ? "Contrôle C3 actif dans cet espace." : "C3 global détecté, sans index workspace.")
       : "C3 non détecté dans cet espace.",
-    c3.enabled ? "Rafraîchir" : null,
-    () => loadCC()
+    c3.enabled ? "Inspecter" : null,
+    () => { cc.tab = "c3"; renderCCTabs(); renderCC(); }
   ));
   wrap.appendChild(ccSection("Raccourcis", grid));
   return wrap;
@@ -2518,6 +2531,23 @@ function ccMcp(d) {
   }
   return wrap;
 }
+function ccC3(d) {
+  const wrap = el("div", "cc-anim");
+  const c = d.c3 || {};
+  const bytes = Number(c.indexedBytes || 0);
+  const pretty = bytes < 1024 ? bytes + " B" : bytes < 1048576 ? (bytes / 1024).toFixed(1) + " KB" : (bytes / 1048576).toFixed(1) + " MB";
+  const grid = el("div", "cc-grid");
+  grid.appendChild(ccCard("État", c.enabled ? "C3 détecté" : "C3 non détecté", null));
+  grid.appendChild(ccCard("Cache intelligent", String(c.cacheFiles || 0) + " fichiers indexés", null));
+  grid.appendChild(ccCard("Index SQLite", pretty, null));
+  grid.appendChild(ccCard("Artifacts", c.artifacts ? "Disponibles" : "Absents", null));
+  grid.appendChild(ccCard("Mémoire fichier", c.memory ? "Disponible" : "Absente", null));
+  wrap.appendChild(ccSection("Contrôle C3", grid));
+  wrap.appendChild(el("div", "cc-empty", c.workspace
+    ? "Le workspace possède son index C3. Les modifications de session restent synchronisées avec l’IDE."
+    : "Aucun index C3 local au workspace. Le contrôle global est visible, mais l’indexation projet doit être activée."));
+  return wrap;
+}
 function ccOptions(d) {
   const wrap = el("div", "cc-anim");
   const s = d.state || {};
@@ -2551,6 +2581,7 @@ function renderCC() {
   else if (cc.tab === "skills") body.appendChild(ccSkills(d));
   else if (cc.tab === "tools") body.appendChild(ccTools(d));
   else if (cc.tab === "mcp") body.appendChild(ccMcp(d));
+  else if (cc.tab === "c3") body.appendChild(ccC3(d));
   else if (cc.tab === "options") body.appendChild(ccOptions(d));
   else body.appendChild(ccOverview(d));
 }

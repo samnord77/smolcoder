@@ -1,10 +1,10 @@
 {
   "path": "src/web/hub.ts",
-  "content_hash": "909e60c38e80133facd5fb42787f2579",
-  "updated_at": "2026-09-27T23:02:43",
-  "lines": 1824,
-  "size_bytes": 73575,
-  "mtime_ns": 1790546230112783600,
+  "content_hash": "a37acd3e20198c71d4ae71131a67c4f3",
+  "updated_at": "2026-09-28T00:22:59",
+  "lines": 1853,
+  "size_bytes": 75125,
+  "mtime_ns": 1790551357803079600,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -405,7 +405,7 @@
       "type": "class",
       "name": "WebHub",
       "line_start": 290,
-      "line_end": 1824,
+      "line_end": 1853,
       "signature": "class WebHub {",
       "children": [
         {
@@ -805,23 +805,23 @@
           "type": "method",
           "name": "route",
           "line_start": 805,
-          "line_end": 1026,
+          "line_end": 1049,
           "signature": "private route(req: http.IncomingMessage, res: http.ServerResponse): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "sse",
-          "line_start": 1028,
-          "line_end": 1046,
+          "line_start": 1051,
+          "line_end": 1069,
           "signature": "private sse(req: http.IncomingMessage, res: http.ServerResponse): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "sharedSse",
-          "line_start": 1050,
-          "line_end": 1078,
+          "line_start": 1073,
+          "line_end": 1101,
           "signature": "private sharedSse(req: http.IncomingMessage, res: http.ServerResponse, url: URL): void {",
           "access": "private",
           "doc": "Read-only live follow: the session replay plus its future events, and"
@@ -829,8 +829,8 @@
         {
           "type": "method",
           "name": "shareSession",
-          "line_start": 1081,
-          "line_end": 1090,
+          "line_start": 1104,
+          "line_end": 1113,
           "signature": "private shareSession(sid: string): { token: string } {",
           "access": "private",
           "doc": "Mint a read-only follow token for a live session."
@@ -838,8 +838,8 @@
         {
           "type": "method",
           "name": "sharedPing",
-          "line_start": 1093,
-          "line_end": 1107,
+          "line_start": 1116,
+          "line_end": 1130,
           "signature": "private sharedPing(token: string, name: string): { sid: string } {",
           "access": "private",
           "doc": "A viewer announces itself; presence shows in the sidebar snapshot."
@@ -847,16 +847,16 @@
         {
           "type": "method",
           "name": "uploadsDir",
-          "line_start": 1111,
-          "line_end": 1113,
+          "line_start": 1134,
+          "line_end": 1136,
           "signature": "private uploadsDir(sid: string): string {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "receiveUpload",
-          "line_start": 1117,
-          "line_end": 1172,
+          "line_start": 1140,
+          "line_end": 1195,
           "signature": "private receiveUpload(req: http.IncomingMessage, res: http.ServerResponse, url: URL): void {",
           "access": "private",
           "doc": "One file for a live session, sent as the raw request body with the name"
@@ -864,8 +864,8 @@
         {
           "type": "method",
           "name": "serveUpload",
-          "line_start": 1175,
-          "line_end": 1186,
+          "line_start": 1198,
+          "line_end": 1209,
           "signature": "private serveUpload(res: http.ServerResponse, url: URL): void {",
           "access": "private",
           "doc": "A stored upload, for the page's thumbnails and \"open\" links."
@@ -873,16 +873,16 @@
         {
           "type": "method",
           "name": "findUpload",
-          "line_start": 1188,
-          "line_end": 1196,
+          "line_start": 1211,
+          "line_end": 1219,
           "signature": "private findUpload(sid: string, id: string): string | null {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "removeUpload",
-          "line_start": 1199,
-          "line_end": 1209,
+          "line_start": 1222,
+          "line_end": 1232,
           "signature": "private removeUpload(live: Live, id: string): void {",
           "access": "private",
           "doc": "The user took a chip off the composer: forget the file."
@@ -890,24 +890,24 @@
         {
           "type": "method",
           "name": "checkDir",
-          "line_start": 1211,
-          "line_end": 1217,
+          "line_start": 1234,
+          "line_end": 1240,
           "signature": "private checkDir(p: any): string {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "handlePost",
-          "line_start": 1219,
-          "line_end": 1375,
+          "line_start": 1242,
+          "line_end": 1398,
           "signature": "private handlePost(p: string, d: any): any {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "workspaceTree",
-          "line_start": 1379,
-          "line_end": 1416,
+          "line_start": 1402,
+          "line_end": 1439,
           "signature": "private workspaceTree(sidRaw: string | null, relRaw: string | null): any {",
           "access": "private",
           "doc": "Structured project tree for the web IDE panel. It is deliberately"
@@ -915,24 +915,24 @@
         {
           "type": "method",
           "name": "workspaceFile",
-          "line_start": 1418,
-          "line_end": 1455,
+          "line_start": 1441,
+          "line_end": 1478,
           "signature": "private workspaceFile(res: http.ServerResponse, url: URL): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "saveWorkspaceFile",
-          "line_start": 1457,
-          "line_end": 1488,
+          "line_start": 1480,
+          "line_end": 1511,
           "signature": "private saveWorkspaceFile(sid: string, d: any): any {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "editLive",
-          "line_start": 1491,
-          "line_end": 1498,
+          "line_start": 1514,
+          "line_end": 1521,
           "signature": "private editLive(sid: string): Live & { session: Session } {",
           "access": "private",
           "doc": "Guard for every mutating workspace-file endpoint."
@@ -940,32 +940,32 @@
         {
           "type": "method",
           "name": "createWorkspaceEntry",
-          "line_start": 1500,
-          "line_end": 1519,
+          "line_start": 1523,
+          "line_end": 1542,
           "signature": "private createWorkspaceEntry(sid: string, d: any): any {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "renameWorkspaceEntry",
-          "line_start": 1521,
-          "line_end": 1541,
+          "line_start": 1544,
+          "line_end": 1564,
           "signature": "private renameWorkspaceEntry(sid: string, d: any): any {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "deleteWorkspaceEntry",
-          "line_start": 1543,
-          "line_end": 1559,
+          "line_start": 1566,
+          "line_end": 1582,
           "signature": "private deleteWorkspaceEntry(sid: string, d: any): any {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "editKey",
-          "line_start": 1562,
-          "line_end": 1564,
+          "line_start": 1585,
+          "line_end": 1587,
           "signature": "private editKey(workspace: string, rel: string): string {",
           "access": "private",
           "doc": "Collab document key: one live doc per workspace file."
@@ -973,16 +973,16 @@
         {
           "type": "method",
           "name": "readEditFile",
-          "line_start": 1566,
-          "line_end": 1592,
+          "line_start": 1589,
+          "line_end": 1615,
           "signature": "private readEditFile(workspace: string, rel: string): { abs: string; text: string } {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "openEditDoc",
-          "line_start": 1597,
-          "line_end": 1610,
+          "line_start": 1620,
+          "line_end": 1633,
           "signature": "private openEditDoc(workspace: string, rel: string): { text: string; version: number } {",
           "access": "private",
           "doc": "(Re)bootstrap the shared doc from disk. The file stays authoritative:"
@@ -990,8 +990,8 @@
         {
           "type": "method",
           "name": "applyEditOps",
-          "line_start": 1614,
-          "line_end": 1635,
+          "line_start": 1637,
+          "line_end": 1658,
           "signature": "private applyEditOps(workspace: string, rel: string, rawOps: unknown): { version: number; applied: number } {",
           "access": "private",
           "doc": "Apply broadcast ops to the shared doc and relay the accepted ones."
@@ -999,8 +999,8 @@
         {
           "type": "method",
           "name": "prepareInlineEdit",
-          "line_start": 1639,
-          "line_end": 1658,
+          "line_start": 1662,
+          "line_end": 1681,
           "signature": "private prepareInlineEdit(",
           "access": "private",
           "doc": "Sync validation + file read for an inline edit (throws immediately so"
@@ -1008,8 +1008,8 @@
         {
           "type": "method",
           "name": "runInlineEdit",
-          "line_start": 1663,
-          "line_end": 1721,
+          "line_start": 1686,
+          "line_end": 1744,
           "signature": "private async runInlineEdit(live: Live, d: any): Promise<any> {",
           "async": true,
           "access": "private",
@@ -1018,8 +1018,8 @@
         {
           "type": "method",
           "name": "planView",
-          "line_start": 1724,
-          "line_end": 1743,
+          "line_start": 1747,
+          "line_end": 1766,
           "signature": "private planView(live: Live): {",
           "access": "private",
           "doc": "Serializable plan for the checklist tab. Never throws."
@@ -1027,8 +1027,8 @@
         {
           "type": "method",
           "name": "statusReport",
-          "line_start": 1746,
-          "line_end": 1811,
+          "line_start": 1769,
+          "line_end": 1840,
           "signature": "private async statusReport(url: URL): Promise<any> {",
           "async": true,
           "access": "private",
@@ -1037,8 +1037,8 @@
         {
           "type": "method",
           "name": "agentDraft",
-          "line_start": 1815,
-          "line_end": 1822,
+          "line_start": 1844,
+          "line_end": 1851,
           "signature": "private agentDraft(workspace: string, roleName: string, task: string): any {",
           "access": "private",
           "doc": "The delegation message for a role. subagents.ts stays the single source of"

@@ -984,6 +984,29 @@ export class WebHub {
         case "/workspace/file":
           this.workspaceFile(res, url);
           return;
+        case "/workspace/preview": {
+          const sid = String(url.searchParams.get("sid") ?? "");
+          const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
+          if (!live) { json(404, { error: "no such session" }); return; }
+          try {
+            const rel = String(url.searchParams.get("path") ?? "");
+            const abs = resolveInWorkspace(live.workspace, rel);
+            const st = fs.statSync(abs);
+            if (!st.isFile() || st.size > 2 * 1024 * 1024) throw new Error("preview file must be a regular file under 2 MB");
+            const ext = path.extname(abs).toLowerCase();
+            if (![".html", ".htm"].includes(ext)) throw new Error("only HTML files can be previewed locally");
+            res.writeHead(200, {
+              "content-type": "text/html; charset=utf-8",
+              "cache-control": "no-store",
+              "content-security-policy": "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:",
+              "x-content-type-options": "nosniff",
+            });
+            res.end(fs.readFileSync(abs));
+          } catch (err: any) {
+            json(400, { error: String(err?.message ?? err).slice(0, 500) });
+          }
+          return;
+        }
         case "/status":
           this.statusReport(url)
             .then((r) => json(200, r))
@@ -1806,6 +1829,12 @@ export class WebHub {
         workspace: fs.existsSync(path.join(live.workspace, ".c3")),
         artifacts: fs.existsSync(path.join(live.workspace, ".c3", "agent_artifacts")),
         memory: fs.existsSync(path.join(live.workspace, ".c3", "file_memory")),
+        cacheFiles: (() => {
+          try { return fs.readdirSync(path.join(live.workspace, ".c3", "cache")).length; } catch { return 0; }
+        })(),
+        indexedBytes: (() => {
+          try { return fs.statSync(path.join(live.workspace, ".c3", "index", "index.sqlite")).size; } catch { return 0; }
+        })(),
       },
     };
   }

@@ -1,26 +1,26 @@
 {
   "schema_version": 1,
-  "fencing": 108,
+  "fencing": 110,
   "locks": [
     {
       "relpath": "src/web/client.ts",
       "agent_id": "claude-code:20260927",
       "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 107,
-      "intent": "Clic panneau sans session : message au lieu de silence",
-      "acquired_at": 1790550080.4886994,
-      "expires_at": 1790551428.3623245,
-      "lock_id": "0ccd7f283ea446e3bc15b92343c9a767"
+      "fencing_token": 109,
+      "intent": "Libell\u00e9s revue/plan au lieu du crash terminal",
+      "acquired_at": 1790554453.2650845,
+      "expires_at": 1790556306.2723856,
+      "lock_id": "cd7e0f8705bb404d8444e7333b225ffe"
     },
     {
-      "relpath": "src/agent.ts",
+      "relpath": "test/client-smoke.test.js",
       "agent_id": "claude-code:20260927",
       "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 108,
-      "intent": "Avertit apr\u00e8s 60 s sans premier token (chargement mod\u00e8le ?)",
-      "acquired_at": 1790550506.3744936,
-      "expires_at": 1790551406.3744936,
-      "lock_id": "f2d8a444d41a4bc0aef63d95221642c3"
+      "fencing_token": 110,
+      "intent": "Stub insertBefore fid\u00e8le au DOM",
+      "acquired_at": 1790554694.8486261,
+      "expires_at": 1790556287.2386088,
+      "lock_id": "625a3beaaf204fcc98a58db1985aee21"
     }
   ]
 }

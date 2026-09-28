@@ -1,0 +1,83 @@
+{
+  "path": "test/client-smoke.test.js",
+  "content_hash": "efe9931ea337e7d7c774a97983c4a5fb",
+  "updated_at": "2026-09-28T01:28:01",
+  "lines": 215,
+  "size_bytes": 7026,
+  "mtime_ns": 1790554985108580100,
+  "language": "javascript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "constant",
+      "name": "test",
+      "line_start": 5,
+      "line_end": 5,
+      "signature": "const test = require(\"node:test\");"
+    },
+    {
+      "type": "constant",
+      "name": "assert",
+      "line_start": 6,
+      "line_end": 6,
+      "signature": "const assert = require(\"node:assert/strict\");"
+    },
+    {
+      "type": "constant",
+      "name": "fs",
+      "line_start": 7,
+      "line_end": 7,
+      "signature": "const fs = require(\"node:fs\");"
+    },
+    {
+      "type": "constant",
+      "name": "path",
+      "line_start": 8,
+      "line_end": 8,
+      "signature": "const path = require(\"node:path\");"
+    },
+    {
+      "type": "constant",
+      "name": "vm",
+      "line_start": 9,
+      "line_end": 9,
+      "signature": "const vm = require(\"node:vm\");"
+    },
+    {
+      "type": "function",
+      "name": "makeEl",
+      "line_start": 12,
+      "line_end": 53,
+      "signature": "function makeEl(all) {"
+    },
+    {
+      "type": "function",
+      "name": "boot",
+      "line_start": 55,
+      "line_end": 148,
+      "signature": "function boot(treeEntries, diffPayload) {"
+    },
+    {
+      "type": "constant",
+      "name": "TREE",
+      "line_start": 150,
+      "line_end": 153,
+      "signature": "const TREE = ["
+    },
+    {
+      "type": "constant",
+      "name": "DIFF",
+      "line_start": 154,
+      "line_end": 157,
+      "signature": "const DIFF = {"
+    },
+    {
+      "type": "function",
+      "name": "emitHub",
+      "line_start": 159,
+      "line_end": 172,
+      "signature": "function emitHub(ctx, sid = \"s1\") {"
+    }
+  ]
+}

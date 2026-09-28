@@ -40,7 +40,8 @@
     "src/prompt.ts",
     "src/agent.ts",
     "test/agent.test.js",
-    "src/verification.ts"
+    "src/verification.ts",
+    "test/client-smoke.test.js"
   ],
   "inflight": [
     "desktop/preload-git.js"

@@ -535,6 +535,7 @@ export class Agent {
     try {
       await this.refreshLoadedWindow();
       agentLoop: while (steps++ < this.maxSteps) {
+        if (process.env.SMOL_DEBUG_VERIFY) console.error("MODEL_STEP", steps, "calls", toolCallsThisTurn, "verification", !!this.verification, "result", (this.verificationResult as any)?.attempts ?? 0, "progress", !!this.progressFailure);
         // Context management before every request.
         await this.bus.emit("pre_request");
         if (this.ctxMgr.needsAttention(this.messages, this.tools)) {
@@ -659,6 +660,7 @@ export class Agent {
         nudges = 0;
 
         for (const call of result.toolCalls) {
+          if (process.env.SMOL_DEBUG_VERIFY) console.error("TOOL", call.name, toolCallsThisTurn + 1);
           if (signal.aborted) throw abortError();
           this.ui.toolCall(
             call.name,

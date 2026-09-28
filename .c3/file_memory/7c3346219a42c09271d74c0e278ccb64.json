@@ -1,10 +1,10 @@
 {
   "path": "src/agent.ts",
-  "content_hash": "5f2528388cef187099d9f6407b474699",
-  "updated_at": "2026-09-27T23:22:44",
-  "lines": 1007,
-  "size_bytes": 51747,
-  "mtime_ns": 1790547658681781800,
+  "content_hash": "6cc1792f338146916e0d9fd129b6bf55",
+  "updated_at": "2026-09-28T01:00:59",
+  "lines": 1024,
+  "size_bytes": 52851,
+  "mtime_ns": 1790553638525736800,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -282,7 +282,7 @@
       "type": "class",
       "name": "Agent",
       "line_start": 110,
-      "line_end": 974,
+      "line_end": 991,
       "signature": "class Agent {",
       "children": [
         {
@@ -533,23 +533,23 @@
           "type": "method",
           "name": "runTurn",
           "line_start": 445,
-          "line_end": 820,
+          "line_end": 837,
           "signature": "async runTurn(userInput: string, attachments: Attachment[] = []): Promise<void> {",
           "async": true
         },
         {
           "type": "method",
           "name": "truncatedCallHint",
-          "line_start": 824,
-          "line_end": 833,
+          "line_start": 841,
+          "line_end": 850,
           "signature": "truncatedCallHint(): string {",
           "doc": "Coaching for a tool call that overflowed the output cap. Exported via"
         },
         {
           "type": "method",
           "name": "chatWithRetry",
-          "line_start": 838,
-          "line_end": 868,
+          "line_start": 855,
+          "line_end": 885,
           "signature": "private async chatWithRetry(signal: AbortSignal, actionOnly = false): Promise<ChatResult> {",
           "async": true,
           "access": "private",
@@ -558,8 +558,8 @@
         {
           "type": "method",
           "name": "refreshLoadedWindow",
-          "line_start": 870,
-          "line_end": 881,
+          "line_start": 887,
+          "line_end": 898,
           "signature": "private async refreshLoadedWindow(): Promise<void> {",
           "async": true,
           "access": "private"
@@ -567,8 +567,8 @@
         {
           "type": "method",
           "name": "gateAndExecute",
-          "line_start": 883,
-          "line_end": 940,
+          "line_start": 900,
+          "line_end": 957,
           "signature": "private async gateAndExecute(",
           "async": true,
           "access": "private"
@@ -576,16 +576,16 @@
         {
           "type": "method",
           "name": "repairTranscript",
-          "line_start": 942,
-          "line_end": 954,
+          "line_start": 959,
+          "line_end": 971,
           "signature": "private repairTranscript(reason: string): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "sanitizeAfterCancel",
-          "line_start": 962,
-          "line_end": 964,
+          "line_start": 979,
+          "line_end": 981,
           "signature": "private sanitizeAfterCancel(): void {",
           "access": "private",
           "doc": "After a cancel, the most recent assistant tool-call message may have some"
@@ -593,8 +593,8 @@
         {
           "type": "method",
           "name": "statusLine",
-          "line_start": 966,
-          "line_end": 973,
+          "line_start": 983,
+          "line_end": 990,
           "signature": "statusLine(): string {"
         }
       ]
@@ -602,23 +602,23 @@
     {
       "type": "interface",
       "name": "TurnStats",
-      "line_start": 976,
-      "line_end": 988,
+      "line_start": 993,
+      "line_end": 1005,
       "signature": "interface TurnStats {",
       "children": []
     },
     {
       "type": "function",
       "name": "describeStats",
-      "line_start": 992,
-      "line_end": 1001,
+      "line_start": 1009,
+      "line_end": 1018,
       "signature": "function describeStats(s: TurnStats): string {"
     },
     {
       "type": "function",
       "name": "abortError",
-      "line_start": 1003,
-      "line_end": 1007,
+      "line_start": 1020,
+      "line_end": 1024,
       "signature": "function abortError(): Error {"
     }
   ]
