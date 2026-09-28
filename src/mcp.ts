@@ -498,6 +498,12 @@ export interface McpStatusRow {
   error?: string;
 }
 
+/** Status results are cached this long: a cold npx start is paid once and
+ * every later panel open answers instantly. */
+const STATUS_TTL_MS = 60_000;
+/** Ceiling for the one background retry a slow-but-configured server gets. */
+const STATUS_MAX_MS = 45_000;
+
 export function createMcpBridge(workspace: string): McpBridge {
   const clients = new Map<string, McpClient>();
   const of = (name: string): { cfg: McpServerConfig; client: McpClient } | null => {
@@ -509,6 +515,40 @@ export function createMcpBridge(workspace: string): McpBridge {
       clients.set(cfg.name, client);
     }
     return { cfg, client };
+  };
+  const statusCache = new Map<string, { at: number; row: McpStatusRow }>();
+  const statusRetrying = new Set<string>();
+  /** Probe one server: list its tools under a deadline, or say why not.
+   * Never throws; failures come back as coaching, not as exceptions. */
+  const probeOne = async (cfg: McpServerConfig, timeoutMs: number): Promise<McpStatusRow> => {
+    const found = of(cfg.name);
+    if (!found) return { name: cfg.name, ok: false, error: "not configured" };
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const tools = await Promise.race([
+        found.client.listTools(),
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(() => reject(new Error("too slow to answer")), timeoutMs);
+        }),
+      ]);
+      return { name: cfg.name, ok: true, tools: tools.map((t) => t.name) };
+    } catch (err: any) {
+      found.client.close();
+      clients.delete(found.cfg.name);
+      const why = String(err?.message ?? err);
+      const missing = /ENOENT/i.test(why) ? (cfg.command ?? "").split(/[\\/]/).pop() ?? "" : "";
+      return {
+        name: cfg.name,
+        ok: false,
+        error: missing
+          ? `commande "${missing}" introuvable — installez-la ou mettez "enabled": false dans .smol/mcp.json`
+          : /\b401\b/.test(why)
+            ? "clé API refusée (HTTP 401) — configurez la clé de ce serveur"
+            : why.slice(0, 120),
+      };
+    } finally {
+      clearTimeout(timer);
+    }
   };
   return {
     configured: () => loadMcpConfig(workspace),
@@ -575,23 +615,28 @@ export function createMcpBridge(workspace: string): McpBridge {
     },
     async status(timeoutMs = 8000): Promise<McpStatusRow[]> {
       const cfgs = loadMcpConfig(workspace);
-      const one = async (cfg: McpServerConfig): Promise<McpStatusRow> => {
-        if (cfg.enabled === false) return { name: cfg.name, ok: false, error: "désactivé (enabled: false)" };
-        const found = of(cfg.name);
-        if (!found) return { name: cfg.name, ok: false, error: "not configured" };
-        try {
-          const tools = await Promise.race([
-            found.client.listTools(),
-            new Promise<never>((_, reject) => setTimeout(() => reject(new Error("too slow to answer")), timeoutMs)),
-          ]);
-          return { name: cfg.name, ok: true, tools: tools.map((t) => t.name) };
-        } catch (err: any) {
-          found.client.close();
-          clients.delete(found.cfg.name);
-          return { name: cfg.name, ok: false, error: String(err?.message ?? err).slice(0, 120) };
-        }
-      };
-      return Promise.all(cfgs.map(one));
+      const now = Date.now();
+      return Promise.all(
+        cfgs.map(async (cfg) => {
+          if (cfg.enabled === false) return { name: cfg.name, ok: false, error: "désactivé (enabled: false)" };
+          const hit = statusCache.get(cfg.name);
+          if (hit && now - hit.at < STATUS_TTL_MS) return hit.row;
+          const row = await probeOne(cfg, timeoutMs);
+          statusCache.set(cfg.name, { at: Date.now(), row });
+          // Too slow for the quick pass but the config allows more: finish
+          // in the background (once) so the next refresh shows the truth
+          // instead of a server that can never be green.
+          if (!row.ok && row.error === "too slow to answer" && (cfg.timeoutMs ?? 0) > timeoutMs && !statusRetrying.has(cfg.name)) {
+            statusRetrying.add(cfg.name);
+            const ceiling = Number(process.env.SMOLCODER_MCP_STATUS_RETRY_MS) || STATUS_MAX_MS;
+            const budget = Math.min(Math.max(timeoutMs, cfg.timeoutMs ?? 0), ceiling);
+            void probeOne(cfg, budget)
+              .then((fresh) => statusCache.set(cfg.name, { at: Date.now(), row: fresh }))
+              .catch(() => undefined);
+          }
+          return row;
+        })
+      );
     },
     async debugServer(name: string): Promise<string> {
       const needle = (name ?? "").trim().toLowerCase();

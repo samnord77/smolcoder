@@ -131,6 +131,44 @@ test("status lights: green with tools, red with reason", async (t) => {
   const dead = rows.find((r) => r.name === "dead");
   assert.ok(fake?.ok && fake.tools?.includes("echo"), JSON.stringify(rows));
   assert.ok(dead && !dead.ok && dead.error);
+  assert.match(dead.error, /introuvable/, "a missing command must say what to do");
+});
+
+test("status is cached: it survives closeAll and answers instantly", async (t) => {
+  const { ws, bridge } = scratchWithServer();
+  t.after(() => bridge.closeAll());
+  const first = await bridge.status(10000);
+  assert.equal(first[0]?.ok, true, JSON.stringify(first));
+  bridge.closeAll(); // a real recheck would have to start the server over
+  fs.rmSync(path.join(ws, "fake-server.cjs")); // and its script is gone now
+  const t0 = Date.now();
+  const second = await bridge.status(10000);
+  assert.ok(Date.now() - t0 < 1500, "cached status must not restart anything");
+  assert.equal(second[0]?.ok, true, JSON.stringify(second));
+});
+
+test("a slow server gets one background retry, then the cache tells the truth", async (t) => {
+  process.env.SMOLCODER_MCP_STATUS_RETRY_MS = "3000";
+  const ws = fs.mkdtempSync(path.join(os.tmpdir(), "smol-mcp-"));
+  const script = path.join(ws, "slow-server.cjs");
+  fs.writeFileSync(script, `setTimeout(() => {\n${FAKE_SERVER}\n}, 700);`);
+  fs.mkdirSync(path.join(ws, ".smol"), { recursive: true });
+  fs.writeFileSync(
+    path.join(ws, ".smol", "mcp.json"),
+    JSON.stringify([{ name: "slow", command: process.execPath, args: [script], timeoutMs: 5000 }])
+  );
+  const bridge = createMcpBridge(ws);
+  t.after(() => {
+    bridge.closeAll();
+    delete process.env.SMOLCODER_MCP_STATUS_RETRY_MS;
+  });
+  const first = await bridge.status(250); // too fast for a 700 ms boot
+  assert.equal(first[0]?.ok, false, JSON.stringify(first));
+  assert.match(first[0]?.error ?? "", /too slow/);
+  await new Promise((r) => setTimeout(r, 1400)); // background retry lands
+  const second = await bridge.status(250);
+  assert.equal(second[0]?.ok, true, JSON.stringify(second));
+  assert.ok(second[0]?.tools?.includes("echo"));
 });
 
 test("user-scope servers merge under workspace ones", () => {

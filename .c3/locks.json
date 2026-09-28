@@ -1,16 +1,26 @@
 {
   "schema_version": 1,
-  "fencing": 148,
+  "fencing": 150,
   "locks": [
     {
-      "relpath": "src/git.ts",
+      "relpath": "src/mcp.ts",
       "agent_id": "claude-code:20260928",
       "session_id": "20260928_112948_915b31715629",
-      "fencing_token": 148,
+      "fencing_token": 149,
       "intent": "editing via c3_edit",
-      "acquired_at": 1790595823.0929353,
-      "expires_at": 1790597515.025471,
-      "lock_id": "557b7dfbef74448ca1730e2dd76d85a0"
+      "acquired_at": 1790597592.3701177,
+      "expires_at": 1790598492.3701177,
+      "lock_id": "c566e77e05cb47a3a4ccd8a8933db774"
+    },
+    {
+      "relpath": "test/mcp.test.js",
+      "agent_id": "claude-code:20260928",
+      "session_id": "20260928_112948_915b31715629",
+      "fencing_token": 150,
+      "intent": "editing via c3_edit",
+      "acquired_at": 1790597609.7685955,
+      "expires_at": 1790598509.7685955,
+      "lock_id": "93ef02e84bfc4135b0798adf243986b3"
     }
   ]
 }

@@ -44,7 +44,8 @@
     "test/client-smoke.test.js",
     "src/web/terminal.ts",
     "test/git.test.js",
-    "test/highlight-display.test.js"
+    "test/highlight-display.test.js",
+    "src/mcp.ts"
   ],
   "inflight": [
     "desktop/preload-git.js"
