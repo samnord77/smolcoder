@@ -248,3 +248,31 @@ test("crumb shows the plan chip; review has filter and nav", async () => {
   const titles = c.allElements().map((e) => e.title).filter(Boolean);
   assert.ok(titles.includes("Previous change") && titles.includes("Next change"), "hunk navigation present");
 });
+
+test("agent file activity shows live and refreshes review", async () => {
+  const c = boot(TREE, DIFF);
+  emitHub(c);
+  await c.flush();
+  c.els.btnfiles.onclick();
+  await c.flush(200);
+  c.es().onmessage({ data: JSON.stringify({ t: "tool", sid: "s1", name: "write_file", summary: "a.ts" }) });
+  await c.flush(120);
+  const texts = [];
+  for (const e of c.allElements()) if (e.textContent) texts.push(e.textContent);
+  assert.ok(texts.some((t) => t.includes("🤖 write_file")), "agent chip shows the live tool call");
+});
+
+test("side-by-side toggle renders paired columns", async () => {
+  const c = boot(TREE, DIFF);
+  emitHub(c);
+  await c.flush();
+  c.els.btnreview.onclick();
+  await c.flush(200);
+  const toggle = c.allElements().find((e) => e.title === "side-by-side view");
+  assert.ok(toggle, "sbs toggle present");
+  toggle.onclick();
+  await c.flush(200);
+  assert.equal(c.errors(), "", "no page error in side-by-side");
+  assert.ok(c.classes().has("sbsgrid"), "paired grid rendered");
+  assert.ok(c.classes().has("sbsrow"), "paired rows rendered");
+});

@@ -279,6 +279,12 @@ export const STYLES = String.raw`
   .tabbody.review .bar input, .tabbody.review .bar select { min-width: 0; background: var(--box); border: 1px solid var(--line); color: var(--fg); font: inherit; font-size: 12px; padding: 4px 7px; border-radius: 4px; }
   .tabbody.review .bar input { flex: 1; }
   .gutter { display: inline-block; width: 34px; flex: none; text-align: right; margin-right: 8px; color: var(--dim); opacity: .7; user-select: none; }
+  .sbsgrid { border: 1px solid var(--line); border-radius: 6px; margin: 0 0 8px; overflow: hidden; }
+  .sbshunk { padding: 4px 8px; color: #79c0ff; font-size: 11px; background: #0c1013; border-bottom: 1px solid var(--line); }
+  .sbsrow { display: grid; grid-template-columns: 1fr 1fr; }
+  .sbsrow .reviewpatch { margin: 0; border: 0; border-radius: 0; max-height: none; }
+  .sbsrow .reviewpatch:first-child { border-right: 1px solid var(--line); }
+  .sbssame { padding: 0 8px; color: var(--dim); font-size: 11px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
   .reviewhunk { border: 1px solid var(--line); border-radius: 6px; margin: 0 0 8px; overflow: hidden; }
   .reviewpatch { margin: 0; padding: 6px 8px; font-size: 11px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; background: #0c1013; max-height: 220px; overflow: auto; }
   .reviewactions { display: flex; gap: 6px; padding: 6px 8px; border-top: 1px solid var(--line); background: #101416; }

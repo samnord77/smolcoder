@@ -499,6 +499,32 @@ function renderPlan(v, p) {
 }
 
 // ---- event handling -------------------------------------------------------
+const AGENT_FILE_TOOLS = ["read_file", "write_file", "edit_file", "list_files", "search"];
+let agentRefreshTimer = null;
+// Live agent presence: every file tool call updates the files tab chip,
+// writes also refresh the open review tab + tree (debounced).
+function notifyAgentFileActivity(v, m) {
+  if (!m || AGENT_FILE_TOOLS.indexOf(m.name) < 0) return;
+  try {
+    const ft = v.tabs.find((x) => x.kind === "files");
+    if (ft && ft.agentLine) {
+      ft.agentLine.textContent = "🤖 " + m.name + (m.summary ? " " + m.summary : "");
+      ft.agentLine.hidden = false;
+    }
+    if (m.name === "write_file" || m.name === "edit_file") {
+      if (agentRefreshTimer) clearTimeout(agentRefreshTimer);
+      agentRefreshTimer = setTimeout(() => {
+        agentRefreshTimer = null;
+        try {
+          const rv = v.tabs.find((x) => x.kind === "review");
+          if (rv && rv.reload) rv.reload();
+          const ff = v.tabs.find((x) => x.kind === "files");
+          if (ff && ff.refreshFiles) ff.refreshFiles();
+        } catch (e) {}
+      }, 1200);
+    }
+  } catch (e) {}
+}
 function handle(m) {
   if (m.t === "hub") { onHub(m); return; }
   if (m.t === "closed") { dropView(m.sid); return; }
@@ -551,7 +577,9 @@ function handle(m) {
         }
         d.appendChild(pre);
       }
-      subAdd(v, d); break;
+      subAdd(v, d);
+      notifyAgentFileActivity(v, m);
+      break;
     }
     case "result": {
       endThought(v); v.curText = null;
@@ -1807,6 +1835,11 @@ function buildFilesTab(v, t) {
     for (const c of wanted) seq = seq.then(() => ensureKids(c));
     seq.catch((e) => showError(e.message));
   };
+  t.refreshFiles = () => { try { refresh.onclick(); } catch (e) {} };
+  const agentLine = el("div", "filemeta", "");
+  agentLine.hidden = true;
+  body.insertBefore(agentLine, split);
+  t.agentLine = agentLine;
   editor.oninput = () => {
     const tab = t.filePath && t.tabStore.update(t.filePath, editor.value);
     editor.dataset.dirty = tab && tab.dirty ? "1" : "0"; paint(); renderTabs();
@@ -1863,6 +1896,43 @@ function buildFilesTab(v, t) {
 }
 
 // review tab: uncommitted changes, hunk by hunk, with stage/revert actions
+function renderSbsHunk(block, h) {
+  const grid = el("div", "sbsgrid");
+  const head = el("div", "sbshunk", h.header || "");
+  grid.appendChild(head);
+  const line = (text, cls) => {
+    const s = document.createElement("span");
+    s.className = cls;
+    s.textContent = (text === "" ? " " : text) + "\n";
+    return s;
+  };
+  const L = h.lines || [];
+  let i = 0;
+  while (i < L.length) {
+    if (L[i].startsWith("-")) {
+      const dels = [];
+      while (i < L.length && L[i].startsWith("-")) dels.push(L[i++]);
+      const adds = [];
+      while (i < L.length && L[i].startsWith("+")) adds.push(L[i++]);
+      const n = Math.max(dels.length, adds.length);
+      for (let k = 0; k < n; k++) {
+        const row = el("div", "sbsrow");
+        const ld = el("pre", "reviewpatch");
+        ld.appendChild(line(dels[k] || "", "del"));
+        const ra = el("pre", "reviewpatch");
+        ra.appendChild(line(adds[k] || "", "add"));
+        row.appendChild(ld);
+        row.appendChild(ra);
+        grid.appendChild(row);
+      }
+    } else {
+      const full = el("div", "sbssame");
+      full.textContent = L[i++] + "\n";
+      grid.appendChild(full);
+    }
+  }
+  block.appendChild(grid);
+}
 function openReviewTab(v) {
   if (!v) return;
   const existing = v.tabs.filter((t) => t.kind === "review").pop();
@@ -1880,6 +1950,15 @@ function buildReviewTab(v, t) {
   fileSelect.title = "jump to file";
   fileSelect.setAttribute("aria-label", "Jump to file in review");
   bar.appendChild(refresh); bar.appendChild(staged); bar.appendChild(fileSelect);
+  const sbsBtn = el("button", "iconbtn", "⇄"); sbsBtn.type = "button"; sbsBtn.title = "side-by-side view";
+  bar.appendChild(sbsBtn);
+  let sbsMode = false;
+  sbsBtn.onclick = () => {
+    sbsMode = !sbsMode;
+    sbsBtn.textContent = sbsMode ? "≡" : "⇄";
+    sbsBtn.title = sbsMode ? "unified view" : "side-by-side view";
+    load();
+  };
   const reviewFilter = document.createElement("input");
   reviewFilter.placeholder = "Filtrer…";
   reviewFilter.setAttribute("aria-label", "Filter hunks");
@@ -2022,6 +2101,8 @@ function buildReviewTab(v, t) {
           if (collapsed) continue;
           for (const h of f.hunks || []) {
             const block = el("div", "reviewhunk");
+            if (sbsMode) renderSbsHunk(block, h);
+            else {
             const pre = el("pre", "reviewpatch");
             const paint = (text, cls, oldLn, newLn) => {
               const s = document.createElement("span");
@@ -2045,6 +2126,7 @@ function buildReviewTab(v, t) {
               else { paint(ln, "same", String(oldLn), String(newLn)); oldLn++; newLn++; }
             }
             block.appendChild(pre);
+            }
             const row = el("div", "reviewactions");
             const sb = el("button", "iconbtn", "Stage"); sb.title = "stage this hunk";
             const rb = el("button", "iconbtn", "Revert"); rb.title = "revert this hunk in the working tree";

@@ -1,17 +1,7 @@
 {
   "schema_version": 1,
-  "fencing": 127,
+  "fencing": 130,
   "locks": [
-    {
-      "relpath": "src/web/styles.ts",
-      "agent_id": "claude-code:20260927",
-      "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 115,
-      "intent": "CSS chip TODO",
-      "acquired_at": 1790587142.9310412,
-      "expires_at": 1790589101.0790246,
-      "lock_id": "6bdcfd5a40bd49b8a80ec64518ef962a"
-    },
     {
       "relpath": "src/git.ts",
       "agent_id": "claude-code:20260927",
@@ -23,84 +13,34 @@
       "lock_id": "ac672a8aba564b0d93a5e7ab3821a65d"
     },
     {
-      "relpath": "src/highlight.ts",
-      "agent_id": "claude-code:20260927",
-      "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 120,
-      "intent": "ANSI types + d\u00e9corateurs",
-      "acquired_at": 1790587994.669816,
-      "expires_at": 1790588932.7752628,
-      "lock_id": "2949b3a457304ce98262a70b1f21dc2e"
-    },
-    {
-      "relpath": "src/agent.ts",
-      "agent_id": "claude-code:20260927",
-      "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 121,
-      "intent": "R\u00e9sum\u00e9 fichiers +/\u2212 \u00e0 chaque tour abouti",
-      "acquired_at": 1790588074.0072045,
-      "expires_at": 1790588986.6129742,
-      "lock_id": "0ab6199d41be4378a2829675ebfe3547"
-    },
-    {
-      "relpath": "src/web/hub.ts",
-      "agent_id": "claude-code:20260927",
-      "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 122,
-      "intent": "Champ status par entr\u00e9e",
-      "acquired_at": 1790588106.9911907,
-      "expires_at": 1790589033.2681859,
-      "lock_id": "9ca023ac298048bb8594083a2658d4de"
-    },
-    {
       "relpath": "src/web/client.ts",
       "agent_id": "claude-code:20260927",
       "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 123,
-      "intent": "R\u00e9applique le filtre apr\u00e8s chargement",
-      "acquired_at": 1790588145.6414726,
-      "expires_at": 1790589139.8866403,
-      "lock_id": "07f5905523d84ad3bc4ea017567fcd05"
+      "fencing_token": 128,
+      "intent": "Rendu c\u00f4te \u00e0 c\u00f4te appari\u00e9 del/add",
+      "acquired_at": 1790589184.9727478,
+      "expires_at": 1790590192.5564387,
+      "lock_id": "08ab05ee31884571add9fd60b7039a16"
     },
     {
-      "relpath": "desktop/main.js",
+      "relpath": "src/web/styles.ts",
       "agent_id": "claude-code:20260927",
       "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 124,
-      "intent": "Statuts git dans le listage bureau",
-      "acquired_at": 1790588257.0702538,
-      "expires_at": 1790589157.0702538,
-      "lock_id": "623cf2e75b9e41dcb244c0717ff0ba66"
-    },
-    {
-      "relpath": "test/git.test.js",
-      "agent_id": "claude-code:20260927",
-      "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 125,
-      "intent": "Tests r\u00e9sum\u00e9 de tour + badges",
-      "acquired_at": 1790588359.7700183,
-      "expires_at": 1790589259.7700183,
-      "lock_id": "35c62ca333234fe181d81b3de5f59033"
-    },
-    {
-      "relpath": "test/highlight-display.test.js",
-      "agent_id": "claude-code:20260927",
-      "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 126,
-      "intent": "Tests types + d\u00e9corateurs",
-      "acquired_at": 1790588359.8418837,
-      "expires_at": 1790589259.8418837,
-      "lock_id": "07e44209bbfc4b7ca1b1f4e680a85abb"
+      "fencing_token": 129,
+      "intent": "CSS c\u00f4te \u00e0 c\u00f4te",
+      "acquired_at": 1790589292.6195972,
+      "expires_at": 1790590192.6195972,
+      "lock_id": "3bb93155f1e2426e8f25becb141a054b"
     },
     {
       "relpath": "test/client-smoke.test.js",
       "agent_id": "claude-code:20260927",
       "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 127,
-      "intent": "Tests chip TODO + filtre/nav revue",
-      "acquired_at": 1790588378.5045125,
-      "expires_at": 1790589294.723706,
-      "lock_id": "5841f74644a24c929e1ce62fd4ec6c2c"
+      "fencing_token": 130,
+      "intent": "Tests activit\u00e9 live + c\u00f4te \u00e0 c\u00f4te",
+      "acquired_at": 1790589319.1523573,
+      "expires_at": 1790590219.1523573,
+      "lock_id": "ff38a21f2f444b2988458bb918cc8156"
     }
   ]
 }

@@ -3,8 +3,8 @@
   "call_count": 0,
   "peak_tokens": 0,
   "by_tool": {},
-  "c3_calls": 449,
+  "c3_calls": 459,
   "native_calls": 0,
   "auto_snapshot_fired": false,
-  "infra_tokens": 90
+  "infra_tokens": 104
 }
