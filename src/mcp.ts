@@ -78,6 +78,44 @@ export function resolveCommand(cmd: string): string {
   return findCommand(cmd) ?? cmd;
 }
 
+/** Turn a configured MCP server on or off and persist it, so `/mcp off zapier`
+ * sticks across restarts. The workspace file wins over the user one, so that
+ * is the one rewritten. Returns a one-line summary for the UI. */
+export function setMcpEnabled(workspace: string, name: string, verb: "on" | "off" | "toggle" | "enable" | "disable"): string {
+  const needle = (name ?? "").trim().toLowerCase();
+  if (!needle) return "Usage: /mcp on|off <nom>";
+  const wsFile = path.join(workspace, ".smol", "mcp.json");
+  const userFile = globalMcpConfigPath();
+  // The workspace file shadows the user file on name clashes, so it is the one
+  // that has to be edited for the switch to take effect.
+  const file = fs.existsSync(wsFile) ? wsFile : userFile;
+  if (!fs.existsSync(file)) return `No MCP config at ${file} - nothing to switch.`;
+  let raw: any;
+  try {
+    raw = JSON.parse(fs.readFileSync(file, "utf8"));
+  } catch (e: any) {
+    return `Cannot read ${file}: ${String(e?.message ?? e)}`;
+  }
+  const list: any[] = Array.isArray(raw) ? raw : Array.isArray(raw?.servers) ? raw.servers : [];
+  const hit = list.find((s) => s && typeof s.name === "string" && s.name.trim().toLowerCase() === needle);
+  if (!hit) {
+    const known = list
+      .filter((s) => s && typeof s.name === "string")
+      .map((s) => s.name)
+      .join(", ");
+    return `No MCP server named "${name}" in ${file}. Known: ${known || "(none)"}`;
+  }
+  const was = hit.enabled !== false;
+  const next = verb === "toggle" || verb === "enable" || verb === "disable" ? !was : verb === "on";
+  hit.enabled = next;
+  try {
+    fs.writeFileSync(file, JSON.stringify(raw, null, 2) + "\n", "utf8");
+  } catch (e: any) {
+    return `Cannot write ${file}: ${String(e?.message ?? e)}`;
+  }
+  return `${hit.name}: ${next ? "enabled" : "disabled"} (was ${was ? "enabled" : "disabled"}) - saved in ${file}`;
+}
+
 /** The absolute path of `cmd` on this machine, or null when it is not
  * installed. resolveCommand() is deliberately forgiving (it echoes the input
  * back so spawning can produce a useful "not found" error), so callers that
@@ -641,10 +679,12 @@ export function createMcpBridge(workspace: string): McpBridge {
           if (hit && now - hit.at < STATUS_TTL_MS) return hit.row;
           const row = await probeOne(cfg, timeoutMs);
           statusCache.set(cfg.name, { at: Date.now(), row });
-          // Too slow for the quick pass but the config allows more: finish
-          // in the background (once) so the next refresh shows the truth
-          // instead of a server that can never be green.
-          if (!row.ok && row.error === "too slow to answer" && (cfg.timeoutMs ?? 0) > timeoutMs && !statusRetrying.has(cfg.name)) {
+          // Too slow for the quick pass: finish in the background (once) so
+          // the next refresh shows the truth instead of a server that can
+          // never be green. npx cold starts routinely exceed the quick
+          // timeout, so a second pass happens even when the config does not
+          // spell out timeoutMs.
+          if (!row.ok && row.error === "too slow to answer" && !statusRetrying.has(cfg.name)) {
             statusRetrying.add(cfg.name);
             const ceiling = Number(process.env.SMOLCODER_MCP_STATUS_RETRY_MS) || STATUS_MAX_MS;
             const budget = Math.min(Math.max(timeoutMs, cfg.timeoutMs ?? 0), ceiling);

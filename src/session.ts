@@ -16,7 +16,7 @@ import { EventBus } from "./events";
 import { formatReview } from "./git";
 import { lspDoctor, setupLsp } from "./lsp-install";
 import { queryCode } from "./lsp-pro";
-import { createMcpBridge } from "./mcp";
+import { createMcpBridge, setMcpEnabled } from "./mcp";
 import { type FlowUI, findModelsOnNetwork, manageHosts } from "./network";
 import { Plan, type PlanStep } from "./plan";
 import { loadPlugins } from "./plugins";
@@ -996,6 +996,21 @@ export class Session {
             case "mcp":
               if (!toolCtx.mcp) {
                 ui.warn("MCP bridge is not wired in this session.");
+                break;
+              }
+              // Interruptors: /mcp on <nom> | off <nom> | toggle <nom>
+              const verb = (rest[1] ?? "").toLowerCase();
+              if (verb === "on" || verb === "off" || verb === "toggle" || verb === "enable" || verb === "disable") {
+                const target = (rest[2] ?? "").trim();
+                if (!target) {
+                  ui.warn(`Usage: /mcp ${verb} <nom> - ex. /mcp off zapier`);
+                  break;
+                }
+                try {
+                  ui.println(setMcpEnabled(toolCtx.workspace, target, verb));
+                } catch (err: any) {
+                  ui.error(String(err?.message ?? err));
+                }
                 break;
               }
               if ((arg ?? "").toLowerCase() === "debug") {
