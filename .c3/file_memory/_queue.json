@@ -42,7 +42,9 @@
     "test/agent.test.js",
     "src/verification.ts",
     "test/client-smoke.test.js",
-    "src/web/terminal.ts"
+    "src/web/terminal.ts",
+    "test/git.test.js",
+    "test/highlight-display.test.js"
   ],
   "inflight": [
     "desktop/preload-git.js"

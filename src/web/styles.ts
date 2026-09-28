@@ -309,6 +309,8 @@ export const STYLES = String.raw`
   .completeitem { display: flex; gap: 8px; width: 100%; text-align: left; background: transparent; border: 0; border-bottom: 1px solid var(--line); color: var(--fg); padding: 5px 10px; cursor: pointer; font: inherit; font-size: 12px; }
   .completeitem:hover, .completeitem.sel { background: #094771; }
   .completeitem .kind { color: var(--dim); }
+  .planchip { border: 1px solid var(--line); background: var(--box); color: var(--fg); border-radius: 20px; font: inherit; font-size: 11px; padding: 2px 10px; cursor: pointer; margin-left: 8px; white-space: nowrap; }
+  .planchip:hover { border-color: var(--accent); }
   .filetabs { position: absolute; z-index: 2; inset: 0 0 auto; height: 35px; display: flex; overflow-x: auto; background: #171c1f; border-bottom: 1px solid var(--line); }
   .filetab { display: flex; align-items: center; flex: none; max-width: 220px; background: #202629; border-right: 1px solid var(--line); }
   .filetab.active { background: #0f1417; border-top: 1px solid var(--accent); }
@@ -324,7 +326,7 @@ export const STYLES = String.raw`
   .filemeta.error { color: var(--red); }
   .tok-key { color: #c586c0; } .tok-str { color: #ce9178; } .tok-num { color: #b5cea8; }
   .tok-com { color: #6a9955; } .tok-lit { color: #569cd6; }
-  .tok-k { color: #c586c0; } .tok-s { color: #ce9178; } .tok-n { color: #b5cea8; } .tok-c { color: #6a9955; } .tok-f { color: #dcdcaa; } .tok-o { color: #d4d4d4; } .tok-tag { color: #4ec9b0; }
+  .tok-k { color: #c586c0; } .tok-s { color: #ce9178; } .tok-n { color: #b5cea8; } .tok-c { color: #6a9955; } .tok-f { color: #dcdcaa; } .tok-o { color: #d4d4d4; } .tok-tag { color: #4ec9b0; } .tok-t { color: #4ec9b0; } .tok-d { color: #e5c07b; }
   .ab { font-weight: 700; } .ad { opacity: .6; }
   .a30 { color: #3b4048; } .a31 { color: var(--red); } .a32 { color: var(--green); } .a33 { color: var(--yellow); }
   .a34 { color: #7aa2f7; } .a35 { color: var(--magenta); } .a36 { color: var(--accent); } .a37 { color: #c0caf5; }

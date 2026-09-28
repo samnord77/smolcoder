@@ -161,3 +161,20 @@ test("git: revert one file to HEAD", () => {
   assert.match(gitRevertFile(repo, "../evil.txt"), /inside the repository/);
   assert.match(gitRevertFile(repo, "missing.txt"), /does not exist|failed/);
 });
+
+test("git: turn summary counts +/-, newcomers, and status badges", () => {
+  if (!gitAvailable()) return;
+  const { gitTurnSummary, gitStatusMap } = require("../dist/git");
+  const repo = scratchHunkRepo();
+  assert.equal(gitTurnSummary(repo, new Set()), null);
+  assert.equal(gitTurnSummary(repo, new Set(["app.txt"])), null, "clean tree says nothing");
+  fs.writeFileSync(path.join(repo, "app.txt"), "line1\nCHANGED\n");
+  fs.writeFileSync(path.join(repo, "fresh.txt"), "new\n");
+  const summary = gitTurnSummary(repo, new Set(["app.txt", "fresh.txt"]));
+  assert.match(summary, /Files changed: 1 \(\+\d+ −\d+\)/);
+  assert.match(summary, /new: fresh\.txt/);
+  const map = gitStatusMap(repo, repo);
+  assert.equal(map.get("app.txt"), "M");
+  assert.equal(map.get("fresh.txt"), "?");
+  assert.equal(gitStatusMap(path.join(repo, "missing-dir"), repo).size, 0);
+});

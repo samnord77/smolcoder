@@ -361,6 +361,70 @@ export function gitRevertFile(root: string, relPath: string): string {
   return `Reverted "${rel}" to HEAD.`;
 }
 
+/** Short status per direct child of one directory: name -> "M", "?", ...
+ * Powers file-tree badges. One bounded git call. Never throws. */
+export function gitStatusMap(root: string, dirAbs: string): Map<string, string> {
+  const out = new Map<string, string>();
+  try {
+    if (!isGitRepo(root)) return out;
+    const r = runGit(root, ["status", "--short", "--untracked-files=all", "--", dirAbs]);
+    if (r.code !== 0) return out;
+    for (const line of r.out.split("\n").slice(0, 500)) {
+      // runGit trims the output, so a leading status space (" M file")
+      // arrives as "M file" — parse letters only, uniformly.
+      const m = /^(\?\?|[MADRCUT]{1,2})\s+(.+)$/.exec(line.trim());
+      if (!m) continue;
+      const first = m[2].split("/")[0].replace(/^"|"$/g, "");
+      if (first && !out.has(first)) out.set(first, m[1].includes("?") ? "?" : "M");
+    }
+  } catch {
+    /* badges are best effort */
+  }
+  return out;
+}
+
+/** End-of-turn summary ("Files changed: 3 (+12 −5) — a.ts +9 −1, …")
+ * from git numstat over the touched files, plus untracked newcomers.
+ * Pure reads, 5s-class cost, null when nothing to say. Never throws. */
+export function gitTurnSummary(root: string, files: Set<string> | string[]): string | null {
+  try {
+    const list = [...files].filter(Boolean).slice(0, 20);
+    if (!list.length || !isGitRepo(root)) return null;
+    const parts: string[] = [];
+    const r = runGit(root, ["diff", "--numstat", "--", ...list]);
+    if (r.code === 0 && r.out.trim()) {
+      const rows = r.out
+        .split("\n")
+        .map((l) => l.split("\t"))
+        .filter((p) => p.length >= 3)
+        .map(([a, d, f]) => ({ a: Number(a) || 0, d: Number(d) || 0, f }))
+        .filter((x) => x.f && (x.a > 0 || x.d > 0));
+      if (rows.length) {
+        const ta = rows.reduce((n, x) => n + x.a, 0);
+        const td = rows.reduce((n, x) => n + x.d, 0);
+        const detail = rows
+          .slice(0, 8)
+          .map((x) => `${x.f} +${x.a} −${x.d}`)
+          .join(", ");
+        parts.push(`Files changed: ${rows.length} (+${ta} −${td}) — ${detail}${rows.length > 8 ? ", …" : ""}`);
+      }
+    }
+    const st = runGit(root, ["status", "--short", "--", ...list]);
+    if (st.code === 0) {
+      const fresh = st.out
+        .split("\n")
+        .filter((l) => l.startsWith("??"))
+        .map((l) => l.slice(3).trim().replace(/^"|"$/g, ""))
+        .filter(Boolean)
+        .slice(0, 8);
+      if (fresh.length) parts.push(`new: ${fresh.join(", ")}`);
+    }
+    return parts.length ? parts.join(" · ") : null;
+  } catch {
+    return null;
+  }
+}
+
 export interface GitQuery {
   action?: unknown;
   path?: unknown;

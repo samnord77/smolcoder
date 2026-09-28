@@ -1,0 +1,9 @@
+{
+  "original_tokens": 521,
+  "compressed_tokens": 32,
+  "saved_tokens": 489,
+  "savings_pct": 93.9,
+  "compressed": "# highlight-display.test.js (.js) \u2014 33 lines\nconst test = require(\"node:test\");\nconst assert = require(\"node:assert/strict\");",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\highlight-display.test.js"
+}

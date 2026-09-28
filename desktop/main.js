@@ -366,11 +366,18 @@ ipcMain.handle("ed:list", async (_e, rel) => {
   const st = fs.statSync(abs);
   if (!st.isDirectory()) throw new Error("Pas un dossier.");
   const names = fs.readdirSync(abs, { withFileTypes: true });
+  let statusMap = new Map();
+  try {
+    const { gitStatusMap } = require(path.join(ROOT, "dist", "git.js"));
+    statusMap = gitStatusMap(root, abs);
+  } catch {
+    /* badges best effort */
+  }
   const out = [];
   for (const e of names) {
     if (e.name.startsWith(".") && e.isDirectory()) continue;
     if (SKIP_DIRS.has(e.name)) continue;
-    out.push({ name: e.name, dir: e.isDirectory() });
+    out.push({ name: e.name, dir: e.isDirectory(), status: statusMap.get(e.name) || "" });
     if (out.length >= 500) break;
   }
   out.sort((a, b) => (a.dir === b.dir ? a.name.localeCompare(b.name) : a.dir ? -1 : 1));

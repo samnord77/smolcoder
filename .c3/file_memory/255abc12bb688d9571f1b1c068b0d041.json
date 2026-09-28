@@ -1,10 +1,10 @@
 {
   "path": "desktop/main.js",
-  "content_hash": "5fce52865f93b7d2fd11799384d30f3a",
-  "updated_at": "2026-09-27T22:48:41",
-  "lines": 739,
-  "size_bytes": 27799,
-  "mtime_ns": 1790545668779442300,
+  "content_hash": "3305dc618b54f9030fb79b435c22a457",
+  "updated_at": "2026-09-28T10:38:57",
+  "lines": 746,
+  "size_bytes": 28039,
+  "mtime_ns": 1790588257081783700,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -239,8 +239,8 @@
     {
       "type": "function",
       "name": "activeWorkspace",
-      "line_start": 501,
-      "line_end": 511,
+      "line_start": 508,
+      "line_end": 518,
       "signature": "async function activeWorkspace() {",
       "async": true
     }

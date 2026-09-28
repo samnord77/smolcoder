@@ -1,4 +1,4 @@
-export type SyntaxTokenKind = "plain" | "tok-k" | "tok-s" | "tok-n" | "tok-c" | "tok-f" | "tok-o" | "tok-tag";
+export type SyntaxTokenKind = "plain" | "tok-k" | "tok-s" | "tok-n" | "tok-c" | "tok-f" | "tok-o" | "tok-tag" | "tok-t" | "tok-d";
 export interface SyntaxToken { kind: SyntaxTokenKind; text: string }
 
 /** Small dependency-free lexer shared by the browser UI, desktop editor and CLI. */
@@ -23,6 +23,11 @@ export function tokenizeCode(source: string, language = ""): SyntaxToken[] {
     const start = i;
     const ch = source[i];
     if (/\s/.test(ch)) { while (i < source.length && /\s/.test(source[i])) i++; add("plain", source.slice(start, i)); continue; }
+    if (ch === "@" && i + 1 < source.length && /[A-Za-z_$]/.test(source[i + 1])) {
+      i++;
+      while (i < source.length && /[\w$]/.test(source[i])) i++;
+      add("tok-d", source.slice(start, i)); continue;
+    }
     if (html && ch === "<") {
       const end = source.indexOf(">", i + 1);
       if (end >= 0 && /^<\/?[A-Za-z!/?]/.test(source.slice(i, end + 1))) { i = end + 1; add("tok-tag", source.slice(start, i)); continue; }
@@ -50,6 +55,7 @@ export function tokenizeCode(source: string, language = ""): SyntaxToken[] {
       while (i < source.length && /[\w$]/.test(source[i])) i++;
       const word = source.slice(start, i);
       if (keywords.has(word)) add("tok-k", word);
+      else if (/^[A-Z][a-z0-9]/.test(word)) add("tok-t", word);
       else {
         let next = i;
         while (next < source.length && /\s/.test(source[next])) next++;
@@ -86,6 +92,7 @@ export function highlightAnsi(source: string, language = ""): string {
   const colors: Partial<Record<SyntaxTokenKind, string>> = {
     "tok-k": "\x1b[35m", "tok-s": "\x1b[32m", "tok-n": "\x1b[33m",
     "tok-c": "\x1b[90m", "tok-f": "\x1b[36m", "tok-o": "\x1b[96m", "tok-tag": "\x1b[34m",
+    "tok-t": "\x1b[94m", "tok-d": "\x1b[93m",
   };
   return tokenizeCode(source, language).map(({ kind, text }) => {
     const color = colors[kind];

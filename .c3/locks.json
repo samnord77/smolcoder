@@ -1,86 +1,106 @@
 {
   "schema_version": 1,
-  "fencing": 118,
+  "fencing": 127,
   "locks": [
-    {
-      "relpath": "src/web/terminal.ts",
-      "agent_id": "claude-code:20260927",
-      "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 111,
-      "intent": "Couleurs forc\u00e9es dans les terminaux humains",
-      "acquired_at": 1790586965.9254627,
-      "expires_at": 1790587865.9254627,
-      "lock_id": "e2978d7fa1894239af82a58218168a99"
-    },
-    {
-      "relpath": "src/git.ts",
-      "agent_id": "claude-code:20260927",
-      "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 112,
-      "intent": "Revert d'un fichier vers HEAD",
-      "acquired_at": 1790587017.0899403,
-      "expires_at": 1790587917.0899403,
-      "lock_id": "8525fa64116744e792ef9cf704bff336"
-    },
-    {
-      "relpath": "src/web/hub.ts",
-      "agent_id": "claude-code:20260927",
-      "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 113,
-      "intent": "Garde ro + stage/revert/commit par fichier",
-      "acquired_at": 1790587017.1504776,
-      "expires_at": 1790587934.5141091,
-      "lock_id": "5b10610035d742dab464134728c9b471"
-    },
-    {
-      "relpath": "src/web/client.ts",
-      "agent_id": "claude-code:20260927",
-      "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 114,
-      "intent": "Action fichier g\u00e9n\u00e9rique (stage/revert + recharge)",
-      "acquired_at": 1790587065.6568408,
-      "expires_at": 1790588025.7799673,
-      "lock_id": "8f77c8dbb6f84aaaab4e9e8485586138"
-    },
     {
       "relpath": "src/web/styles.ts",
       "agent_id": "claude-code:20260927",
       "session_id": "20260927_164838_0239733e7ab3",
       "fencing_token": 115,
-      "intent": "CSS goutti\u00e8res + ent\u00eates + commit",
+      "intent": "CSS chip TODO",
       "acquired_at": 1790587142.9310412,
-      "expires_at": 1790588042.9310412,
+      "expires_at": 1790589101.0790246,
       "lock_id": "6bdcfd5a40bd49b8a80ec64518ef962a"
     },
     {
-      "relpath": "test/code-api.test.js",
+      "relpath": "src/git.ts",
       "agent_id": "claude-code:20260927",
       "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 116,
-      "intent": "Normalise CRLF (autocrlf Windows)",
-      "acquired_at": 1790587168.01575,
-      "expires_at": 1790588144.101998,
-      "lock_id": "1358cf481c5c4efe97ba397a19619513"
+      "fencing_token": 119,
+      "intent": "Parse robuste au rognage des statuts git",
+      "acquired_at": 1790587994.6412954,
+      "expires_at": 1790589554.9693122,
+      "lock_id": "ac672a8aba564b0d93a5e7ab3821a65d"
+    },
+    {
+      "relpath": "src/highlight.ts",
+      "agent_id": "claude-code:20260927",
+      "session_id": "20260927_164838_0239733e7ab3",
+      "fencing_token": 120,
+      "intent": "ANSI types + d\u00e9corateurs",
+      "acquired_at": 1790587994.669816,
+      "expires_at": 1790588932.7752628,
+      "lock_id": "2949b3a457304ce98262a70b1f21dc2e"
+    },
+    {
+      "relpath": "src/agent.ts",
+      "agent_id": "claude-code:20260927",
+      "session_id": "20260927_164838_0239733e7ab3",
+      "fencing_token": 121,
+      "intent": "R\u00e9sum\u00e9 fichiers +/\u2212 \u00e0 chaque tour abouti",
+      "acquired_at": 1790588074.0072045,
+      "expires_at": 1790588986.6129742,
+      "lock_id": "0ab6199d41be4378a2829675ebfe3547"
+    },
+    {
+      "relpath": "src/web/hub.ts",
+      "agent_id": "claude-code:20260927",
+      "session_id": "20260927_164838_0239733e7ab3",
+      "fencing_token": 122,
+      "intent": "Champ status par entr\u00e9e",
+      "acquired_at": 1790588106.9911907,
+      "expires_at": 1790589033.2681859,
+      "lock_id": "9ca023ac298048bb8594083a2658d4de"
+    },
+    {
+      "relpath": "src/web/client.ts",
+      "agent_id": "claude-code:20260927",
+      "session_id": "20260927_164838_0239733e7ab3",
+      "fencing_token": 123,
+      "intent": "R\u00e9applique le filtre apr\u00e8s chargement",
+      "acquired_at": 1790588145.6414726,
+      "expires_at": 1790589139.8866403,
+      "lock_id": "07f5905523d84ad3bc4ea017567fcd05"
+    },
+    {
+      "relpath": "desktop/main.js",
+      "agent_id": "claude-code:20260927",
+      "session_id": "20260927_164838_0239733e7ab3",
+      "fencing_token": 124,
+      "intent": "Statuts git dans le listage bureau",
+      "acquired_at": 1790588257.0702538,
+      "expires_at": 1790589157.0702538,
+      "lock_id": "623cf2e75b9e41dcb244c0717ff0ba66"
     },
     {
       "relpath": "test/git.test.js",
       "agent_id": "claude-code:20260927",
       "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 117,
-      "intent": "Test revert de fichier",
-      "acquired_at": 1790587186.0813098,
-      "expires_at": 1790588086.0813098,
-      "lock_id": "d13a0788b64d4113a40b06dd5699bd7f"
+      "fencing_token": 125,
+      "intent": "Tests r\u00e9sum\u00e9 de tour + badges",
+      "acquired_at": 1790588359.7700183,
+      "expires_at": 1790589259.7700183,
+      "lock_id": "35c62ca333234fe181d81b3de5f59033"
+    },
+    {
+      "relpath": "test/highlight-display.test.js",
+      "agent_id": "claude-code:20260927",
+      "session_id": "20260927_164838_0239733e7ab3",
+      "fencing_token": 126,
+      "intent": "Tests types + d\u00e9corateurs",
+      "acquired_at": 1790588359.8418837,
+      "expires_at": 1790589259.8418837,
+      "lock_id": "07e44209bbfc4b7ca1b1f4e680a85abb"
     },
     {
       "relpath": "test/client-smoke.test.js",
       "agent_id": "claude-code:20260927",
       "session_id": "20260927_164838_0239733e7ab3",
-      "fencing_token": 118,
-      "intent": "Stub createTextNode",
-      "acquired_at": 1790587478.340588,
-      "expires_at": 1790588378.340588,
-      "lock_id": "6925d682cd6148adbf4befab4fc1aa5f"
+      "fencing_token": 127,
+      "intent": "Tests chip TODO + filtre/nav revue",
+      "acquired_at": 1790588378.5045125,
+      "expires_at": 1790589294.723706,
+      "lock_id": "5841f74644a24c929e1ce62fd4ec6c2c"
     }
   ]
 }

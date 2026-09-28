@@ -38,7 +38,7 @@ import { Plan } from "../plan";
 import { renderEditDiff } from "./diff";
 import { AgentUI } from "../ui";
 import { ToolContext } from "../tools/index";
-import { gitApplyHunk, gitCommit, gitDiffFiles, gitRevertFile, gitStage } from "../git";
+import { gitApplyHunk, gitCommit, gitDiffFiles, gitRevertFile, gitStage, gitStatusMap } from "../git";
 
 export type SessionFactory = (ui: SessionChannel, workspace: string, prefs: SessionPrefs, planKey?: string) => Promise<Session>;
 
@@ -1428,6 +1428,7 @@ export class WebHub {
     }
     const st = fs.statSync(abs);
     if (!st.isDirectory()) throw new Error("not a folder");
+    const statusMap = gitStatusMap(live.workspace, abs);
     const entries = fs.readdirSync(abs, { withFileTypes: true })
       .filter((e) => !e.name.startsWith(".") && !["node_modules", "dist", "build", "coverage", ".git"].includes(e.name))
       .sort((a, b) => (a.isDirectory() === b.isDirectory() ? a.name.localeCompare(b.name) : a.isDirectory() ? -1 : 1))
@@ -1447,6 +1448,7 @@ export class WebHub {
           name: e.name,
           path: path.relative(live.workspace, child).split(path.sep).join("/") || ".",
           dir: e.isDirectory(),
+          status: statusMap.get(e.name) ?? "",
           size,
           mtimeMs,
         };

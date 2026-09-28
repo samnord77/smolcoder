@@ -102,5 +102,18 @@
     },
     "timestamp": "2026-09-27T22:26:58.335480+00:00",
     "category": "general"
+  },
+  {
+    "id": "d026858d24b4",
+    "text": "smolcoder phase captures (2026-09-28) : terminaux FORCE_COLOR (run_command reste brut pour le mod\u00e8le), revue compl\u00e8te (selecteur, replis, goutti\u00e8res, stage/revert/commit, garde ro), r\u00e9sum\u00e9 de tour git +/-, chip TODO fil d'Ariane, badges git M/? (parse robuste au trim), tokenizer tok-t/tok-d partout, test smoke d'ex\u00e9cution. 115/115 verts sur le lot final.",
+    "metadata": {
+      "fact_id": "d026858d24b4",
+      "source_session": "20260927_164838_0239733e7ab3",
+      "source": "memory_store",
+      "timestamp": "2026-09-28T09:46:04.255932+00:00",
+      "category": "general"
+    },
+    "timestamp": "2026-09-28T09:46:04.255932+00:00",
+    "category": "general"
   }
 ]

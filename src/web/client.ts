@@ -796,6 +796,12 @@ function renderCrumb() {
   c.appendChild(el("span", "sep", "›"));
   c.appendChild(el("span", "title", active.state.title || (info && info.title) || "new session"));
   c.title = info ? info.workspace : "";
+  if (info && info.plan) {
+    const chip = el("button", "planchip", "☑ " + info.plan);
+    chip.type = "button"; chip.title = "Open task list";
+    chip.onclick = () => togglePanelKind("plan");
+    c.appendChild(chip);
+  }
 }
 function renderTitle() {
   let busy = false, waiting = false;
@@ -1446,7 +1452,9 @@ function buildFilesTab(v, t) {
           b.title = item.path;
           b.innerHTML = getFileItemHtml(item.name, true);
           b.onclick = () => toggleFolder(item.path);
-          row.appendChild(tg); row.appendChild(b);
+          row.appendChild(tg);
+          if (item.status) row.appendChild(el("span", "fileitem-badge", item.status));
+          row.appendChild(b);
           container.appendChild(row);
           if (open) {
             const sub = el("div", "treesub");
@@ -1459,6 +1467,7 @@ function buildFilesTab(v, t) {
           b.title = item.path;
           b.innerHTML = getFileItemHtml(item.name, false);
           b.onclick = () => t.loadFile(item.path);
+          if (item.status) row.appendChild(el("span", "fileitem-badge", item.status));
           row.appendChild(b);
           container.appendChild(row);
         }
@@ -1871,6 +1880,44 @@ function buildReviewTab(v, t) {
   fileSelect.title = "jump to file";
   fileSelect.setAttribute("aria-label", "Jump to file in review");
   bar.appendChild(refresh); bar.appendChild(staged); bar.appendChild(fileSelect);
+  const reviewFilter = document.createElement("input");
+  reviewFilter.placeholder = "Filtrer…";
+  reviewFilter.setAttribute("aria-label", "Filter hunks");
+  reviewFilter.title = "Filter files and hunks by text";
+  const navUp = el("button", "iconbtn", "↑"); navUp.type = "button"; navUp.title = "Previous change";
+  const navDown = el("button", "iconbtn", "↓"); navDown.type = "button"; navDown.title = "Next change";
+  bar.appendChild(reviewFilter); bar.appendChild(navUp); bar.appendChild(navDown);
+  const applyReviewFilter = () => {
+    const q = reviewFilter.value.trim().toLowerCase();
+    for (const fileHead of list.querySelectorAll("[data-reviewfile]")) {
+      let visible = 0;
+      let node = fileHead.nextSibling;
+      while (node && !(node.getAttribute && node.getAttribute("data-reviewfile") !== null)) {
+        if (node.classList && node.classList.contains("reviewhunk")) {
+          const hit = !q || (node.textContent || "").toLowerCase().includes(q);
+          node.hidden = !hit;
+          if (hit) visible++;
+        }
+        node = node.nextSibling;
+      }
+      fileHead.hidden = !(!q || visible > 0 || (fileHead.textContent || "").toLowerCase().includes(q));
+    }
+  };
+  reviewFilter.oninput = applyReviewFilter;
+  const jumpHunk = (dir) => {
+    const hunks = [...list.querySelectorAll(".reviewhunk")].filter((h) => !h.hidden);
+    if (!hunks.length) return;
+    const y = window.scrollY || 0;
+    const tops = hunks.map((h) => h.getBoundingClientRect ? h.getBoundingClientRect().top + y : 0);
+    let pick = dir > 0 ? 0 : hunks.length - 1;
+    for (let i = 0; i < tops.length; i++) {
+      if (dir > 0 && tops[i] > y + 80) { pick = i; break; }
+      if (dir < 0 && tops[i] < y - 80) pick = i;
+    }
+    if (hunks[pick] && hunks[pick].scrollIntoView) hunks[pick].scrollIntoView();
+  };
+  navUp.onclick = () => jumpHunk(-1);
+  navDown.onclick = () => jumpHunk(1);
   const commitRow = el("div", "bar");
   const commitInput = document.createElement("input");
   commitInput.placeholder = "Commit message…";
@@ -2009,6 +2056,7 @@ function buildReviewTab(v, t) {
           }
         }
         if (!(d.files || []).length && !d.note) list.appendChild(el("div", "filediagnostic-note", "Working tree clean."));
+        applyReviewFilter();
       }).catch((e) => { list.replaceChildren(el("div", "filediagnostic-note error", String((e && e.message) || e))); });
   };
   refresh.onclick = load;

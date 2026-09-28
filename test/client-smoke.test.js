@@ -176,7 +176,7 @@ function emitHub(ctx, sid = "s1") {
       sep: "/",
       startedAt: Date.now(),
       workspaces: [
-        { path: "/ws", name: "ws", display: "~/ws", last: 1, sessions: [{ id: sid, title: "t", status: "idle", live: true, createdAt: 1, updatedAt: 1, model: "m", terminals: [], viewers: [], plan: null, editing: [] }] },
+        { path: "/ws", name: "ws", display: "~/ws", last: 1, sessions: [{ id: sid, title: "t", status: "idle", live: true, createdAt: 1, updatedAt: 1, model: "m", terminals: [], viewers: [], plan: "Plan 1/2 · beta", editing: [] }] },
       ],
     }),
   });
@@ -233,4 +233,18 @@ test("panel click without a session explains instead of dying silently", async (
   walk(c.context.document.body);
   for (const el of c.allElements()) walk(el);
   assert.ok(texts.some((t) => /session/i.test(t)), "user is told to open a session first");
+});
+
+test("crumb shows the plan chip; review has filter and nav", async () => {
+  const c = boot(TREE, DIFF);
+  emitHub(c);
+  await c.flush();
+  const cls = c.classes();
+  assert.ok(cls.has("planchip"), "todo chip rendered in the crumb");
+  c.els.btnreview.onclick();
+  await c.flush(200);
+  const byPlaceholder = c.allElements().filter((e) => e.placeholder === "Filtrer…");
+  assert.equal(byPlaceholder.length, 1, "review filter present");
+  const titles = c.allElements().map((e) => e.title).filter(Boolean);
+  assert.ok(titles.includes("Previous change") && titles.includes("Next change"), "hunk navigation present");
 });

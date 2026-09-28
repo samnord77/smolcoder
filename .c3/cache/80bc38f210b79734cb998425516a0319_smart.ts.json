@@ -1,0 +1,9 @@
+{
+  "original_tokens": 19408,
+  "compressed_tokens": 52,
+  "saved_tokens": 19356,
+  "savings_pct": 99.7,
+  "compressed": "# styles.ts (.ts) \u2014 800 lines\nimport { LOGO_ROWS } from \"../logo\";\n\nconst LOGO_CSS = LOGO_ROWS.map((r) => r.trimEnd()).join(\"\\\\A \");\nexport const STYLES = String.raw` :root",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\web\\styles.ts"
+}

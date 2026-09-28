@@ -1,10 +1,10 @@
 {
   "path": "test/client-smoke.test.js",
-  "content_hash": "56baeed604e833ded0ebb4294329f9ec",
-  "updated_at": "2026-09-28T01:32:00",
-  "lines": 231,
-  "size_bytes": 7658,
-  "mtime_ns": 1790555387244494200,
+  "content_hash": "d2d038cace782efbc4ce56abd32dccaf",
+  "updated_at": "2026-09-28T10:44:58",
+  "lines": 250,
+  "size_bytes": 8418,
+  "mtime_ns": 1790588394788438200,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -55,28 +55,28 @@
       "type": "function",
       "name": "boot",
       "line_start": 61,
-      "line_end": 154,
+      "line_end": 159,
       "signature": "function boot(treeEntries, diffPayload) {"
     },
     {
       "type": "constant",
       "name": "TREE",
-      "line_start": 156,
-      "line_end": 159,
+      "line_start": 161,
+      "line_end": 164,
       "signature": "const TREE = ["
     },
     {
       "type": "constant",
       "name": "DIFF",
-      "line_start": 160,
-      "line_end": 163,
+      "line_start": 165,
+      "line_end": 168,
       "signature": "const DIFF = {"
     },
     {
       "type": "function",
       "name": "emitHub",
-      "line_start": 165,
-      "line_end": 178,
+      "line_start": 170,
+      "line_end": 183,
       "signature": "function emitHub(ctx, sid = \"s1\") {"
     }
   ]

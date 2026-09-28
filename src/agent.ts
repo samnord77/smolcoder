@@ -26,6 +26,7 @@ import { runCommand } from "./tools/shell";
 import { failureSignature, mergeVerificationCommands, projectVerification } from "./verification";
 import { recordDelegateStats, relevantSkillNames, relevantSkills, saveAutoRepairLesson } from "./skills";
 import { loadSubagentRoles } from "./subagents";
+import { gitTurnSummary } from "./git";
 
 /** Supplied by the caller, never generated or changed by a model tool. */
 export interface Verification {
@@ -655,6 +656,12 @@ export class Agent {
           }
           completed = true;
           this.outcome = "completed";
+          try {
+            const summary = gitTurnSummary(this.toolCtx.workspace, this.toolCtx.filesTouched);
+            if (summary) this.ui.println(`  ${summary}`);
+          } catch {
+            /* the summary is a nicety, never the result */
+          }
           return; // plain answer — turn over
         }
         nudges = 0;
