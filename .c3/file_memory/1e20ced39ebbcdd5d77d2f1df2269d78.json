@@ -1,20 +1,20 @@
 {
   "path": "src/lsp-install.ts",
-  "content_hash": "001ac7ba4645c089f00916866200a5b9",
-  "updated_at": "2026-09-27T21:01:16",
-  "lines": 139,
-  "size_bytes": 5042,
-  "mtime_ns": 1790539050247686600,
+  "content_hash": "f804c0dd391fce37a18393b841276c8e",
+  "updated_at": "2026-09-28T19:36:39",
+  "lines": 138,
+  "size_bytes": 5027,
+  "mtime_ns": 1790620578823991300,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
   "sections": [
     {
       "type": "import",
-      "name": "import { spawnSync } from \"child_process\";",
+      "name": "import { spawnSync } from \"node:child_process\";",
       "line_start": 6,
       "line_end": 6,
-      "signature": "import { spawnSync } from \"child_process\";"
+      "signature": "import { spawnSync } from \"node:child_process\";"
     },
     {
       "type": "import",
@@ -78,21 +78,21 @@
       "type": "function",
       "name": "installLspServer",
       "line_start": 78,
-      "line_end": 110,
+      "line_end": 104,
       "signature": "function installLspServer(lang: string, cwd: string): InstallStep {"
     },
     {
       "type": "function",
       "name": "lspDoctor",
-      "line_start": 113,
-      "line_end": 124,
+      "line_start": 107,
+      "line_end": 118,
       "signature": "function lspDoctor(): string {"
     },
     {
       "type": "function",
       "name": "setupLsp",
-      "line_start": 127,
-      "line_end": 139,
+      "line_start": 121,
+      "line_end": 138,
       "signature": "function setupLsp(root: string, lang: string): string {"
     }
   ]

@@ -1,41 +1,41 @@
 {
   "path": "src/mcp.ts",
-  "content_hash": "869a7a68586bd972b5a6e8ff7b3fe858",
-  "updated_at": "2026-09-28T13:28:04",
-  "lines": 673,
-  "size_bytes": 27102,
-  "mtime_ns": 1790597592384823900,
+  "content_hash": "fd01b6cd2921c8e0fcf38b357faa8251",
+  "updated_at": "2026-09-28T19:36:38",
+  "lines": 682,
+  "size_bytes": 27282,
+  "mtime_ns": 1790620579135676000,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
   "sections": [
     {
       "type": "import",
-      "name": "import { spawn, ChildProcess } from \"child_process\";",
+      "name": "import { type ChildProcess, spawn } from \"node:child_process\";",
       "line_start": 11,
       "line_end": 11,
-      "signature": "import { spawn, ChildProcess } from \"child_process\";"
+      "signature": "import { type ChildProcess, spawn } from \"node:child_process\";"
     },
     {
       "type": "import",
-      "name": "import * as fs from \"fs\";",
+      "name": "import * as fs from \"node:fs\";",
       "line_start": 12,
       "line_end": 12,
-      "signature": "import * as fs from \"fs\";"
+      "signature": "import * as fs from \"node:fs\";"
     },
     {
       "type": "import",
-      "name": "import * as os from \"os\";",
+      "name": "import * as os from \"node:os\";",
       "line_start": 13,
       "line_end": 13,
-      "signature": "import * as os from \"os\";"
+      "signature": "import * as os from \"node:os\";"
     },
     {
       "type": "import",
-      "name": "import * as path from \"path\";",
+      "name": "import * as path from \"node:path\";",
       "line_start": 14,
       "line_end": 14,
-      "signature": "import * as path from \"path\";"
+      "signature": "import * as path from \"node:path\";"
     },
     {
       "type": "import",
@@ -93,135 +93,135 @@
       "type": "function",
       "name": "resolveCommand",
       "line_start": 77,
-      "line_end": 100,
+      "line_end": 98,
       "signature": "function resolveCommand(cmd: string): string {"
     },
     {
       "type": "function",
       "name": "globalMcpConfigPath",
-      "line_start": 104,
-      "line_end": 106,
+      "line_start": 102,
+      "line_end": 104,
       "signature": "function globalMcpConfigPath(): string {"
     },
     {
       "type": "function",
       "name": "loadMcpConfig",
-      "line_start": 109,
-      "line_end": 116,
+      "line_start": 107,
+      "line_end": 114,
       "signature": "function loadMcpConfig(workspace: string): McpServerConfig[] {"
     },
     {
       "type": "function",
       "name": "expandEnvVars",
-      "line_start": 119,
-      "line_end": 121,
+      "line_start": 117,
+      "line_end": 119,
       "signature": "function expandEnvVars(s: string): string {"
     },
     {
       "type": "function",
       "name": "isHttpUrl",
-      "line_start": 123,
-      "line_end": 125,
+      "line_start": 121,
+      "line_end": 123,
       "signature": "function isHttpUrl(s: string): boolean {"
     },
     {
       "type": "function",
       "name": "readServerList",
-      "line_start": 127,
-      "line_end": 164,
+      "line_start": 125,
+      "line_end": 162,
       "signature": "function readServerList(file: string): McpServerConfig[] {"
     },
     {
       "type": "interface",
       "name": "Pending",
-      "line_start": 166,
-      "line_end": 170,
+      "line_start": 164,
+      "line_end": 168,
       "signature": "interface Pending {",
       "children": []
     },
     {
       "type": "interface",
       "name": "McpToolInfo",
-      "line_start": 172,
-      "line_end": 175,
+      "line_start": 170,
+      "line_end": 173,
       "signature": "interface McpToolInfo {",
       "children": []
     },
     {
       "type": "class",
       "name": "McpClient",
-      "line_start": 179,
-      "line_end": 479,
+      "line_start": 177,
+      "line_end": 478,
       "signature": "class McpClient {",
       "children": [
         {
           "type": "property",
           "name": "proc",
-          "line_start": 180,
-          "line_end": 180,
+          "line_start": 178,
+          "line_end": 178,
           "signature": "private proc: ChildProcess | null = null;",
           "access": "private"
         },
         {
           "type": "property",
           "name": "nextId",
-          "line_start": 181,
-          "line_end": 181,
+          "line_start": 179,
+          "line_end": 179,
           "signature": "private nextId = 1;",
           "access": "private"
         },
         {
           "type": "property",
           "name": "pending",
-          "line_start": 182,
-          "line_end": 182,
+          "line_start": 180,
+          "line_end": 180,
           "signature": "private pending = new Map<number, Pending>();",
           "access": "private"
         },
         {
           "type": "property",
           "name": "buf",
-          "line_start": 183,
-          "line_end": 183,
+          "line_start": 181,
+          "line_end": 181,
           "signature": "private buf = \"\";",
           "access": "private"
         },
         {
           "type": "property",
           "name": "ready",
-          "line_start": 184,
-          "line_end": 184,
+          "line_start": 182,
+          "line_end": 182,
           "signature": "private ready: Promise<void> | null = null;",
           "access": "private"
         },
         {
           "type": "property",
           "name": "dead",
-          "line_start": 185,
-          "line_end": 185,
+          "line_start": 183,
+          "line_end": 183,
           "signature": "private dead: Error | null = null;",
           "access": "private"
         },
         {
           "type": "property",
           "name": "sessionId",
-          "line_start": 186,
-          "line_end": 186,
+          "line_start": 184,
+          "line_end": 184,
           "signature": "private sessionId: string | null = null;",
           "access": "private"
         },
         {
           "type": "method",
           "name": "constructor",
-          "line_start": 188,
-          "line_end": 191,
+          "line_start": 186,
+          "line_end": 189,
           "signature": "constructor("
         },
         {
           "type": "method",
           "name": "remote",
-          "line_start": 194,
-          "line_end": 196,
+          "line_start": 192,
+          "line_end": 194,
           "signature": "private get remote(): boolean {",
           "access": "private",
           "doc": "Remote when an address is set and no program overrides it."
@@ -229,49 +229,49 @@
         {
           "type": "method",
           "name": "ensure",
-          "line_start": 198,
-          "line_end": 222,
+          "line_start": 196,
+          "line_end": 220,
           "signature": "private ensure(): Promise<void> {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "spawn",
-          "line_start": 224,
-          "line_end": 268,
+          "line_start": 222,
+          "line_end": 269,
           "signature": "private spawn(): Promise<void> {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "failAll",
-          "line_start": 270,
-          "line_end": 277,
+          "line_start": 271,
+          "line_end": 278,
           "signature": "private failAll(err: Error): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "ingest",
-          "line_start": 279,
-          "line_end": 304,
+          "line_start": 280,
+          "line_end": 305,
           "signature": "private ingest(chunk: string): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "notify",
-          "line_start": 306,
-          "line_end": 316,
+          "line_start": 307,
+          "line_end": 317,
           "signature": "private notify(method: string): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "remotePost",
-          "line_start": 320,
-          "line_end": 345,
-          "signature": "private async remotePost(",
+          "line_start": 321,
+          "line_end": 343,
+          "signature": "private async remotePost(payload: any, timeoutMs: number): Promise<{ status: number; text: string }> {",
           "async": true,
           "access": "private",
           "doc": "POST one JSON-RPC message to a remote address (plain JSON or SSE"
@@ -279,8 +279,8 @@
         {
           "type": "method",
           "name": "pickReply",
-          "line_start": 348,
-          "line_end": 387,
+          "line_start": 346,
+          "line_end": 385,
           "signature": "private pickReply(text: string, id: number): any {",
           "access": "private",
           "doc": "Pick the reply matching our id out of a plain-JSON or SSE body."
@@ -288,8 +288,8 @@
         {
           "type": "method",
           "name": "remoteRequest",
-          "line_start": 389,
-          "line_end": 407,
+          "line_start": 387,
+          "line_end": 405,
           "signature": "private async remoteRequest(method: string, params: any, timeoutMs: number): Promise<any> {",
           "async": true,
           "access": "private"
@@ -297,8 +297,8 @@
         {
           "type": "method",
           "name": "remoteNotify",
-          "line_start": 409,
-          "line_end": 415,
+          "line_start": 407,
+          "line_end": 413,
           "signature": "private async remoteNotify(method: string): Promise<void> {",
           "async": true,
           "access": "private"
@@ -306,31 +306,31 @@
         {
           "type": "method",
           "name": "request",
-          "line_start": 417,
-          "line_end": 435,
+          "line_start": 415,
+          "line_end": 433,
           "signature": "request(method: string, params?: any, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<any> {"
         },
         {
           "type": "method",
           "name": "listTools",
-          "line_start": 437,
-          "line_end": 451,
+          "line_start": 435,
+          "line_end": 450,
           "signature": "async listTools(): Promise<McpToolInfo[]> {",
           "async": true
         },
         {
           "type": "method",
           "name": "callTool",
-          "line_start": 453,
-          "line_end": 467,
+          "line_start": 452,
+          "line_end": 466,
           "signature": "async callTool(tool: string, args: Record<string, any>, signal?: AbortSignal): Promise<string> {",
           "async": true
         },
         {
           "type": "method",
           "name": "close",
-          "line_start": 469,
-          "line_end": 478,
+          "line_start": 468,
+          "line_end": 477,
           "signature": "close(): void {"
         }
       ]
@@ -338,38 +338,38 @@
     {
       "type": "interface",
       "name": "McpBridge",
-      "line_start": 483,
-      "line_end": 492,
+      "line_start": 482,
+      "line_end": 491,
       "signature": "interface McpBridge {",
       "children": []
     },
     {
       "type": "interface",
       "name": "McpStatusRow",
-      "line_start": 494,
-      "line_end": 499,
+      "line_start": 493,
+      "line_end": 498,
       "signature": "interface McpStatusRow {",
       "children": []
     },
     {
       "type": "constant",
       "name": "STATUS_TTL_MS",
-      "line_start": 503,
-      "line_end": 503,
+      "line_start": 502,
+      "line_end": 502,
       "signature": "const STATUS_TTL_MS = 60_000;"
     },
     {
       "type": "constant",
       "name": "STATUS_MAX_MS",
-      "line_start": 505,
-      "line_end": 505,
+      "line_start": 504,
+      "line_end": 504,
       "signature": "const STATUS_MAX_MS = 45_000;"
     },
     {
       "type": "function",
       "name": "createMcpBridge",
-      "line_start": 507,
-      "line_end": 673,
+      "line_start": 506,
+      "line_end": 682,
       "signature": "function createMcpBridge(workspace: string): McpBridge {"
     }
   ]

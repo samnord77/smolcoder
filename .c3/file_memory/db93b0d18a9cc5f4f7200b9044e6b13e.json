@@ -1,10 +1,10 @@
 {
   "path": "src/highlight.ts",
-  "content_hash": "e16513631878f1a75e53a4b321b73e30",
-  "updated_at": "2026-09-28T10:33:57",
-  "lines": 184,
-  "size_bytes": 9260,
-  "mtime_ns": 1790588032799774400,
+  "content_hash": "eab04beae36e24492dc0fba17395b607",
+  "updated_at": "2026-09-28T19:36:41",
+  "lines": 272,
+  "size_bytes": 9605,
+  "mtime_ns": 1790620578665744400,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -21,78 +21,78 @@
       "type": "interface",
       "name": "SyntaxToken",
       "line_start": 2,
-      "line_end": 2,
-      "signature": "interface SyntaxToken { kind: SyntaxTokenKind; text: string }",
+      "line_end": 5,
+      "signature": "interface SyntaxToken {",
       "children": []
     },
     {
       "type": "function",
       "name": "tokenizeCode",
-      "line_start": 5,
-      "line_end": 70,
+      "line_start": 8,
+      "line_end": 120,
       "signature": "function tokenizeCode(source: string, language = \"\"): SyntaxToken[] {"
     },
     {
       "type": "function",
       "name": "escapeHtml",
-      "line_start": 72,
-      "line_end": 74,
+      "line_start": 122,
+      "line_end": 124,
       "signature": "function escapeHtml(text: string): string {"
     },
     {
       "type": "function",
       "name": "highlightHtml",
-      "line_start": 77,
-      "line_end": 82,
+      "line_start": 127,
+      "line_end": 134,
       "signature": "function highlightHtml(source: string, language = \"\"): string {"
     },
     {
       "type": "function",
       "name": "highlightEscapedHtml",
-      "line_start": 85,
-      "line_end": 89,
+      "line_start": 137,
+      "line_end": 141,
       "signature": "function highlightEscapedHtml(source: string, language = \"\"): string {"
     },
     {
       "type": "function",
       "name": "highlightAnsi",
-      "line_start": 91,
-      "line_end": 101,
+      "line_start": 143,
+      "line_end": 161,
       "signature": "function highlightAnsi(source: string, language = \"\"): string {"
     },
     {
       "type": "function",
       "name": "createCodeStreamColorizer",
-      "line_start": 104,
-      "line_end": 147,
+      "line_start": 164,
+      "line_end": 235,
       "signature": "function createCodeStreamColorizer(write: (text: string) => void, enabled: boolean): { push(text: string): void; flush(): void } {"
     },
     {
       "type": "constant",
       "name": "browserHighlighterSource",
-      "line_start": 149,
-      "line_end": 149,
+      "line_start": 237,
+      "line_end": 237,
       "signature": "const browserHighlighterSource = `const tokenizeCode = (${tokenizeCode.toString()});\\nconst highlightEscapedHtml = (${highlightEscapedHtml.toString()});`;"
     },
     {
       "type": "constant",
       "name": "ANSI_RE",
-      "line_start": 151,
-      "line_end": 151,
+      "line_start": 239,
+      "line_end": 239,
       "signature": "const ANSI_RE = /\\x1b\\[[0-9;]*[A-Za-z]|\\x1b\\][^\\x07]*\\x07|\\r(?!\\n)/g;"
     },
     {
       "type": "function",
       "name": "stripAnsiDisplay",
-      "line_start": 154,
-      "line_end": 156,
+      "line_start": 242,
+      "line_end": 244,
       "signature": "function stripAnsiDisplay(text: string): string {"
     },
     {
       "type": "function",
       "name": "colorizeResultBlock",
-      "line_start": 161,
-      "line_end": 184,
+      "line_start": 249,
+      "line_end": 272,
       "signature": "function colorizeResultBlock(result: string, enabled: boolean): string {"
     }
   ]

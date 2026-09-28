@@ -1,7 +1,7 @@
+import { browserCrdtSource } from "../crdt";
 import { editorTabStoreBrowserSource } from "../editor-tabs";
 import { editorToolsBrowserSource } from "../editor-tools";
 import { browserHighlighterSource } from "../highlight";
-import { browserCrdtSource } from "../crdt";
 // The browser-side script for the web page. Plain JS in a raw template string
 // (no build step, no dependencies). Rules: no template literals in here, and
 // a literal backtick is written as \` — String.raw hands it through as-is.
@@ -647,7 +647,9 @@ function handle(m) {
     case "state":
       v.state = Object.assign(v.state, m.s);
       if (m.s && "busy" in m.s) setBusy(v, m.s.busy);
-      renderState(v); break;
+      renderState(v);
+      if (v === active) renderTaskRail();
+      break;
     case "user": endThought(v); v.curText = null; v.curTool = null; v.planEl = null; v.curSub = null; add(v, userBubble(m)); break;
     case "response_reset":
       if (v.curText) v.curText.remove();
@@ -888,6 +890,7 @@ function newSession(path) {
 function renderSidebar() {
   const list = $("wslist");
   list.innerHTML = "";
+  renderTaskRail();
   if (!hub.workspaces.length) return;
   for (const w of hub.workspaces) {
     const box = el("div", "ws");
@@ -931,6 +934,46 @@ function renderSidebar() {
     list.appendChild(box);
   }
 }
+
+/** Sidebar rail: the active session's plan steps, with a live done counter.
+ * Reads state.plan.steps (what Session.state() actually sends) and hides
+ * itself when there is no plan yet. */
+function renderTaskRail() {
+  const rail = $("taskrail");
+  const list = $("taskrail-list");
+  if (!rail || !list) return;
+  const plan = active && active.state ? active.state.plan : null;
+  const steps = plan && Array.isArray(plan.steps) ? plan.steps : [];
+  if (!steps.length) {
+    rail.hidden = true;
+    return;
+  }
+  rail.hidden = false;
+  list.innerHTML = "";
+  const done = steps.filter((s) => s.done).length;
+  const head = $("taskrail-head");
+  if (head) head.textContent = done + "/" + steps.length + " · tâches";
+  steps.forEach((step, i) => {
+    const current = plan.current === i;
+    const item = el("div", "taskrail-item" + (step.done ? " done" : "") + (current ? " current" : ""));
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.className = "taskrail-checkbox";
+    cb.checked = !!step.done;
+    cb.title = step.done ? "marquer comme non terminée" : "marquer comme terminée";
+    cb.onchange = () => {
+      step.done = cb.checked;
+      renderTaskRail();
+    };
+    const text = el("span", "taskrail-text", step.text);
+    item.title = step.note ? step.text + " — " + step.note : step.text;
+    item.appendChild(cb);
+    item.appendChild(text);
+    if (current) item.appendChild(el("span", "taskrail-now", "›"));
+    list.appendChild(item);
+  });
+}
+
 function removeWorkspace(w) {
   if (w.sessions.some((s) => s.live)) { alert("Close the open sessions in " + w.name + " first."); return; }
   const n = w.sessions.length;
@@ -1380,6 +1423,17 @@ function buildFilesTab(v, t) {
   const code = document.createElement("pre"); code.className = "filecode"; code.setAttribute("aria-hidden", "true");
   const editor = document.createElement("textarea");
   editor.className = "fileeditor"; editor.spellcheck = false; editor.placeholder = "Select a file…";
+  const gutter = document.createElement("div"); gutter.className = "filegutter"; gutter.setAttribute("aria-hidden", "true");
+  editor.addEventListener("scroll", () => { gutter.scrollTop = editor.scrollTop; });
+  /** Line numbers, kept in step with the editor's line count and scroll.
+   * Called from paint() and displayTab(), so it tracks every edit. */
+  const updateGutter = () => {
+    const total = editor.value.split("\n").length;
+    let html = "";
+    for (let i = 1; i <= total; i++) html += "<div>" + i + "</div>";
+    gutter.innerHTML = html;
+    gutter.scrollTop = editor.scrollTop;
+  };
   const meta = el("div", "filemeta", "workspace files");
   const diagnosticsPanel = el("div", "filediagnostics"); diagnosticsPanel.setAttribute("role", "region"); diagnosticsPanel.setAttribute("aria-label", "Problèmes du fichier");
   const fileFindBar = el("div", "filefindbar"); fileFindBar.hidden = true; fileFindBar.setAttribute("role", "search");
@@ -1392,7 +1446,7 @@ function buildFilesTab(v, t) {
   const currentReplaceAll = el("button", "iconbtn", "Tout remplacer"); currentReplaceAll.type = "button"; currentReplaceAll.hidden = true;
   const currentFindClose = el("button", "iconbtn", "×"); currentFindClose.type = "button"; currentFindClose.title = "Fermer la recherche";
   fileFindBar.append(currentFindInput, currentFindPrev, currentFindNext, currentFindCount, currentReplaceInput, currentReplaceOne, currentReplaceAll, currentFindClose);
-  editorWrap.appendChild(tabsBar); editorWrap.appendChild(code); editorWrap.appendChild(editor);
+  editorWrap.appendChild(tabsBar); editorWrap.appendChild(gutter); editorWrap.appendChild(code); editorWrap.appendChild(editor);
   const completePop = el("div", "completepop"); completePop.hidden = true;
   completePop.setAttribute("role", "listbox");
   editorWrap.appendChild(completePop);
@@ -1473,7 +1527,9 @@ function buildFilesTab(v, t) {
     html = html.split(SQW[0]).join('<span class="sq-warn">').split(SQW[1]).join("</span>");
     code.innerHTML = html;
     code.scrollTop = editor.scrollTop; code.scrollLeft = editor.scrollLeft;
+    updateGutter();
   };
+
   const showError = (message) => {
     meta.textContent = String(message || "");
     meta.classList.toggle("error", !!message);
@@ -1680,6 +1736,7 @@ function buildFilesTab(v, t) {
     t.filePath = tab ? tab.path : ""; t.mtimeMs = tab ? tab.mtimeMs : 0;
     t.diags = [];
     editor.value = tab ? tab.content : ""; editor.dataset.original = tab ? tab.savedContent : ""; paint();
+    updateGutter();
     editor.dataset.dirty = tab && tab.dirty ? "1" : "0";
     save.disabled = v.state.mode === "ro" || !tab;
     updatePosition();
@@ -2082,13 +2139,38 @@ function buildReviewTab(v, t) {
   bar.appendChild(refresh); bar.appendChild(staged);
   const sbsBtn = el("button", "iconbtn", "⇄"); sbsBtn.type = "button"; sbsBtn.title = "side-by-side view";
   bar.appendChild(sbsBtn);
-  let sbsMode = false;
-  sbsBtn.onclick = () => {
-    sbsMode = !sbsMode;
-    sbsBtn.textContent = sbsMode ? "≡" : "⇄";
-    sbsBtn.title = sbsMode ? "unified view" : "side-by-side view";
-    load();
+  let sbsMode = t.sbs ?? null; // null = auto, true = side-by-side, false = unified
+  const updateSbsBtn = () => {
+    if (sbsMode === null) { sbsBtn.textContent = "⇄"; sbsBtn.title = "side-by-side view (auto)"; }
+    else if (sbsMode) { sbsBtn.textContent = "≡"; sbsBtn.title = "unified view"; }
+    else { sbsBtn.textContent = "⇄"; sbsBtn.title = "side-by-side view"; }
   };
+  const computeSbs = () => {
+    if (sbsMode !== null) return sbsMode;
+    // auto: side-by-side if review panes width >= 1100px
+    const panes = document.querySelector(".reviewpanes");
+    return panes && panes.offsetWidth >= 1100;
+  };
+  const applySbs = () => {
+    const on = computeSbs();
+    const panes = document.querySelector(".reviewpanes");
+    if (panes) {
+      panes.style.flexDirection = on ? "row" : "column";
+      panes.classList.toggle("sbsgrid", on);
+    }
+    // Also toggle on body for test visibility
+    document.body.classList.toggle("sbsgrid", on);
+  };
+  sbsBtn.onclick = () => {
+    if (sbsMode === null) sbsMode = true;
+    else if (sbsMode) sbsMode = false;
+    else sbsMode = null;
+    t.sbs = sbsMode;
+    savePanel(v);
+    updateSbsBtn();
+    applySbs();
+  };
+  updateSbsBtn();
   const reviewFilter = document.createElement("input");
   reviewFilter.placeholder = "Filtrer…";
   reviewFilter.setAttribute("aria-label", "Filter hunks");
@@ -2263,7 +2345,7 @@ function buildReviewTab(v, t) {
           if (f.file !== selected) continue;
           for (const h of f.hunks || []) {
             const block = el("div", "reviewhunk");
-            if (sbsMode) renderSbsHunk(block, h);
+            if (computeSbs()) renderSbsHunk(block, h);
             else {
             const pre = el("pre", "reviewpatch");
             const sel = new Set();
@@ -2334,6 +2416,7 @@ function buildReviewTab(v, t) {
           diffBody.replaceChildren();
         }
         applyReviewFilter();
+        applySbs();
       }).catch((e) => { list.replaceChildren(el("div", "filediagnostic-note error", String((e && e.message) || e))); });
   };
   refresh.onclick = load;

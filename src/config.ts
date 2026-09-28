@@ -2,11 +2,11 @@
 // holds saved web sessions and the workspace list. Shared by the CLI entry
 // point, the session loop and the web hub.
 
-import * as fs from "fs";
-import * as os from "os";
-import * as path from "path";
-import { Effort } from "./providers/types";
-import { Mode } from "./tools/index";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
+import type { Effort } from "./providers/types";
+import type { Mode } from "./tools/index";
 
 // SMOLCODER_CONFIG points tests at a scratch file so they never touch the
 // real one.
@@ -37,7 +37,7 @@ export interface Config {
 export function effortForBackend(cfg: Config, backend: "ollama" | "lmstudio", override?: Effort | null): Effort | null {
   if (override !== undefined) return override;
   const saved = cfg.effortByBackend;
-  if (saved && Object.prototype.hasOwnProperty.call(saved, backend)) return saved[backend] ?? null;
+  if (saved && Object.hasOwn(saved, backend)) return saved[backend] ?? null;
   return cfg.effort ?? null;
 }
 
@@ -80,7 +80,7 @@ export function loadConfig(): Config {
   if (cfg.effortByBackend && typeof cfg.effortByBackend === "object" && !Array.isArray(cfg.effortByBackend)) {
     const saved: Config["effortByBackend"] = {};
     for (const backend of ["ollama", "lmstudio"] as const) {
-      if (!Object.prototype.hasOwnProperty.call(cfg.effortByBackend, backend)) continue;
+      if (!Object.hasOwn(cfg.effortByBackend, backend)) continue;
       const value = cfg.effortByBackend[backend];
       if (value === null || (typeof value === "string" && ["off", "low", "medium", "high"].includes(value))) {
         saved[backend] = value as Effort | null;

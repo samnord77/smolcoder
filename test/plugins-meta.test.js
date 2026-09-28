@@ -19,14 +19,8 @@ function plugDir(ws) {
 test("plugins: manifest cards, defaults, and broken plugins", () => {
   const ws = scratchWs();
   const dir = plugDir(ws);
-  fs.writeFileSync(
-    path.join(dir, "guard.cjs"),
-    "module.exports = { beforeTool(n, a) { return null; }, afterTool(n, r) { return r; } };"
-  );
-  fs.writeFileSync(
-    path.join(dir, "guard.json"),
-    JSON.stringify({ version: "1.2.0", description: "Guards shell calls.", author: "team" })
-  );
+  fs.writeFileSync(path.join(dir, "guard.cjs"), "module.exports = { beforeTool(n, a) { return null; }, afterTool(n, r) { return r; } };");
+  fs.writeFileSync(path.join(dir, "guard.json"), JSON.stringify({ version: "1.2.0", description: "Guards shell calls.", author: "team" }));
   fs.writeFileSync(path.join(dir, "naked.cjs"), "module.exports = {};");
   fs.writeFileSync(path.join(dir, "broken.cjs"), "throw new Error('boom');");
   fs.writeFileSync(path.join(dir, "broken.json"), "{oops");

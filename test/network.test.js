@@ -83,7 +83,10 @@ test("the saved list adds without duplicates, renames and removes", () => {
   let hosts = addHost([], { address: "192.168.1.50" });
   hosts = addHost(hosts, { address: "gpu-box.local", name: "GPU box" });
   hosts = addHost(hosts, { address: "192.168.1.50 ", name: "Attic" });
-  assert.deepEqual(hosts, [{ address: "192.168.1.50", name: "Attic" }, { address: "gpu-box.local", name: "GPU box" }]);
+  assert.deepEqual(hosts, [
+    { address: "192.168.1.50", name: "Attic" },
+    { address: "gpu-box.local", name: "GPU box" },
+  ]);
   assert.equal(hostLabel({ address: "http://10.0.0.7:11434" }), "10.0.0.7");
   assert.equal(hostLabel(hosts[1]), "GPU box");
   assert.deepEqual(hostUrls({ address: "not an address" }), []);
@@ -94,7 +97,19 @@ test("the saved list adds without duplicates, renames and removes", () => {
 });
 
 test("addresses outside a home or office network are recognized", () => {
-  for (const inside of ["192.168.1.50", "10.1.2.3", "172.20.0.4", "100.101.102.103", "127.0.0.1", "gpu-box", "gpu-box.local", "nas.lan", "box.tailnet.ts.net", "fd12::1", "::1"]) {
+  for (const inside of [
+    "192.168.1.50",
+    "10.1.2.3",
+    "172.20.0.4",
+    "100.101.102.103",
+    "127.0.0.1",
+    "gpu-box",
+    "gpu-box.local",
+    "nas.lan",
+    "box.tailnet.ts.net",
+    "fd12::1",
+    "::1",
+  ]) {
     assert.equal(isPrivateHost(inside), true, inside);
   }
   for (const outside of ["8.8.8.8", "172.32.0.1", "llm.example.com", "2001:db8::1"]) assert.equal(isPrivateHost(outside), false, outside);
@@ -130,19 +145,32 @@ const v4 = (address, netmask, internal = false) => ({ address, netmask, family: 
 
 test("subnets are chosen by address, the same way on every OS", () => {
   const windows = {
-    "Wi-Fi": [v4("192.168.1.23", "255.255.255.0"), { address: "fe80::1", netmask: "ffff:ffff:ffff:ffff::", family: "IPv6", internal: false }],
+    "Wi-Fi": [
+      v4("192.168.1.23", "255.255.255.0"),
+      { address: "fe80::1", netmask: "ffff:ffff:ffff:ffff::", family: "IPv6", internal: false },
+    ],
     "vEthernet (WSL (Hyper-V firewall))": [v4("172.29.80.1", "255.255.240.0")],
     "Loopback Pseudo-Interface 1": [v4("127.0.0.1", "255.0.0.0", true)],
   };
   const found = localSubnets(windows);
-  assert.deepEqual(found.map((s) => s.cidr), ["192.168.1.0/24"]);
+  assert.deepEqual(
+    found.map((s) => s.cidr),
+    ["192.168.1.0/24"]
+  );
   assert.equal(found[0].addresses.length, 253, "254 usable addresses minus our own");
   assert.ok(!found[0].addresses.includes("192.168.1.23"));
   assert.equal(found[0].addresses[0], "192.168.1.1");
   assert.equal(found[0].addresses.at(-1), "192.168.1.254");
 
-  const mac = { lo0: [v4("127.0.0.1", "255.0.0.0", true)], en0: [v4("10.0.4.17", "255.255.252.0")], utun3: [v4("100.64.0.9", "255.255.255.255")] };
-  assert.deepEqual(localSubnets(mac).map((s) => [s.cidr, s.addresses.length]), [["10.0.4.0/22", 1021]]);
+  const mac = {
+    lo0: [v4("127.0.0.1", "255.0.0.0", true)],
+    en0: [v4("10.0.4.17", "255.255.252.0")],
+    utun3: [v4("100.64.0.9", "255.255.255.255")],
+  };
+  assert.deepEqual(
+    localSubnets(mac).map((s) => [s.cidr, s.addresses.length]),
+    [["10.0.4.0/22", 1021]]
+  );
 
   const linux = {
     eth0: [v4("10.20.30.40", "255.0.0.0")], // a huge office network: only our own /24 is searched
@@ -151,20 +179,26 @@ test("subnets are chosen by address, the same way on every OS", () => {
     wlan0: [v4("169.254.10.2", "255.255.0.0")],
     ppp0: [v4("8.8.4.4", "255.255.255.0")],
   };
-  assert.deepEqual(localSubnets(linux).map((s) => s.cidr), ["10.20.30.0/24"]);
+  assert.deepEqual(
+    localSubnets(linux).map((s) => s.cidr),
+    ["10.20.30.0/24"]
+  );
   assert.deepEqual(localSubnets({}), []);
 });
 
 test("a Hyper-V external switch is the real network and is searched", () => {
   const found = localSubnets({ "vEthernet (External Switch)": [v4("192.168.0.9", "255.255.255.0")] });
-  assert.deepEqual(found.map((s) => s.cidr), ["192.168.0.0/24"]);
+  assert.deepEqual(
+    found.map((s) => s.cidr),
+    ["192.168.0.0/24"]
+  );
 });
 
 // ---- scan + flows ----------------------------------------------------------
 
 test("the scan reports model servers and ignores closed or unrelated ports", async () => {
   const ollama = await serveOllama(["a", "b"]);
-  const other = http.createServer((req, res) => res.end("hello"));
+  const other = http.createServer((_req, res) => res.end("hello"));
   await new Promise((resolve) => other.listen(0, "127.0.0.1", resolve));
   const closed = await serveOllama();
   await closed.close();
@@ -191,7 +225,10 @@ test("entering an address checks it, saves it, and says what it found", async ()
     assert.equal(await findModelsOnNetwork(ui), true);
     assert.deepEqual(loadConfig().hosts, [{ address: `http://127.0.0.1:${server.port}` }]);
     assert.equal(loadConfig().lastModel, "keep-me");
-    assert.ok(ui.shown.lines.some((l) => /added 127\.0\.0\.1 — Ollama · 3 models/.test(l)), ui.shown.lines.join("\n"));
+    assert.ok(
+      ui.shown.lines.some((l) => /added 127\.0\.0\.1 — Ollama · 3 models/.test(l)),
+      ui.shown.lines.join("\n")
+    );
   } finally {
     await server.close();
   }
@@ -241,7 +278,18 @@ test("with nothing on this computer, startup offers the network instead of givin
   const server = http.createServer((req, res) => {
     res.setHeader("content-type", "application/json");
     if (req.url === "/api/v1/models")
-      res.end(JSON.stringify({ models: [{ key: "remote-qwen", type: "llm", max_context_length: 32768, loaded_instances: [{ id: "remote-qwen", config: { context_length: 8192 } }] }] }));
+      res.end(
+        JSON.stringify({
+          models: [
+            {
+              key: "remote-qwen",
+              type: "llm",
+              max_context_length: 32768,
+              loaded_instances: [{ id: "remote-qwen", config: { context_length: 8192 } }],
+            },
+          ],
+        })
+      );
     else res.end(JSON.stringify({ error: "Unexpected endpoint or method." }));
   });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
@@ -251,7 +299,10 @@ test("with nothing on this computer, startup offers the network instead of givin
     const none = scriptedUI({ picks: ["Look again", null] });
     assert.equal(await setupWithoutLocalModels(none, { backend: "zzz" }), null);
     assert.match(none.shown.lines.join("\n"), /Still no model server answering/);
-    assert.deepEqual(none.shown.selects[0].options.map((o) => o.label), ["Find models on another machine", "Look again"]);
+    assert.deepEqual(
+      none.shown.selects[0].options.map((o) => o.label),
+      ["Find models on another machine", "Look again"]
+    );
 
     // Add the machine by address; a dev box may also run a real LM Studio, in
     // which case the model picker appears and the remote one is chosen.
@@ -286,7 +337,7 @@ test("esc during a startup model load cancels the wait, not the app", async () =
     const texts = [`127.0.0.1:${server.address().port}`];
     const ui = {
       shown: { lines: [] },
-      async select(title, options) {
+      async select(_title, options) {
         const want = picks.shift();
         if (want == null) return null;
         const i = options.findIndex((o) => (want instanceof RegExp ? want.test(o.label) : o.label === want));
@@ -319,7 +370,7 @@ test("esc during a startup model load cancels the wait, not the app", async () =
 test("a slow model load announces itself instead of looking frozen", async () => {
   // A first load can sit silent for minutes in "loading …" — once the load
   // outlasts the hint delay, the caller hears back once with an explanation.
-  const server = http.createServer((req, res) => {
+  const server = http.createServer((_req, res) => {
     setTimeout(() => {
       res.setHeader("content-type", "application/json");
       res.end(JSON.stringify({ models: [{ name: "slow:7b" }] }));
@@ -351,6 +402,12 @@ test("the same model id on two machines stays unambiguous", () => {
   assert.equal(autoPickModel([there], undefined, undefined), there);
 
   const rows = modelOptions([here, there, lm], there);
-  assert.deepEqual(rows.map((r) => r.hint.replace(/4.096/, "4096")), ["ollama", "ollama · gpu-box", "lm studio · ctx 4096"]);
-  assert.deepEqual(rows.map((r) => r.current), [false, true, false]);
+  assert.deepEqual(
+    rows.map((r) => r.hint.replace(/4.096/, "4096")),
+    ["ollama", "ollama · gpu-box", "lm studio · ctx 4096"]
+  );
+  assert.deepEqual(
+    rows.map((r) => r.current),
+    [false, true, false]
+  );
 });

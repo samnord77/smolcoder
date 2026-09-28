@@ -1,0 +1,9 @@
+{
+  "original_tokens": 933,
+  "compressed_tokens": 91,
+  "saved_tokens": 842,
+  "savings_pct": 90.2,
+  "compressed": "# router.test.js (.js) \u2014 88 lines\nconst test = require(\"node:test\");\nconst assert = require(\"node:assert/strict\");\nconst okProvider = (label) => (\nconst failProvider = (label, msg) => (\nconst models = [{ backend: \"lmstudio\", id: \"model-b\", baseUrl: \"http://127.0.0.1:1234\", contextWindow: 8000 }];",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\router.test.js"
+}

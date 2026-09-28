@@ -26,7 +26,9 @@ test("ANSI output uses multiple colors and preserves source text", () => {
 });
 test("plain streaming prose is immediate and fenced code is colorized across chunks", () => {
   let output = "";
-  const stream = require("../dist/highlight.js").createCodeStreamColorizer((text) => { output += text; }, true);
+  const stream = require("../dist/highlight.js").createCodeStreamColorizer((text) => {
+    output += text;
+  }, true);
   stream.push("plain");
   assert.equal(output, "plain");
   stream.push(" text\n```ts\nconst x = 1;\n```");

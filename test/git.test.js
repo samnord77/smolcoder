@@ -105,7 +105,7 @@ test("git: hunk parsing splits files and rebuilds headers", () => {
 function scratchHunkRepo() {
   const ws = scratchRepo();
   const lines = Array.from({ length: 20 }, (_, i) => `line${i + 1}`);
-  fs.writeFileSync(path.join(ws, "app.txt"), lines.join("\n") + "\n");
+  fs.writeFileSync(path.join(ws, "app.txt"), `${lines.join("\n")}\n`);
   spawnSync("git", ["add", "."], { cwd: ws, windowsHide: true });
   spawnSync("git", ["commit", "-m", "base"], { cwd: ws, windowsHide: true });
   return ws;
@@ -118,7 +118,7 @@ test("git: stage and revert one hunk without touching the other", () => {
   const changed = Array.from({ length: 20 }, (_, i) => `line${i + 1}`);
   changed[1] = "CHANGED2";
   changed[17] = "CHANGED18";
-  fs.writeFileSync(path.join(repo, "app.txt"), changed.join("\n") + "\n");
+  fs.writeFileSync(path.join(repo, "app.txt"), `${changed.join("\n")}\n`);
   const before = gitDiffFiles(repo);
   assert.equal(before.files.length, 1);
   assert.equal(before.files[0].hunks.length, 2);
@@ -142,7 +142,7 @@ test("git: unstage returns the index to HEAD while the working tree keeps every 
   const changed = Array.from({ length: 20 }, (_, i) => `line${i + 1}`);
   changed[1] = "CHANGED2";
   changed[17] = "CHANGED18";
-  fs.writeFileSync(path.join(repo, "app.txt"), changed.join("\n") + "\n");
+  fs.writeFileSync(path.join(repo, "app.txt"), `${changed.join("\n")}\n`);
   const cached = () => spawnSync("git", ["diff", "--cached"], { cwd: repo, encoding: "utf8", windowsHide: true }).stdout;
 
   assert.match(gitUnstage(repo, ["app.txt"]), /Nothing staged for app\.txt/, "says so before anything is staged");
@@ -200,7 +200,7 @@ test("git: revert one file to HEAD", () => {
   const repo = scratchHunkRepo();
   const changed = Array.from({ length: 20 }, (_, i) => `line${i + 1}`);
   changed[1] = "CHANGED2";
-  fs.writeFileSync(path.join(repo, "app.txt"), changed.join("\n") + "\n");
+  fs.writeFileSync(path.join(repo, "app.txt"), `${changed.join("\n")}\n`);
   assert.match(gitRevertFile(repo, "app.txt"), /Reverted "app\.txt" to HEAD/);
   assert.ok(fs.readFileSync(path.join(repo, "app.txt"), "utf8").includes("line2"));
   assert.doesNotMatch(fs.readFileSync(path.join(repo, "app.txt"), "utf8"), /CHANGED2/);
@@ -219,7 +219,7 @@ test("git: stage selected lines with honest recounts", () => {
   const changed = Array.from({ length: 20 }, (_, i) => `line${i + 1}`);
   changed[1] = "L2x";
   changed[2] = "L3x";
-  fs.writeFileSync(path.join(repo, "app.txt"), changed.join("\n") + "\n");
+  fs.writeFileSync(path.join(repo, "app.txt"), `${changed.join("\n")}\n`);
   const { files } = gitDiffFiles(repo);
   assert.equal(files.length, 1);
   const hunk = files[0].hunks[0];

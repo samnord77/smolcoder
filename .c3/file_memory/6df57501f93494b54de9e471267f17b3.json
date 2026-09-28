@@ -1,34 +1,34 @@
 {
   "path": "src/prompt.ts",
-  "content_hash": "9b8be66d89581bcf9e9baf75ea35a988",
-  "updated_at": "2026-09-27T23:22:44",
-  "lines": 87,
-  "size_bytes": 4993,
-  "mtime_ns": 1790547622577648300,
+  "content_hash": "dae888d7f1ced66ac07fd1456ae93c2b",
+  "updated_at": "2026-09-28T19:36:40",
+  "lines": 78,
+  "size_bytes": 4861,
+  "mtime_ns": 1790620579268339700,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
   "sections": [
     {
       "type": "import",
-      "name": "import * as fs from \"fs\";",
+      "name": "import * as fs from \"node:fs\";",
       "line_start": 8,
       "line_end": 8,
-      "signature": "import * as fs from \"fs\";"
+      "signature": "import * as fs from \"node:fs\";"
     },
     {
       "type": "import",
-      "name": "import * as path from \"path\";",
+      "name": "import * as path from \"node:path\";",
       "line_start": 9,
       "line_end": 9,
-      "signature": "import * as path from \"path\";"
+      "signature": "import * as path from \"node:path\";"
     },
     {
       "type": "import",
-      "name": "import { Mode } from \"./tools/index\";",
+      "name": "import type { Mode } from \"./tools/index\";",
       "line_start": 10,
       "line_end": 10,
-      "signature": "import { Mode } from \"./tools/index\";"
+      "signature": "import type { Mode } from \"./tools/index\";"
     },
     {
       "type": "constant",
@@ -48,21 +48,21 @@
       "type": "function",
       "name": "loadAgentsMd",
       "line_start": 16,
-      "line_end": 31,
+      "line_end": 29,
       "signature": "function loadAgentsMd(workspace: string): string | null {"
     },
     {
       "type": "function",
       "name": "loadMemoryMd",
-      "line_start": 35,
-      "line_end": 50,
+      "line_start": 33,
+      "line_end": 46,
       "signature": "function loadMemoryMd(workspace: string): string | null {"
     },
     {
       "type": "function",
       "name": "buildSystemPrompt",
-      "line_start": 52,
-      "line_end": 87,
+      "line_start": 48,
+      "line_end": 78,
       "signature": "function buildSystemPrompt(opts: {"
     }
   ]

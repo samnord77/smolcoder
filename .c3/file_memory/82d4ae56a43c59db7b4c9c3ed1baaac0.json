@@ -1,10 +1,10 @@
 {
   "path": "test/sandbox.test.js",
-  "content_hash": "310ae3ef1bac335a38cf0f0023098124",
-  "updated_at": "2026-09-24T17:36:22",
+  "content_hash": "7277f9ea5db937dd5ab196dffbc3c638",
+  "updated_at": "2026-09-28T19:33:35",
   "lines": 103,
-  "size_bytes": 4658,
-  "mtime_ns": 1790260570028462200,
+  "size_bytes": 4570,
+  "mtime_ns": 1790620408657236700,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -28,21 +28,21 @@
       "name": "fs",
       "line_start": 5,
       "line_end": 5,
-      "signature": "const fs = require(\"fs\");"
+      "signature": "const fs = require(\"node:fs\");"
     },
     {
       "type": "constant",
       "name": "os",
       "line_start": 6,
       "line_end": 6,
-      "signature": "const os = require(\"os\");"
+      "signature": "const os = require(\"node:os\");"
     },
     {
       "type": "constant",
       "name": "path",
       "line_start": 7,
       "line_end": 7,
-      "signature": "const path = require(\"path\");"
+      "signature": "const path = require(\"node:path\");"
     },
     {
       "type": "constant",

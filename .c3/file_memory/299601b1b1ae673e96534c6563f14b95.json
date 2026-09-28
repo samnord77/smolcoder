@@ -1,10 +1,10 @@
 {
   "path": "test/network.test.js",
-  "content_hash": "1a54403c028d5befd9ebfcde2b0c2b06",
-  "updated_at": "2026-09-28T14:22:00",
-  "lines": 356,
-  "size_bytes": 18725,
-  "mtime_ns": 1790600185724387400,
+  "content_hash": "88249551dc5b2ab530a3805cead33658",
+  "updated_at": "2026-09-28T19:36:40",
+  "lines": 413,
+  "size_bytes": 18705,
+  "mtime_ns": 1790620581699890600,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -77,8 +77,8 @@
     {
       "type": "function",
       "name": "v4",
-      "line_start": 129,
-      "line_end": 129,
+      "line_start": 144,
+      "line_end": 144,
       "signature": "const v4 = (address, netmask, internal = false) => ({ address, netmask, family: \"IPv4\", mac: \"00:00:00:00:00:00\", internal, cidr: null });"
     }
   ]

@@ -32,7 +32,10 @@ test("positions stay ordered between neighbors", () => {
 });
 
 test("concurrent inserts at the same spot converge both ways", () => {
-  for (const order of [[0, 1], [1, 0]]) {
+  for (const order of [
+    [0, 1],
+    [1, 0],
+  ]) {
     const A = docFromText("hello");
     A.site = "a";
     const B = docFromText("hello");
@@ -74,7 +77,7 @@ test("diffForSync expresses typing, paste and deletes", () => {
 });
 
 test("the shipped browser bundle runs standalone", () => {
-  const api = vm.runInNewContext(browserCrdtSource + "\n({posBetween,docFromText,docText,localInsert,localDelete,applyOp,diffForSync});");
+  const api = vm.runInNewContext(`${browserCrdtSource}\n({posBetween,docFromText,docText,localInsert,localDelete,applyOp,diffForSync});`);
   const doc = api.docFromText("hi");
   doc.site = "s1";
   assert.equal(api.docText(doc), "hi");

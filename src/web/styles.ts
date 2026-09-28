@@ -275,6 +275,7 @@ export const STYLES = String.raw`
   .fileitem.folder { color: var(--accent); }
   .fileitem.parent { color: var(--dim); border-bottom: 1px solid var(--line); margin-bottom: 4px; }
   .fileeditor-wrap { position: relative; flex: 1; min-width: 0; min-height: 0; overflow: hidden; background: #0f1417; }
+  .filegutter { position: absolute; top: 35px; left: 0; bottom: 0; width: 48px; padding: 10px 8px 10px 0; font: 12.5px/1.5 Consolas, monospace; text-align: right; color: var(--dim); opacity: .5; user-select: none; pointer-events: none; background: #0d1114; border-right: 1px solid var(--line); overflow: hidden; }
   .filediagnostics { flex: none; max-height: 130px; overflow: auto; background: #101416; border-top: 1px solid var(--line); }
   .filediagnostic, .filediagnostic-note { display: block; width: 100%; padding: 5px 8px; border: 0; border-bottom: 1px solid var(--line); text-align: left; color: var(--fg); background: transparent; font: inherit; font-size: 11px; }
   .filediagnostic { cursor: pointer; }
@@ -352,6 +353,15 @@ export const STYLES = String.raw`
   .completeitem .kind { color: var(--dim); }
   .planchip { border: 1px solid var(--line); background: var(--box); color: var(--fg); border-radius: 20px; font: inherit; font-size: 11px; padding: 2px 10px; cursor: pointer; margin-left: 8px; white-space: nowrap; }
   .planchip:hover { border-color: var(--accent); }
+  .taskrail { padding: 8px 10px; border-top: 1px solid var(--line); background: rgba(0,0,0,.08); }
+  .taskrail-header { font-size: 11px; font-weight: 600; color: var(--dim); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+  .taskrail-item { display: flex; gap: 6px; align-items: flex-start; padding: 4px 0; font-size: 12px; color: var(--fg); border-bottom: 1px solid var(--line); }
+  .taskrail-item:last-child { border-bottom: none; }
+  .taskrail-checkbox { flex: none; width: 16px; height: 16px; margin-top: 2px; accent-color: var(--accent); cursor: pointer; }
+  .taskrail-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .taskrail-item.done .taskrail-text { text-decoration: line-through; color: var(--dim); }
+  .taskrail-item.current { box-shadow: inset 3px 0 var(--accent); background: rgba(56,189,248,.07); }
+  .taskrail-now { flex: none; color: var(--accent); font-weight: 700; }
   #panel.split2 { display: flex; }
   #panel.split2 > .tabbody.files { flex: 1; min-width: 0; }
   .filetabs { position: absolute; z-index: 2; inset: 0 0 auto; height: 35px; display: flex; overflow-x: auto; background: #171c1f; border-bottom: 1px solid var(--line); }
@@ -361,7 +371,7 @@ export const STYLES = String.raw`
   .filetab-label { max-width: 175px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 4px 8px; }
   .filetab-close { color: var(--dim); padding: 4px 7px; }
   .filetab-close:hover { background: rgba(255,255,255,.1); }
-  .filecode, .fileeditor { position: absolute; inset: 35px 0 0; height: calc(100% - 35px); margin: 0; padding: 10px 12px; font: 12.5px/1.5 Consolas, monospace; tab-size: 2; white-space: pre-wrap; overflow: auto; word-wrap: break-word; }
+  .filecode, .fileeditor { position: absolute; inset: 35px 0 0 48px; height: calc(100% - 35px); margin: 0; padding: 10px 12px; font: 12.5px/1.5 Consolas, monospace; tab-size: 2; white-space: pre-wrap; overflow: auto; word-wrap: break-word; }
   .filecode { pointer-events: none; color: var(--fg); }
   .fileeditor { resize: none; border: 0; outline: 0; background: transparent; color: transparent; caret-color: #fff; }
   .fileeditor:focus { outline: 1px solid var(--accent); outline-offset: -1px; }

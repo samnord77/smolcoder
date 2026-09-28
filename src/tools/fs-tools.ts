@@ -3,11 +3,11 @@
 // error message (an error IS a prompt — write it like one), and hard output
 // caps so a single result can't flood a small context window.
 
-import * as fs from "fs";
-import * as path from "path";
-import { resolveInWorkspace, relPath, SandboxError } from "../sandbox";
-import { truncateEnd } from "../util";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import { isHistoryPlaceholder } from "../history";
+import { relPath, resolveInWorkspace, SandboxError } from "../sandbox";
+import { truncateEnd } from "../util";
 
 const READ_LINE_LIMIT = 250;
 // Must stay under TOOL_RESULT_CAP (10000) so the registry's outer truncateMiddle
@@ -19,16 +19,60 @@ const SEARCH_MATCH_LIMIT = 50;
 const SEARCH_FILE_SIZE_LIMIT = 512 * 1024;
 
 const IGNORED_DIRS = new Set([
-  "node_modules", ".git", "dist", "out", "build", ".next", ".nuxt", ".cache",
-  "coverage", "__pycache__", ".venv", "venv", ".idea", ".vscode", "target",
-  ".svelte-kit", ".turbo", "vendor",
+  "node_modules",
+  ".git",
+  "dist",
+  "out",
+  "build",
+  ".next",
+  ".nuxt",
+  ".cache",
+  "coverage",
+  "__pycache__",
+  ".venv",
+  "venv",
+  ".idea",
+  ".vscode",
+  "target",
+  ".svelte-kit",
+  ".turbo",
+  "vendor",
 ]);
 
 const BINARY_EXTS = new Set([
-  ".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico", ".bmp", ".pdf", ".zip",
-  ".gz", ".tar", ".7z", ".rar", ".exe", ".dll", ".so", ".dylib", ".bin",
-  ".woff", ".woff2", ".ttf", ".otf", ".eot", ".mp3", ".mp4", ".mov", ".avi",
-  ".wasm", ".db", ".sqlite", ".jar", ".class", ".pyc",
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".gif",
+  ".webp",
+  ".ico",
+  ".bmp",
+  ".pdf",
+  ".zip",
+  ".gz",
+  ".tar",
+  ".7z",
+  ".rar",
+  ".exe",
+  ".dll",
+  ".so",
+  ".dylib",
+  ".bin",
+  ".woff",
+  ".woff2",
+  ".ttf",
+  ".otf",
+  ".eot",
+  ".mp3",
+  ".mp4",
+  ".mov",
+  ".avi",
+  ".wasm",
+  ".db",
+  ".sqlite",
+  ".jar",
+  ".class",
+  ".pyc",
 ]);
 
 function isProbablyBinary(filePath: string): boolean {
@@ -81,7 +125,8 @@ export function readFile(root: string, args: any, maxChars = READ_CHAR_LIMIT): s
   if (stat.isDirectory()) {
     return `Error: "${args.path}" is a folder, not a file. Use list_files with {"path": "${args.path}"} to see what is inside it.`;
   }
-  if (stat.size > 8 * 1024 * 1024) return `Error: "${args.path}" exceeds the 8 MB text-file limit. Use a command to extract a small relevant section into a workspace file, then read that file.`;
+  if (stat.size > 8 * 1024 * 1024)
+    return `Error: "${args.path}" exceeds the 8 MB text-file limit. Use a command to extract a small relevant section into a workspace file, then read that file.`;
   if (isProbablyBinary(abs)) {
     return `Error: "${args.path}" looks like a binary file (${stat.size} bytes) and cannot be read as text.`;
   }
@@ -112,10 +157,7 @@ export function readFile(root: string, args: any, maxChars = READ_CHAR_LIMIT): s
       // advance to, so a line-based "continue" would loop forever. Serve the
       // head and say so, without a continuation offset.
       body = body.slice(0, charLimit);
-      return (
-        body +
-        `\n\n[line ${offset} of ${total} is very long; showing its first ${charLimit} characters only.]`
-      );
+      return body + `\n\n[line ${offset} of ${total} is very long; showing its first ${charLimit} characters only.]`;
     }
   }
   if (offset === 1 && end >= total && !charCut) return body;
@@ -142,9 +184,7 @@ export function writeFile(root: string, args: any): string {
   fs.mkdirSync(path.dirname(abs), { recursive: true });
   fs.writeFileSync(abs, args.content, "utf8");
   const newLines = args.content.split("\n").length;
-  return existed
-    ? `Overwrote ${args.path} (was ${prevLines} lines, now ${newLines} lines).`
-    : `Created ${args.path} (${newLines} lines).`;
+  return existed ? `Overwrote ${args.path} (was ${prevLines} lines, now ${newLines} lines).` : `Created ${args.path} (${newLines} lines).`;
 }
 
 // ---------------------------------------------------------------------------
@@ -293,7 +333,7 @@ export function editFile(root: string, args: any): string {
   const oldText = args.old_text;
   const newText = args.new_text ?? "";
   if (typeof oldText !== "string" || oldText.length === 0) {
-    return 'Error: old_text is required — copy the exact text from the file that you want to replace. To create a new file use write_file instead.';
+    return "Error: old_text is required — copy the exact text from the file that you want to replace. To create a new file use write_file instead.";
   }
   if (typeof newText !== "string") {
     return "Error: new_text must be a string (use an empty string to delete the old text).";
@@ -328,11 +368,7 @@ export function editFile(root: string, args: any): string {
   const matches = findTrimmedMatch(fileLines, oldLines);
   if (matches.length === 1) {
     const start = matches[0];
-    const replaced = [
-      ...fileLines.slice(0, start),
-      ...newNorm.split("\n"),
-      ...fileLines.slice(start + oldLines.length),
-    ].join("\n");
+    const replaced = [...fileLines.slice(0, start), ...newNorm.split("\n"), ...fileLines.slice(start + oldLines.length)].join("\n");
     fs.writeFileSync(abs, serialize(replaced), "utf8");
     return `Edited ${args.path}: replaced 1 occurrence (whitespace differences in old_text were ignored).`;
   }
@@ -343,9 +379,7 @@ export function editFile(root: string, args: any): string {
   // Tier 3: coach with the closest real snippet.
   const snippet = closestSnippet(fileLines, oldText);
   if (snippet) {
-    return (
-      `Error: old_text was not found in ${args.path}. Closest source starts at line ${snippet.offset}. Read this range: ${JSON.stringify({path:args.path,offset:snippet.offset,limit:snippet.limit})}. Use a small exact replacement; this snippet is only a location hint, not the whole block you tried to replace.\n---\n${truncateEnd(snippet.text, 1500)}\n---`
-    );
+    return `Error: old_text was not found in ${args.path}. Closest source starts at line ${snippet.offset}. Read this range: ${JSON.stringify({ path: args.path, offset: snippet.offset, limit: snippet.limit })}. Use a small exact replacement; this snippet is only a location hint, not the whole block you tried to replace.\n---\n${truncateEnd(snippet.text, 1500)}\n---`;
   }
   return `Error: old_text was not found in ${args.path}. Call read_file on it first and copy the exact text you want to change.`;
 }
@@ -377,12 +411,18 @@ export function listFiles(root: string, args: any): string {
       const abs = path.join(dir, e.name);
       const rel = relPath(root, abs);
       if (e.isDirectory()) {
-        entries.push(rel + "/");
-        if (entries.length >= LIST_ENTRY_LIMIT) { truncated = true; return; }
+        entries.push(`${rel}/`);
+        if (entries.length >= LIST_ENTRY_LIMIT) {
+          truncated = true;
+          return;
+        }
         walk(abs, depth + 1);
       } else {
         entries.push(rel);
-        if (entries.length >= LIST_ENTRY_LIMIT) { truncated = true; return; }
+        if (entries.length >= LIST_ENTRY_LIMIT) {
+          truncated = true;
+          return;
+        }
       }
     }
   };
@@ -440,7 +480,10 @@ export function searchFiles(root: string, args: any): string {
         walk(abs, depth + 1);
         continue;
       }
-      if (filesScanned++ > 5000) { done = true; return; }
+      if (filesScanned++ > 5000) {
+        done = true;
+        return;
+      }
       let stat: fs.Stats;
       try {
         stat = fs.statSync(abs);
@@ -458,7 +501,10 @@ export function searchFiles(root: string, args: any): string {
       for (let i = 0; i < lines.length; i++) {
         if (re.test(lines[i])) {
           matches.push(`${relPath(root, abs)}:${i + 1}: ${lines[i].trim().slice(0, 200)}`);
-          if (matches.length >= SEARCH_MATCH_LIMIT) { done = true; break; }
+          if (matches.length >= SEARCH_MATCH_LIMIT) {
+            done = true;
+            break;
+          }
         }
       }
     }

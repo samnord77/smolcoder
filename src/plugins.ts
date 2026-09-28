@@ -10,18 +10,15 @@
 // the string result and returns the replacement (non-strings are ignored).
 // Every hook runs in its own try/catch so a throwing plugin never crashes
 // the turn.
-import * as fs from "fs";
-import * as path from "path";
+import * as fs from "node:fs";
+import * as path from "node:path";
 
 export type PluginBeforeTool = (
   toolName: string,
   args: Record<string, any>
-) => { args?: Record<string, any> } | { block: string } | null | undefined | void;
+) => { args?: Record<string, any> } | { block: string } | null | undefined | undefined;
 
-export type PluginAfterTool = (
-  toolName: string,
-  result: string
-) => string | null | undefined | void;
+export type PluginAfterTool = (toolName: string, result: string) => string | null | undefined | undefined;
 
 export interface LoadedPlugin {
   name: string;
@@ -49,7 +46,10 @@ export function loadPlugins(workspace: string): LoadedPlugin[] {
       return [];
     }
     const out: LoadedPlugin[] = [];
-    for (const f of files.filter((x) => x.endsWith(".cjs")).sort().slice(0, 50)) {
+    for (const f of files
+      .filter((x) => x.endsWith(".cjs"))
+      .sort()
+      .slice(0, 50)) {
       const name = f.slice(0, -4);
       if (!name) continue;
       const abs = path.join(dir, f);
@@ -65,7 +65,7 @@ export function loadPlugins(workspace: string): LoadedPlugin[] {
           /* not cached yet */
         }
         const mod = require(abs);
-        const exp = mod && mod.default ? mod.default : mod;
+        const exp = mod?.default ? mod.default : mod;
         const plug: LoadedPlugin = { name, ok: true };
         if (exp && typeof exp.beforeTool === "function") plug.beforeTool = exp.beforeTool;
         if (exp && typeof exp.afterTool === "function") plug.afterTool = exp.afterTool;
@@ -114,10 +114,7 @@ export function readPluginManifest(workspace: string, name: string): PluginManif
     return {
       name,
       version: typeof raw.version === "string" && raw.version.trim() ? raw.version.trim().slice(0, 20) : "0.0.0",
-      description:
-        typeof raw.description === "string" && raw.description.trim()
-          ? raw.description.trim().slice(0, 300)
-          : "No description.",
+      description: typeof raw.description === "string" && raw.description.trim() ? raw.description.trim().slice(0, 300) : "No description.",
       author: typeof raw.author === "string" && raw.author.trim() ? raw.author.trim().slice(0, 80) : "unknown",
     };
   } catch {

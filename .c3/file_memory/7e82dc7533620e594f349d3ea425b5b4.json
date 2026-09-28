@@ -1,48 +1,48 @@
 {
   "path": "src/config.ts",
-  "content_hash": "7c0de1f545c2fc048ac507aac35b7dc3",
-  "updated_at": "2026-09-26T17:55:04",
+  "content_hash": "d0c0972b202177473432ea8627df6eb1",
+  "updated_at": "2026-09-28T19:33:36",
   "lines": 130,
-  "size_bytes": 5121,
-  "mtime_ns": 1790426678882279500,
+  "size_bytes": 5100,
+  "mtime_ns": 1790620407954437800,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
   "sections": [
     {
       "type": "import",
-      "name": "import * as fs from \"fs\";",
+      "name": "import * as fs from \"node:fs\";",
       "line_start": 5,
       "line_end": 5,
-      "signature": "import * as fs from \"fs\";"
+      "signature": "import * as fs from \"node:fs\";"
     },
     {
       "type": "import",
-      "name": "import * as os from \"os\";",
+      "name": "import * as os from \"node:os\";",
       "line_start": 6,
       "line_end": 6,
-      "signature": "import * as os from \"os\";"
+      "signature": "import * as os from \"node:os\";"
     },
     {
       "type": "import",
-      "name": "import * as path from \"path\";",
+      "name": "import * as path from \"node:path\";",
       "line_start": 7,
       "line_end": 7,
-      "signature": "import * as path from \"path\";"
+      "signature": "import * as path from \"node:path\";"
     },
     {
       "type": "import",
-      "name": "import { Effort } from \"./providers/types\";",
+      "name": "import type { Effort } from \"./providers/types\";",
       "line_start": 8,
       "line_end": 8,
-      "signature": "import { Effort } from \"./providers/types\";"
+      "signature": "import type { Effort } from \"./providers/types\";"
     },
     {
       "type": "import",
-      "name": "import { Mode } from \"./tools/index\";",
+      "name": "import type { Mode } from \"./tools/index\";",
       "line_start": 9,
       "line_end": 9,
-      "signature": "import { Mode } from \"./tools/index\";"
+      "signature": "import type { Mode } from \"./tools/index\";"
     },
     {
       "type": "constant",

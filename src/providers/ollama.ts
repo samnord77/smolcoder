@@ -7,23 +7,23 @@
 // not sent back (the qwen3-family templates drop them anyway); only the
 // current turn's traces travel, which is what tool-call loops need.
 
-import {
-  ChatOptions,
-  ChatResult,
-  Effort,
-  lastUserIndex,
-  MAX_OUTPUT_TOKENS,
-  Msg,
-  nextCallId,
-  parseArgs,
-  Provider,
-  ToolCall,
-  ToolSpec,
-} from "./types";
-import { responseLines, streamJson, withDeadline } from "./transport";
-import { scheduleInference } from "./scheduler";
 import { imageBase64 } from "../attachments";
 import { tryFetchJson } from "../util";
+import { scheduleInference } from "./scheduler";
+import { responseLines, streamJson, withDeadline } from "./transport";
+import {
+  type ChatOptions,
+  type ChatResult,
+  type Effort,
+  lastUserIndex,
+  MAX_OUTPUT_TOKENS,
+  type Msg,
+  nextCallId,
+  type Provider,
+  parseArgs,
+  type ToolCall,
+  type ToolSpec,
+} from "./types";
 
 /** Exported for tests. */
 export function toWire(messages: Msg[]): any[] {

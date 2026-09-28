@@ -1,20 +1,20 @@
 {
   "path": "src/providers/types.ts",
-  "content_hash": "7db4bb0cb5ac90babbc1286f47822b63",
-  "updated_at": "2026-09-24T17:24:24",
+  "content_hash": "96a12bcd37c80902229a0ca92e44a4e0",
+  "updated_at": "2026-09-28T19:33:33",
   "lines": 168,
-  "size_bytes": 6792,
-  "mtime_ns": 1790260569959725100,
+  "size_bytes": 6629,
+  "mtime_ns": 1790620408135466100,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
   "sections": [
     {
       "type": "import",
-      "name": "import { randomBytes } from \"crypto\";",
+      "name": "import { randomBytes } from \"node:crypto\";",
       "line_start": 2,
       "line_end": 2,
-      "signature": "import { randomBytes } from \"crypto\";"
+      "signature": "import { randomBytes } from \"node:crypto\";"
     },
     {
       "type": "interface",

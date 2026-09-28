@@ -58,6 +58,9 @@ test("fetch_url refuses oversized pages", async () => {
 
 test("fetch_url is offered in every mode", () => {
   for (const mode of ["ro", "edit", "bypass"]) {
-    assert.ok(buildToolSpecs(mode).some((t) => t.name === "fetch_url"), mode);
+    assert.ok(
+      buildToolSpecs(mode).some((t) => t.name === "fetch_url"),
+      mode
+    );
   }
 });

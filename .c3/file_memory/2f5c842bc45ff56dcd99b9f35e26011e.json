@@ -1,34 +1,34 @@
 {
   "path": "src/web/store.ts",
-  "content_hash": "e749bc828e10de9e5239fd489caf3d63",
-  "updated_at": "2026-09-24T17:54:22",
+  "content_hash": "ccfc7da7ed0351ce1de9ad87ee92c3d8",
+  "updated_at": "2026-09-28T19:33:36",
   "lines": 213,
-  "size_bytes": 6090,
-  "mtime_ns": 1790268806450092200,
+  "size_bytes": 6105,
+  "mtime_ns": 1790620408345701500,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
   "sections": [
     {
       "type": "import",
-      "name": "import * as fs from \"fs\";",
+      "name": "import * as fs from \"node:fs\";",
       "line_start": 7,
       "line_end": 7,
-      "signature": "import * as fs from \"fs\";"
+      "signature": "import * as fs from \"node:fs\";"
     },
     {
       "type": "import",
-      "name": "import * as path from \"path\";",
+      "name": "import * as path from \"node:path\";",
       "line_start": 8,
       "line_end": 8,
-      "signature": "import * as path from \"path\";"
+      "signature": "import * as path from \"node:path\";"
     },
     {
       "type": "import",
-      "name": "import { SessionSnapshot } from \"../session\";",
+      "name": "import type { SessionSnapshot } from \"../session\";",
       "line_start": 9,
       "line_end": 9,
-      "signature": "import { SessionSnapshot } from \"../session\";"
+      "signature": "import type { SessionSnapshot } from \"../session\";"
     },
     {
       "type": "type",

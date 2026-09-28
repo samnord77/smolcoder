@@ -1,286 +1,279 @@
 {
   "path": "src/agent.ts",
-  "content_hash": "f8641a1733d6022bcfe094e76cef7bcd",
-  "updated_at": "2026-09-28T10:36:57",
-  "lines": 1031,
-  "size_bytes": 53169,
-  "mtime_ns": 1790588086645689300,
+  "content_hash": "431c34024e140b99760314cf5b0c58cc",
+  "updated_at": "2026-09-28T19:36:39",
+  "lines": 1117,
+  "size_bytes": 53184,
+  "mtime_ns": 1790620577813433400,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
   "sections": [
     {
       "type": "import",
-      "name": "import { Attachment, renderAttachmentsForModel } from \"./attachments\";",
+      "name": "import { createHash } from \"node:crypto\";",
       "line_start": 6,
       "line_end": 6,
-      "signature": "import { Attachment, renderAttachmentsForModel } from \"./attachments\";"
+      "signature": "import { createHash } from \"node:crypto\";"
+    },
+    {
+      "type": "import",
+      "name": "import { type Attachment, renderAttachmentsForModel } from \"./attachments\";",
+      "line_start": 7,
+      "line_end": 7,
+      "signature": "import { type Attachment, renderAttachmentsForModel } from \"./attachments\";"
     },
     {
       "type": "import",
       "name": "import { ContextManager } from \"./context\";",
-      "line_start": 7,
-      "line_end": 7,
+      "line_start": 8,
+      "line_end": 8,
       "signature": "import { ContextManager } from \"./context\";"
     },
     {
       "type": "import",
-      "name": "import { EventBus } from \"./events\";",
-      "line_start": 8,
-      "line_end": 8,
-      "signature": "import { EventBus } from \"./events\";"
+      "name": "import type { EventBus } from \"./events\";",
+      "line_start": 9,
+      "line_end": 9,
+      "signature": "import type { EventBus } from \"./events\";"
+    },
+    {
+      "type": "import",
+      "name": "import { gitTurnSummary } from \"./git\";",
+      "line_start": 10,
+      "line_end": 10,
+      "signature": "import { gitTurnSummary } from \"./git\";"
     },
     {
       "type": "import",
       "name": "import { Plan } from \"./plan\";",
-      "line_start": 9,
-      "line_end": 9,
+      "line_start": 11,
+      "line_end": 11,
       "signature": "import { Plan } from \"./plan\";"
     },
     {
       "type": "import",
-      "name": "import { ChatResult, Msg, Provider, ToolSpec } from \"./providers/types\";",
-      "line_start": 10,
-      "line_end": 10,
-      "signature": "import { ChatResult, Msg, Provider, ToolSpec } from \"./providers/types\";"
-    },
-    {
-      "type": "import",
-      "name": "import {",
-      "line_start": 11,
-      "line_end": 18,
-      "signature": "import {"
-    },
-    {
-      "type": "import",
-      "name": "import { AgentUI } from \"./ui\";",
-      "line_start": 19,
-      "line_end": 19,
-      "signature": "import { AgentUI } from \"./ui\";"
-    },
-    {
-      "type": "import",
-      "name": "import { c, fmtDuration } from \"./util\";",
-      "line_start": 20,
-      "line_end": 20,
-      "signature": "import { c, fmtDuration } from \"./util\";"
-    },
-    {
-      "type": "import",
-      "name": "import { commandEscapesWorkspace } from \"./sandbox\";",
-      "line_start": 21,
-      "line_end": 21,
-      "signature": "import { commandEscapesWorkspace } from \"./sandbox\";"
-    },
-    {
-      "type": "import",
       "name": "import { abortableDelay } from \"./providers/transport\";",
-      "line_start": 22,
-      "line_end": 22,
+      "line_start": 12,
+      "line_end": 12,
       "signature": "import { abortableDelay } from \"./providers/transport\";"
     },
     {
       "type": "import",
-      "name": "import { truncateMiddle } from \"./util\";",
-      "line_start": 23,
-      "line_end": 23,
-      "signature": "import { truncateMiddle } from \"./util\";"
+      "name": "import type { ChatResult, Msg, Provider, ToolSpec } from \"./providers/types\";",
+      "line_start": 13,
+      "line_end": 13,
+      "signature": "import type { ChatResult, Msg, Provider, ToolSpec } from \"./providers/types\";"
     },
     {
       "type": "import",
-      "name": "import { createHash } from \"crypto\";",
-      "line_start": 24,
-      "line_end": 24,
-      "signature": "import { createHash } from \"crypto\";"
-    },
-    {
-      "type": "import",
-      "name": "import { runCommand } from \"./tools/shell\";",
-      "line_start": 25,
-      "line_end": 25,
-      "signature": "import { runCommand } from \"./tools/shell\";"
-    },
-    {
-      "type": "import",
-      "name": "import { failureSignature, mergeVerificationCommands, projectVerification } from \"./verification\";",
-      "line_start": 26,
-      "line_end": 26,
-      "signature": "import { failureSignature, mergeVerificationCommands, projectVerification } from \"./verification\";"
+      "name": "import { commandEscapesWorkspace } from \"./sandbox\";",
+      "line_start": 14,
+      "line_end": 14,
+      "signature": "import { commandEscapesWorkspace } from \"./sandbox\";"
     },
     {
       "type": "import",
       "name": "import { recordDelegateStats, relevantSkillNames, relevantSkills, saveAutoRepairLesson } from \"./skills\";",
-      "line_start": 27,
-      "line_end": 27,
+      "line_start": 15,
+      "line_end": 15,
       "signature": "import { recordDelegateStats, relevantSkillNames, relevantSkills, saveAutoRepairLesson } from \"./skills\";"
     },
     {
       "type": "import",
       "name": "import { loadSubagentRoles } from \"./subagents\";",
-      "line_start": 28,
-      "line_end": 28,
+      "line_start": 16,
+      "line_end": 16,
       "signature": "import { loadSubagentRoles } from \"./subagents\";"
     },
     {
       "type": "import",
-      "name": "import { gitTurnSummary } from \"./git\";",
-      "line_start": 29,
-      "line_end": 29,
-      "signature": "import { gitTurnSummary } from \"./git\";"
+      "name": "import { buildToolSpecs, commandOf, executeTool, MODE_LABELS, type Mode, type ToolContext } from \"./tools/index\";",
+      "line_start": 17,
+      "line_end": 17,
+      "signature": "import { buildToolSpecs, commandOf, executeTool, MODE_LABELS, type Mode, type ToolContext } from \"./tools/index\";"
+    },
+    {
+      "type": "import",
+      "name": "import { runCommand } from \"./tools/shell\";",
+      "line_start": 18,
+      "line_end": 18,
+      "signature": "import { runCommand } from \"./tools/shell\";"
+    },
+    {
+      "type": "import",
+      "name": "import type { AgentUI } from \"./ui\";",
+      "line_start": 19,
+      "line_end": 19,
+      "signature": "import type { AgentUI } from \"./ui\";"
+    },
+    {
+      "type": "import",
+      "name": "import { c, fmtDuration, truncateMiddle } from \"./util\";",
+      "line_start": 20,
+      "line_end": 20,
+      "signature": "import { c, fmtDuration, truncateMiddle } from \"./util\";"
+    },
+    {
+      "type": "import",
+      "name": "import { failureSignature, mergeVerificationCommands, projectVerification } from \"./verification\";",
+      "line_start": 21,
+      "line_end": 21,
+      "signature": "import { failureSignature, mergeVerificationCommands, projectVerification } from \"./verification\";"
     },
     {
       "type": "interface",
       "name": "Verification",
-      "line_start": 32,
-      "line_end": 36,
+      "line_start": 24,
+      "line_end": 28,
       "signature": "interface Verification {",
       "children": []
     },
     {
       "type": "constant",
       "name": "TRANSIENT_ERROR",
-      "line_start": 38,
-      "line_end": 38,
+      "line_start": 30,
+      "line_end": 30,
       "signature": "const TRANSIENT_ERROR = /fetch failed|econn|socket|network|timed?.?out|429|50[0-4]|stream ended|malformed JSON|stream error/i;"
     },
     {
       "type": "constant",
       "name": "CONTEXT_ERROR",
-      "line_start": 39,
-      "line_end": 39,
+      "line_start": 31,
+      "line_end": 31,
       "signature": "const CONTEXT_ERROR = /context.{0,50}(exceed|overflow|full|length)|too (many|long).{0,30}tokens|prompt.{0,30}(too long|exceed)/i;"
     },
     {
       "type": "constant",
       "name": "SHELL_META",
-      "line_start": 43,
-      "line_end": 43,
+      "line_start": 35,
+      "line_end": 35,
       "signature": "const SHELL_META = /[;&|`$<>(){}\\n\\r\\\\]/;"
     },
     {
       "type": "function",
       "name": "isAutoApproved",
-      "line_start": 50,
-      "line_end": 56,
+      "line_start": 42,
+      "line_end": 48,
       "signature": "function isAutoApproved(command: string, allowed: Set<string>, reason?: string | null): boolean {"
     },
     {
       "type": "class",
       "name": "ChildUI",
-      "line_start": 62,
-      "line_end": 109,
+      "line_start": 54,
+      "line_end": 101,
       "signature": "class ChildUI implements AgentUI {",
       "children": [
         {
           "type": "method",
           "name": "constructor",
-          "line_start": 63,
-          "line_end": 63,
+          "line_start": 55,
+          "line_end": 55,
           "signature": "constructor(private parent: AgentUI) {}"
         },
         {
           "type": "method",
           "name": "resetResponse",
-          "line_start": 64,
-          "line_end": 66,
+          "line_start": 56,
+          "line_end": 58,
           "signature": "resetResponse?(): void {"
         },
         {
           "type": "method",
           "name": "token",
-          "line_start": 67,
-          "line_end": 69,
+          "line_start": 59,
+          "line_end": 61,
           "signature": "token(text: string): void {"
         },
         {
           "type": "method",
           "name": "thinking",
-          "line_start": 70,
-          "line_end": 72,
+          "line_start": 62,
+          "line_end": 64,
           "signature": "thinking(text: string): void {"
         },
         {
           "type": "method",
           "name": "toolCall",
-          "line_start": 73,
-          "line_end": 75,
+          "line_start": 65,
+          "line_end": 67,
           "signature": "toolCall(name: string, args: Record<string, any>): void {"
         },
         {
           "type": "method",
           "name": "toolResult",
-          "line_start": 76,
-          "line_end": 78,
+          "line_start": 68,
+          "line_end": 70,
           "signature": "toolResult(result: string): void {"
         },
         {
           "type": "method",
           "name": "println",
-          "line_start": 79,
-          "line_end": 81,
+          "line_start": 71,
+          "line_end": 73,
           "signature": "println(s?: string): void {"
         },
         {
           "type": "method",
           "name": "status",
-          "line_start": 82,
-          "line_end": 84,
+          "line_start": 74,
+          "line_end": 76,
           "signature": "status(s: string): void {"
         },
         {
           "type": "method",
           "name": "warn",
-          "line_start": 85,
-          "line_end": 87,
+          "line_start": 77,
+          "line_end": 79,
           "signature": "warn(s: string): void {"
         },
         {
           "type": "method",
           "name": "error",
-          "line_start": 88,
-          "line_end": 90,
+          "line_start": 80,
+          "line_end": 82,
           "signature": "error(s: string): void {"
         },
         {
           "type": "method",
           "name": "startSpinner",
-          "line_start": 91,
-          "line_end": 93,
+          "line_start": 83,
+          "line_end": 85,
           "signature": "startSpinner(label: string): void {"
         },
         {
           "type": "method",
           "name": "stopSpinner",
-          "line_start": 94,
-          "line_end": 96,
+          "line_start": 86,
+          "line_end": 88,
           "signature": "stopSpinner(): void {"
         },
         {
           "type": "method",
           "name": "confirmCommand",
-          "line_start": 97,
-          "line_end": 99,
+          "line_start": 89,
+          "line_end": 91,
           "signature": "confirmCommand(command: string, reason?: string): Promise<\"yes\" | \"no\" | \"always\"> {"
         },
         {
           "type": "method",
           "name": "turnEnd",
-          "line_start": 100,
-          "line_end": 102,
+          "line_start": 92,
+          "line_end": 94,
           "signature": "turnEnd(label: string): void {"
         },
         {
           "type": "method",
           "name": "planUpdated",
-          "line_start": 103,
-          "line_end": 105,
+          "line_start": 95,
+          "line_end": 97,
           "signature": "planUpdated(plan: Plan): void {"
         },
         {
           "type": "method",
           "name": "subagent",
-          "line_start": 106,
-          "line_end": 108,
+          "line_start": 98,
+          "line_end": 100,
           "signature": "subagent?(phase: \"start\" | \"done\", label: string): void {"
         }
       ]
@@ -288,135 +281,135 @@
     {
       "type": "class",
       "name": "Agent",
-      "line_start": 111,
-      "line_end": 998,
+      "line_start": 103,
+      "line_end": 1084,
       "signature": "class Agent {",
       "children": [
         {
           "type": "property",
           "name": "messages",
-          "line_start": 112,
-          "line_end": 112,
+          "line_start": 104,
+          "line_end": 104,
           "signature": "messages: Msg[] = [];"
         },
         {
           "type": "property",
           "name": "tools",
-          "line_start": 113,
-          "line_end": 113,
+          "line_start": 105,
+          "line_end": 105,
           "signature": "tools: ToolSpec[];"
         },
         {
           "type": "property",
           "name": "alwaysAllowed",
-          "line_start": 114,
-          "line_end": 114,
+          "line_start": 106,
+          "line_end": 106,
           "signature": "private alwaysAllowed = new Set<string>();",
           "access": "private"
         },
         {
           "type": "property",
           "name": "originalRequest",
-          "line_start": 115,
-          "line_end": 115,
+          "line_start": 107,
+          "line_end": 107,
           "signature": "originalRequest = \"\";"
         },
         {
           "type": "property",
           "name": "currentRequest",
-          "line_start": 116,
-          "line_end": 116,
+          "line_start": 108,
+          "line_end": 108,
           "signature": "currentRequest = \"\";"
         },
         {
           "type": "property",
           "name": "planNudged",
-          "line_start": 117,
-          "line_end": 117,
+          "line_start": 109,
+          "line_end": 109,
           "signature": "private planNudged = false;",
           "access": "private"
         },
         {
           "type": "property",
           "name": "abort",
-          "line_start": 118,
-          "line_end": 118,
+          "line_start": 110,
+          "line_end": 110,
           "signature": "private abort: AbortController | null = null;",
           "access": "private"
         },
         {
           "type": "property",
           "name": "lastTurnStats",
-          "line_start": 121,
-          "line_end": 121,
+          "line_start": 113,
+          "line_end": 113,
           "signature": "lastTurnStats: TurnStats | null = null;",
           "doc": "Speed/size figures for the last completed turn (for the turn-end label"
         },
         {
           "type": "property",
           "name": "outcome",
-          "line_start": 122,
-          "line_end": 122,
+          "line_start": 114,
+          "line_end": 114,
           "signature": "outcome: \"idle\" | \"running\" | \"completed\" | \"cancelled\" | \"error\" = \"idle\";"
         },
         {
           "type": "property",
           "name": "lastError",
-          "line_start": 123,
-          "line_end": 123,
+          "line_start": 115,
+          "line_end": 115,
           "signature": "lastError: string | null = null;"
         },
         {
           "type": "property",
           "name": "verificationResult",
-          "line_start": 124,
-          "line_end": 124,
+          "line_start": 116,
+          "line_end": 116,
           "signature": "verificationResult: { attempts: number; passed: boolean; output: string } | null = null;"
         },
         {
           "type": "property",
           "name": "verification",
-          "line_start": 125,
-          "line_end": 125,
+          "line_start": 117,
+          "line_end": 117,
           "signature": "private verification?: Verification;",
           "access": "private"
         },
         {
           "type": "property",
           "name": "progressFailure",
-          "line_start": 126,
-          "line_end": 126,
+          "line_start": 118,
+          "line_end": 118,
           "signature": "private progressFailure = \"\";",
           "access": "private"
         },
         {
           "type": "property",
           "name": "sameVerificationFailures",
-          "line_start": 127,
-          "line_end": 127,
+          "line_start": 119,
+          "line_end": 119,
           "signature": "private sameVerificationFailures = 0;",
           "access": "private"
         },
         {
           "type": "property",
           "name": "canRefreshVerification",
-          "line_start": 128,
-          "line_end": 128,
+          "line_start": 120,
+          "line_end": 120,
           "signature": "private canRefreshVerification = false;",
           "access": "private"
         },
         {
           "type": "method",
           "name": "constructor",
-          "line_start": 130,
-          "line_end": 150,
+          "line_start": 122,
+          "line_end": 148,
           "signature": "constructor("
         },
         {
           "type": "method",
           "name": "wireDelegate",
-          "line_start": 155,
-          "line_end": 254,
+          "line_start": 153,
+          "line_end": 256,
           "signature": "private wireDelegate(): void {",
           "access": "private",
           "doc": "Sub-agents: one bounded child turn, same workspace and mode (never"
@@ -424,81 +417,81 @@
         {
           "type": "method",
           "name": "toolsFor",
-          "line_start": 256,
-          "line_end": 259,
+          "line_start": 258,
+          "line_end": 261,
           "signature": "private toolsFor(mode: Mode): ToolSpec[] {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "setMode",
-          "line_start": 261,
-          "line_end": 269,
+          "line_start": 263,
+          "line_end": 271,
           "signature": "setMode(mode: Mode, systemPrompt: string): void {"
         },
         {
           "type": "method",
           "name": "setProvider",
-          "line_start": 271,
-          "line_end": 275,
+          "line_start": 273,
+          "line_end": 277,
           "signature": "setProvider(provider: Provider): void {"
         },
         {
           "type": "method",
           "name": "resetTranscript",
-          "line_start": 277,
-          "line_end": 294,
+          "line_start": 279,
+          "line_end": 296,
           "signature": "resetTranscript(): void {"
         },
         {
           "type": "method",
           "name": "restoreTranscript",
-          "line_start": 298,
-          "line_end": 306,
+          "line_start": 300,
+          "line_end": 310,
           "signature": "restoreTranscript(messages: Msg[], originalRequest: string, currentRequest: string): void {",
           "doc": "Resume a saved session: the transcript (without its system message) and"
         },
         {
           "type": "method",
           "name": "cancel",
-          "line_start": 308,
-          "line_end": 311,
+          "line_start": 312,
+          "line_end": 315,
           "signature": "cancel(): void {"
         },
         {
           "type": "method",
           "name": "contextPercent",
-          "line_start": 313,
-          "line_end": 315,
+          "line_start": 317,
+          "line_end": 319,
           "signature": "contextPercent(): number {"
         },
         {
           "type": "method",
           "name": "contextTokens",
-          "line_start": 317,
-          "line_end": 319,
+          "line_start": 321,
+          "line_end": 323,
           "signature": "contextTokens(): number {"
         },
         {
           "type": "method",
           "name": "contextBudget",
-          "line_start": 321,
-          "line_end": 321,
-          "signature": "contextBudget() { return this.ctxMgr.budget(this.messages, this.tools); }"
+          "line_start": 325,
+          "line_end": 327,
+          "signature": "contextBudget() {"
         },
         {
           "type": "method",
           "name": "compactState",
-          "line_start": 323,
-          "line_end": 328,
+          "line_start": 329,
+          "line_end": 345,
           "signature": "private compactState() {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "checkProgress",
-          "line_start": 330,
-          "line_end": 346,
+          "line_start": 347,
+          "line_end": 366,
           "signature": "private async checkProgress(signal: AbortSignal): Promise<boolean> {",
           "async": true,
           "access": "private"
@@ -506,24 +499,24 @@
         {
           "type": "method",
           "name": "verificationInstruction",
-          "line_start": 348,
-          "line_end": 350,
+          "line_start": 368,
+          "line_end": 372,
           "signature": "private verificationInstruction(): string {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "discoverVerification",
-          "line_start": 352,
-          "line_end": 362,
+          "line_start": 374,
+          "line_end": 384,
           "signature": "private discoverVerification(wroteThisTurn: boolean): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "verify",
-          "line_start": 364,
-          "line_end": 424,
+          "line_start": 386,
+          "line_end": 455,
           "signature": "private async verify(signal: AbortSignal): Promise<boolean> {",
           "async": true,
           "access": "private"
@@ -531,32 +524,32 @@
         {
           "type": "method",
           "name": "compactNow",
-          "line_start": 426,
-          "line_end": 444,
+          "line_start": 457,
+          "line_end": 473,
           "signature": "async compactNow(force = true, deterministic = false): Promise<void> {",
           "async": true
         },
         {
           "type": "method",
           "name": "runTurn",
-          "line_start": 446,
-          "line_end": 844,
+          "line_start": 475,
+          "line_end": 926,
           "signature": "async runTurn(userInput: string, attachments: Attachment[] = []): Promise<void> {",
           "async": true
         },
         {
           "type": "method",
           "name": "truncatedCallHint",
-          "line_start": 848,
-          "line_end": 857,
+          "line_start": 930,
+          "line_end": 939,
           "signature": "truncatedCallHint(): string {",
           "doc": "Coaching for a tool call that overflowed the output cap. Exported via"
         },
         {
           "type": "method",
           "name": "chatWithRetry",
-          "line_start": 862,
-          "line_end": 892,
+          "line_start": 944,
+          "line_end": 980,
           "signature": "private async chatWithRetry(signal: AbortSignal, actionOnly = false): Promise<ChatResult> {",
           "async": true,
           "access": "private",
@@ -565,8 +558,8 @@
         {
           "type": "method",
           "name": "refreshLoadedWindow",
-          "line_start": 894,
-          "line_end": 905,
+          "line_start": 982,
+          "line_end": 993,
           "signature": "private async refreshLoadedWindow(): Promise<void> {",
           "async": true,
           "access": "private"
@@ -574,25 +567,25 @@
         {
           "type": "method",
           "name": "gateAndExecute",
-          "line_start": 907,
-          "line_end": 964,
-          "signature": "private async gateAndExecute(",
+          "line_start": 995,
+          "line_end": 1048,
+          "signature": "private async gateAndExecute(name: string, args: Record<string, any>, signal?: AbortSignal): Promise<string> {",
           "async": true,
           "access": "private"
         },
         {
           "type": "method",
           "name": "repairTranscript",
-          "line_start": 966,
-          "line_end": 978,
+          "line_start": 1050,
+          "line_end": 1066,
           "signature": "private repairTranscript(reason: string): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "sanitizeAfterCancel",
-          "line_start": 986,
-          "line_end": 988,
+          "line_start": 1074,
+          "line_end": 1076,
           "signature": "private sanitizeAfterCancel(): void {",
           "access": "private",
           "doc": "After a cancel, the most recent assistant tool-call message may have some"
@@ -600,8 +593,8 @@
         {
           "type": "method",
           "name": "statusLine",
-          "line_start": 990,
-          "line_end": 997,
+          "line_start": 1078,
+          "line_end": 1083,
           "signature": "statusLine(): string {"
         }
       ]
@@ -609,23 +602,23 @@
     {
       "type": "interface",
       "name": "TurnStats",
-      "line_start": 1000,
-      "line_end": 1012,
+      "line_start": 1086,
+      "line_end": 1098,
       "signature": "interface TurnStats {",
       "children": []
     },
     {
       "type": "function",
       "name": "describeStats",
-      "line_start": 1016,
-      "line_end": 1025,
+      "line_start": 1102,
+      "line_end": 1111,
       "signature": "function describeStats(s: TurnStats): string {"
     },
     {
       "type": "function",
       "name": "abortError",
-      "line_start": 1027,
-      "line_end": 1031,
+      "line_start": 1113,
+      "line_end": 1117,
       "signature": "function abortError(): Error {"
     }
   ]

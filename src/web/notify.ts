@@ -28,7 +28,11 @@ const TITLE: Record<NoticeKind, string> = {
 /** What to show, or null for silence. Exported for tests. */
 export function decideNotice(input: NoticeInput): Notice | null {
   if (!input.enabled || input.visible) return null;
-  const text = String(input.text ?? "").replace(/\s+/g, " ").trim().slice(0, 160) || "—";
+  const text =
+    String(input.text ?? "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 160) || "—";
   return { title: TITLE[input.kind], body: text };
 }
 

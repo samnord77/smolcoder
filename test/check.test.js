@@ -1,9 +1,9 @@
 // The post-write syntax check hook.
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("fs");
-const os = require("os");
-const path = require("path");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
 const { syntaxCheck } = require("../dist/tools/check");
 const { executeTool } = require("../dist/tools/index");
 const { Plan } = require("../dist/plan");
@@ -22,7 +22,10 @@ test("valid JS, module JS, JSON and HTML pass silently", () => {
   assert.equal(syntaxCheck(file("ok.json", '{"a": [1, 2]}'), "ok.json"), null);
   assert.equal(
     syntaxCheck(
-      file("ok.html", '<html><body><script type="importmap">{"imports":{}}</script><script type="module">import x from "y"; const z = 1;</script><script>var q = 2;</script></body></html>'),
+      file(
+        "ok.html",
+        '<html><body><script type="importmap">{"imports":{}}</script><script type="module">import x from "y"; const z = 1;</script><script>var q = 2;</script></body></html>'
+      ),
       "ok.html"
     ),
     null
@@ -45,7 +48,7 @@ test("an inline <script> error reports the HTML line number", () => {
 });
 
 test("invalid JSON is reported", () => {
-  const w = syntaxCheck(file("bad.json", "{\"a\": }"), "bad.json");
+  const w = syntaxCheck(file("bad.json", '{"a": }'), "bad.json");
   assert.match(w, /not valid JSON/);
 });
 

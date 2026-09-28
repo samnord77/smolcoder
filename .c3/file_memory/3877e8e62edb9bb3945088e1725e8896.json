@@ -1,10 +1,10 @@
 {
   "path": "test/recovery.test.js",
-  "content_hash": "4dbcbeae310ce6ac166a8b904ff0ab12",
-  "updated_at": "2026-09-24T17:36:22",
-  "lines": 218,
-  "size_bytes": 14902,
-  "mtime_ns": 1790260570026693700,
+  "content_hash": "d02e2b62901ca1eb23ef9928db181cfa",
+  "updated_at": "2026-09-28T19:36:39",
+  "lines": 390,
+  "size_bytes": 15287,
+  "mtime_ns": 1790620581867115900,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -14,69 +14,69 @@
       "name": "test",
       "line_start": 1,
       "line_end": 1,
-      "signature": "const test = require('node:test');"
+      "signature": "const test = require(\"node:test\");"
     },
     {
       "type": "constant",
       "name": "assert",
       "line_start": 2,
       "line_end": 2,
-      "signature": "const assert = require('node:assert/strict');"
+      "signature": "const assert = require(\"node:assert/strict\");"
     },
     {
       "type": "constant",
       "name": "fs",
       "line_start": 3,
       "line_end": 3,
-      "signature": "const fs = require('node:fs');"
+      "signature": "const fs = require(\"node:fs\");"
     },
     {
       "type": "constant",
       "name": "os",
       "line_start": 4,
       "line_end": 4,
-      "signature": "const os = require('node:os');"
+      "signature": "const os = require(\"node:os\");"
     },
     {
       "type": "constant",
       "name": "path",
       "line_start": 5,
       "line_end": 5,
-      "signature": "const path = require('node:path');"
+      "signature": "const path = require(\"node:path\");"
     },
     {
       "type": "constant",
       "name": "state",
-      "line_start": 36,
-      "line_end": 36,
-      "signature": "const state = { originalRequest: 'Build the app; preserve keyboard support.', currentRequest: 'Fix the editor.', filesTouched: new Set(['editor.js']), commandsRun: ['npm test'], planLine: 'Plan: verify editor' };"
+      "line_start": 39,
+      "line_end": 45,
+      "signature": "const state = {"
     },
     {
       "type": "constant",
       "name": "messages",
-      "line_start": 37,
-      "line_end": 37,
-      "signature": "const messages = [{ role: 'system', content: 'code' }, { role: 'user', content: 'hello' }];"
+      "line_start": 46,
+      "line_end": 49,
+      "signature": "const messages = ["
     },
     {
       "type": "function",
       "name": "ui",
-      "line_start": 38,
-      "line_end": 38,
-      "signature": "const ui = () => ({ token() {}, thinking() {}, toolCall() {}, toolResult() {}, println() {}, status() {}, warn() {}, error() {}, startSpinner() {}, stopSpinner() {}, turnEnd() {}, planUpdated() {}, async confirmCommand() { return 'yes'; } });"
+      "line_start": 50,
+      "line_end": 66,
+      "signature": "const ui = () => ({"
     },
     {
       "type": "function",
       "name": "fake",
-      "line_start": 39,
-      "line_end": 39,
-      "signature": "const fake = (fn) => ({ label: 'fake', modelId: 'fake', contextWindow: 8000, maxOutputTokens: 2000, setEffort() {}, effortLabel() { return null; }, chat: fn });"
+      "line_start": 67,
+      "line_end": 77,
+      "signature": "const fake = (fn) => ({"
     },
     {
       "type": "function",
       "name": "agentFor",
-      "line_start": 40,
-      "line_end": 43,
+      "line_start": 78,
+      "line_end": 91,
       "signature": "function agentFor(provider, view = ui(), max = 10) {"
     }
   ]

@@ -3,10 +3,10 @@
 // real `git` CLI in the workspace with tight timeouts and output caps, so
 // results are always truthful — never guessed. Failures are coaching
 // strings, never throws.
-import { spawnSync } from "child_process";
-import * as fs from "fs";
-import * as os from "os";
-import * as path from "path";
+import { spawnSync } from "node:child_process";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
 import { resolveInWorkspace } from "./sandbox";
 
 const GIT_TIMEOUT_MS = 30_000;
@@ -19,7 +19,7 @@ export interface GitRun {
 
 function cap(s: string): string {
   if (s.length <= OUTPUT_CAP) return s;
-  return s.slice(0, OUTPUT_CAP) + `\n… (truncated, ${s.length - OUTPUT_CAP} more chars)`;
+  return `${s.slice(0, OUTPUT_CAP)}\n… (truncated, ${s.length - OUTPUT_CAP} more chars)`;
 }
 
 /** Exported for tests: run git with args in root, capture output. */
@@ -92,7 +92,8 @@ export function gitDiff(root: string, opts?: { staged?: boolean; path?: string; 
   }
   const r = runGit(root, args);
   if (r.code !== 0) return `Error: git diff failed (${r.out.slice(0, 200)}).`;
-  if (!r.out.trim()) return opts?.staged ? "Nothing staged — the staging area is empty." : "No uncommitted changes — working tree matches HEAD.";
+  if (!r.out.trim())
+    return opts?.staged ? "Nothing staged — the staging area is empty." : "No uncommitted changes — working tree matches HEAD.";
   return r.out;
 }
 
@@ -152,7 +153,8 @@ export function gitBranch(root: string): string {
 export function gitStage(root: string, paths: string[]): string {
   const blocked = needRepo(root);
   if (blocked) return blocked;
-  if (!paths.length) return 'Error: stage needs at least one path. Example: {"action": "stage", "path": "src/agent.ts"} (use "." for everything).';
+  if (!paths.length)
+    return 'Error: stage needs at least one path. Example: {"action": "stage", "path": "src/agent.ts"} (use "." for everything).';
   const safe: string[] = [];
   for (const p of paths) {
     try {
@@ -174,7 +176,8 @@ export function gitStage(root: string, paths: string[]): string {
 export function gitUnstage(root: string, paths: string[]): string {
   const blocked = needRepo(root);
   if (blocked) return blocked;
-  if (!paths.length) return 'Error: unstage needs at least one path. Example: {"action": "unstage", "path": "src/agent.ts"} (use "." for everything).';
+  if (!paths.length)
+    return 'Error: unstage needs at least one path. Example: {"action": "unstage", "path": "src/agent.ts"} (use "." for everything).';
   const safe: string[] = [];
   for (const p of paths) {
     try {
@@ -226,6 +229,7 @@ export interface DiffHunk {
 export interface FileDiff {
   file: string;
   hunks: DiffHunk[];
+  status?: "A" | "D" | "M" | "R";
 }
 
 const MAX_DIFF_FILES = 20;
@@ -363,7 +367,27 @@ export function gitDiffFiles(root: string, staged = false): DiffFilesResult {
         .filter(Boolean)
         .slice(0, 10);
       if (untracked.length) {
-        note = `Untracked (not in the diff — stage the file to review it): ${untracked.join(", ")}`;
+        // Include untracked files as 'A' (added) with full content as additions
+        for (const u of untracked) {
+          try {
+            const content = fs.readFileSync(path.join(root, u), "utf8");
+            const lines = content.split("\n").filter(l => l.length > 0);
+            const hunkLines = lines.map(l => "+" + l);
+            files.push({
+              file: u,
+              status: "A",
+              hunks: [{
+                index: 0,
+                header: `new file mode 100644`,
+                lines: hunkLines
+              }]
+            });
+          } catch {
+            // If file can't be read, add entry without hunks
+            files.push({ file: u, status: "A", hunks: [] });
+          }
+        }
+        note = `Untracked (shown as A — stage to review): ${untracked.join(", ")}`;
       }
     }
   }
@@ -400,13 +424,9 @@ export function gitApplyHunk(root: string, file: string, index: number, action: 
       ? `Error: hunk ${idx} is not staged for "${file}" — refresh the review.`
       : `Error: hunk ${idx} no longer exists for "${file}" — refresh the review, the file changed.`;
   }
-  const patch = [...fileHeaderFor(full.out, file), hunk.header, ...hunk.lines].join("\n") + "\n";
+  const patch = `${[...fileHeaderFor(full.out, file), hunk.header, ...hunk.lines].join("\n")}\n`;
   const args =
-    action === "stage"
-      ? ["apply", "--cached", "-"]
-      : action === "unstage"
-        ? ["apply", "-R", "--cached", "-"]
-        : ["apply", "-R", "-"];
+    action === "stage" ? ["apply", "--cached", "-"] : action === "unstage" ? ["apply", "-R", "--cached", "-"] : ["apply", "-R", "-"];
   const r = applyPatch(root, args, patch);
   if (r.code !== 0) {
     return `Error: git could not ${action} that hunk (${r.out.slice(0, 300)}). The file probably changed — refresh the review.`;
@@ -457,15 +477,15 @@ export function stagedContentFrom(base: string, hunks: DiffHunk[], targetIdx: nu
         const added: string[] = [];
         const kept: string[] = [];
         for (const j of minus) {
-          if (active && active.has(j)) o++;
+          if (active?.has(j)) o++;
           else kept.push(src[o++] ?? "");
         }
-        for (const j of plus) if (active && active.has(j)) added.push(lines[j].slice(1));
+        for (const j of plus) if (active?.has(j)) added.push(lines[j].slice(1));
         out.push(...added, ...kept);
         continue;
       }
       if (c === "+") {
-        if (active && active.has(i)) out.push(lines[i].slice(1));
+        if (active?.has(i)) out.push(lines[i].slice(1));
         i++;
         continue;
       }
@@ -547,7 +567,7 @@ export function gitStageLines(root: string, file: string, index: number, selecte
   const body = stagedPatchBody(root, base, next);
   if (body.code === 2) return body.out;
   if (body.code === 1) return "Nothing to stage — those lines already match the index.";
-  const patch = [...header, body.out].join("\n") + "\n";
+  const patch = `${[...header, body.out].join("\n")}\n`;
   const r = applyPatch(root, ["apply", "--cached", "-"], patch);
   if (r.code !== 0) {
     return `Error: git could not stage those lines (${r.out.slice(0, 300)}). Refresh the review and try again.`;
@@ -656,7 +676,21 @@ export interface GitQuery {
 
 const READ_ACTIONS = new Set(["status", "diff", "log", "blame", "branch", "review"]);
 
-export const GIT_ACTIONS = ["status", "diff", "log", "blame", "branch", "stage", "unstage", "commit", "review", "stage_hunk", "unstage_hunk", "revert_hunk", "stage_lines"];
+export const GIT_ACTIONS = [
+  "status",
+  "diff",
+  "log",
+  "blame",
+  "branch",
+  "stage",
+  "unstage",
+  "commit",
+  "review",
+  "stage_hunk",
+  "unstage_hunk",
+  "revert_hunk",
+  "stage_lines",
+];
 
 /** Render hunk review as capped text for the agent. */
 export function formatReview(root: string, staged = false): string {
@@ -671,7 +705,7 @@ export function formatReview(root: string, staged = false): string {
     }
   }
   const text = out.join("\n");
-  if (text.length > 6000) return text.slice(0, 6000) + "\n… (truncated — review one file at a time)";
+  if (text.length > 6000) return `${text.slice(0, 6000)}\n… (truncated — review one file at a time)`;
   return text;
 }
 

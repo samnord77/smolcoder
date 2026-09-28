@@ -1,10 +1,10 @@
 {
   "path": "test/agent.test.js",
-  "content_hash": "2ad6d0d6d6ddec7e66a6113961960afc",
-  "updated_at": "2026-09-27T23:22:44",
-  "lines": 333,
-  "size_bytes": 16166,
-  "mtime_ns": 1790547710530220800,
+  "content_hash": "dbf9cf392dcb5849f804a0d554c19f95",
+  "updated_at": "2026-09-28T19:36:40",
+  "lines": 415,
+  "size_bytes": 16400,
+  "mtime_ns": 1790620581016234200,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -28,41 +28,41 @@
       "name": "fs",
       "line_start": 6,
       "line_end": 6,
-      "signature": "const fs = require(\"fs\");"
+      "signature": "const fs = require(\"node:fs\");"
     },
     {
       "type": "constant",
       "name": "os",
       "line_start": 7,
       "line_end": 7,
-      "signature": "const os = require(\"os\");"
+      "signature": "const os = require(\"node:os\");"
     },
     {
       "type": "constant",
       "name": "path",
       "line_start": 8,
       "line_end": 8,
-      "signature": "const path = require(\"path\");"
+      "signature": "const path = require(\"node:path\");"
     },
     {
       "type": "function",
       "name": "fakeUi",
       "line_start": 15,
-      "line_end": 24,
+      "line_end": 43,
       "signature": "function fakeUi() {"
     },
     {
       "type": "function",
       "name": "scriptedProvider",
-      "line_start": 26,
-      "line_end": 42,
+      "line_start": 45,
+      "line_end": 67,
       "signature": "function scriptedProvider(replies) {"
     },
     {
       "type": "function",
       "name": "makeAgent",
-      "line_start": 44,
-      "line_end": 48,
+      "line_start": 69,
+      "line_end": 73,
       "signature": "function makeAgent(provider, ui, mode = \"bypass\", interactive = false) {"
     }
   ]

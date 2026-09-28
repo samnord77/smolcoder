@@ -6,11 +6,11 @@
 // sends source code to the server it talks to and runs the tool calls that
 // come back, so choosing a host is choosing to trust it.
 
-import { loadConfig, SavedHost, updateConfig } from "./config";
-import { identifyServer, probeHosts, ServerInfo } from "./detect";
+import { loadConfig, type SavedHost, updateConfig } from "./config";
+import { identifyServer, probeHosts, type ServerInfo } from "./detect";
 import { addHost, hostLabel, isPrivateHost, parseAddress, removeHost, renameHost } from "./hosts";
-import { FoundHost, localSubnets, scanSubnets, Subnet } from "./netscan";
-import { SelectOption } from "./ui";
+import { type FoundHost, localSubnets, type Subnet, scanSubnets } from "./netscan";
+import type { SelectOption } from "./ui";
 import { plural } from "./util";
 
 /** The slice of a UI these flows need — the TUI and the web channel both fit. */
@@ -36,13 +36,13 @@ function describeServers(servers: { backend: keyof typeof BACKEND_NAMES; models:
 export function notFoundHelp(platform: NodeJS.Platform = process.platform): string {
   return (
     "A model server only answers other machines once it is told to. On the machine that runs the models:\n" +
-    "  · Ollama: turn on \"Expose Ollama to the network\" in its settings (Linux or headless: set OLLAMA_HOST=0.0.0.0 and restart it).\n" +
-    "  · LM Studio: Developer tab → Local Server → turn on \"Serve on Local Network\".\n" +
+    '  · Ollama: turn on "Expose Ollama to the network" in its settings (Linux or headless: set OLLAMA_HOST=0.0.0.0 and restart it).\n' +
+    '  · LM Studio: Developer tab → Local Server → turn on "Serve on Local Network".\n' +
     "  · Windows: allow the server through the firewall for Private networks when it asks.\n" +
     (platform === "darwin"
       ? "On this Mac: System Settings → Privacy & Security → Local Network must allow your terminal app, or nothing on the network is visible.\n"
       : "") +
-    "Machines on a VPN or another network are not searched — use \"Enter an address\" for those."
+    'Machines on a VPN or another network are not searched — use "Enter an address" for those.'
   );
 }
 
@@ -79,7 +79,9 @@ async function enterAddress(ui: FlowUI, replace?: SavedHost): Promise<boolean> {
   let hosts = loadConfig().hosts ?? [];
   if (replace) hosts = removeHost(hosts, replace.address);
   save(addHost(hosts, { address: parsed.address, ...(replace?.name ? { name: replace.name } : {}) }));
-  ui.status(`· added ${replace?.name ?? parsed.hostname} — ${describeServers(found.map((s) => ({ backend: s.backend, models: s.models.length })))}`);
+  ui.status(
+    `· added ${replace?.name ?? parsed.hostname} — ${describeServers(found.map((s) => ({ backend: s.backend, models: s.models.length })))}`
+  );
   return true;
 }
 
@@ -173,7 +175,9 @@ export async function manageHosts(ui: FlowUI): Promise<boolean> {
         label: hostLabel(s.host),
         hint:
           (s.host.name ? `${s.host.address} · ` : "") +
-          (s.servers.length ? describeServers(s.servers.map((x) => ({ backend: x.backend, models: x.models.length }))) : "not reachable right now"),
+          (s.servers.length
+            ? describeServers(s.servers.map((x) => ({ backend: x.backend, models: x.models.length })))
+            : "not reachable right now"),
       }))
     );
     if (pick === null) return changed;
@@ -183,7 +187,10 @@ export async function manageHosts(ui: FlowUI): Promise<boolean> {
       { label: "Remove", run: "remove" },
     ];
     if (!servers.length) actions.push({ label: "Look for it again", hint: "its address may have changed", run: "refind" });
-    const act = await ui.select(hostLabel(host), actions.map(({ label, hint }) => ({ label, hint })));
+    const act = await ui.select(
+      hostLabel(host),
+      actions.map(({ label, hint }) => ({ label, hint }))
+    );
     if (act === null) continue;
     if (actions[act].run === "rename") {
       const name = await ui.prompt(`New name for ${hostLabel(host)}`, hostLabel(host));

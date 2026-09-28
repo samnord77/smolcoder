@@ -1,34 +1,34 @@
 {
   "path": "src/skills.ts",
-  "content_hash": "e50db3fa9da8f7d8aca652dcdec4186a",
-  "updated_at": "2026-09-26T17:57:05",
-  "lines": 353,
-  "size_bytes": 13506,
-  "mtime_ns": 1790418586369024400,
+  "content_hash": "b55dc72ee096e2f89d1c5d1360a9ab95",
+  "updated_at": "2026-09-28T19:36:38",
+  "lines": 362,
+  "size_bytes": 13592,
+  "mtime_ns": 1790620579659838900,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
   "sections": [
     {
       "type": "import",
-      "name": "import * as fs from \"fs\";",
+      "name": "import * as fs from \"node:fs\";",
       "line_start": 5,
       "line_end": 5,
-      "signature": "import * as fs from \"fs\";"
+      "signature": "import * as fs from \"node:fs\";"
     },
     {
       "type": "import",
-      "name": "import * as path from \"path\";",
+      "name": "import * as path from \"node:path\";",
       "line_start": 6,
       "line_end": 6,
-      "signature": "import * as path from \"path\";"
+      "signature": "import * as path from \"node:path\";"
     },
     {
       "type": "import",
-      "name": "import { resolveInWorkspace, SandboxError } from \"./sandbox\";",
+      "name": "import { BUILTIN_SKILLS } from \"./builtin-skills\";",
       "line_start": 7,
       "line_end": 7,
-      "signature": "import { resolveInWorkspace, SandboxError } from \"./sandbox\";"
+      "signature": "import { BUILTIN_SKILLS } from \"./builtin-skills\";"
     },
     {
       "type": "import",
@@ -39,10 +39,10 @@
     },
     {
       "type": "import",
-      "name": "import { BUILTIN_SKILLS } from \"./builtin-skills\";",
+      "name": "import { resolveInWorkspace, SandboxError } from \"./sandbox\";",
       "line_start": 9,
       "line_end": 9,
-      "signature": "import { BUILTIN_SKILLS } from \"./builtin-skills\";"
+      "signature": "import { resolveInWorkspace, SandboxError } from \"./sandbox\";"
     },
     {
       "type": "constant",
@@ -76,27 +76,27 @@
       "type": "function",
       "name": "assertName",
       "line_start": 16,
-      "line_end": 23,
+      "line_end": 21,
       "signature": "function assertName(name: unknown): string {"
     },
     {
       "type": "function",
       "name": "skillMeta",
-      "line_start": 25,
-      "line_end": 58,
+      "line_start": 23,
+      "line_end": 53,
       "signature": "function skillMeta(content: string): { name?: string; description?: string } {"
     },
     {
       "type": "function",
       "name": "listSkills",
-      "line_start": 60,
-      "line_end": 77,
+      "line_start": 55,
+      "line_end": 78,
       "signature": "function listSkills(root: string): string {"
     },
     {
       "type": "function",
       "name": "readSkill",
-      "line_start": 79,
+      "line_start": 80,
       "line_end": 103,
       "signature": "function readSkill(root: string, name: unknown): string {"
     },
@@ -111,93 +111,93 @@
       "type": "constant",
       "name": "STOP_WORDS",
       "line_start": 128,
-      "line_end": 130,
+      "line_end": 132,
       "signature": "const STOP_WORDS = new Set("
     },
     {
       "type": "function",
       "name": "keywords",
-      "line_start": 132,
-      "line_end": 144,
+      "line_start": 134,
+      "line_end": 146,
       "signature": "function keywords(s: string): Set<string> {"
     },
     {
       "type": "function",
       "name": "allSkillTexts",
-      "line_start": 146,
-      "line_end": 169,
+      "line_start": 148,
+      "line_end": 171,
       "signature": "function allSkillTexts(root: string): { name: string; text: string }[] {"
     },
     {
       "type": "interface",
       "name": "SkillInfo",
-      "line_start": 172,
-      "line_end": 181,
+      "line_start": 174,
+      "line_end": 183,
       "signature": "interface SkillInfo {",
       "children": []
     },
     {
       "type": "function",
       "name": "describeSkills",
-      "line_start": 185,
-      "line_end": 219,
+      "line_start": 187,
+      "line_end": 221,
       "signature": "function describeSkills(root: string): SkillInfo[] {"
     },
     {
       "type": "function",
       "name": "matchingSkills",
-      "line_start": 223,
-      "line_end": 237,
+      "line_start": 225,
+      "line_end": 240,
       "signature": "function matchingSkills(root: string, request: string): { name: string; score: number; excerpt: string }[] {",
       "doc": "Skills whose vocabulary overlaps the request (score >= 2 shared keywords),"
     },
     {
       "type": "function",
       "name": "relevantSkills",
-      "line_start": 241,
-      "line_end": 253,
+      "line_start": 244,
+      "line_end": 256,
       "signature": "function relevantSkills(root: string, request: string, maxChars = 1200): string {"
     },
     {
       "type": "function",
       "name": "relevantSkillNames",
-      "line_start": 256,
-      "line_end": 262,
+      "line_start": 259,
+      "line_end": 267,
       "signature": "function relevantSkillNames(root: string, request: string, limit = 2): string[] {"
     },
     {
       "type": "constant",
       "name": "MAX_AUTO_LESSONS",
-      "line_start": 264,
-      "line_end": 264,
+      "line_start": 269,
+      "line_end": 269,
       "signature": "const MAX_AUTO_LESSONS = 20;"
     },
     {
       "type": "function",
       "name": "saveAutoRepairLesson",
-      "line_start": 268,
-      "line_end": 292,
+      "line_start": 273,
+      "line_end": 301,
       "signature": "function saveAutoRepairLesson("
     },
     {
       "type": "function",
       "name": "pruneAutoLessons",
-      "line_start": 294,
-      "line_end": 312,
+      "line_start": 303,
+      "line_end": 321,
       "signature": "function pruneAutoLessons(root: string): void {"
     },
     {
       "type": "function",
       "name": "readDelegateStats",
-      "line_start": 314,
-      "line_end": 326,
+      "line_start": 323,
+      "line_end": 335,
       "signature": "function readDelegateStats(root: string): { runs: number; toolCalls: number; lastAt: number } {"
     },
     {
       "type": "function",
       "name": "recordDelegateStats",
-      "line_start": 329,
-      "line_end": 353,
+      "line_start": 338,
+      "line_end": 362,
       "signature": "function recordDelegateStats(root: string, toolCalls: number): void {"
     }
   ]

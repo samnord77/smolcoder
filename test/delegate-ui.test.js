@@ -21,20 +21,34 @@ function makeParent() {
   const ui = {
     calls,
     token() {},
-    thinking(text) { calls.thinking.push(text); },
-    toolCall(name, args) { calls.toolCall.push([name, args]); },
-    toolResult(result) { calls.toolResult.push(result); },
-    println(s) { calls.println.push(s); },
-    status(s) { calls.status.push(s); },
+    thinking(text) {
+      calls.thinking.push(text);
+    },
+    toolCall(name, args) {
+      calls.toolCall.push([name, args]);
+    },
+    toolResult(result) {
+      calls.toolResult.push(result);
+    },
+    println(s) {
+      calls.println.push(s);
+    },
+    status(s) {
+      calls.status.push(s);
+    },
     warn() {},
     error() {},
-    startSpinner(label) { calls.startSpinner.push(label); },
+    startSpinner(label) {
+      calls.startSpinner.push(label);
+    },
     stopSpinner() {},
     async confirmCommand(command, reason) {
       calls.confirmCommand.push([command, reason]);
       return "always";
     },
-    turnEnd(label) { calls.turnEnd.push(label); },
+    turnEnd(label) {
+      calls.turnEnd.push(label);
+    },
     planUpdated() {},
   };
   return ui;

@@ -6,10 +6,10 @@
 // HTML), JSON.parse, python's compiler when python is on PATH. Nothing runs
 // the code.
 
-import { spawnSync } from "child_process";
-import * as fs from "fs";
-import * as os from "os";
-import * as path from "path";
+import { spawnSync } from "node:child_process";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
 
 const CHECK_TIMEOUT_MS = 8000;
 const MAX_CHECK_BYTES = 2 * 1024 * 1024;

@@ -1,0 +1,9 @@
+{
+  "original_tokens": 1457,
+  "compressed_tokens": 202,
+  "saved_tokens": 1255,
+  "savings_pct": 86.1,
+  "compressed": "# attachments.ts (.ts) \u2014 143 lines\nimport * as fs from \"node:fs\";\nimport type { ImageRef } from \"./providers/types\";\n\nexport interface Attachment\nexport interface UserInput\nexport const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;\nexport const MAX_TEXT_BYTES = 48 * 1024;\nexport const IMAGE_TOKENS = 1500;\nconst IMAGE_MIMES: Record<string, string> =\nexport function safeName(name: unknown): string\nexport function extOf(name: string, mime: string): string\nexport function mimeForExt(ext: string): string\nexport function looksLikeText(bytes: Buffer): boolean\nexport function classifyUpload( name: string, mime: string,\nexport function imageBase64(ref: ImageRef): string | null\nexport function imageDataUrl(ref: ImageRef): string | null\nconst FENCE = \"```\";\nexport function renderAttachmentsForModel( attachments: Attachment[], canSeeImages: boolean",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\attachments.ts"
+}

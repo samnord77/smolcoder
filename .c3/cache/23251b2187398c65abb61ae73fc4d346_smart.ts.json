@@ -1,0 +1,9 @@
+{
+  "original_tokens": 461,
+  "compressed_tokens": 73,
+  "saved_tokens": 388,
+  "savings_pct": 84.2,
+  "compressed": "# scheduler.ts (.ts) \u2014 57 lines\nimport type { ChatOptions } from \"./types\";\n\ninterface Job\nconst servers = new Map<string, { active?: Job; queue: Job[] }>();\nexport function scheduleInference<T>(server: string, opts: ChatOptions, run: (opts: ChatOptions) => Promise<T>): Promise<T>",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\providers\\scheduler.ts"
+}

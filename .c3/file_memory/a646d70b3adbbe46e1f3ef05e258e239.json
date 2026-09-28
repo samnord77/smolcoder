@@ -1,47 +1,47 @@
 {
   "path": "src/web/client.ts",
-  "content_hash": "ee43a2395227a3eba2bf74d8c28af3cb",
-  "updated_at": "2026-09-28T16:54:05",
-  "lines": 3157,
-  "size_bytes": 159630,
-  "mtime_ns": 1790610454506167700,
+  "content_hash": "eb5466f38f5436000062187163e32f22",
+  "updated_at": "2026-09-28T21:41:41",
+  "lines": 3214,
+  "size_bytes": 161828,
+  "mtime_ns": 1790627965352556100,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
   "sections": [
     {
       "type": "import",
-      "name": "import { editorTabStoreBrowserSource } from \"../editor-tabs\";",
+      "name": "import { browserCrdtSource } from \"../crdt\";",
       "line_start": 1,
       "line_end": 1,
+      "signature": "import { browserCrdtSource } from \"../crdt\";"
+    },
+    {
+      "type": "import",
+      "name": "import { editorTabStoreBrowserSource } from \"../editor-tabs\";",
+      "line_start": 2,
+      "line_end": 2,
       "signature": "import { editorTabStoreBrowserSource } from \"../editor-tabs\";"
     },
     {
       "type": "import",
       "name": "import { editorToolsBrowserSource } from \"../editor-tools\";",
-      "line_start": 2,
-      "line_end": 2,
+      "line_start": 3,
+      "line_end": 3,
       "signature": "import { editorToolsBrowserSource } from \"../editor-tools\";"
     },
     {
       "type": "import",
       "name": "import { browserHighlighterSource } from \"../highlight\";",
-      "line_start": 3,
-      "line_end": 3,
-      "signature": "import { browserHighlighterSource } from \"../highlight\";"
-    },
-    {
-      "type": "import",
-      "name": "import { browserCrdtSource } from \"../crdt\";",
       "line_start": 4,
       "line_end": 4,
-      "signature": "import { browserCrdtSource } from \"../crdt\";"
+      "signature": "import { browserHighlighterSource } from \"../highlight\";"
     },
     {
       "type": "constant",
       "name": "CLIENT_JS",
       "line_start": 14,
-      "line_end": 3157,
+      "line_end": 3214,
       "signature": "const CLIENT_JS = String.raw`"
     }
   ]

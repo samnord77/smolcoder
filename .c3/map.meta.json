@@ -1,22 +1,20 @@
 {
   "schema": 1,
-  "generated_at": "2026-09-28T11:34:02.661696+00:00",
+  "generated_at": "2026-09-28T18:23:13.883467+00:00",
   "fingerprint": {
     "kind": "git",
-    "head": "3aa659038453231ab6e96a3885cee6c22ba8eb07",
+    "head": "a513aa9da73a22f9bcb1776499360fe46cfd6f59",
     "branch": "main",
-    "worktree_sig": "3e84daeedd56474b",
+    "worktree_sig": "6427e70c99d0b226",
     "root": "C:\\Users\\DELL\\smolcoder-source"
   },
-  "head": "3aa659038453231ab6e96a3885cee6c22ba8eb07",
+  "head": "a513aa9da73a22f9bcb1776499360fe46cfd6f59",
   "content_hash": "a1098667da505736",
   "tokens": 315,
   "truncated": false,
-  "files_walked": 260,
-  "duration_ms": 468,
+  "files_walked": 263,
+  "duration_ms": 359,
   "reasons": [
-    "dirty_sentinel",
-    "head_changed",
     "worktree_changed"
   ]
 }

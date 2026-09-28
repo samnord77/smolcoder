@@ -1,10 +1,10 @@
 {
   "path": "test/http-mcp.test.js",
-  "content_hash": "c16b185fab55b8b287c01714d82d3498",
-  "updated_at": "2026-09-24T22:30:35",
-  "lines": 126,
-  "size_bytes": 5667,
-  "mtime_ns": 1790285417861041600,
+  "content_hash": "005504b623da16598716efc7226c7264",
+  "updated_at": "2026-09-28T19:36:39",
+  "lines": 137,
+  "size_bytes": 5702,
+  "mtime_ns": 1790620581558139800,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -55,7 +55,7 @@
       "type": "function",
       "name": "stubServer",
       "line_start": 15,
-      "line_end": 62,
+      "line_end": 64,
       "signature": "function stubServer(mode, { needKey = false } = {}) {",
       "doc": "Stub remote server. mode: \"json\" answers plain JSON, \"sse\" answers an"
     }

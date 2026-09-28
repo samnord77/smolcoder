@@ -39,7 +39,9 @@ test("index: ranking puts exact matches first", () => {
   const ws = scratchWs();
   fs.writeFileSync(path.join(ws, "d.ts"), "export function alphabet() {}\nexport function alpha2() {}\n");
   indexFor(ws).refresh();
-  const found = indexFor(ws).search("alpha").map((s) => s.name);
+  const found = indexFor(ws)
+    .search("alpha")
+    .map((s) => s.name);
   assert.equal(found[0], "alpha");
   assert.ok(found.includes("alphabet") && found.includes("alpha2"));
 });
@@ -48,7 +50,10 @@ test("index: file listing and stats", () => {
   clearIndexCache();
   const ws = scratchWs();
   indexFor(ws).refresh();
-  const names = indexFor(ws).symbolsIn("b.py").map((s) => s.name).sort();
+  const names = indexFor(ws)
+    .symbolsIn("b.py")
+    .map((s) => s.name)
+    .sort();
   assert.deepEqual(names, ["Epsilon", "delta"]);
   assert.match(queryIndex(ws, { action: "stats" }), /files.*symbols/);
   assert.match(queryIndex(ws, { action: "file", path: "c.rs" }), /zeta/);

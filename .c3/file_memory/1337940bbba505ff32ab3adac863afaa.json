@@ -1,10 +1,10 @@
 {
   "path": "test/debug.test.js",
-  "content_hash": "cf607d3c4a91ef7dd971570e05ab8b2d",
-  "updated_at": "2026-09-27T19:31:57",
+  "content_hash": "41b86acdcf54e91ae6e60fab632f8c5c",
+  "updated_at": "2026-09-28T19:36:41",
   "lines": 129,
   "size_bytes": 5636,
-  "mtime_ns": 1790533617952051400,
+  "mtime_ns": 1790620581313734500,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",

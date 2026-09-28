@@ -1,10 +1,10 @@
 {
   "path": "test/git.test.js",
-  "content_hash": "433d339102c94d92fb6b355b04b90c9c",
-  "updated_at": "2026-09-28T15:24:02",
+  "content_hash": "e6cb9739dcdcf07662c90c3ec1710626",
+  "updated_at": "2026-09-28T19:33:35",
   "lines": 255,
   "size_bytes": 12640,
-  "mtime_ns": 1790605394951945500,
+  "mtime_ns": 1790620408582225500,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",

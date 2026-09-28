@@ -1,48 +1,48 @@
 {
   "path": "src/detect.ts",
-  "content_hash": "90c958a2554e6a2ba79b15c2132293a0",
-  "updated_at": "2026-09-28T15:21:01",
-  "lines": 517,
-  "size_bytes": 23366,
-  "mtime_ns": 1790604515625949200,
+  "content_hash": "397e483b6ba4e77c9bb0eedc575ccc03",
+  "updated_at": "2026-09-28T19:36:39",
+  "lines": 523,
+  "size_bytes": 22960,
+  "mtime_ns": 1790620578352343600,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
   "sections": [
     {
       "type": "import",
-      "name": "import { execFile } from \"child_process\";",
+      "name": "import { execFile } from \"node:child_process\";",
       "line_start": 17,
       "line_end": 17,
-      "signature": "import { execFile } from \"child_process\";"
+      "signature": "import { execFile } from \"node:child_process\";"
     },
     {
       "type": "import",
-      "name": "import * as fs from \"fs\";",
+      "name": "import * as fs from \"node:fs\";",
       "line_start": 18,
       "line_end": 18,
-      "signature": "import * as fs from \"fs\";"
+      "signature": "import * as fs from \"node:fs\";"
     },
     {
       "type": "import",
-      "name": "import * as os from \"os\";",
+      "name": "import * as os from \"node:os\";",
       "line_start": 19,
       "line_end": 19,
-      "signature": "import * as os from \"os\";"
+      "signature": "import * as os from \"node:os\";"
     },
     {
       "type": "import",
-      "name": "import * as path from \"path\";",
+      "name": "import * as path from \"node:path\";",
       "line_start": 20,
       "line_end": 20,
-      "signature": "import * as path from \"path\";"
+      "signature": "import * as path from \"node:path\";"
     },
     {
       "type": "import",
-      "name": "import { SavedHost } from \"./config\";",
+      "name": "import type { SavedHost } from \"./config\";",
       "line_start": 21,
       "line_end": 21,
-      "signature": "import { SavedHost } from \"./config\";"
+      "signature": "import type { SavedHost } from \"./config\";"
     },
     {
       "type": "import",
@@ -53,10 +53,10 @@
     },
     {
       "type": "import",
-      "name": "import { ReasoningInfo } from \"./providers/lmstudio\";",
+      "name": "import type { ReasoningInfo } from \"./providers/lmstudio\";",
       "line_start": 23,
       "line_end": 23,
-      "signature": "import { ReasoningInfo } from \"./providers/lmstudio\";"
+      "signature": "import type { ReasoningInfo } from \"./providers/lmstudio\";"
     },
     {
       "type": "import",
@@ -169,71 +169,71 @@
       "type": "function",
       "name": "containerPublishedUrls",
       "line_start": 146,
-      "line_end": 158,
+      "line_end": 160,
       "signature": "function containerPublishedUrls(containerPorts: number[]): Promise<string[]> {"
     },
     {
       "type": "function",
       "name": "parseDefaultGateway",
-      "line_start": 161,
-      "line_end": 169,
+      "line_start": 163,
+      "line_end": 171,
       "signature": "function parseDefaultGateway(procNetRoute: string): string | undefined {"
     },
     {
       "type": "function",
       "name": "hostMachineUrls",
-      "line_start": 173,
-      "line_end": 187,
+      "line_start": 175,
+      "line_end": 189,
       "signature": "function hostMachineUrls(ports: number[]): string[] {",
       "doc": "Inside WSL or a container, \"this computer\" includes the machine hosting"
     },
     {
       "type": "constant",
       "name": "NOT_LOADED_NOTE",
-      "line_start": 191,
-      "line_end": 192,
+      "line_start": 193,
+      "line_end": 194,
       "signature": "const NOT_LOADED_NOTE ="
     },
     {
       "type": "constant",
       "name": "LMSTUDIO_JIT_GUESS",
-      "line_start": 193,
-      "line_end": 193,
+      "line_start": 195,
+      "line_end": 195,
       "signature": "const LMSTUDIO_JIT_GUESS = 4096; // LM Studio's usual default when a model is JIT-loaded"
     },
     {
       "type": "constant",
       "name": "DEFAULT_LMSTUDIO_BASE",
-      "line_start": 194,
-      "line_end": 194,
+      "line_start": 196,
+      "line_end": 196,
       "signature": "const DEFAULT_LMSTUDIO_BASE = `http://127.0.0.1:${LMSTUDIO_PORT}`;"
     },
     {
       "type": "function",
       "name": "visionOf",
-      "line_start": 197,
-      "line_end": 199,
+      "line_start": 199,
+      "line_end": 201,
       "signature": "function visionOf(type: unknown): boolean | undefined {",
       "doc": "LM Studio labels vision models \"vlm\" and text-only ones \"llm\"."
     },
     {
       "type": "function",
       "name": "parseOllamaTags",
-      "line_start": 201,
-      "line_end": 209,
+      "line_start": 203,
+      "line_end": 211,
       "signature": "function parseOllamaTags(data: any, base: string): DetectedModel[] | null {"
     },
     {
       "type": "function",
       "name": "parseLmStudioV1",
-      "line_start": 212,
-      "line_end": 239,
+      "line_start": 214,
+      "line_end": 240,
       "signature": "function parseLmStudioV1(data: any, base = DEFAULT_LMSTUDIO_BASE): DetectedModel[] | null {"
     },
     {
       "type": "function",
       "name": "parseLmStudioV0",
-      "line_start": 241,
+      "line_start": 242,
       "line_end": 269,
       "signature": "function parseLmStudioV0(data: any, base: string): DetectedModel[] | null {"
     },
@@ -249,15 +249,15 @@
       "type": "function",
       "name": "identifyServer",
       "line_start": 280,
-      "line_end": 313,
+      "line_end": 311,
       "signature": "async function identifyServer(base: string, timeoutMs = NETWORK_PROBE_TIMEOUT_MS): Promise<ServerInfo | null> {",
       "async": true
     },
     {
       "type": "interface",
       "name": "ServerGroup",
-      "line_start": 319,
-      "line_end": 323,
+      "line_start": 317,
+      "line_end": 321,
       "signature": "interface ServerGroup {",
       "children": [],
       "doc": "Spellings of ONE server, tried in order until one answers. Different"
@@ -265,63 +265,63 @@
     {
       "type": "function",
       "name": "groupServers",
-      "line_start": 327,
-      "line_end": 337,
+      "line_start": 325,
+      "line_end": 335,
       "signature": "function groupServers(urls: string[], timeoutMs: number, host?: string): ServerGroup[] {"
     },
     {
       "type": "function",
       "name": "probeGroup",
-      "line_start": 339,
-      "line_end": 345,
+      "line_start": 337,
+      "line_end": 343,
       "signature": "async function probeGroup(group: ServerGroup): Promise<ServerInfo | null> {",
       "async": true
     },
     {
       "type": "interface",
       "name": "DetectOptions",
-      "line_start": 347,
-      "line_end": 355,
+      "line_start": 345,
+      "line_end": 353,
       "signature": "interface DetectOptions {",
       "children": []
     },
     {
       "type": "interface",
       "name": "HostStatus",
-      "line_start": 357,
-      "line_end": 360,
+      "line_start": 355,
+      "line_end": 358,
       "signature": "interface HostStatus {",
       "children": []
     },
     {
       "type": "function",
       "name": "probeHosts",
-      "line_start": 363,
-      "line_end": 370,
+      "line_start": 361,
+      "line_end": 368,
       "signature": "async function probeHosts(hosts: SavedHost[]): Promise<HostStatus[]> {",
       "async": true
     },
     {
       "type": "function",
       "name": "detectAll",
-      "line_start": 372,
-      "line_end": 419,
+      "line_start": 370,
+      "line_end": 422,
       "signature": "async function detectAll(opts: DetectOptions = {}): Promise<DetectedModel[]> {",
       "async": true
     },
     {
       "type": "constant",
       "name": "DEFAULT_OLLAMA_CTX_CAP",
-      "line_start": 421,
-      "line_end": 421,
+      "line_start": 424,
+      "line_end": 424,
       "signature": "const DEFAULT_OLLAMA_CTX_CAP = 32768; // avoid surprise VRAM blowups on huge-window models"
     },
     {
       "type": "function",
       "name": "resolveContextWindow",
-      "line_start": 433,
-      "line_end": 517,
-      "signature": "async function resolveContextWindow(",
+      "line_start": 436,
+      "line_end": 523,
+      "signature": "async function resolveContextWindow(model: DetectedModel, ctxOverride?: number): Promise<DetectedModel> {",
       "async": true
     }
   ]

@@ -1,14 +1,18 @@
 // smol --vram helper: what the GPU and Ollama can actually hold, so the
 // context window stops guessing. `node scripts/vram-check.cjs [--model qwen3]`
 // Pure parsers are exported for tests; the script body only runs as main.
-const { execFileSync, spawnSync } = require("node:child_process");
+const { execFileSync } = require("node:child_process");
 
 const DEFAULT_CAP = 32768; // same ceiling as detect.ts resolveContextWindow
 const FLOOR = 4096;
 
 /** Parse `nvidia-smi --query-gpu=memory.total,memory.used --format=csv,noheader,nounits`. */
 function parseNvidiaSmi(text) {
-  const m = /^\s*(\d+)\s*,\s*(\d+)\s*$/.exec(String(text ?? "").trim().split("\n")[0] ?? "");
+  const m = /^\s*(\d+)\s*,\s*(\d+)\s*$/.exec(
+    String(text ?? "")
+      .trim()
+      .split("\n")[0] ?? ""
+  );
   if (!m) return null;
   const total = Number(m[1]);
   const used = Number(m[2]);
@@ -29,9 +33,10 @@ function parseOllamaPs(data) {
  * always within [FLOOR, DEFAULT_CAP]. Never throws. */
 function recommendCtx({ loadedCtx, vramFreeMB } = {}) {
   let ctx = Number.isSafeInteger(loadedCtx) && loadedCtx > 0 ? loadedCtx : 8192;
-  let note = Number.isSafeInteger(loadedCtx) && loadedCtx > 0
-    ? "model already loaded at this context"
-    : "no model loaded — default; rerun after loading your model";
+  let note =
+    Number.isSafeInteger(loadedCtx) && loadedCtx > 0
+      ? "model already loaded at this context"
+      : "no model loaded — default; rerun after loading your model";
   if (typeof vramFreeMB === "number" && vramFreeMB > 0 && vramFreeMB < 4000 && ctx > FLOOR) {
     ctx = FLOOR;
     note += "; tight VRAM, staying at the floor";
@@ -70,9 +75,10 @@ async function main() {
     gpu = null;
   }
   lines.push(gpu ? `GPU: ${gpu.freeMB} MB free / ${gpu.totalMB} MB total` : "GPU: no NVIDIA driver answering (CPU or other vendor?)");
-  const base = process.env.OLLAMA_HOST && /^https?:\/\//.test(process.env.OLLAMA_HOST)
-    ? process.env.OLLAMA_HOST.replace(/\/$/, "")
-    : "http://127.0.0.1:11434";
+  const base =
+    process.env.OLLAMA_HOST && /^https?:\/\//.test(process.env.OLLAMA_HOST)
+      ? process.env.OLLAMA_HOST.replace(/\/$/, "")
+      : "http://127.0.0.1:11434";
   const ps = await tryJson(`${base}/api/ps`);
   const models = parseOllamaPs(ps);
   if (!models.length) {

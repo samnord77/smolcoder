@@ -1,10 +1,10 @@
 {
   "path": "src/tools/web.ts",
-  "content_hash": "717e06543f0fbd68c7b8b67d92ef9de2",
-  "updated_at": "2026-09-24T18:52:26",
-  "lines": 112,
-  "size_bytes": 5274,
-  "mtime_ns": 1790272322483752100,
+  "content_hash": "131121ac10a0c26943bb0c5eeb2bffb4",
+  "updated_at": "2026-09-28T19:36:40",
+  "lines": 118,
+  "size_bytes": 5317,
+  "mtime_ns": 1790620579952924900,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -62,7 +62,7 @@
       "type": "function",
       "name": "fetchUrl",
       "line_start": 63,
-      "line_end": 112,
+      "line_end": 118,
       "signature": "async function fetchUrl(root: string, args: any, signal?: AbortSignal): Promise<string> {",
       "async": true
     }

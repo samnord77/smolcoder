@@ -39,15 +39,22 @@
     "dev": "tsc -w",
     "prepublishOnly": "npm test",
     "test": "npm run build && node scripts/test.cjs",
+    "lint": "biome check --write src test scripts",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.js\" \"scripts/**/*.cjs\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.js\" \"scripts/**/*.cjs\"",
+    "typecheck": "tsc --noEmit",
+    "qa": "npm run typecheck && npm run lint && npm run format:check",
     "package-win": "npm run build && electron-packager . Smolcoder --platform=win32 --arch=x64 --out=release --overwrite && node scripts/patch-packaged-main.cjs"
   },
   "engines": {
     "node": ">=18"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.14",
     "@types/node": "^20.14.0",
     "electron": "^31.7.7",
     "electron-packager": "^17.1.2",
+    "prettier": "^3.9.9",
     "typescript": "^5.5.0"
   },
   "dependencies": {

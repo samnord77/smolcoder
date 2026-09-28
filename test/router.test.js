@@ -10,7 +10,7 @@ const okProvider = (label) => ({
   maxOutputTokens: 500,
   setEffort() {},
   effortLabel: () => null,
-  chat: async () => ({ content: "from " + label, toolCalls: [] }),
+  chat: async () => ({ content: `from ${label}`, toolCalls: [] }),
 });
 const failProvider = (label, msg) => ({
   ...okProvider(label),
@@ -69,9 +69,30 @@ test("router rethrows model-behavior failures without failover", async () => {
 
 test("router without specs returns the primary untouched", () => {
   const p = okProvider("A");
-  assert.equal(routeProvider(p, "", async () => [], () => p), p);
-  assert.equal(routeProvider(p, undefined, async () => [], () => p), p);
-  const routed = routeProvider(p, "lmstudio:model-b", async () => [], () => p);
+  assert.equal(
+    routeProvider(
+      p,
+      "",
+      async () => [],
+      () => p
+    ),
+    p
+  );
+  assert.equal(
+    routeProvider(
+      p,
+      undefined,
+      async () => [],
+      () => p
+    ),
+    p
+  );
+  const routed = routeProvider(
+    p,
+    "lmstudio:model-b",
+    async () => [],
+    () => p
+  );
   assert.ok(routed instanceof RoutingProvider);
   assert.match(routed.describe(), /No fallbacks configured|Route: A/);
 });
@@ -79,7 +100,12 @@ test("router without specs returns the primary untouched", () => {
 test("router forwards effort to every provider", async () => {
   const seen = [];
   const mk = (label) => ({ ...okProvider(label), setEffort: (e) => seen.push([label, e]) });
-  const router = new RoutingProvider(mk("A"), [{ backend: "", id: "b" }], async () => models, () => mk("B"));
+  const router = new RoutingProvider(
+    mk("A"),
+    [{ backend: "", id: "b" }],
+    async () => models,
+    () => mk("B")
+  );
   router.setEffort("low");
   assert.deepEqual(seen, [["A", "low"]]);
   await router.chat([], []);

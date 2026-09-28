@@ -1,0 +1,55 @@
+{
+  "path": "biome.json",
+  "content_hash": "b3c173a08e7edac34c4ad887bdd81899",
+  "updated_at": "2026-09-28T19:36:38",
+  "lines": 35,
+  "size_bytes": 638,
+  "mtime_ns": 1790620446457869700,
+  "language": "json",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "property",
+      "name": "$schema",
+      "line_start": 2,
+      "line_end": 2,
+      "signature": "$schema"
+    },
+    {
+      "type": "property",
+      "name": "assist",
+      "line_start": 3,
+      "line_end": 3,
+      "signature": "assist"
+    },
+    {
+      "type": "property",
+      "name": "linter",
+      "line_start": 4,
+      "line_end": 21,
+      "signature": "linter"
+    },
+    {
+      "type": "property",
+      "name": "formatter",
+      "line_start": 22,
+      "line_end": 24,
+      "signature": "formatter"
+    },
+    {
+      "type": "property",
+      "name": "javascript",
+      "line_start": 25,
+      "line_end": 29,
+      "signature": "javascript"
+    },
+    {
+      "type": "property",
+      "name": "json",
+      "line_start": 30,
+      "line_end": 34,
+      "signature": "json"
+    }
+  ]
+}

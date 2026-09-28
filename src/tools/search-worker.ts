@@ -1,4 +1,4 @@
-import { isMainThread, parentPort, workerData, Worker } from "worker_threads";
+import { isMainThread, parentPort, Worker, workerData } from "node:worker_threads";
 import { searchFiles } from "./fs-tools";
 
 if (!isMainThread) parentPort!.postMessage(searchFiles(workerData.root, workerData.args));
@@ -23,6 +23,8 @@ export function searchFilesBounded(root: string, args: Record<string, any>, sign
     if (signal?.aborted) cancel();
     worker.once("message", finish);
     worker.once("error", (err) => finish(`Error: search failed: ${err.message}`));
-    worker.once("exit", (code) => { if (!settled) finish(`Error: search worker exited (${code})`); });
+    worker.once("exit", (code) => {
+      if (!settled) finish(`Error: search worker exited (${code})`);
+    });
   });
 }

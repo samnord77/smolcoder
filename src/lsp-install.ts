@@ -3,7 +3,7 @@
 // the project itself. The TypeScript peer dependency is reported, not
 // installed (it belongs to the project's package.json). Every step reports
 // one line; nothing here throws.
-import { spawnSync } from "child_process";
+import { spawnSync } from "node:child_process";
 import { LSP_LANGS, lspAvailability, serverDefForLang } from "./lsp-pro";
 import { resolveCommand } from "./mcp";
 
@@ -87,13 +87,7 @@ export function installLspServer(lang: string, cwd: string): InstallStep {
   let last = "no installer known for this language";
   for (const cmd of cmds) {
     const r = run(cmd, cwd);
-    last =
-      r.out
-        .split("\n")
-        .filter(Boolean)
-        .slice(-2)
-        .join(" / ")
-        .slice(0, 200) || `exit ${r.code}`;
+    last = r.out.split("\n").filter(Boolean).slice(-2).join(" / ").slice(0, 200) || `exit ${r.code}`;
     if (r.code !== 0) continue;
     const now = serverResolves(def);
     if (now) {
@@ -125,14 +119,19 @@ export function lspDoctor(): string {
 
 /** Install one language ("python") or every missing one ("all"). */
 export function setupLsp(root: string, lang: string): string {
-  const want = String(lang ?? "").trim().toLowerCase();
+  const want = String(lang ?? "")
+    .trim()
+    .toLowerCase();
   const langs = want === "all" || !want ? [...LSP_LANGS] : [want];
   if (!want || want === "all") {
     const missing = lspAvailability()
       .filter((r) => !r.ok)
       .map((r) => r.lang);
     if (!missing.length) return "All four language servers are already installed.";
-    return missing.map((l) => installLspServer(l, root)).map((r) => `${r.ok ? "✓" : "✗"} ${r.lang}: ${r.detail}`).join("\n");
+    return missing
+      .map((l) => installLspServer(l, root))
+      .map((r) => `${r.ok ? "✓" : "✗"} ${r.lang}: ${r.detail}`)
+      .join("\n");
   }
   const r = installLspServer(langs[0], root);
   return `${r.ok ? "✓" : "✗"} ${r.lang}: ${r.detail}`;

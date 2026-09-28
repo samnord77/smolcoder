@@ -11,24 +11,24 @@
 // call. So: "off" is sent as "none" (measured: fully disables thinking), and
 // every other level is snapped to the nearest level the model really has.
 
-import {
-  ChatOptions,
-  ChatResult,
-  Effort,
-  EFFORT_RANK,
-  estimateReplayTokens,
-  MAX_OUTPUT_TOKENS,
-  Msg,
-  nextCallId,
-  parseArgs,
-  Provider,
-  ToolCall,
-  ToolSpec,
-} from "./types";
-import { responseLines, streamJson, withDeadline } from "./transport";
-import { scheduleInference } from "./scheduler";
 import { imageDataUrl } from "../attachments";
 import { tryFetchJson } from "../util";
+import { scheduleInference } from "./scheduler";
+import { responseLines, streamJson, withDeadline } from "./transport";
+import {
+  type ChatOptions,
+  type ChatResult,
+  EFFORT_RANK,
+  type Effort,
+  estimateReplayTokens,
+  MAX_OUTPUT_TOKENS,
+  type Msg,
+  nextCallId,
+  type Provider,
+  parseArgs,
+  type ToolCall,
+  type ToolSpec,
+} from "./types";
 
 export interface ReasoningInfo {
   /** Levels the loaded model supports, as reported by LM Studio. */
@@ -168,7 +168,7 @@ export class LmStudioProvider implements Provider {
       wireMessages = messages.map((m) => ({ ...m }));
       for (let i = wireMessages.length - 1; i >= 0; i--) {
         if (wireMessages[i].role === "user") {
-          wireMessages[i].content = wireMessages[i].content + " /no_think";
+          wireMessages[i].content = `${wireMessages[i].content} /no_think`;
           break;
         }
       }
@@ -194,11 +194,7 @@ export class LmStudioProvider implements Provider {
 
   private async chain(base: any, opts: ChatOptions, started: { streaming: boolean }): Promise<ChatResult> {
     try {
-      return await this.request(
-        { ...base, stream: true, stream_options: { include_usage: true } },
-        opts,
-        started
-      );
+      return await this.request({ ...base, stream: true, stream_options: { include_usage: true } }, opts, started);
     } catch (err: any) {
       if (err?.name === "AbortError") throw err;
       if (started.streaming) throw err;
@@ -238,7 +234,8 @@ export class LmStudioProvider implements Provider {
 
     if (body.stream === false) {
       const data: any = await res.json();
-      if (data.error || !data.choices?.[0]?.message) throw new Error(`LM Studio returned an invalid completion: ${data.error?.message ?? "missing message"}`);
+      if (data.error || !data.choices?.[0]?.message)
+        throw new Error(`LM Studio returned an invalid completion: ${data.error?.message ?? "missing message"}`);
       const msg = data.choices?.[0]?.message ?? {};
       const toolCalls: ToolCall[] = (msg.tool_calls ?? []).map((tc: any) => ({
         id: tc.id || nextCallId(),

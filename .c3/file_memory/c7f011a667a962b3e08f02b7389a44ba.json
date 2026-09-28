@@ -1,10 +1,10 @@
 {
   "path": "test/delegate-ui.test.js",
-  "content_hash": "5b721ed7768f38667b61715f266c6438",
-  "updated_at": "2026-09-25T18:06:02",
-  "lines": 86,
-  "size_bytes": 2962,
-  "mtime_ns": 1790355070604190600,
+  "content_hash": "15a369e9a495feabb1412a79289548c5",
+  "updated_at": "2026-09-28T19:36:40",
+  "lines": 100,
+  "size_bytes": 3032,
+  "mtime_ns": 1790620581324583700,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -27,7 +27,7 @@
       "type": "function",
       "name": "makeParent",
       "line_start": 10,
-      "line_end": 41,
+      "line_end": 55,
       "signature": "function makeParent() {"
     }
   ]

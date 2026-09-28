@@ -5,8 +5,8 @@
 // Unset = direct provider, zero behavior change. Resolution is lazy: the
 // fallback list is detected only after the first transient failure, never
 // slowing down a healthy primary. Never throws at construction.
-import { DetectedModel } from "./detect";
-import { ChatOptions, ChatResult, Effort, Msg, Provider, ToolSpec } from "./providers/types";
+import type { DetectedModel } from "./detect";
+import type { ChatOptions, ChatResult, Effort, Msg, Provider, ToolSpec } from "./providers/types";
 
 export interface FallbackSpec {
   backend: string;
@@ -121,9 +121,7 @@ export class RoutingProvider implements Provider {
     for (const spec of this.specs) {
       const hit = models.find(
         (m) =>
-          (!spec.backend ||
-            m.backend.toLowerCase().includes(spec.backend) ||
-            (m.host ?? "").toLowerCase().includes(spec.backend)) &&
+          (!spec.backend || m.backend.toLowerCase().includes(spec.backend) || (m.host ?? "").toLowerCase().includes(spec.backend)) &&
           m.id.toLowerCase().includes(spec.id.toLowerCase())
       );
       if (!hit) {
@@ -175,10 +173,7 @@ export class RoutingProvider implements Provider {
   /** Human-readable chain for /route. Never throws. */
   describe(): string {
     const s = this.snapshot();
-    const lines = [
-      `Route: ${s.chain.join(" → ") || this.primary.label}`,
-      `Serving: ${s.chain[s.current] ?? this.primary.label}`,
-    ];
+    const lines = [`Route: ${s.chain.join(" → ") || this.primary.label}`, `Serving: ${s.chain[s.current] ?? this.primary.label}`];
     for (const f of s.failures.slice(-5)) lines.push(`✗ ${f.provider}: ${f.error}`);
     if (!this.specs.length) lines.push('No fallbacks configured — set SMOLCODER_FALLBACKS="ollama:qwen,lmstudio:glm" to add any.');
     return lines.join("\n");

@@ -1,10 +1,10 @@
 {
   "path": "src/workspace-diagnostics.ts",
-  "content_hash": "ac54a495d2fa352e6b0d49c3a79162c4",
-  "updated_at": "2026-09-26T17:51:05",
-  "lines": 69,
-  "size_bytes": 1977,
-  "mtime_ns": 1790427948830111000,
+  "content_hash": "f76863e5efeef77eb0448d9223ee61ee",
+  "updated_at": "2026-09-28T19:36:38",
+  "lines": 53,
+  "size_bytes": 2010,
+  "mtime_ns": 1790620580678837600,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -43,8 +43,8 @@
       "type": "function",
       "name": "workspaceDiagnostics",
       "line_start": 18,
-      "line_end": 69,
-      "signature": "async function workspaceDiagnostics(",
+      "line_end": 53,
+      "signature": "async function workspaceDiagnostics(root: string, relativePath: unknown, signal?: AbortSignal): Promise<WorkspaceDiagnosticsResult> {",
       "async": true
     }
   ]

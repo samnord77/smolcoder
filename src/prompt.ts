@@ -5,9 +5,9 @@
 // the prompt (size-capped) — and because they are part of message[0], they
 // survive compaction the same way the system prompt does.
 
-import * as fs from "fs";
-import * as path from "path";
-import { Mode } from "./tools/index";
+import * as fs from "node:fs";
+import * as path from "node:path";
+import type { Mode } from "./tools/index";
 
 const AGENTS_MD_CAP_CHARS = 8000; // ~2k tokens — small-context friendly
 const MEMORY_MD_CAP_CHARS = 4000; // ~1k tokens — long-term memory stays cheap
@@ -20,9 +20,7 @@ export function loadAgentsMd(workspace: string): string | null {
     let text = fs.readFileSync(p, "utf8").trim();
     if (!text) return null;
     if (text.length > AGENTS_MD_CAP_CHARS) {
-      text =
-        text.slice(0, AGENTS_MD_CAP_CHARS) +
-        "\n[AGENTS.md was truncated here to save context]";
+      text = text.slice(0, AGENTS_MD_CAP_CHARS) + "\n[AGENTS.md was truncated here to save context]";
     }
     return text;
   } catch {
@@ -39,9 +37,7 @@ export function loadMemoryMd(workspace: string): string | null {
     let text = fs.readFileSync(p, "utf8").trim();
     if (!text) return null;
     if (text.length > MEMORY_MD_CAP_CHARS) {
-      text =
-        text.slice(0, MEMORY_MD_CAP_CHARS) +
-        "\n[MEMORY.md was truncated here to save context]";
+      text = text.slice(0, MEMORY_MD_CAP_CHARS) + "\n[MEMORY.md was truncated here to save context]";
     }
     return text;
   } catch {
@@ -58,8 +54,7 @@ export function buildSystemPrompt(opts: {
   /** Contents of the workspace MEMORY.md, when present. */
   memoryMd?: string | null;
 }): string {
-  const os =
-    process.platform === "win32" ? "Windows" : process.platform === "darwin" ? "macOS" : "Linux";
+  const os = process.platform === "win32" ? "Windows" : process.platform === "darwin" ? "macOS" : "Linux";
 
   const modeLine =
     opts.mode === "ro"
@@ -77,11 +72,7 @@ export function buildSystemPrompt(opts: {
     `Read errors and change your approach when a call fails. Put test programs in files rather than long inline shell commands. Verify changes with the relevant test or command; a failed check is not success — the harness reruns acceptance automatically until it passes (auto-repair). Before finishing, re-read your own diff (git review) and fix anything sloppy. ` +
     `After a hard-won repair, save the reusable checklist with skill save so future sessions reuse it (auto-evolution). Saved skills matching your task are loaded automatically — read and apply them. ` +
     `Continue until the request is finished or explain the blocker. Summarize the result and verification briefly.` +
-    (opts.agentsMd
-      ? `\n\nWorkspace instructions from AGENTS.md — follow these:\n${opts.agentsMd}`
-      : "") +
-    (opts.memoryMd
-      ? `\n\nLong-term memory from MEMORY.md — durable facts, follow these:\n${opts.memoryMd}`
-      : "")
+    (opts.agentsMd ? `\n\nWorkspace instructions from AGENTS.md — follow these:\n${opts.agentsMd}` : "") +
+    (opts.memoryMd ? `\n\nLong-term memory from MEMORY.md — durable facts, follow these:\n${opts.memoryMd}` : "")
   );
 }

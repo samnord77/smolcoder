@@ -1,0 +1,9 @@
+{
+  "original_tokens": 5212,
+  "compressed_tokens": 165,
+  "saved_tokens": 5047,
+  "savings_pct": 96.8,
+  "compressed": "# network.test.js (.js) \u2014 356 lines\nconst test = require(\"node:test\");\nconst assert = require(\"node:assert/strict\");\nconst fs = require(\"node:fs\");\nconst http = require(\"node:http\");\nconst os = require(\"node:os\");\nconst path = require(\"node:path\");\nconst CONFIG = path.join(fs.mkdtempSync(path.join(os.tmpdir(), \"smol-net-\")), \"config.json\");\nasync function serveOllama(names = [\"remote-model:latest\"])\nfunction scriptedUI({ picks = [], texts = [] })\nconst v4 = (address, netmask, internal = false) => ({ address, netmask, family: \"IPv4\", mac: \"00:00:00:00:00:00\", internal, cidr: null });",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\network.test.js"
+}

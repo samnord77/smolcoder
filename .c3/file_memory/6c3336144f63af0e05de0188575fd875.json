@@ -1,41 +1,41 @@
 {
   "path": "src/lsp-pro.ts",
-  "content_hash": "be0646b16b013eb2177a2216596be4c7",
-  "updated_at": "2026-09-27T21:06:18",
-  "lines": 942,
-  "size_bytes": 33452,
-  "mtime_ns": 1790539494626233600,
+  "content_hash": "d88bdc22b50f62a811fb761985812cac",
+  "updated_at": "2026-09-28T21:15:44",
+  "lines": 1264,
+  "size_bytes": 44364,
+  "mtime_ns": 1790626502923446300,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
   "sections": [
     {
       "type": "import",
-      "name": "import { spawn, ChildProcess } from \"child_process\";",
+      "name": "import { type ChildProcess, spawn } from \"node:child_process\";",
       "line_start": 18,
       "line_end": 18,
-      "signature": "import { spawn, ChildProcess } from \"child_process\";"
+      "signature": "import { type ChildProcess, spawn } from \"node:child_process\";"
     },
     {
       "type": "import",
-      "name": "import * as fs from \"fs\";",
+      "name": "import * as fs from \"node:fs\";",
       "line_start": 19,
       "line_end": 19,
-      "signature": "import * as fs from \"fs\";"
+      "signature": "import * as fs from \"node:fs\";"
     },
     {
       "type": "import",
-      "name": "import * as path from \"path\";",
+      "name": "import * as path from \"node:path\";",
       "line_start": 20,
       "line_end": 20,
-      "signature": "import * as path from \"path\";"
+      "signature": "import * as path from \"node:path\";"
     },
     {
       "type": "import",
-      "name": "import { resolveInWorkspace } from \"./sandbox\";",
+      "name": "import { encodeLsp, isTsLike, lspDisabled, querySymbols, splitCommand } from \"./lsp\";",
       "line_start": 21,
       "line_end": 21,
-      "signature": "import { resolveInWorkspace } from \"./sandbox\";"
+      "signature": "import { encodeLsp, isTsLike, lspDisabled, querySymbols, splitCommand } from \"./lsp\";"
     },
     {
       "type": "import",
@@ -46,10 +46,10 @@
     },
     {
       "type": "import",
-      "name": "import { encodeLsp, isTsLike, lspDisabled, querySymbols, splitCommand } from \"./lsp\";",
+      "name": "import { resolveInWorkspace } from \"./sandbox\";",
       "line_start": 23,
       "line_end": 23,
-      "signature": "import { encodeLsp, isTsLike, lspDisabled, querySymbols, splitCommand } from \"./lsp\";"
+      "signature": "import { resolveInWorkspace } from \"./sandbox\";"
     },
     {
       "type": "interface",
@@ -74,225 +74,225 @@
       "signature": "function tsCandidates(): string[][] {"
     },
     {
-      "type": "function",
-      "name": "serverDefForLang",
-      "line_start": 57,
-      "line_end": 99,
-      "signature": "function serverDefForLang(lang: string): LspServerDef | null {"
-    },
-    {
       "type": "constant",
       "name": "LSP_LANGS",
-      "line_start": 101,
-      "line_end": 101,
-      "signature": "const LSP_LANGS = [\"typescript\", \"python\", \"rust\", \"go\"];"
+      "line_start": 56,
+      "line_end": 69,
+      "signature": "const LSP_LANGS = ["
+    },
+    {
+      "type": "function",
+      "name": "serverDefForLang",
+      "line_start": 72,
+      "line_end": 386,
+      "signature": "function serverDefForLang(lang: string): LspServerDef | null {"
     },
     {
       "type": "function",
       "name": "serverForFile",
-      "line_start": 104,
-      "line_end": 111,
+      "line_start": 389,
+      "line_end": 396,
       "signature": "function serverForFile(filePath: string): LspServerDef | null {"
     },
     {
       "type": "function",
       "name": "supportedLspExts",
-      "line_start": 113,
-      "line_end": 120,
+      "line_start": 398,
+      "line_end": 405,
       "signature": "function supportedLspExts(): string[] {"
     },
     {
       "type": "interface",
       "name": "LspAvailability",
-      "line_start": 122,
-      "line_end": 126,
+      "line_start": 407,
+      "line_end": 411,
       "signature": "interface LspAvailability {",
       "children": []
     },
     {
       "type": "function",
       "name": "lspAvailability",
-      "line_start": 129,
-      "line_end": 142,
+      "line_start": 414,
+      "line_end": 427,
       "signature": "function lspAvailability(): LspAvailability[] {"
     },
     {
       "type": "function",
       "name": "lspUri",
-      "line_start": 148,
-      "line_end": 150,
+      "line_start": 433,
+      "line_end": 435,
       "signature": "function lspUri(abs: string): string {"
     },
     {
       "type": "function",
       "name": "lspRootUri",
-      "line_start": 152,
-      "line_end": 154,
+      "line_start": 437,
+      "line_end": 439,
       "signature": "function lspRootUri(root: string): string {"
     },
     {
       "type": "function",
       "name": "normLspUri",
-      "line_start": 157,
-      "line_end": 164,
+      "line_start": 442,
+      "line_end": 449,
       "signature": "function normLspUri(u: string): string {"
     },
     {
       "type": "constant",
       "name": "LSP_TIMEOUT_MS",
-      "line_start": 166,
-      "line_end": 166,
+      "line_start": 451,
+      "line_end": 451,
       "signature": "const LSP_TIMEOUT_MS = 30_000;"
     },
     {
       "type": "constant",
       "name": "RESULT_CAP",
-      "line_start": 167,
-      "line_end": 167,
+      "line_start": 452,
+      "line_end": 452,
       "signature": "const RESULT_CAP = 4000;"
     },
     {
       "type": "interface",
       "name": "RpcPending",
-      "line_start": 169,
-      "line_end": 173,
+      "line_start": 454,
+      "line_end": 458,
       "signature": "interface RpcPending {",
       "children": []
     },
     {
       "type": "class",
       "name": "RpcClient",
-      "line_start": 177,
-      "line_end": 334,
+      "line_start": 462,
+      "line_end": 619,
       "signature": "class RpcClient {",
       "children": [
         {
           "type": "property",
           "name": "proc",
-          "line_start": 178,
-          "line_end": 178,
+          "line_start": 463,
+          "line_end": 463,
           "signature": "private proc: ChildProcess | null = null;",
           "access": "private"
         },
         {
           "type": "property",
           "name": "nextId",
-          "line_start": 179,
-          "line_end": 179,
+          "line_start": 464,
+          "line_end": 464,
           "signature": "private nextId = 1;",
           "access": "private"
         },
         {
           "type": "property",
           "name": "pending",
-          "line_start": 180,
-          "line_end": 180,
+          "line_start": 465,
+          "line_end": 465,
           "signature": "private pending = new Map<number, RpcPending>();",
           "access": "private"
         },
         {
           "type": "property",
           "name": "buf",
-          "line_start": 181,
-          "line_end": 181,
+          "line_start": 466,
+          "line_end": 466,
           "signature": "private buf = Buffer.alloc(0);",
           "access": "private"
         },
         {
           "type": "property",
           "name": "diagByUri",
-          "line_start": 182,
-          "line_end": 182,
+          "line_start": 467,
+          "line_end": 467,
           "signature": "private diagByUri = new Map<string, any[]>();",
           "access": "private"
         },
         {
           "type": "property",
-          "name": "watched",
-          "line_start": 183,
-          "line_end": 183,
-          "signature": "private watched = \"\";",
+          "name": "dead",
+          "line_start": 468,
+          "line_end": 468,
+          "signature": "private dead: Error | null = null;",
           "access": "private"
         },
         {
           "type": "property",
-          "name": "dead",
-          "line_start": 184,
-          "line_end": 184,
-          "signature": "private dead: Error | null = null;",
+          "name": "watched",
+          "line_start": 469,
+          "line_end": 469,
+          "signature": "private watched: string;",
           "access": "private"
         },
         {
           "type": "method",
           "name": "constructor",
-          "line_start": 186,
-          "line_end": 191,
+          "line_start": 471,
+          "line_end": 476,
           "signature": "constructor("
         },
         {
           "type": "method",
           "name": "watch",
-          "line_start": 193,
-          "line_end": 195,
+          "line_start": 478,
+          "line_end": 480,
           "signature": "watch(uri: string): void {"
         },
         {
           "type": "method",
           "name": "start",
-          "line_start": 197,
-          "line_end": 231,
+          "line_start": 482,
+          "line_end": 516,
           "signature": "async start(cmd: string[]): Promise<void> {",
           "async": true
         },
         {
           "type": "method",
           "name": "failAll",
-          "line_start": 233,
-          "line_end": 241,
+          "line_start": 518,
+          "line_end": 526,
           "signature": "private failAll(err: Error): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "ingest",
-          "line_start": 243,
-          "line_end": 280,
+          "line_start": 528,
+          "line_end": 565,
           "signature": "private ingest(chunk: Buffer): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "notify",
-          "line_start": 282,
-          "line_end": 288,
+          "line_start": 567,
+          "line_end": 573,
           "signature": "notify(method: string, params: any): void {"
         },
         {
           "type": "method",
           "name": "request",
-          "line_start": 290,
-          "line_end": 307,
+          "line_start": 575,
+          "line_end": 592,
           "signature": "request(method: string, params: any, timeoutMs = LSP_TIMEOUT_MS): Promise<any> {"
         },
         {
           "type": "method",
           "name": "takeDiag",
-          "line_start": 309,
-          "line_end": 314,
+          "line_start": 594,
+          "line_end": 599,
           "signature": "takeDiag(uri: string): any[] {"
         },
         {
           "type": "method",
           "name": "alive",
-          "line_start": 316,
-          "line_end": 318,
+          "line_start": 601,
+          "line_end": 603,
           "signature": "get alive(): boolean {"
         },
         {
           "type": "method",
           "name": "close",
-          "line_start": 320,
-          "line_end": 333,
+          "line_start": 605,
+          "line_end": 618,
           "signature": "close(): void {"
         }
       ]
@@ -300,191 +300,191 @@
     {
       "type": "function",
       "name": "fmtLoc",
-      "line_start": 340,
-      "line_end": 349,
+      "line_start": 625,
+      "line_end": 634,
       "signature": "function fmtLoc(root: string, uri: string, range: any): string {"
     },
     {
       "type": "function",
       "name": "fmtLocList",
-      "line_start": 351,
-      "line_end": 363,
+      "line_start": 636,
+      "line_end": 648,
       "signature": "function fmtLocList(root: string, res: any): string {"
     },
     {
       "type": "function",
       "name": "fmtHoverText",
-      "line_start": 365,
-      "line_end": 376,
+      "line_start": 650,
+      "line_end": 661,
       "signature": "function fmtHoverText(res: any): string {"
     },
     {
       "type": "function",
       "name": "fmtDiagList",
-      "line_start": 378,
-      "line_end": 387,
+      "line_start": 663,
+      "line_end": 674,
       "signature": "function fmtDiagList(root: string, uri: string, diags: any[]): string {"
     },
     {
       "type": "constant",
       "name": "COMPLETION_KINDS",
-      "line_start": 389,
-      "line_end": 394,
+      "line_start": 676,
+      "line_end": 702,
       "signature": "const COMPLETION_KINDS: Record<number, string> = {"
     },
     {
       "type": "function",
       "name": "fmtCompletion",
-      "line_start": 396,
-      "line_end": 408,
+      "line_start": 704,
+      "line_end": 718,
       "signature": "function fmtCompletion(res: any): string {"
     },
     {
       "type": "function",
       "name": "fmtSignature",
-      "line_start": 410,
-      "line_end": 423,
+      "line_start": 720,
+      "line_end": 732,
       "signature": "function fmtSignature(res: any): string {"
     },
     {
       "type": "function",
       "name": "uriToAbs",
-      "line_start": 425,
-      "line_end": 435,
+      "line_start": 734,
+      "line_end": 744,
       "signature": "function uriToAbs(root: string, uri: string): string | null {"
     },
     {
       "type": "function",
       "name": "fmtWorkspaceEdit",
-      "line_start": 439,
-      "line_end": 479,
+      "line_start": 748,
+      "line_end": 798,
       "signature": "function fmtWorkspaceEdit(root: string, edit: any): string {",
       "doc": "Render a WorkspaceEdit as reviewable file:line replacements with the"
     },
     {
       "type": "function",
       "name": "fmtCodeActions",
-      "line_start": 481,
-      "line_end": 488,
+      "line_start": 800,
+      "line_end": 807,
       "signature": "function fmtCodeActions(res: any): string {"
     },
     {
       "type": "constant",
       "name": "CODE_ACTIONS",
-      "line_start": 494,
-      "line_end": 494,
+      "line_start": 813,
+      "line_end": 813,
       "signature": "const CODE_ACTIONS = [\"hover\", \"def\", \"refs\", \"diag\", \"rename\", \"completion\", \"signature\", \"wsymbol\", \"quickfix\", \"setup\"];"
     },
     {
       "type": "interface",
       "name": "CodeQuery",
-      "line_start": 496,
-      "line_end": 504,
+      "line_start": 815,
+      "line_end": 823,
       "signature": "interface CodeQuery {",
       "children": []
     },
     {
       "type": "interface",
       "name": "LiveServer",
-      "line_start": 506,
-      "line_end": 510,
+      "line_start": 825,
+      "line_end": 829,
       "signature": "interface LiveServer {",
       "children": []
     },
     {
       "type": "interface",
       "name": "OpenDoc",
-      "line_start": 512,
-      "line_end": 515,
+      "line_start": 831,
+      "line_end": 834,
       "signature": "interface OpenDoc {",
       "children": []
     },
     {
       "type": "constant",
       "name": "IDLE_MS",
-      "line_start": 517,
-      "line_end": 517,
+      "line_start": 836,
+      "line_end": 836,
       "signature": "const IDLE_MS = 5 * 60 * 1000;"
     },
     {
       "type": "constant",
       "name": "MAX_FILE_BYTES",
-      "line_start": 518,
-      "line_end": 518,
+      "line_start": 837,
+      "line_end": 837,
       "signature": "const MAX_FILE_BYTES = 1024 * 1024;"
     },
     {
       "type": "function",
       "name": "num1",
-      "line_start": 520,
-      "line_end": 522,
+      "line_start": 839,
+      "line_end": 841,
       "signature": "function num1(v: unknown): number {"
     },
     {
       "type": "class",
       "name": "LspManager",
-      "line_start": 524,
-      "line_end": 855,
+      "line_start": 843,
+      "line_end": 1177,
       "signature": "class LspManager {",
       "children": [
         {
           "type": "property",
           "name": "servers",
-          "line_start": 525,
-          "line_end": 525,
+          "line_start": 844,
+          "line_end": 844,
           "signature": "private servers = new Map<string, LiveServer>();",
           "access": "private"
         },
         {
           "type": "property",
           "name": "starting",
-          "line_start": 526,
-          "line_end": 526,
+          "line_start": 845,
+          "line_end": 845,
           "signature": "private starting = new Map<string, Promise<LiveServer>>();",
           "access": "private"
         },
         {
           "type": "property",
           "name": "docs",
-          "line_start": 527,
-          "line_end": 527,
+          "line_start": 846,
+          "line_end": 846,
           "signature": "private docs = new Map<string, OpenDoc>();",
           "access": "private"
         },
         {
           "type": "method",
           "name": "constructor",
-          "line_start": 529,
-          "line_end": 529,
+          "line_start": 848,
+          "line_end": 848,
           "signature": "constructor(private root: string) {}"
         },
         {
           "type": "method",
           "name": "serverCount",
-          "line_start": 531,
-          "line_end": 533,
+          "line_start": 850,
+          "line_end": 852,
           "signature": "serverCount(): number {"
         },
         {
           "type": "method",
           "name": "openDocCount",
-          "line_start": 535,
-          "line_end": 537,
+          "line_start": 854,
+          "line_end": 856,
           "signature": "openDocCount(): number {"
         },
         {
           "type": "method",
           "name": "sweepIdle",
-          "line_start": 539,
-          "line_end": 555,
+          "line_start": 858,
+          "line_end": 874,
           "signature": "private sweepIdle(): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "ensureServer",
-          "line_start": 557,
-          "line_end": 576,
+          "line_start": 876,
+          "line_end": 895,
           "signature": "private async ensureServer(def: LspServerDef, signal?: AbortSignal): Promise<LiveServer> {",
           "async": true,
           "access": "private"
@@ -492,8 +492,8 @@
         {
           "type": "method",
           "name": "startServer",
-          "line_start": 578,
-          "line_end": 604,
+          "line_start": 897,
+          "line_end": 923,
           "signature": "private async startServer(def: LspServerDef, signal?: AbortSignal): Promise<LiveServer> {",
           "async": true,
           "access": "private"
@@ -501,8 +501,8 @@
         {
           "type": "method",
           "name": "ensureDoc",
-          "line_start": 606,
-          "line_end": 626,
+          "line_start": 925,
+          "line_end": 945,
           "signature": "private async ensureDoc(live: LiveServer, abs: string, uri: string, def: LspServerDef, signal?: AbortSignal): Promise<void> {",
           "async": true,
           "access": "private"
@@ -510,8 +510,8 @@
         {
           "type": "method",
           "name": "query",
-          "line_start": 629,
-          "line_end": 731,
+          "line_start": 948,
+          "line_end": 1055,
           "signature": "async query(raw: CodeQuery, signal?: AbortSignal): Promise<string> {",
           "async": true,
           "doc": "One symbol question. Never throws: failures are coaching strings."
@@ -519,8 +519,8 @@
         {
           "type": "method",
           "name": "fetchDiagnostics",
-          "line_start": 735,
-          "line_end": 752,
+          "line_start": 1059,
+          "line_end": 1076,
           "signature": "private async fetchDiagnostics(live: LiveServer, uri: string, signal?: AbortSignal): Promise<any[]> {",
           "async": true,
           "access": "private",
@@ -529,8 +529,8 @@
         {
           "type": "method",
           "name": "diagStructured",
-          "line_start": 756,
-          "line_end": 812,
+          "line_start": 1080,
+          "line_end": 1134,
           "signature": "async diagStructured(rel: string, signal?: AbortSignal): Promise<{ text: string; diagnostics: StructuredDiag[] }> {",
           "async": true,
           "doc": "Structured diagnostics for IDE panels: rows carry file/line/severity"
@@ -538,8 +538,8 @@
         {
           "type": "method",
           "name": "workspaceSymbol",
-          "line_start": 814,
-          "line_end": 841,
+          "line_start": 1136,
+          "line_end": 1163,
           "signature": "private async workspaceSymbol(query: string, lang: string, signal?: AbortSignal): Promise<string> {",
           "async": true,
           "access": "private"
@@ -547,8 +547,8 @@
         {
           "type": "method",
           "name": "shutdown",
-          "line_start": 843,
-          "line_end": 854,
+          "line_start": 1165,
+          "line_end": 1176,
           "signature": "shutdown(): void {"
         }
       ]
@@ -556,52 +556,52 @@
     {
       "type": "constant",
       "name": "managers",
-      "line_start": 861,
-      "line_end": 861,
+      "line_start": 1183,
+      "line_end": 1183,
       "signature": "const managers = new Map<string, LspManager>();"
     },
     {
       "type": "function",
       "name": "managerFor",
-      "line_start": 863,
-      "line_end": 870,
+      "line_start": 1185,
+      "line_end": 1192,
       "signature": "function managerFor(root: string): LspManager {"
     },
     {
       "type": "function",
       "name": "closeLspManagers",
-      "line_start": 873,
-      "line_end": 882,
+      "line_start": 1195,
+      "line_end": 1204,
       "signature": "function closeLspManagers(): void {"
     },
     {
       "type": "constant",
       "name": "LEGACY_TS_ACTIONS",
-      "line_start": 892,
-      "line_end": 892,
+      "line_start": 1214,
+      "line_end": 1214,
       "signature": "const LEGACY_TS_ACTIONS = new Set([\"hover\", \"def\", \"refs\", \"diag\"]);"
     },
     {
       "type": "function",
       "name": "queryCode",
-      "line_start": 898,
-      "line_end": 924,
+      "line_start": 1220,
+      "line_end": 1246,
       "signature": "async function queryCode(root: string, args: CodeQuery, signal?: AbortSignal): Promise<string> {",
       "async": true
     },
     {
       "type": "interface",
       "name": "StructuredDiag",
-      "line_start": 926,
-      "line_end": 932,
+      "line_start": 1248,
+      "line_end": 1254,
       "signature": "interface StructuredDiag {",
       "children": []
     },
     {
       "type": "function",
       "name": "queryDiagStructured",
-      "line_start": 936,
-      "line_end": 942,
+      "line_start": 1258,
+      "line_end": 1264,
       "signature": "async function queryDiagStructured(",
       "async": true
     }

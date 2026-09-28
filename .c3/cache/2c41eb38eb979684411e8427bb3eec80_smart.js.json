@@ -1,0 +1,9 @@
+{
+  "original_tokens": 910,
+  "compressed_tokens": 50,
+  "saved_tokens": 860,
+  "savings_pct": 94.5,
+  "compressed": "# offload.test.js (.js) \u2014 69 lines\nconst test = require(\"node:test\");\nconst assert = require(\"node:assert/strict\");\nconst sleep = (ms) => new Promise((r) => setTimeout(r, ms));",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\offload.test.js"
+}

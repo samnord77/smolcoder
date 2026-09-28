@@ -4,9 +4,9 @@
 // a small .meta.json that is read at startup, and the heavy transcript body
 // that is only loaded when a session is resumed.
 
-import * as fs from "fs";
-import * as path from "path";
-import { SessionSnapshot } from "../session";
+import * as fs from "node:fs";
+import * as path from "node:path";
+import type { SessionSnapshot } from "../session";
 
 export type Event = Record<string, any>;
 

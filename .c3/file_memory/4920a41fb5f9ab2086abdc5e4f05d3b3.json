@@ -1,10 +1,10 @@
 {
   "path": "test/context.test.js",
-  "content_hash": "84e8de908db9b0ca84afec68f73069c3",
-  "updated_at": "2026-09-24T17:36:22",
-  "lines": 226,
-  "size_bytes": 13392,
-  "mtime_ns": 1790260570016269100,
+  "content_hash": "5c60d92452a55a5366042eef56b96c58",
+  "updated_at": "2026-09-28T19:36:39",
+  "lines": 345,
+  "size_bytes": 14072,
+  "mtime_ns": 1790620581276111600,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -26,22 +26,22 @@
     {
       "type": "constant",
       "name": "tools",
-      "line_start": 26,
-      "line_end": 26,
+      "line_start": 37,
+      "line_end": 37,
       "signature": "const tools = [{ name: \"t\", description: \"d\", parameters: { type: \"object\", properties: {} } }];"
     },
     {
       "type": "function",
       "name": "readCall",
-      "line_start": 109,
-      "line_end": 111,
+      "line_start": 177,
+      "line_end": 179,
       "signature": "function readCall(id, path) {"
     },
     {
       "type": "function",
       "name": "toolResult",
-      "line_start": 112,
-      "line_end": 114,
+      "line_start": 180,
+      "line_end": 182,
       "signature": "function toolResult(id, name, content) {"
     }
   ]

@@ -1,10 +1,10 @@
 {
   "path": "test/fs-manage.test.js",
-  "content_hash": "f3c11075f47f2223bddff7b112048359",
-  "updated_at": "2026-09-28T16:09:02",
+  "content_hash": "13909b7d4da701285ceb2a1a9d23b722",
+  "updated_at": "2026-09-28T19:33:36",
   "lines": 93,
-  "size_bytes": 5925,
-  "mtime_ns": 1790607835838528300,
+  "size_bytes": 5940,
+  "mtime_ns": 1790620408527679500,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -28,21 +28,21 @@
       "name": "fs",
       "line_start": 6,
       "line_end": 6,
-      "signature": "const fs = require(\"fs\");"
+      "signature": "const fs = require(\"node:fs\");"
     },
     {
       "type": "constant",
       "name": "os",
       "line_start": 7,
       "line_end": 7,
-      "signature": "const os = require(\"os\");"
+      "signature": "const os = require(\"node:os\");"
     },
     {
       "type": "constant",
       "name": "path",
       "line_start": 8,
       "line_end": 8,
-      "signature": "const path = require(\"path\");"
+      "signature": "const path = require(\"node:path\");"
     },
     {
       "type": "function",

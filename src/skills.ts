@@ -2,11 +2,11 @@
 // Stored as markdown under <workspace>/.smol/skills/<name>.md, so they
 // survive sessions (auto-evolution) and travel with the project. Names are
 // strict so a model cannot escape the folder with `../../`.
-import * as fs from "fs";
-import * as path from "path";
-import { resolveInWorkspace, SandboxError } from "./sandbox";
-import { isHistoryPlaceholder } from "./history";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import { BUILTIN_SKILLS } from "./builtin-skills";
+import { isHistoryPlaceholder } from "./history";
+import { resolveInWorkspace, SandboxError } from "./sandbox";
 
 const SKILLS_DIR = ".smol/skills";
 const NAME_RE = /^[A-Za-z0-9_-]{1,40}$/;
@@ -15,9 +15,7 @@ const SAVE_CAP = 8000;
 
 function assertName(name: unknown): string {
   if (typeof name !== "string" || !NAME_RE.test(name.trim())) {
-    throw new SandboxError(
-      'skill name must be 1-40 letters, numbers, "-" or "_" (example: "login-debug").'
-    );
+    throw new SandboxError('skill name must be 1-40 letters, numbers, "-" or "_" (example: "login-debug").');
   }
   return name.trim();
 }
@@ -40,10 +38,7 @@ export function skillMeta(content: string): { name?: string; description?: strin
       const key = t.slice(0, idx).trim().toLowerCase();
       if (key !== "name" && key !== "description") continue;
       let val = t.slice(idx + 1).trim();
-      if (
-        (val.startsWith('"') && val.endsWith('"') && val.length >= 2) ||
-        (val.startsWith("'") && val.endsWith("'") && val.length >= 2)
-      ) {
+      if ((val.startsWith('"') && val.endsWith('"') && val.length >= 2) || (val.startsWith("'") && val.endsWith("'") && val.length >= 2)) {
         val = val.slice(1, -1);
       }
       val = val.trim();
@@ -62,14 +57,20 @@ export function listSkills(root: string): string {
   try {
     const dir = resolveInWorkspace(root, SKILLS_DIR);
     try {
-      names = fs.readdirSync(dir).filter((f) => f.endsWith(".md")).map((f) => f.slice(0, -3));
+      names = fs
+        .readdirSync(dir)
+        .filter((f) => f.endsWith(".md"))
+        .map((f) => f.slice(0, -3));
     } catch {
       names = [];
     }
   } catch {
     names = [];
   }
-  const valid = names.filter((n) => NAME_RE.test(n)).sort().slice(0, 50);
+  const valid = names
+    .filter((n) => NAME_RE.test(n))
+    .sort()
+    .slice(0, 50);
   const builtins = Object.keys(BUILTIN_SKILLS).filter((n) => !valid.includes(n));
   const all = [...valid, ...builtins.map((n) => `${n} (built-in)`)];
   if (!all.length) return "No skills saved yet.";
@@ -82,12 +83,11 @@ export function readSkill(root: string, name: unknown): string {
     const abs = resolveInWorkspace(root, `${SKILLS_DIR}/${clean}.md`);
     if (fs.existsSync(abs) && !fs.statSync(abs).isDirectory()) {
       const text = fs.readFileSync(abs, "utf8");
-      const base =
-        text.length > READ_CAP ? text.slice(0, READ_CAP) + "\n[skill truncated — keep skills short]" : text;
+      const base = text.length > READ_CAP ? `${text.slice(0, READ_CAP)}\n[skill truncated — keep skills short]` : text;
       try {
         const meta = skillMeta(text);
         if (meta.name && meta.name !== clean) {
-          return base + `\n[skill warning: frontmatter name "${meta.name}" does not match file name "${clean}"]`;
+          return `${base}\n[skill warning: frontmatter name "${meta.name}" does not match file name "${clean}"]`;
         }
       } catch {
         /* soft validation never crashes */
@@ -98,7 +98,7 @@ export function readSkill(root: string, name: unknown): string {
     /* fall through to built-ins */
   }
   const builtin = BUILTIN_SKILLS[clean];
-  if (builtin) return builtin.length > READ_CAP ? builtin.slice(0, READ_CAP) + "\n[skill truncated]" : builtin;
+  if (builtin) return builtin.length > READ_CAP ? `${builtin.slice(0, READ_CAP)}\n[skill truncated]` : builtin;
   return `Error: no skill named "${clean}". Use skill {"action": "list"} to see saved skills.`;
 }
 
@@ -115,7 +115,7 @@ export function saveSkill(root: string, name: unknown, content: unknown): string
   }
   const abs = resolveInWorkspace(root, `${SKILLS_DIR}/${clean}.md`);
   fs.mkdirSync(path.dirname(abs), { recursive: true });
-  fs.writeFileSync(abs, content.trim() + "\n", "utf8");
+  fs.writeFileSync(abs, `${content.trim()}\n`, "utf8");
   return `Saved skill "${clean}" (${content.trim().split("\n").length} lines). It will be listed by skill {"action": "list"}.`;
 }
 
@@ -126,7 +126,9 @@ export function saveSkill(root: string, name: unknown, content: unknown): string
 // ---------------------------------------------------------------------------
 
 const STOP_WORDS = new Set(
-  "with,from,that,this,have,will,your,into,over,under,about,after,before,when,where,which,while,what,than,also,just,like,make,made,does,doing,file,files,code,task,work,need,needs,using,use,used,error,errors,avec,pour,dans,une,des,les,aux,son,ses,est,sont,faire,fait,besoin,besoins,fichier,fichiers,code,tâche,taches,travail,utiliser,utilise,erreur,erreurs".split(",")
+  "with,from,that,this,have,will,your,into,over,under,about,after,before,when,where,which,while,what,than,also,just,like,make,made,does,doing,file,files,code,task,work,need,needs,using,use,used,error,errors,avec,pour,dans,une,des,les,aux,son,ses,est,sont,faire,fait,besoin,besoins,fichier,fichiers,code,tâche,taches,travail,utiliser,utilise,erreur,erreurs".split(
+    ","
+  )
 );
 
 function keywords(s: string): Set<string> {
@@ -137,7 +139,7 @@ function keywords(s: string): Set<string> {
     .replace(/\b(mise en page|interface|interfaces|ui|ux|visuel|visuelle|visuels|design|conception)\b/gu, " design ")
     .replace(/\b(espacement|espacements|marges|marge|alignement|alignements)\b/gu, " spacing ")
     .replace(/\b(animation|animations|transition|transitions)\b/gu, " motion ");
-  for (const w of (normalized.match(/[\p{L}\p{N}][\p{L}\p{N}_-]{2,}/gu) ?? [])) {
+  for (const w of normalized.match(/[\p{L}\p{N}][\p{L}\p{N}_-]{2,}/gu) ?? []) {
     if (!STOP_WORDS.has(w)) out.add(w);
   }
   return out;
@@ -230,7 +232,8 @@ function matchingSkills(root: string, request: string): { name: string; score: n
     for (const w of req) if (words.has(w)) score++;
     const nameWords = keywords(s.name.replace(/[-_]/g, " "));
     const directName = [...req].some((w) => nameWords.has(w));
-    if (score >= 2 || directName) hits.push({ name: s.name, score: directName ? Math.max(score, 3) : score, excerpt: s.text.slice(0, 600) });
+    if (score >= 2 || directName)
+      hits.push({ name: s.name, score: directName ? Math.max(score, 3) : score, excerpt: s.text.slice(0, 600) });
   }
   hits.sort((a, b) => b.score - a.score);
   return hits;
@@ -255,7 +258,9 @@ export function relevantSkills(root: string, request: string, maxChars = 1200): 
 /** Names of the skills that just rode into a turn (for the status view). */
 export function relevantSkillNames(root: string, request: string, limit = 2): string[] {
   try {
-    return matchingSkills(root, request).slice(0, Math.max(0, limit)).map((h) => h.name);
+    return matchingSkills(root, request)
+      .slice(0, Math.max(0, limit))
+      .map((h) => h.name);
   } catch {
     return [];
   }
@@ -278,7 +283,11 @@ export function saveAutoRepairLesson(
       `Failure pattern: ${lesson.failure.slice(0, 400)}\n` +
       (lesson.files.length ? `Files: ${lesson.files.slice(-10).join(", ").slice(0, 400)}\n` : "") +
       (lesson.commands.length
-        ? `Recent commands: ${lesson.commands.slice(-4).map((s) => s.replace(/\s+/g, " ").slice(0, 180)).join(" ; ").slice(0, 600)}\n`
+        ? `Recent commands: ${lesson.commands
+            .slice(-4)
+            .map((s) => s.replace(/\s+/g, " ").slice(0, 180))
+            .join(" ; ")
+            .slice(0, 600)}\n`
         : "") +
       `Reuse: when the same failure pattern appears, apply the same fix shape first.\n`;
     const abs = resolveInWorkspace(root, `${SKILLS_DIR}/${name}.md`);

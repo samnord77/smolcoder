@@ -6,27 +6,27 @@
 // (list/read only) and fetch_url; edit/bypass add write_file, edit_file,
 // run_command, task, delegate, mcp, symbols and skill save.
 
-import * as fs from "fs";
-import { Plan } from "../plan";
-import { ToolSpec } from "../providers/types";
-import { createFolder, deletePath, editFile, listFiles, movePath, readFile, writeFile } from "./fs-tools";
-import { fetchUrl } from "./web";
-import { queryCode } from "../lsp-pro";
-import { setupLsp } from "../lsp-install";
-import { McpBridge } from "../mcp";
-import { listSkills, readSkill, saveSkill } from "../skills";
-import { syntaxCheck } from "./check";
-import { runCommand, type ShellControl } from "./shell";
-import { TaskManager } from "./tasks";
-import { CoworkBoard } from "./cowork";
+import * as fs from "node:fs";
 import { queryIndex } from "../codeindex";
-import { queryGit } from "../git";
 import { queryDebug } from "../debug";
 import { formatFile } from "../format";
+import { queryGit } from "../git";
+import { setupLsp } from "../lsp-install";
+import { queryCode } from "../lsp-pro";
+import type { McpBridge } from "../mcp";
+import type { Plan } from "../plan";
+import { describePlugins, type LoadedPlugin } from "../plugins";
+import type { ToolSpec } from "../providers/types";
 import { resolveInWorkspace, SandboxError } from "../sandbox";
+import { listSkills, readSkill, saveSkill } from "../skills";
 import { truncateMiddle } from "../util";
+import { syntaxCheck } from "./check";
+import { CoworkBoard } from "./cowork";
+import { createFolder, deletePath, editFile, listFiles, movePath, readFile, writeFile } from "./fs-tools";
 import { searchFilesBounded } from "./search-worker";
-import { LoadedPlugin, describePlugins } from "../plugins";
+import { runCommand, type ShellControl } from "./shell";
+import type { TaskManager } from "./tasks";
+import { fetchUrl } from "./web";
 
 export type Mode = "ro" | "edit" | "bypass";
 
@@ -112,7 +112,7 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
           action: { type: "string", enum: ["set", "done", "add", "show", "checkpoint"] },
           steps: { type: "string", description: 'The steps, one per line; semicolon lists also accepted (only for "set")' },
           step: { type: "number", description: 'Step number to mark done (optional, for "done")' },
-          text: { type: "string", description: 'Step to append or working checkpoint' },
+          text: { type: "string", description: "Step to append or working checkpoint" },
         },
         required: ["action"],
       },
@@ -169,7 +169,10 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
             type: "string",
             enum: ["status", "diff", "log", "blame", "branch", "stage", "commit", "review", "stage_hunk", "revert_hunk", "stage_lines"],
           },
-          path: { type: "string", description: "File path (for diff, blame, stage, stage_hunk, revert_hunk, stage_lines); comma-separated for stage" },
+          path: {
+            type: "string",
+            description: "File path (for diff, blame, stage, stage_hunk, revert_hunk, stage_lines); comma-separated for stage",
+          },
           message: { type: "string", description: "Commit message (only for commit)" },
           count: { type: "number", description: "Commits to show (only for log, default 10)" },
           line: { type: "number", description: "Line number (only for blame)" },
@@ -251,8 +254,7 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
     },
     {
       name: "create_folder",
-      description:
-        'Create a folder (and any missing parents). Example: {"path": "src/components"}. Safe to call when it already exists.',
+      description: 'Create a folder (and any missing parents). Example: {"path": "src/components"}. Safe to call when it already exists.',
       parameters: {
         type: "object",
         properties: {
@@ -339,15 +341,18 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
       : [
           {
             name: "delegate",
-      description:
-        'Hand a small subtask to a bounded sub-agent (max 12 tool calls, no nested delegates). Roster role: {"role":"architect","task":"map the login flow and report files + line numbers"}. Or define a purpose-built specialist inline: {"task":"audit this parser for crashes","tools":"read_file,search,symbols","instructions":"List every unchecked input with file:line"}. Custom tools must be a subset of your own tools; omit role for expert.',
+            description:
+              'Hand a small subtask to a bounded sub-agent (max 12 tool calls, no nested delegates). Roster role: {"role":"architect","task":"map the login flow and report files + line numbers"}. Or define a purpose-built specialist inline: {"task":"audit this parser for crashes","tools":"read_file,search,symbols","instructions":"List every unchecked input with file:line"}. Custom tools must be a subset of your own tools; omit role for expert.',
             parameters: {
               type: "object",
-          properties: {
-            task: { type: "string", description: "The small concrete subtask" },
-            role: { type: "string", description: 'Roster role from the IDE roles panel (default: "expert")' },
-            tools: { type: "string", description: 'Custom specialist only: comma-separated subset of your tools, e.g. "read_file,search"' },
-            instructions: { type: "string", description: "Custom specialist only: one-paragraph brief (max 1000 chars)" },
+              properties: {
+                task: { type: "string", description: "The small concrete subtask" },
+                role: { type: "string", description: 'Roster role from the IDE roles panel (default: "expert")' },
+                tools: {
+                  type: "string",
+                  description: 'Custom specialist only: comma-separated subset of your tools, e.g. "read_file,search"',
+                },
+                instructions: { type: "string", description: "Custom specialist only: one-paragraph brief (max 1000 chars)" },
               },
               required: ["task"],
             },
@@ -465,19 +470,14 @@ export interface ToolContext {
   plugins?: LoadedPlugin[];
 }
 
-export async function executeTool(
-  name: string,
-  args: Record<string, any>,
-  ctx: ToolContext,
-  signal?: AbortSignal
-): Promise<string> {
+export async function executeTool(name: string, args: Record<string, any>, ctx: ToolContext, signal?: AbortSignal): Promise<string> {
   try {
     if (ctx.allowedTools && !ctx.allowedTools.has(name)) {
       return `Error: ${name} is unavailable for the ${ctx.role ?? "restricted"} role. Use only the tools assigned to this sub-agent.`;
     }
     try {
       for (const p of ctx.plugins ?? []) {
-        if (!p || !p.ok || typeof p.beforeTool !== "function") continue;
+        if (!p?.ok || typeof p.beforeTool !== "function") continue;
         let r: unknown;
         try {
           r = p.beforeTool(name, args);
@@ -510,13 +510,11 @@ export async function executeTool(
       case "plan": {
         const action = args.action ?? (typeof args.steps === "string" ? "set" : undefined);
         if (action === "set") result = ctx.plan.set(typeof args.steps === "string" ? args.steps : "");
-        else if (action === "done")
-          result = ctx.plan.markDone(args.step === undefined ? undefined : Number(args.step));
+        else if (action === "done") result = ctx.plan.markDone(args.step === undefined ? undefined : Number(args.step));
         else if (action === "add") result = ctx.plan.add(String(args.text ?? ""));
         else if (action === "checkpoint") result = ctx.plan.checkpoint(String(args.text ?? ""));
         else if (action === "show") result = ctx.plan.modelView();
-        else
-          return 'Error: action must be one of "set", "done", "add", "show", "checkpoint". Example: {"action": "done"}';
+        else return 'Error: action must be one of "set", "done", "add", "show", "checkpoint". Example: {"action": "done"}';
         break;
       }
       case "work": {
@@ -626,9 +624,10 @@ export async function executeTool(
         if (customInstructions !== undefined && customInstructions.trim().length > 1000) {
           return "Error: keep custom instructions under 1000 characters — one paragraph.";
         }
-        const custom = customTools !== undefined || customInstructions !== undefined
-          ? { tools: customTools, instructions: customInstructions }
-          : undefined;
+        const custom =
+          customTools !== undefined || customInstructions !== undefined
+            ? { tools: customTools, instructions: customInstructions }
+            : undefined;
         result = await ctx.delegate(task, signal, role, custom);
         break;
       }
@@ -724,7 +723,7 @@ export async function executeTool(
     }
     try {
       for (const p of ctx.plugins ?? []) {
-        if (!p || !p.ok || typeof p.afterTool !== "function") continue;
+        if (!p?.ok || typeof p.afterTool !== "function") continue;
         try {
           const out = p.afterTool(name, result);
           if (typeof out === "string") result = out;
@@ -749,8 +748,10 @@ function afterWrite(workspace: string, relPath: string): string {
   try {
     const abs = resolveInWorkspace(workspace, relPath);
     const warning = syntaxCheck(abs, relPath);
-    return warning ? `
-Warning: ${warning} Fix this before moving on (use edit_file).` : "";
+    return warning
+      ? `
+Warning: ${warning} Fix this before moving on (use edit_file).`
+      : "";
   } catch {
     return "";
   }

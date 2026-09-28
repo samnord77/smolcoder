@@ -1,10 +1,10 @@
 {
   "path": "test/process-lifecycle.test.js",
-  "content_hash": "919ceaf09e55281ad3d04535e4a6ada3",
-  "updated_at": "2026-09-24T17:36:24",
-  "lines": 30,
-  "size_bytes": 1864,
-  "mtime_ns": 1790260570021487900,
+  "content_hash": "3e7cb3914e3cc72a830e4174083d0e68",
+  "updated_at": "2026-09-28T19:36:40",
+  "lines": 52,
+  "size_bytes": 2098,
+  "mtime_ns": 1790620581793560200,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -14,49 +14,49 @@
       "name": "test",
       "line_start": 1,
       "line_end": 1,
-      "signature": "const test=require('node:test');"
+      "signature": "const test = require(\"node:test\");"
     },
     {
       "type": "constant",
       "name": "assert",
       "line_start": 2,
       "line_end": 2,
-      "signature": "const assert=require('node:assert/strict');"
+      "signature": "const assert = require(\"node:assert/strict\");"
     },
     {
       "type": "constant",
       "name": "fs",
       "line_start": 3,
       "line_end": 3,
-      "signature": "const fs=require('node:fs');"
+      "signature": "const fs = require(\"node:fs\");"
     },
     {
       "type": "constant",
       "name": "path",
       "line_start": 4,
       "line_end": 4,
-      "signature": "const path=require('node:path');"
+      "signature": "const path = require(\"node:path\");"
     },
     {
       "type": "constant",
       "name": "os",
       "line_start": 5,
       "line_end": 5,
-      "signature": "const os=require('node:os');"
+      "signature": "const os = require(\"node:os\");"
     },
     {
       "type": "function",
       "name": "delay",
       "line_start": 8,
       "line_end": 8,
-      "signature": "const delay=ms=>new Promise(r=>setTimeout(r,ms));"
+      "signature": "const delay = (ms) => new Promise((r) => setTimeout(r, ms));"
     },
     {
       "type": "function",
       "name": "alive",
       "line_start": 9,
-      "line_end": 9,
-      "signature": "const alive=pid=>{try{process.kill(pid,0);return true;}catch{return false;}};"
+      "line_end": 16,
+      "signature": "const alive = (pid) => {"
     }
   ]
 }

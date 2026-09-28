@@ -1,10 +1,10 @@
 {
   "path": "test/workspace-search.test.js",
-  "content_hash": "e13fc35c607a726316235c7a2eaad262",
-  "updated_at": "2026-09-26T17:56:05",
+  "content_hash": "f4767361cce22ce28cf3e0c9696f0c78",
+  "updated_at": "2026-09-28T19:33:35",
   "lines": 45,
-  "size_bytes": 2293,
-  "mtime_ns": 1790422392499743800,
+  "size_bytes": 2308,
+  "mtime_ns": 1790620407963491200,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -28,21 +28,21 @@
       "name": "fs",
       "line_start": 3,
       "line_end": 3,
-      "signature": "const fs = require(\"fs\");"
+      "signature": "const fs = require(\"node:fs\");"
     },
     {
       "type": "constant",
       "name": "os",
       "line_start": 4,
       "line_end": 4,
-      "signature": "const os = require(\"os\");"
+      "signature": "const os = require(\"node:os\");"
     },
     {
       "type": "constant",
       "name": "path",
       "line_start": 5,
       "line_end": 5,
-      "signature": "const path = require(\"path\");"
+      "signature": "const path = require(\"node:path\");"
     }
   ]
 }

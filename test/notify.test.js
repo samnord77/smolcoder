@@ -21,7 +21,7 @@ test("each kind has its own title and trimmed body", () => {
     body: "—",
   });
   assert.match(decideNotice({ kind: "error", enabled: true, visible: false, text: "boom" }).title, /attention/);
-  assert.ok((decideNotice({ kind: "error", enabled: true, visible: false, text: "x".repeat(500) }).body.length <= 160));
+  assert.ok(decideNotice({ kind: "error", enabled: true, visible: false, text: "x".repeat(500) }).body.length <= 160);
 });
 
 test("sub-agent start and done reach the page", () => {

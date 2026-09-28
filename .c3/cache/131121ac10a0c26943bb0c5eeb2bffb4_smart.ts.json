@@ -1,0 +1,9 @@
+{
+  "original_tokens": 1612,
+  "compressed_tokens": 106,
+  "saved_tokens": 1506,
+  "savings_pct": 93.4,
+  "compressed": "# web.ts (.ts) \u2014 118 lines\nconst FETCH_TIMEOUT_MS = 25_000;\nconst FETCH_BODY_CAP = 200_000;\nconst OUTPUT_CAP = 8000;\nfunction isPublicHttp(url: URL): boolean\nfunction decodeEntities(s: string): string\nexport function htmlToText(html: string): { title: string; text: string }\nexport function pageTitle(html: string): string\nexport async function fetchUrl(root: string, args: any, signal?: AbortSignal): Promise<string>",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\tools\\web.ts"
+}

@@ -1,48 +1,48 @@
 {
   "path": "src/lsp.ts",
-  "content_hash": "94767905641cc830603063515ad744db",
-  "updated_at": "2026-09-27T19:36:57",
-  "lines": 360,
-  "size_bytes": 13264,
-  "mtime_ns": 1790534135085442100,
+  "content_hash": "5bb385ce8bc27621d06d86cdfdb8b880",
+  "updated_at": "2026-09-28T19:36:39",
+  "lines": 367,
+  "size_bytes": 13325,
+  "mtime_ns": 1790620579034796000,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
   "sections": [
     {
       "type": "import",
-      "name": "import { spawn, ChildProcess } from \"child_process\";",
+      "name": "import { type ChildProcess, spawn } from \"node:child_process\";",
       "line_start": 11,
       "line_end": 11,
-      "signature": "import { spawn, ChildProcess } from \"child_process\";"
+      "signature": "import { type ChildProcess, spawn } from \"node:child_process\";"
     },
     {
       "type": "import",
-      "name": "import * as fs from \"fs\";",
+      "name": "import * as fs from \"node:fs\";",
       "line_start": 12,
       "line_end": 12,
-      "signature": "import * as fs from \"fs\";"
+      "signature": "import * as fs from \"node:fs\";"
     },
     {
       "type": "import",
-      "name": "import * as path from \"path\";",
+      "name": "import * as path from \"node:path\";",
       "line_start": 13,
       "line_end": 13,
-      "signature": "import * as path from \"path\";"
-    },
-    {
-      "type": "import",
-      "name": "import { resolveInWorkspace, SandboxError } from \"./sandbox\";",
-      "line_start": 14,
-      "line_end": 14,
-      "signature": "import { resolveInWorkspace, SandboxError } from \"./sandbox\";"
+      "signature": "import * as path from \"node:path\";"
     },
     {
       "type": "import",
       "name": "import { resolveCommand } from \"./mcp\";",
+      "line_start": 14,
+      "line_end": 14,
+      "signature": "import { resolveCommand } from \"./mcp\";"
+    },
+    {
+      "type": "import",
+      "name": "import { resolveInWorkspace } from \"./sandbox\";",
       "line_start": 15,
       "line_end": 15,
-      "signature": "import { resolveCommand } from \"./mcp\";"
+      "signature": "import { resolveInWorkspace } from \"./sandbox\";"
     },
     {
       "type": "function",
@@ -250,36 +250,36 @@
       "type": "function",
       "name": "fmtHover",
       "line_start": 241,
-      "line_end": 247,
+      "line_end": 252,
       "signature": "function fmtHover(res: any): string {"
     },
     {
       "type": "function",
       "name": "fmtLocList",
-      "line_start": 249,
-      "line_end": 260,
+      "line_start": 254,
+      "line_end": 265,
       "signature": "function fmtLocList(root: string, res: any): string {"
     },
     {
       "type": "function",
       "name": "fmtDiagnostics",
-      "line_start": 262,
-      "line_end": 272,
+      "line_start": 267,
+      "line_end": 279,
       "signature": "function fmtDiagnostics(root: string, uri: string, diags: any[]): string {"
     },
     {
       "type": "type",
       "name": "SymbolAction",
-      "line_start": 274,
-      "line_end": 274,
+      "line_start": 281,
+      "line_end": 281,
       "signature": "type SymbolAction = \"hover\" | \"def\" | \"refs\" | \"diag\";",
       "children": []
     },
     {
       "type": "function",
       "name": "querySymbols",
-      "line_start": 278,
-      "line_end": 360,
+      "line_start": 285,
+      "line_end": 367,
       "signature": "async function querySymbols(",
       "async": true
     }

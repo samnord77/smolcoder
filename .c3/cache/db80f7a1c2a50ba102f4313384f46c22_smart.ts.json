@@ -1,0 +1,9 @@
+{
+  "original_tokens": 1574,
+  "compressed_tokens": 182,
+  "saved_tokens": 1392,
+  "savings_pct": 88.4,
+  "compressed": "# check.ts (.ts) \u2014 149 lines\nimport { spawnSync } from \"node:child_process\";\nimport * as fs from \"node:fs\";\nimport * as os from \"node:os\";\nimport * as path from \"node:path\";\n\nconst CHECK_TIMEOUT_MS = 8000;\nconst MAX_CHECK_BYTES = 2 * 1024 * 1024;\nlet pythonExe: string | null | undefined; // undefined = not probed yet\nfunction findPython(): string | null\ninterface JsError\nfunction parseNodeError(stderr: string, tmpFile: string): JsError | null\nfunction checkJs(source: string, forceModule = false): JsError | null\nfunction checkHtml(source: string): string | null\nfunction checkPython(abs: string): string | null\nexport function syntaxCheck(absPath: string, relPath: string): string | null",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\tools\\check.ts"
+}

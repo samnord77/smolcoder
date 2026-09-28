@@ -45,11 +45,13 @@ const CSI_MAP: Record<string, KeyType> = {
 };
 
 function normalizePaste(s: string): string {
-  return s
-    .replace(/\r\n/g, "\n")
-    .replace(/\r/g, "\n")
-    // strip control chars except newline and tab
-    .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, "");
+  return (
+    s
+      .replace(/\r\n/g, "\n")
+      .replace(/\r/g, "\n")
+      // strip control chars except newline and tab
+      .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, "")
+  );
 }
 
 export class KeyDecoder {
@@ -102,16 +104,55 @@ export class KeyDecoder {
       }
 
       const code = ch.charCodeAt(0);
-      if (ch === "\r" || ch === "\n") { out.push({ type: "enter" }); i++; continue; }
-      if (ch === "\t") { out.push({ type: "tab" }); i++; continue; }
-      if (code === 127 || code === 8) { out.push({ type: "backspace" }); i++; continue; }
-      if (code === 3) { out.push({ type: "ctrlc" }); i++; continue; }
-      if (code === 4) { out.push({ type: "ctrld" }); i++; continue; }
-      if (code === 21) { out.push({ type: "ctrlu" }); i++; continue; }
-      if (code === 23) { out.push({ type: "ctrlw" }); i++; continue; }
-      if (code === 1) { out.push({ type: "ctrla" }); i++; continue; }
-      if (code === 5) { out.push({ type: "ctrle" }); i++; continue; }
-      if (code < 32) { i++; continue; } // other control chars: ignore
+      if (ch === "\r" || ch === "\n") {
+        out.push({ type: "enter" });
+        i++;
+        continue;
+      }
+      if (ch === "\t") {
+        out.push({ type: "tab" });
+        i++;
+        continue;
+      }
+      if (code === 127 || code === 8) {
+        out.push({ type: "backspace" });
+        i++;
+        continue;
+      }
+      if (code === 3) {
+        out.push({ type: "ctrlc" });
+        i++;
+        continue;
+      }
+      if (code === 4) {
+        out.push({ type: "ctrld" });
+        i++;
+        continue;
+      }
+      if (code === 21) {
+        out.push({ type: "ctrlu" });
+        i++;
+        continue;
+      }
+      if (code === 23) {
+        out.push({ type: "ctrlw" });
+        i++;
+        continue;
+      }
+      if (code === 1) {
+        out.push({ type: "ctrla" });
+        i++;
+        continue;
+      }
+      if (code === 5) {
+        out.push({ type: "ctrle" });
+        i++;
+        continue;
+      }
+      if (code < 32) {
+        i++;
+        continue;
+      } // other control chars: ignore
 
       // printable run (single keystroke or unbracketed paste)
       let j = i;

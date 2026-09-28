@@ -13,7 +13,14 @@ function workspace() {
 test("work items persist across board instances and support filters and completion", () => {
   const root = workspace();
   const board = new CoworkBoard(root);
-  const created = board.run({ action: "create", title: "Prepare quarterly report", area: "work", due: "2026-10-02", priority: "high", notes: "Include Excel figures" });
+  const created = board.run({
+    action: "create",
+    title: "Prepare quarterly report",
+    area: "work",
+    due: "2026-10-02",
+    priority: "high",
+    notes: "Include Excel figures",
+  });
   const id = created.match(/(w_[a-f0-9-]{36})/)?.[1];
   assert.ok(id, created);
   assert.match(new CoworkBoard(root).run({ action: "list", area: "work" }), /Prepare quarterly report/);
@@ -47,11 +54,15 @@ test("the unified work tool is available to read-only agents for listing and gat
 
 test("a restricted sub-agent cannot bypass its allowlist through direct tool execution", async () => {
   const root = workspace();
-  const result = await executeTool("write_file", { path: "blocked.txt", content: "no" }, {
-    workspace: root,
-    role: "architect",
-    allowedTools: new Set(["read_file", "search"]),
-  });
+  const result = await executeTool(
+    "write_file",
+    { path: "blocked.txt", content: "no" },
+    {
+      workspace: root,
+      role: "architect",
+      allowedTools: new Set(["read_file", "search"]),
+    }
+  );
   assert.match(result, /write_file is unavailable for the architect role/);
   assert.equal(fs.existsSync(path.join(root, "blocked.txt")), false);
 });

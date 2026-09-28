@@ -1,34 +1,34 @@
 {
   "path": "src/tools/cowork.ts",
-  "content_hash": "a83f7d6f03d1a33d1203d3d35212954c",
-  "updated_at": "2026-09-26T17:56:05",
-  "lines": 177,
-  "size_bytes": 8635,
-  "mtime_ns": 1790424902807066200,
+  "content_hash": "c92e94c7d2cb986a3e50c9405ae9280f",
+  "updated_at": "2026-09-28T19:36:39",
+  "lines": 214,
+  "size_bytes": 8888,
+  "mtime_ns": 1790620579733399800,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
   "sections": [
     {
       "type": "import",
-      "name": "import * as fs from \"fs\";",
+      "name": "import { randomUUID } from \"node:crypto\";",
       "line_start": 1,
       "line_end": 1,
-      "signature": "import * as fs from \"fs\";"
+      "signature": "import { randomUUID } from \"node:crypto\";"
     },
     {
       "type": "import",
-      "name": "import * as path from \"path\";",
+      "name": "import * as fs from \"node:fs\";",
       "line_start": 2,
       "line_end": 2,
-      "signature": "import * as path from \"path\";"
+      "signature": "import * as fs from \"node:fs\";"
     },
     {
       "type": "import",
-      "name": "import { randomUUID } from \"crypto\";",
+      "name": "import * as path from \"node:path\";",
       "line_start": 3,
       "line_end": 3,
-      "signature": "import { randomUUID } from \"crypto\";"
+      "signature": "import * as path from \"node:path\";"
     },
     {
       "type": "import",
@@ -107,83 +107,83 @@
       "type": "function",
       "name": "isItem",
       "line_start": 40,
-      "line_end": 49,
+      "line_end": 57,
       "signature": "function isItem(value: unknown): value is WorkItem {"
     },
     {
       "type": "class",
       "name": "CoworkBoard",
-      "line_start": 52,
-      "line_end": 177,
+      "line_start": 60,
+      "line_end": 214,
       "signature": "class CoworkBoard {",
       "children": [
         {
           "type": "property",
           "name": "file",
-          "line_start": 53,
-          "line_end": 53,
+          "line_start": 61,
+          "line_end": 61,
           "signature": "private readonly file: string;",
           "access": "private"
         },
         {
           "type": "method",
           "name": "constructor",
-          "line_start": 55,
-          "line_end": 57,
-          "signature": "constructor(private readonly workspace: string) {"
+          "line_start": 63,
+          "line_end": 65,
+          "signature": "constructor(readonly workspace: string) {"
         },
         {
           "type": "method",
           "name": "run",
-          "line_start": 59,
-          "line_end": 73,
+          "line_start": 67,
+          "line_end": 87,
           "signature": "run(args: Record<string, unknown>): string {"
         },
         {
           "type": "method",
           "name": "load",
-          "line_start": 75,
-          "line_end": 86,
+          "line_start": 89,
+          "line_end": 104,
           "signature": "private load(): WorkItem[] {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "save",
-          "line_start": 88,
-          "line_end": 99,
+          "line_start": 106,
+          "line_end": 121,
           "signature": "private save(items: WorkItem[]): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "list",
-          "line_start": 101,
-          "line_end": 112,
+          "line_start": 123,
+          "line_end": 140,
           "signature": "private list(items: WorkItem[], args: Record<string, unknown>): string {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "create",
-          "line_start": 114,
-          "line_end": 132,
+          "line_start": 142,
+          "line_end": 168,
           "signature": "private create(items: WorkItem[], args: Record<string, unknown>): string {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "update",
-          "line_start": 134,
-          "line_end": 166,
+          "line_start": 170,
+          "line_end": 203,
           "signature": "private update(items: WorkItem[], args: Record<string, unknown>): string {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "changeStatus",
-          "line_start": 168,
-          "line_end": 176,
+          "line_start": 205,
+          "line_end": 213,
           "signature": "private changeStatus(items: WorkItem[], args: Record<string, unknown>, status: \"completed\" | \"archived\"): string {",
           "access": "private"
         }

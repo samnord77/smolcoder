@@ -1,10 +1,10 @@
 {
   "path": "test/check.test.js",
-  "content_hash": "3d1edd3daac4dfc1acf044d88ef586b5",
-  "updated_at": "2026-09-24T17:36:22",
-  "lines": 62,
-  "size_bytes": 3014,
-  "mtime_ns": 1790260570015111800,
+  "content_hash": "c6ac68d6690911726f8137251cd2c820",
+  "updated_at": "2026-09-28T19:36:38",
+  "lines": 65,
+  "size_bytes": 2989,
+  "mtime_ns": 1790620581105744300,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -28,21 +28,21 @@
       "name": "fs",
       "line_start": 4,
       "line_end": 4,
-      "signature": "const fs = require(\"fs\");"
+      "signature": "const fs = require(\"node:fs\");"
     },
     {
       "type": "constant",
       "name": "os",
       "line_start": 5,
       "line_end": 5,
-      "signature": "const os = require(\"os\");"
+      "signature": "const os = require(\"node:os\");"
     },
     {
       "type": "constant",
       "name": "path",
       "line_start": 6,
       "line_end": 6,
-      "signature": "const path = require(\"path\");"
+      "signature": "const path = require(\"node:path\");"
     },
     {
       "type": "constant",

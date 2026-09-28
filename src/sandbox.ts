@@ -6,8 +6,8 @@
 // the command text instead (commandEscapesWorkspace, below) and asks the user
 // only when something reaches outside; bypass mode never asks.
 
-import * as fs from "fs";
-import * as path from "path";
+import * as fs from "node:fs";
+import * as path from "node:path";
 
 export class SandboxError extends Error {}
 
@@ -22,8 +22,10 @@ function normalizeForCompare(p: string): string {
 function deepestExisting(abs: string): string {
   let existing = abs;
   for (;;) {
-    try { fs.lstatSync(existing); break; }
-    catch (err: any) {
+    try {
+      fs.lstatSync(existing);
+      break;
+    } catch (err: any) {
       if (err?.code !== "ENOENT" && err?.code !== "ENOTDIR") throw err;
     }
     const parent = path.dirname(existing);
@@ -35,7 +37,7 @@ function deepestExisting(abs: string): string {
 
 export function resolveInWorkspace(root: string, userPath: string): string {
   if (typeof userPath !== "string" || userPath.trim() === "") {
-    throw new SandboxError("path is required (relative to the workspace, e.g. \"src/app.js\").");
+    throw new SandboxError('path is required (relative to the workspace, e.g. "src/app.js").');
   }
   const abs = path.resolve(root, userPath);
 
@@ -94,10 +96,7 @@ const MSYS_ROOTS = /^\/(tmp|usr|etc|bin|home|mnt|dev|proc|var|opt|root)(\/|$)/i;
 function pathCandidates(command: string): string[] {
   const out: string[] = [];
   const pushInnerPaths = (s: string): void => {
-    const innerRe = new RegExp(
-      "([A-Za-z]:[\\\\/][^\\s\"'`,;()]*|\\\\\\\\[^\\s\"'`,;()]+|/(?:tmp|etc|usr|home|mnt|var|opt|root|dev|proc)/[^\\s\"'`,;()]*)",
-      "g"
-    );
+    const innerRe = /([A-Za-z]:[\\/][^\s"'`,;()]*|\\\\[^\s"'`,;()]+|\/(?:tmp|etc|usr|home|mnt|var|opt|root|dev|proc)\/[^\s"'`,;()]*)/g;
     const inner = s.match(innerRe);
     if (inner) for (const p of inner) out.push(p);
   };

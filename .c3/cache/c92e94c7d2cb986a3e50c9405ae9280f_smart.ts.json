@@ -1,0 +1,9 @@
+{
+  "original_tokens": 2265,
+  "compressed_tokens": 320,
+  "saved_tokens": 1945,
+  "savings_pct": 85.9,
+  "compressed": "# cowork.ts (.ts) \u2014 214 lines\nimport { randomUUID } from \"node:crypto\";\nimport * as fs from \"node:fs\";\nimport * as path from \"node:path\";\nimport { resolveInWorkspace } from \"../sandbox\";\n\nexport type WorkStatus = \"open\" | \"completed\" | \"archived\";\nexport type WorkPriority = \"low\" | \"normal\" | \"high\" | \"urgent\";\ninterface WorkItem\nconst MAX_FILE_BYTES = 512 * 1024;\nconst MAX_ITEMS = 1000;\nconst PRIORITIES: WorkPriority[] = [\"low\", \"normal\", \"high\", \"urgent\"];\nconst STATUSES: WorkStatus[] = [\"open\", \"completed\", \"archived\"];\nfunction boundedText(value: unknown, max: number, required = false): string | null\nfunction validDate(value: unknown): value is string\nfunction isItem(value: unknown): value is WorkItem\n\nexport class CoworkBoard\n  private readonly file: string;\n  constructor(readonly workspace: string)\n  run(args: Record<string, unknown>): string\n  private load(): WorkItem[]\n  private save(items: WorkItem[]): void\n  private list(items: WorkItem[], args: Record<string, unknown>): string\n  private create(items: WorkItem[], args: Record<string, unknown>): string\n  private update(items: WorkItem[], args: Record<string, unknown>): string\n  private changeStatus(items: WorkItem[], args: Record<string, unknown>, status: \"completed\" | \"archived\"): string",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\tools\\cowork.ts"
+}

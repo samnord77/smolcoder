@@ -3,9 +3,9 @@
 // (`.smol/agents/*.json`) or live on your machine
 // (`~/.smolcoder/data/agents/*.json`). Same shape the delegate tool feeds a
 // child turn: the role never writes code itself, it reports back.
-import * as fs from "fs";
-import * as os from "os";
-import * as path from "path";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
 
 export interface SubagentRole {
   name: string;
@@ -28,8 +28,22 @@ export const BUILTIN_ROLES: SubagentRole[] = [
     name: "expert",
     role: "Expert polyvalent",
     description: "Prend en charge une investigation complète : architecture, implémentation, tests, sécurité et intégration des outils.",
-    tools: ["read_file", "search", "symbols", "list_files", "run_command", "edit_file", "write_file", "mcp", "plan", "work", "skill", "fetch_url"],
-    instructions: "Travaille comme un ingénieur senior autonome : inspecte d'abord, formule un plan court, modifie uniquement ce qui est nécessaire, exécute les validations et rends un rapport avec les fichiers, tests et risques restants.",
+    tools: [
+      "read_file",
+      "search",
+      "symbols",
+      "list_files",
+      "run_command",
+      "edit_file",
+      "write_file",
+      "mcp",
+      "plan",
+      "work",
+      "skill",
+      "fetch_url",
+    ],
+    instructions:
+      "Travaille comme un ingénieur senior autonome : inspecte d'abord, formule un plan court, modifie uniquement ce qui est nécessaire, exécute les validations et rends un rapport avec les fichiers, tests et risques restants.",
     source: "builtin",
   },
   {
@@ -37,7 +51,8 @@ export const BUILTIN_ROLES: SubagentRole[] = [
     role: "Software Architect",
     description: "Analyzes architecture, dependencies, interface contracts, and designs modular systems without writing application code.",
     tools: ["search", "symbols", "list_files", "read_file", "plan", "fetch_url"],
-    instructions: "Analyze requirements and the existing code, then report the design: data models, interfaces, constraints, files to touch. Never write implementation code.",
+    instructions:
+      "Analyze requirements and the existing code, then report the design: data models, interfaces, constraints, files to touch. Never write implementation code.",
     source: "builtin",
   },
   {
@@ -45,7 +60,8 @@ export const BUILTIN_ROLES: SubagentRole[] = [
     role: "Focused Implementer",
     description: "Carries one well-scoped change end to end and reports the exact edits it made.",
     tools: ["read_file", "edit_file", "write_file", "search", "run_command"],
-    instructions: "Make the smallest change that satisfies the stated scope, keep existing conventions, then report the files and lines you touched plus anything you could not finish.",
+    instructions:
+      "Make the smallest change that satisfies the stated scope, keep existing conventions, then report the files and lines you touched plus anything you could not finish.",
     source: "builtin",
   },
   {
@@ -53,7 +69,8 @@ export const BUILTIN_ROLES: SubagentRole[] = [
     role: "Specification Reviewer",
     description: "Checks a change against the request: signatures, behaviour, edge cases the spec demanded.",
     tools: ["read_file", "search", "run_command"],
-    instructions: "Compare the implementation with the original request line by line. Report mismatches, missing cases and unverified claims with file:line evidence. Do not fix anything.",
+    instructions:
+      "Compare the implementation with the original request line by line. Report mismatches, missing cases and unverified claims with file:line evidence. Do not fix anything.",
     source: "builtin",
   },
   {
@@ -61,7 +78,8 @@ export const BUILTIN_ROLES: SubagentRole[] = [
     role: "Code Quality & Security Reviewer",
     description: "Hunts crashes, unhandled input, security holes and lint/type drift, then proves each finding.",
     tools: ["read_file", "run_command", "search", "symbols", "list_files"],
-    instructions: "Audit edge cases, null/invalid input, error handling, resource leaks and injection risks, and run the project's linter or tests. Report each finding with evidence; never guess.",
+    instructions:
+      "Audit edge cases, null/invalid input, error handling, resource leaks and injection risks, and run the project's linter or tests. Report each finding with evidence; never guess.",
     source: "builtin",
   },
   {
@@ -69,7 +87,8 @@ export const BUILTIN_ROLES: SubagentRole[] = [
     role: "Research Analyst",
     description: "Finds and compares reliable information, summarizes evidence and clearly separates facts from assumptions.",
     tools: ["read_file", "list_files", "search", "fetch_url", "mcp"],
-    instructions: "Investigate the question using the available documents, public sources and explicitly connected MCP tools. Cite the source or file for every important claim, distinguish evidence from inference, and return a concise decision-ready brief. Do not edit application code or send external messages.",
+    instructions:
+      "Investigate the question using the available documents, public sources and explicitly connected MCP tools. Cite the source or file for every important claim, distinguish evidence from inference, and return a concise decision-ready brief. Do not edit application code or send external messages.",
     source: "builtin",
   },
   {
@@ -77,7 +96,8 @@ export const BUILTIN_ROLES: SubagentRole[] = [
     role: "Project Coordinator",
     description: "Turns project context into clear actions, owners, milestones and status updates.",
     tools: ["read_file", "list_files", "search", "plan", "work", "fetch_url", "mcp"],
-    instructions: "Review the project context, identify concrete deliverables, blockers and dates, then maintain the local work list and return a short status. Ask before assigning a named owner when none is provided. Do not send messages or alter external systems without the session approval prompt.",
+    instructions:
+      "Review the project context, identify concrete deliverables, blockers and dates, then maintain the local work list and return a short status. Ask before assigning a named owner when none is provided. Do not send messages or alter external systems without the session approval prompt.",
     source: "builtin",
   },
   {
@@ -85,7 +105,8 @@ export const BUILTIN_ROLES: SubagentRole[] = [
     role: "Office Documents Assistant",
     description: "Creates or updates reports, spreadsheets and presentations through configured Office tools.",
     tools: ["read_file", "list_files", "search", "write_file", "edit_file", "fetch_url", "mcp"],
-    instructions: "Use the configured Office MCP tools when available; otherwise produce a complete local document or clearly say which integration is missing. Check the resulting file or spreadsheet when possible. Never send, share, publish, or overwrite an external document until the user approves that exact action.",
+    instructions:
+      "Use the configured Office MCP tools when available; otherwise produce a complete local document or clearly say which integration is missing. Check the resulting file or spreadsheet when possible. Never send, share, publish, or overwrite an external document until the user approves that exact action.",
     source: "builtin",
   },
   {
@@ -93,7 +114,8 @@ export const BUILTIN_ROLES: SubagentRole[] = [
     role: "Personal Assistant",
     description: "Organizes personal tasks, appointments and plans with clear reminders and next actions.",
     tools: ["read_file", "list_files", "search", "work", "fetch_url", "mcp"],
-    instructions: "Help organize information and maintain the local personal work list. Be explicit about dates and time zones, preserve private context, and draft messages for review instead of sending them. Never make purchases, bookings, payments or external commitments without approval.",
+    instructions:
+      "Help organize information and maintain the local personal work list. Be explicit about dates and time zones, preserve private context, and draft messages for review instead of sending them. Never make purchases, bookings, payments or external commitments without approval.",
     source: "builtin",
   },
 ];
@@ -111,7 +133,9 @@ function parseRole(raw: string, fallbackName: string, source: SubagentRole["sour
   try {
     const d = JSON.parse(raw);
     if (!d || typeof d !== "object") return null;
-    const name = String(d.name ?? fallbackName).trim().toLowerCase();
+    const name = String(d.name ?? fallbackName)
+      .trim()
+      .toLowerCase();
     if (!ROLE_NAME_RE.test(name)) return null;
     return {
       name,

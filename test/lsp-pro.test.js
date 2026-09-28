@@ -31,40 +31,40 @@ function scratchWs(files) {
 
 const MOCK_LINES = [
   '"use strict";',
-  'let buf = Buffer.alloc(0);',
-  'function send(obj) {',
+  "let buf = Buffer.alloc(0);",
+  "function send(obj) {",
   '  const body = Buffer.from(JSON.stringify(obj), "utf8");',
   '  process.stdout.write(Buffer.concat([Buffer.from("Content-Length: " + body.length + "\\r\\n\\r\\n", "utf8"), body]));',
-  '}',
+  "}",
   'process.stdin.on("data", (chunk) => {',
-  '  buf = Buffer.concat([buf, chunk]);',
-  '  for (;;) {',
+  "  buf = Buffer.concat([buf, chunk]);",
+  "  for (;;) {",
   '    const headEnd = buf.indexOf("\\r\\n\\r\\n");',
-  '    if (headEnd < 0) return;',
+  "    if (headEnd < 0) return;",
   '    const head = buf.slice(0, headEnd).toString("utf8");',
-  '    const m = /Content-Length:\\s*(\\d+)/i.exec(head);',
-  '    if (!m) { buf = buf.slice(headEnd + 4); continue; }',
-  '    const len = Number(m[1]);',
-  '    if (buf.length < headEnd + 4 + len) return;',
+  "    const m = /Content-Length:\\s*(\\d+)/i.exec(head);",
+  "    if (!m) { buf = buf.slice(headEnd + 4); continue; }",
+  "    const len = Number(m[1]);",
+  "    if (buf.length < headEnd + 4 + len) return;",
   '    const text = buf.slice(headEnd + 4, headEnd + 4 + len).toString("utf8");',
-  '    buf = buf.slice(headEnd + 4 + len);',
-  '    let msg;',
-  '    try { msg = JSON.parse(text); } catch (e) { continue; }',
-  '    handle(msg);',
-  '  }',
-  '});',
-  'function handle(msg) {',
+  "    buf = buf.slice(headEnd + 4 + len);",
+  "    let msg;",
+  "    try { msg = JSON.parse(text); } catch (e) { continue; }",
+  "    handle(msg);",
+  "  }",
+  "});",
+  "function handle(msg) {",
   '  if (msg.method === "initialize") { send({ jsonrpc: "2.0", id: msg.id, result: { capabilities: {} } }); return; }',
-  '  if (msg.id === undefined) {',
+  "  if (msg.id === undefined) {",
   '    if (msg.method === "textDocument/didOpen" && msg.params && msg.params.textDocument) {',
   '      send({ jsonrpc: "2.0", method: "textDocument/publishDiagnostics", params: { uri: msg.params.textDocument.uri, diagnostics: [{ range: { start: { line: 0, character: 0 }, end: { line: 0, character: 5 } }, severity: 1, message: "mock error" }] } });',
-  '    }',
-  '    return;',
-  '  }',
-  '  const id = msg.id;',
+  "    }",
+  "    return;",
+  "  }",
+  "  const id = msg.id;",
   '  const ok = (result) => send({ jsonrpc: "2.0", id: id, result: result });',
   '  const uri = msg.params && msg.params.textDocument ? msg.params.textDocument.uri : "file:///mock.ts";',
-  '  const loc = { uri: uri, range: { start: { line: 0, character: 0 }, end: { line: 0, character: 4 } } };',
+  "  const loc = { uri: uri, range: { start: { line: 0, character: 0 }, end: { line: 0, character: 4 } } };",
   '  if (msg.method === "textDocument/hover") ok({ contents: { kind: "markdown", value: "mock hover for test" } });',
   '  else if (msg.method === "textDocument/definition") ok([loc]);',
   '  else if (msg.method === "textDocument/references") ok([]);',
@@ -73,8 +73,8 @@ const MOCK_LINES = [
   '  else if (msg.method === "textDocument/rename") ok({ changes: {} });',
   '  else if (msg.method === "textDocument/codeAction") ok([{ title: "mock fix", kind: "quickfix" }]);',
   '  else if (msg.method === "workspace/symbol") ok([{ name: "MockThing", kind: 7, location: { uri: "file:///mock.ts", range: { start: { line: 1, character: 0 }, end: { line: 1, character: 9 } } } }]);',
-  '  else ok(null);',
-  '}',
+  "  else ok(null);",
+  "}",
 ];
 
 /** Mock adapter command with quoted paths (Windows-safe). Written once. */
@@ -84,7 +84,7 @@ function mockCommand() {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "smol-mocklsp-"));
     const file = path.join(dir, "mock-lsp.cjs");
     fs.writeFileSync(file, MOCK_LINES.join("\n"));
-    mockCmd = '"' + process.execPath + '" "' + file + '"';
+    mockCmd = `"${process.execPath}" "${file}"`;
   }
   return mockCmd;
 }
@@ -97,12 +97,21 @@ test("lsp catalog: four languages, extensions, availability shape", () => {
   assert.equal(serverForFile("c.rs").lang, "rust");
   assert.equal(serverForFile("d.go").lang, "go");
   assert.equal(serverForFile("UPPER.PY").lang, "python");
-  assert.equal(serverForFile("x.md"), null);
+  // Markdown is now supported
+assert.equal(serverForFile("x.md").lang, "markdown");
   assert.equal(serverForFile("noext"), null);
   const exts = supportedLspExts();
   assert.ok(exts.includes(".ts") && exts.includes(".py") && exts.includes(".rs") && exts.includes(".go"));
   const avail = lspAvailability();
-  assert.deepEqual(avail.map((a) => a.lang), ["typescript", "python", "rust", "go"]);
+  // Verify at minimum the original 4 languages are present
+  const langs = avail.map((a) => a.lang);
+  assert.ok(langs.includes("typescript"), "typescript present");
+  assert.ok(langs.includes("python"), "python present");
+  assert.ok(langs.includes("rust"), "rust present");
+  assert.ok(langs.includes("go"), "go present");
+  // LSP_LANGS defines 37 languages (availability depends on installed servers)
+  const { LSP_LANGS } = require("../dist/lsp-pro");
+  assert.ok(LSP_LANGS.length >= 37, "at least 37 languages defined");
   for (const a of avail) {
     assert.equal(typeof a.ok, "boolean");
     assert.ok(a.hint.length > 5, "every language explains how to install its server");
@@ -205,10 +214,7 @@ test("diagStructured returns panel rows through the mock server", async () => {
     const r = await queryDiagStructured(ws, "a.py");
     assert.match(r.text, /mock error/);
     assert.equal(r.diagnostics.length, 1);
-    assert.deepEqual(
-      [r.diagnostics[0].path, r.diagnostics[0].line, r.diagnostics[0].severity],
-      ["a.py", 1, "error"]
-    );
+    assert.deepEqual([r.diagnostics[0].path, r.diagnostics[0].line, r.diagnostics[0].severity], ["a.py", 1, "error"]);
     assert.match(r.diagnostics[0].message, /mock error/);
     const bad = await queryDiagStructured(ws, "note.txt");
     assert.deepEqual(bad.diagnostics, []);

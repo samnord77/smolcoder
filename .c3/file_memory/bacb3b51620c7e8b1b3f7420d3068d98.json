@@ -1,10 +1,10 @@
 {
   "path": "test/detect.test.js",
-  "content_hash": "ce1d22f0e75ab098f57b1296c43f263d",
-  "updated_at": "2026-09-28T15:21:01",
-  "lines": 223,
-  "size_bytes": 10064,
-  "mtime_ns": 1790604632795178200,
+  "content_hash": "2bf07ee8cc6b0581a39ede8c9b3a3aeb",
+  "updated_at": "2026-09-28T19:36:41",
+  "lines": 250,
+  "size_bytes": 10243,
+  "mtime_ns": 1790620581358179600,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -71,7 +71,7 @@
       "type": "constant",
       "name": "LMSTUDIO",
       "line_start": 34,
-      "line_end": 37,
+      "line_end": 46,
       "signature": "const LMSTUDIO = {"
     }
   ]

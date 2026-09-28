@@ -3,35 +3,35 @@
 // terminal TUI and the web hub (many sessions side by side, one per browser
 // sidebar entry) run exactly the same loop.
 
-import { spawnSync } from "child_process";
-import * as fs from "fs";
-import { Attachment, MAX_UPLOAD_BYTES, mimeForExt } from "./attachments";
-import { resolveInWorkspace } from "./sandbox";
-import * as os from "os";
-import * as path from "path";
+import { spawnSync } from "node:child_process";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
 import { Agent } from "./agent";
-import { Config, effortForBackend, loadConfig, updateConfig } from "./config";
+import { type Attachment, MAX_UPLOAD_BYTES, mimeForExt } from "./attachments";
+import { type Config, effortForBackend, loadConfig, updateConfig } from "./config";
 import { ContextManager } from "./context";
-import { detectAll, DetectedModel, resolveContextWindow } from "./detect";
+import { type DetectedModel, detectAll, resolveContextWindow } from "./detect";
 import { EventBus } from "./events";
-import { findModelsOnNetwork, FlowUI, manageHosts } from "./network";
-import { Plan, PlanStep } from "./plan";
+import { formatReview } from "./git";
+import { lspDoctor, setupLsp } from "./lsp-install";
+import { queryCode } from "./lsp-pro";
+import { createMcpBridge } from "./mcp";
+import { type FlowUI, findModelsOnNetwork, manageHosts } from "./network";
+import { Plan, type PlanStep } from "./plan";
+import { loadPlugins } from "./plugins";
 import { buildSystemPrompt, loadAgentsMd, loadMemoryMd } from "./prompt";
 import { LmStudioProvider } from "./providers/lmstudio";
 import { OllamaProvider } from "./providers/ollama";
-import { Effort, Msg, Provider } from "./providers/types";
-import { Mode, MODE_LABELS, ToolContext } from "./tools/index";
-import { createMcpBridge } from "./mcp";
-import { formatReview } from "./git";
-import { queryCode } from "./lsp-pro";
-import { lspDoctor, setupLsp } from "./lsp-install";
+import type { Effort, Msg, Provider } from "./providers/types";
 import { RoutingProvider, routeProvider } from "./router";
+import { resolveInWorkspace } from "./sandbox";
 import { listSkills } from "./skills";
-import { loadPlugins } from "./plugins";
 import { readFile } from "./tools/fs-tools";
+import { MODE_LABELS, type Mode, type ToolContext } from "./tools/index";
 import { pickShell, runCommand } from "./tools/shell";
 import { TaskManager } from "./tools/tasks";
-import { renderPlan, SelectOption, SessionUI, SlashCommand } from "./ui";
+import { renderPlan, type SelectOption, type SessionUI, type SlashCommand } from "./ui";
 import { c, truncateEnd, truncateMiddle } from "./util";
 
 /** Per-session preferences from the command line. `effort: null` means an
@@ -112,7 +112,9 @@ export function reportCompactions(bus: EventBus, ui: { status: (s: string) => vo
     if (report?.action === "evicted") ui.status(`· pruned context (${delta})`);
     else if (report?.action === "compacted") ui.status(`· compacted the conversation into hand-over notes (${delta})`);
     else if (report?.action === "floor")
-      ui.warn(`· context is at its floor: system prompt + tools + the working tail no longer fit comfortably (${delta}). Consider a bigger context window.`);
+      ui.warn(
+        `· context is at its floor: system prompt + tools + the working tail no longer fit comfortably (${delta}). Consider a bigger context window.`
+      );
   });
 }
 
@@ -175,7 +177,7 @@ export function yoloBanner(): string {
 }
 
 export function fmtTokens(n: number): string {
-  return n < 1000 ? String(n) : (n / 1000).toFixed(1) + "k";
+  return n < 1000 ? String(n) : `${(n / 1000).toFixed(1)}k`;
 }
 
 function modeColored(mode: Mode): string {
@@ -187,11 +189,7 @@ function modeColored(mode: Mode): string {
 
 /** Detect backends, pick a model and resolve its context window. Returns null
  * when no backend answers. `progress` gets a short label for each slow step. */
-export async function prepareModel(
-  prefs: SessionPrefs,
-  cfg: Config,
-  progress?: (label: string) => void
-): Promise<DetectedModel | null> {
+export async function prepareModel(prefs: SessionPrefs, cfg: Config, progress?: (label: string) => void): Promise<DetectedModel | null> {
   progress?.("looking for Ollama and LM Studio");
   const url = prefs.model ? prefs.baseUrl : cfg.lastModelUrl;
   // Without --model the remembered one wins anyway, so stop looking the moment
@@ -201,7 +199,11 @@ export async function prepareModel(
       ? (m: DetectedModel) => m.id === cfg.lastModel && (!url || m.baseUrl === url) && (!prefs.backend || m.backend === prefs.backend)
       : undefined;
   const models = (
-    await detectAll({ hosts: process.env.SMOLCODER_FAST_START === "1" ? [] : cfg.hosts, until, fast: process.env.SMOLCODER_FAST_START === "1" })
+    await detectAll({
+      hosts: process.env.SMOLCODER_FAST_START === "1" ? [] : cfg.hosts,
+      until,
+      fast: process.env.SMOLCODER_FAST_START === "1",
+    })
   ).filter((m) => !prefs.backend || m.backend === prefs.backend);
   if (models.length === 0) return null;
   const chosen = autoPickModel(models, prefs.model, cfg.lastModel, url);
@@ -303,7 +305,6 @@ export async function setupWithoutLocalModels(ui: FlowUI, prefs: SessionPrefs): 
       return await loadModelCancellable(ui, models[idx], prefs.ctx, (label) => ui.startSpinner(label));
     } catch (err: any) {
       ui.warn(String(err?.message ?? err));
-      continue; // cancelled: back to the picker, not out of the flow
     } finally {
       ui.stopSpinner();
     }
@@ -324,8 +325,7 @@ export async function suggestTitle(messages: Msg[], provider: Provider): Promise
       [
         {
           role: "system",
-          content:
-            "You name coding sessions. Reply with only the title: three to six words, plain text, no quotes, no trailing period.",
+          content: "You name coding sessions. Reply with only the title: three to six words, plain text, no quotes, no trailing period.",
         },
         {
           role: "user",
@@ -347,7 +347,11 @@ export async function suggestTitle(messages: Msg[], provider: Provider): Promise
 /** Exported for tests: normalize a model-written title. */
 export function cleanTitle(raw: string): string | null {
   let t = String(raw ?? "").replace(/<think>[\s\S]*?(<\/think>|$)/gi, "");
-  t = t.split("\n").map((l) => l.trim()).find(Boolean) ?? "";
+  t =
+    t
+      .split("\n")
+      .map((l) => l.trim())
+      .find(Boolean) ?? "";
   t = t
     .replace(/^(title|session( name)?)\s*:\s*/i, "")
     .replace(/^["'`“”*#\s]+|["'`“”*.\s]+$/g, "")
@@ -531,7 +535,13 @@ export class Session {
   }
 
   private sysPrompt(mode: Mode): string {
-    return buildSystemPrompt({ workspace: this.workspace, mode, shellLabel: this.shell.label, agentsMd: this.agentsMd, memoryMd: this.memoryMd });
+    return buildSystemPrompt({
+      workspace: this.workspace,
+      mode,
+      shellLabel: this.shell.label,
+      agentsMd: this.agentsMd,
+      memoryMd: this.memoryMd,
+    });
   }
 
   private persist(): void {
@@ -552,9 +562,7 @@ export class Session {
     const plan = this.toolCtx.plan;
     return (
       `${modeColored(agent.mode)} ${c.dim("·")} ${this.chosen.id} ${c.dim(backendLabel(this.chosen))}` +
-      (this.effort || agent.provider.effortLabel()
-        ? ` ${c.dim("·")} ${c.yellow(agent.provider.effortLabel() ?? this.effort ?? "")}`
-        : "") +
+      (this.effort || agent.provider.effortLabel() ? ` ${c.dim("·")} ${c.yellow(agent.provider.effortLabel() ?? this.effort ?? "")}` : "") +
       ` ${c.dim("·")} ${c.dim(`${fmtTokens(agent.contextTokens())} (${agent.contextPercent()}%)`)}` +
       (plan.exists
         ? ` ${c.dim("·")} ${
@@ -572,11 +580,10 @@ export class Session {
   planLine(): string | null {
     try {
       const plan = this.toolCtx?.plan;
-      if (!plan || !plan.exists || !plan.steps.length) return null;
+      if (!plan?.exists || !plan.steps.length) return null;
       const done = plan.doneCount ?? 0;
       const total = plan.steps.length;
-      const cur =
-        plan.currentIndex >= 0 && plan.currentIndex < total ? plan.steps[plan.currentIndex].text : "complete";
+      const cur = plan.currentIndex >= 0 && plan.currentIndex < total ? plan.steps[plan.currentIndex].text : "complete";
       return `Plan ${done}/${total} · ${String(cur).slice(0, 80)}`;
     } catch {
       return null;
@@ -682,10 +689,12 @@ export class Session {
       this.onTurnDone?.();
     } catch (err: any) {
       ui.error(`\n${err?.message ?? err}`);
-      if (String(err?.message ?? "").toLowerCase().includes("does not support tools")) {
-        ui.warn(
-          "This model does not support tool calling. Pick a tool-capable model with /models (e.g. qwen3, llama3.1, mistral-nemo)."
-        );
+      if (
+        String(err?.message ?? "")
+          .toLowerCase()
+          .includes("does not support tools")
+      ) {
+        ui.warn("This model does not support tool calling. Pick a tool-capable model with /models (e.g. qwen3, llama3.1, mistral-nemo).");
       }
     }
   }
@@ -902,102 +911,47 @@ export class Session {
 
       if (!attachments.length && input.startsWith("/")) {
         try {
-        const [cmd, ...rest] = input.slice(1).split(/\s+/);
-        const arg = rest[0];
-        switch (cmd) {
-          case "exit":
-          case "quit":
-          case "q":
-            await this.shutdown();
-            return;
-          case "help":
-            ui.println(this.help);
-            break;
-          case "models":
-          case "model":
-            await this.switchModel();
-            break;
-          case "mode":
-            await this.setMode(arg);
-            break;
-          case "effort":
-            await this.setEffort(arg);
-            break;
-          case "plan":
-            if (toolCtx.plan.exists) ui.println(renderPlan(toolCtx.plan));
-            else ui.status("· no plan yet — the agent creates one when it starts a multi-step task");
-            break;
-          case "todo":
-            if (toolCtx.plan.exists) ui.println(renderPlan(toolCtx.plan));
-            else ui.status("· no task list yet — the agent creates one when it starts a multi-step task");
-            break;
-          case "review":
-            ui.println(formatReview(this.workspace, (arg ?? "").toLowerCase() === "staged"));
-            break;
-          case "diag": {
-            const target = rest.join(" ").trim() || (arg ?? "");
-            if (!target) {
-              ui.status("· usage: /diag <file> — ex. /diag src/agent.ts");
+          const [cmd, ...rest] = input.slice(1).split(/\s+/);
+          const arg = rest[0];
+          switch (cmd) {
+            case "exit":
+            case "quit":
+            case "q":
+              await this.shutdown();
+              return;
+            case "help":
+              ui.println(this.help);
               break;
-            }
-            ui.startSpinner("analyzing with the language server");
-            try {
-              ui.println(await queryCode(this.workspace, { action: "diag", path: target }));
-            } catch (err: any) {
-              ui.error(String(err?.message ?? err));
-            } finally {
-              ui.stopSpinner();
-            }
-            break;
-          }
-          case "doctor": {
-            if ((arg ?? "").toLowerCase() === "install") {
-              const lang = (rest[1] ?? "all").trim() || "all";
-              ui.startSpinner(`installing language servers (${lang} — up to 2 min)`);
-              try {
-                ui.println(setupLsp(this.workspace, lang));
-              } catch (err: any) {
-                ui.error(String(err?.message ?? err));
-              } finally {
-                ui.stopSpinner();
-              }
+            case "models":
+            case "model":
+              await this.switchModel();
               break;
-            }
-            ui.println(lspDoctor());
-            break;
-          }
-          case "route": {
-            const p = this.agent.provider as any;
-            ui.println(
-              p instanceof RoutingProvider
-                ? p.describe()
-                : 'Route: direct (this model only).\nSet SMOLCODER_FALLBACKS="ollama:qwen,lmstudio:glm" to add automatic failover.'
-            );
-            break;
-          }
-          case "tasks":
-            ui.println(taskManager.list());
-            break;
-          case "logs":
-            ui.println(taskManager.logs(arg ?? "", Number(rest[1]) || 50));
-            break;
-          case "stop":
-            ui.println(taskManager.stop(arg ?? ""));
-            break;
-          case "mcp":
-            if (!toolCtx.mcp) {
-              ui.warn("MCP bridge is not wired in this session.");
+            case "mode":
+              await this.setMode(arg);
               break;
-            }
-            if ((arg ?? "").toLowerCase() === "debug") {
-              const target = rest[1];
+            case "effort":
+              await this.setEffort(arg);
+              break;
+            case "plan":
+              if (toolCtx.plan.exists) ui.println(renderPlan(toolCtx.plan));
+              else ui.status("· no plan yet — the agent creates one when it starts a multi-step task");
+              break;
+            case "todo":
+              if (toolCtx.plan.exists) ui.println(renderPlan(toolCtx.plan));
+              else ui.status("· no task list yet — the agent creates one when it starts a multi-step task");
+              break;
+            case "review":
+              ui.println(formatReview(this.workspace, (arg ?? "").toLowerCase() === "staged"));
+              break;
+            case "diag": {
+              const target = rest.join(" ").trim() || (arg ?? "");
               if (!target) {
-                ui.warn("Usage: /mcp debug <nom> — ex. /mcp debug files");
+                ui.status("· usage: /diag <file> — ex. /diag src/agent.ts");
                 break;
               }
-              ui.startSpinner(`debug MCP ${target}`);
+              ui.startSpinner("analyzing with the language server");
               try {
-                ui.println(await toolCtx.mcp.debugServer(target));
+                ui.println(await queryCode(this.workspace, { action: "diag", path: target }));
               } catch (err: any) {
                 ui.error(String(err?.message ?? err));
               } finally {
@@ -1005,101 +959,159 @@ export class Session {
               }
               break;
             }
-            ui.startSpinner("checking MCP servers (up to 20s — npx servers start slowly)");
-            try {
-              // 8s par défaut marquait les serveurs npx "too slow" à tort :
-              // 5/22 verts à 8s contre 19/22 à 20s (mesuré).
-              const rows = await toolCtx.mcp.status(20000);
-              if (!rows.length) {
-                ui.status("· no MCP servers configured — see docs/plugins.md");
-              } else {
-                for (const r of rows) {
-                  ui.println(
-                    r.ok ? `● ${r.name} (${(r.tools ?? []).length} tools)` : `○ ${r.name} — ${r.error ?? "unreachable"}`
-                  );
+            case "doctor": {
+              if ((arg ?? "").toLowerCase() === "install") {
+                const lang = (rest[1] ?? "all").trim() || "all";
+                ui.startSpinner(`installing language servers (${lang} — up to 2 min)`);
+                try {
+                  ui.println(setupLsp(this.workspace, lang));
+                } catch (err: any) {
+                  ui.error(String(err?.message ?? err));
+                } finally {
+                  ui.stopSpinner();
                 }
+                break;
               }
-            } catch (err: any) {
-              ui.error(String(err?.message ?? err));
-            } finally {
-              ui.stopSpinner();
-            }
-            break;
-          case "skills":
-            ui.println(listSkills(toolCtx.workspace));
-            break;
-          case "compact":
-            ui.startSpinner("compacting");
-            try { await agent.compactNow(); }
-            catch (err: any) { ui.error(String(err?.message ?? err)); }
-            finally { ui.stopSpinner(); }
-            break;
-          case "context":
-            const budget = agent.contextBudget();
-            ui.status(
-              `Context ${budget.prompt.toLocaleString()} / ${budget.window.toLocaleString()} tokens (${budget.source})\nReply reserve ${budget.reserve.toLocaleString()} · available ${budget.available.toLocaleString()} · ${agent.messages.length} messages · ${agent.tools.length} tools`
-            );
-            break;
-          case "fetch": {
-            const target = rest.join(" ").trim();
-            if (!target) {
-              ui.warn("Usage: /fetch https://example.com — lit une page web sans clé");
+              ui.println(lspDoctor());
               break;
             }
-            ui.startSpinner("fetching page");
-            try {
-              const { fetchUrl } = await import("./tools/web");
-              ui.println(await fetchUrl(this.workspace, { url: target }));
-            } catch (err: any) {
-              ui.error(`· /fetch failed (${err?.message ?? err})`);
-            } finally {
-              ui.stopSpinner();
-            }
-            break;
-          }
-          case "clear":
-            agent.resetTranscript();
-            {
-              const error = toolCtx.plan.reset();
-              if (error) ui.warn(`· ${error}`);
-              else ui.status("· conversation cleared");
-            }
-            break;
-          case "undo":
-            this.undoEdit();
-            break;
-          case "redo":
-            this.redoEdit();
-            break;
-          case "editor": {
-            const content = await this.openEditor(rest.join(" "));
-            if (content === null) break;
-            if (!content.trim()) {
-              ui.status("· empty message — nothing sent");
+            case "route": {
+              const p = this.agent.provider as any;
+              ui.println(
+                p instanceof RoutingProvider
+                  ? p.describe()
+                  : 'Route: direct (this model only).\nSet SMOLCODER_FALLBACKS="ollama:qwen,lmstudio:glm" to add automatic failover.'
+              );
               break;
             }
-            await this.handleUserMessage(content, []);
-            break;
-          }
-          case "export":
-            this.exportTranscript();
-            break;
-          case "build": {
-            if (!this.hubRec) {
-              ui.status("· /build only works with --web (no hub in TUI mode)");
+            case "tasks":
+              ui.println(taskManager.list());
+              break;
+            case "logs":
+              ui.println(taskManager.logs(arg ?? "", Number(rest[1]) || 50));
+              break;
+            case "stop":
+              ui.println(taskManager.stop(arg ?? ""));
+              break;
+            case "mcp":
+              if (!toolCtx.mcp) {
+                ui.warn("MCP bridge is not wired in this session.");
+                break;
+              }
+              if ((arg ?? "").toLowerCase() === "debug") {
+                const target = rest[1];
+                if (!target) {
+                  ui.warn("Usage: /mcp debug <nom> — ex. /mcp debug files");
+                  break;
+                }
+                ui.startSpinner(`debug MCP ${target}`);
+                try {
+                  ui.println(await toolCtx.mcp.debugServer(target));
+                } catch (err: any) {
+                  ui.error(String(err?.message ?? err));
+                } finally {
+                  ui.stopSpinner();
+                }
+                break;
+              }
+              ui.startSpinner("checking MCP servers (up to 20s — npx servers start slowly)");
+              try {
+                // 8s par défaut marquait les serveurs npx "too slow" à tort :
+                // 5/22 verts à 8s contre 19/22 à 20s (mesuré).
+                const rows = await toolCtx.mcp.status(20000);
+                if (!rows.length) {
+                  ui.status("· no MCP servers configured — see docs/plugins.md");
+                } else {
+                  for (const r of rows) {
+                    ui.println(r.ok ? `● ${r.name} (${(r.tools ?? []).length} tools)` : `○ ${r.name} — ${r.error ?? "unreachable"}`);
+                  }
+                }
+              } catch (err: any) {
+                ui.error(String(err?.message ?? err));
+              } finally {
+                ui.stopSpinner();
+              }
+              break;
+            case "skills":
+              ui.println(listSkills(toolCtx.workspace));
+              break;
+            case "compact":
+              ui.startSpinner("compacting");
+              try {
+                await agent.compactNow();
+              } catch (err: any) {
+                ui.error(String(err?.message ?? err));
+              } finally {
+                ui.stopSpinner();
+              }
+              break;
+            case "context": {
+              const budget = agent.contextBudget();
+              ui.status(
+                `Context ${budget.prompt.toLocaleString()} / ${budget.window.toLocaleString()} tokens (${budget.source})\nReply reserve ${budget.reserve.toLocaleString()} · available ${budget.available.toLocaleString()} · ${agent.messages.length} messages · ${agent.tools.length} tools`
+              );
               break;
             }
-            const hubClient = require("../desktop/hub-client.js");
-            const res = await hubClient.runInTerminal(this.hubRec, "npm run build");
-            ui.println(res);
-            break;
+            case "fetch": {
+              const target = rest.join(" ").trim();
+              if (!target) {
+                ui.warn("Usage: /fetch https://example.com — lit une page web sans clé");
+                break;
+              }
+              ui.startSpinner("fetching page");
+              try {
+                const { fetchUrl } = await import("./tools/web");
+                ui.println(await fetchUrl(this.workspace, { url: target }));
+              } catch (err: any) {
+                ui.error(`· /fetch failed (${err?.message ?? err})`);
+              } finally {
+                ui.stopSpinner();
+              }
+              break;
+            }
+            case "clear":
+              agent.resetTranscript();
+              {
+                const error = toolCtx.plan.reset();
+                if (error) ui.warn(`· ${error}`);
+                else ui.status("· conversation cleared");
+              }
+              break;
+            case "undo":
+              this.undoEdit();
+              break;
+            case "redo":
+              this.redoEdit();
+              break;
+            case "editor": {
+              const content = await this.openEditor(rest.join(" "));
+              if (content === null) break;
+              if (!content.trim()) {
+                ui.status("· empty message — nothing sent");
+                break;
+              }
+              await this.handleUserMessage(content, []);
+              break;
+            }
+            case "export":
+              this.exportTranscript();
+              break;
+            case "build": {
+              if (!this.hubRec) {
+                ui.status("· /build only works with --web (no hub in TUI mode)");
+                break;
+              }
+              const hubClient = require("../desktop/hub-client.js");
+              const res = await hubClient.runInTerminal(this.hubRec, "npm run build");
+              ui.println(res);
+              break;
+            }
+            case "copy":
+              this.copyLastReply();
+              break;
+            default:
+              ui.warn(`Unknown command /${cmd} — try /help`);
           }
-          case "copy":
-            this.copyLastReply();
-            break;
-          default:
-            ui.warn(`Unknown command /${cmd} — try /help`);
-        }
         } catch (err: any) {
           ui.error(`\n${err?.message ?? err}`);
         }
@@ -1197,13 +1209,7 @@ export class Session {
   private async setMode(arg?: string): Promise<void> {
     const { ui, agent } = this;
     let next: Mode | undefined =
-      arg === "ro"
-        ? "ro"
-        : arg === "edit" || arg === "write"
-          ? "edit"
-          : arg === "bypass" || arg === "yolo"
-            ? "bypass"
-            : undefined;
+      arg === "ro" ? "ro" : arg === "edit" || arg === "write" ? "edit" : arg === "bypass" || arg === "yolo" ? "bypass" : undefined;
     if (!next) {
       const idx = await ui.select("Select mode", [
         { label: "read-only", hint: "read and search files only", current: agent.mode === "ro" },
@@ -1235,9 +1241,7 @@ export class Session {
       const idx = await ui.select("Reasoning effort", [
         {
           label: "default",
-          hint: this.chosen.reasoning?.default
-            ? `the model's own default (${this.chosen.reasoning.default})`
-            : "leave it to the model",
+          hint: this.chosen.reasoning?.default ? `the model's own default (${this.chosen.reasoning.default})` : "leave it to the model",
           current: this.effort === null,
         },
         { label: "off", hint: "no thinking — fastest, best for long tool loops", current: this.effort === "off" },

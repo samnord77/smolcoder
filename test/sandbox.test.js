@@ -2,9 +2,9 @@
 // which reach outside the workspace and go to the y/n prompt.
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("fs");
-const os = require("os");
-const path = require("path");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
 const { commandEscapesWorkspace } = require("../dist/sandbox");
 
 const ws = fs.mkdtempSync(path.join(os.tmpdir(), "tc-sandbox-"));
@@ -36,7 +36,7 @@ test("absolute paths inside the workspace are fine", () => {
   inside(`node ${path.join(ws, "src", "app.js")}`);
   inside(`cd ${ws} && npm test`);
   if (isWin) {
-    const msys = "/" + ws[0].toLowerCase() + ws.slice(2).replace(/\\/g, "/");
+    const msys = `/${ws[0].toLowerCase()}${ws.slice(2).replace(/\\/g, "/")}`;
     inside(`node ${msys}/src/app.js`);
   }
 });

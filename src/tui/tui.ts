@@ -6,12 +6,12 @@
 // The frame (input block + menus) exists only while waiting for input; while
 // the agent runs, output streams plainly and scrolls naturally.
 
-import { Plan } from "../plan";
-import { SelectOption, SessionUI, SlashCommand, renderPlan, summarizeArgs } from "../ui";
+import { colorizeResultBlock, createCodeStreamColorizer } from "../highlight";
+import type { Plan } from "../plan";
+import { renderPlan, type SelectOption, type SessionUI, type SlashCommand, summarizeArgs } from "../ui";
 import { c } from "../util";
-import { createCodeStreamColorizer, colorizeResultBlock } from "../highlight";
 import { LineEditor, layoutBuffer } from "./editor";
-import { Key, KeyDecoder } from "./keys";
+import { type Key, KeyDecoder } from "./keys";
 
 type State = "hidden" | "idle" | "select" | "confirm" | "prompt";
 
@@ -98,17 +98,17 @@ export class Tui implements SessionUI {
     resolve: (s: string | null) => void;
   } | null = null;
   private started = false;
+  private lastKind: string | null = null;
+  private thinkStart = 0;
   private confirmState: {
     command: string;
     reason?: string;
     resolve: (r: "yes" | "no" | "always") => void;
-  } | null =
-    null;
+  } | null = null;
   private spinnerTimer: NodeJS.Timeout | null = null;
   private spinnerActive = false;
   private spinnerLabel = "";
   private atLineStart = true;
-  private lastKind: "content" | "thinking" | null = null;
 
   /** Safe to call twice: startup opens the TUI early when it has to ask where
    * the models are, and the session starts it again later. */
@@ -213,7 +213,7 @@ export class Tui implements SessionUI {
         return;
       case "tab":
         if (menu.length > 0) {
-          this.ed.set("/" + menu[Math.min(this.menuIndex, menu.length - 1)].name + " ");
+          this.ed.set(`/${menu[Math.min(this.menuIndex, menu.length - 1)].name} `);
         }
         break;
       case "shifttab":
@@ -287,7 +287,7 @@ export class Tui implements SessionUI {
   private submit(menu: SlashCommand[]): void {
     let text = this.ed.buffer;
     if (menu.length > 0) {
-      text = "/" + menu[Math.min(this.menuIndex, menu.length - 1)].name;
+      text = `/${menu[Math.min(this.menuIndex, menu.length - 1)].name}`;
     }
     text = text.trim();
     if (!text) return;
@@ -448,9 +448,7 @@ export class Tui implements SessionUI {
     this.hideFrame();
     this.confirmState = null;
     this.state = "hidden";
-    process.stdout.write(
-      c.dim(`  ${result === "always" ? "always allowed" : result} — ${cs.command}\n`)
-    );
+    process.stdout.write(c.dim(`  ${result === "always" ? "always allowed" : result} — ${cs.command}\n`));
     cs.resolve(result);
   }
 
@@ -484,11 +482,7 @@ export class Tui implements SessionUI {
       const menuW = Math.min(w, 64);
       for (let i = 0; i < menu.length; i++) {
         const row = ` /${menu[i].name.padEnd(12)} ${menu[i].desc}`.slice(0, menuW).padEnd(menuW);
-        lines.push(
-          i === this.menuIndex
-            ? `${SEL}${row}${RESET}`
-            : ` ${c.bold("/" + menu[i].name.padEnd(12))} ${c.dim(menu[i].desc)}`
-        );
+        lines.push(i === this.menuIndex ? `${SEL}${row}${RESET}` : ` ${c.bold(`/${menu[i].name.padEnd(12)}`)} ${c.dim(menu[i].desc)}`);
       }
       const inputW = w - 2;
       if (this.ed.buffer.length === 0) {
@@ -503,12 +497,12 @@ export class Tui implements SessionUI {
       }
       lines.push(boxRow(this.getStatus(), w));
       if (this.notice) {
-        lines.push(" " + c.yellow(this.notice));
+        lines.push(` ${c.yellow(this.notice)}`);
       }
     } else if (this.state === "select" && this.sel) {
       const s = this.sel;
       const w = Math.min(this.width(), 64);
-      lines.push(BAR + c.bold(s.title) + "   " + c.dim("esc cancel"));
+      lines.push(`${BAR + c.bold(s.title)}   ${c.dim("esc cancel")}`);
       lines.push(BAR + (s.filter ? s.filter : c.dim("type to filter")));
       const filtered = this.filteredOptions();
       if (!filtered.length) lines.push(c.dim("   no matches"));
@@ -519,11 +513,11 @@ export class Tui implements SessionUI {
       for (let i = s.top; i < Math.min(filtered.length, s.top + SELECT_ROWS); i++) {
         const o = filtered[i];
         const marker = o.current ? "● " : "  ";
-        const plain = ` ${marker}${o.label}${o.hint ? "  " + o.hint : ""}`.slice(0, w).padEnd(w);
+        const plain = ` ${marker}${o.label}${o.hint ? `  ${o.hint}` : ""}`.slice(0, w).padEnd(w);
         lines.push(
           i === s.index
             ? `${SEL}${plain}${RESET}`
-            : ` ${o.current ? c.green(marker) : marker}${o.label}${o.hint ? "  " + c.dim(o.hint) : ""}`
+            : ` ${o.current ? c.green(marker) : marker}${o.label}${o.hint ? `  ${c.dim(o.hint)}` : ""}`
         );
       }
       const below = filtered.length - s.top - SELECT_ROWS;
@@ -531,7 +525,7 @@ export class Tui implements SessionUI {
     } else if (this.state === "prompt" && this.promptState) {
       const p = this.promptState;
       const w = Math.min(this.width(), 64);
-      lines.push(BAR + c.bold(p.title) + "   " + c.dim("enter confirm · esc cancel"));
+      lines.push(`${BAR + c.bold(p.title)}   ${c.dim("enter confirm · esc cancel")}`);
       cursorRow = lines.length;
       if (p.ed.buffer.length === 0) {
         cursorCol = 2;
@@ -544,11 +538,9 @@ export class Tui implements SessionUI {
       }
     } else if (this.state === "confirm" && this.confirmState) {
       lines.push(BAR + c.yellow("run? ") + c.bold(this.confirmState.command.slice(0, this.width() - 8)));
-      if (this.confirmState.reason) lines.push("  " + c.dim(this.confirmState.reason));
+      if (this.confirmState.reason) lines.push(`  ${c.dim(this.confirmState.reason)}`);
       const program = this.confirmState.command.trim().split(/\s+/)[0];
-      lines.push(
-        "  " + c.dim(`[y]es · [n]o · [a]lways allow '${program}' this session`)
-      );
+      lines.push(`  ${c.dim(`[y]es · [n]o · [a]lways allow '${program}' this session`)}`);
     } else {
       return;
     }
@@ -601,7 +593,7 @@ export class Tui implements SessionUI {
   /** Efface la ligne du spinner sans arreter son timer : le texte de
    * l'agent ne casse plus l'animation (c'etait le saccadage). */
   private spinClear(): void {
-    if (this.spinnerActive) process.stdout.write("\r" + " ".repeat(70) + "\r");
+    if (this.spinnerActive) process.stdout.write(`\r${" ".repeat(70)}\r`);
   }
   private out(s: string): void {
     if (this.tickerOn) this.endTicker();
@@ -616,7 +608,6 @@ export class Tui implements SessionUI {
   }
 
   private thinkBuf = "";
-  private thinkStart = 0;
   private tickerOn = false;
 
   private ensureLine(): void {
@@ -653,8 +644,8 @@ export class Tui implements SessionUI {
     if (this.thinkBuf.length > 4000) this.thinkBuf = this.thinkBuf.slice(-2000);
     const w = Math.max(20, (process.stdout.columns || 80) - 4);
     const clean = this.thinkBuf.replace(/\s+/g, " ").trim();
-    const tail = clean.length > w ? "…" + clean.slice(-(w - 1)) : clean;
-    process.stdout.write("\r\x1b[2K" + c.gray("✦ " + tail));
+    const tail = clean.length > w ? `…${clean.slice(-(w - 1))}` : clean;
+    process.stdout.write(`\r\x1b[2K${c.gray(`✦ ${tail}`)}`);
     this.atLineStart = false;
   }
 
@@ -684,7 +675,7 @@ export class Tui implements SessionUI {
       return;
     }
     if (result.includes("Warning:")) {
-      this.out(`  ${c.yellow("! " + result.slice(result.indexOf("Warning:")).split("\n")[0])}\n`);
+      this.out(`  ${c.yellow(`! ${result.slice(result.indexOf("Warning:")).split("\n")[0]}`)}\n`);
       this.atLineStart = true;
       return;
     }
@@ -695,7 +686,7 @@ export class Tui implements SessionUI {
     const label = c.dim(firstLine.slice(0, 100) + (lineCount > 1 ? ` (+${lineCount - 1} lines)` : ""));
     this.out(`  ${c.green("✓")} ${label}\n`);
     if (lineCount > 1 && lineCount <= 25 && result.length <= 2500) {
-      this.out(colorizeResultBlock(result, process.stdout.isTTY && !process.env.NO_COLOR) + "\n");
+      this.out(`${colorizeResultBlock(result, process.stdout.isTTY && !process.env.NO_COLOR)}\n`);
     }
     this.atLineStart = true;
   }
@@ -710,7 +701,7 @@ export class Tui implements SessionUI {
     this.stopSpinner();
     this.ensureLine();
     this.lastKind = null;
-    this.out(s + "\n");
+    this.out(`${s}\n`);
     this.atLineStart = true;
   }
 
@@ -724,7 +715,7 @@ export class Tui implements SessionUI {
     this.lastKind = null;
     const n = new Date();
     const hh = [n.getHours(), n.getMinutes(), n.getSeconds()].map((x) => String(x).padStart(2, "0")).join(":");
-    this.out(`${c.dim("■ " + label + " · " + hh)}\n\n`);
+    this.out(`${c.dim(`■ ${label} · ${hh}`)}\n\n`);
     this.bell();
     this.atLineStart = true;
   }
@@ -735,10 +726,10 @@ export class Tui implements SessionUI {
     this.lastKind = null;
     // The full checklist, like headless mode — one line hides the work.
     try {
-      this.out(renderPlan(plan, "  ") + "\n");
+      this.out(`${renderPlan(plan, "  ")}\n`);
     } catch {
       const current = plan.currentIndex >= 0 ? plan.steps[plan.currentIndex].text : "complete";
-      this.out(c.dim(`  Plan ${plan.doneCount}/${plan.steps.length} · ${current}`) + "\n");
+      this.out(`${c.dim(`  Plan ${plan.doneCount}/${plan.steps.length} · ${current}`)}\n`);
     }
     this.atLineStart = true;
   }
@@ -772,7 +763,18 @@ export class Tui implements SessionUI {
     if (this.spinnerActive && this.spinnerLabel === label) return;
     this.stopSpinner();
     const frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
-    const bars = ["▓░░░░░░░░░", "░▓░░░░░░░░", "░░▓░░░░░░░", "░░░▓░░░░░░", "░░░░▓░░░░░", "░░░░░▓░░░░", "░░░░░░▓░░░", "░░░░░░░▓░░", "░░░░░░░░▓░", "░░░░░░░░░▓"];
+    const bars = [
+      "▓░░░░░░░░░",
+      "░▓░░░░░░░░",
+      "░░▓░░░░░░░",
+      "░░░▓░░░░░░",
+      "░░░░▓░░░░░",
+      "░░░░░▓░░░░",
+      "░░░░░░▓░░░",
+      "░░░░░░░▓░░",
+      "░░░░░░░░▓░",
+      "░░░░░░░░░▓",
+    ];
     let i = 0;
     const started = Date.now();
     this.spinnerLabel = label;
@@ -780,9 +782,7 @@ export class Tui implements SessionUI {
     this.spinnerTimer = setInterval(() => {
       const secs = Math.floor((Date.now() - started) / 1000);
       const f = i % frames.length;
-      process.stdout.write(
-        `\r${c.cyan(frames[f])} ${c.dim(label)} ${c.cyan(bars[f])} ${c.dim(`${secs}s · esc to cancel`)}   `
-      );
+      process.stdout.write(`\r${c.cyan(frames[f])} ${c.dim(label)} ${c.cyan(bars[f])} ${c.dim(`${secs}s · esc to cancel`)}   `);
       i++;
     }, 100);
   }
@@ -793,7 +793,7 @@ export class Tui implements SessionUI {
       this.spinnerTimer = null;
     }
     if (this.spinnerActive) {
-      process.stdout.write("\r" + " ".repeat(70) + "\r");
+      process.stdout.write(`\r${" ".repeat(70)}\r`);
       this.spinnerActive = false;
       this.spinnerLabel = "";
     }

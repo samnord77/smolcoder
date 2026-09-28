@@ -12,13 +12,18 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 test("a live run exposes a deadline that extend pushes out", async () => {
   let ctl;
   const cmd = 'node -e "setTimeout(()=>{},4000)"';
-  const p = runCommand(cmd, process.cwd(), undefined, (c) => { ctl = c; });
+  const p = runCommand(cmd, process.cwd(), undefined, (c) => {
+    ctl = c;
+  });
   assert.ok(ctl, "the caller gets a handle while the command runs");
   assert.ok(ctl.deadline > Date.now(), "the deadline sits in the future");
   const before = ctl.deadline;
   assert.equal(ctl.extend(5000), true, "extend is accepted");
   assert.ok(ctl.deadline >= before + 4000, "the kill moved out by roughly the requested time");
-  assert.ok(liveShellList().some((i) => i.command === cmd), "the run is listed for the UI countdown");
+  assert.ok(
+    liveShellList().some((i) => i.command === cmd),
+    "the run is listed for the UI countdown"
+  );
   assert.equal(findLiveShell(cmd)?.command, cmd, "lookup by command finds it");
   ctl.cancel();
   const out = await p;
@@ -29,9 +34,9 @@ test("a live run exposes a deadline that extend pushes out", async () => {
 
 test("detach keeps the process alive as a real background task", async () => {
   const exits = [];
-  const tm = new TaskManager(process.cwd(), (t) => exits.push(t.id + ":" + t.exitCode));
+  const tm = new TaskManager(process.cwd(), (t) => exits.push(`${t.id}:${t.exitCode}`));
   let ctl;
-  const cmd = 'node -e "console.log(\'debut\'); setTimeout(()=>{console.log(\'fini\')},1200)"';
+  const cmd = "node -e \"console.log('debut'); setTimeout(()=>{console.log('fini')},1200)\"";
   const p = runCommand(cmd, process.cwd(), undefined, (c) => {
     c.adopt = (proc, cm, seed) => tm.adopt(proc, cm, seed);
     ctl = c;
@@ -44,12 +49,12 @@ test("detach keeps the process alive as a real background task", async () => {
   assert.match(out, /Output so far/, "the output already printed travels with the result");
   assert.match(out, /debut/, "and it is the real output");
   assert.ok(!liveShellList().some((i) => i.command === cmd), "a detached run stops counting down");
-  assert.match(tm.list(), new RegExp("\\b" + id + "\\s+running"), "the manager now owns a running task");
+  assert.match(tm.list(), new RegExp(`\\b${id}\\s+running`), "the manager now owns a running task");
   await sleep(1500);
   const log = tm.logs(id);
   assert.match(log, /fini/, "the command ran to completion AFTER the tool call returned");
   assert.match(log, /exited/, "the task reports its final state");
-  assert.deepEqual(exits, [id + ":0"], "the offloaded exit is announced once, with its code");
+  assert.deepEqual(exits, [`${id}:0`], "the offloaded exit is announced once, with its code");
   assert.equal(ctl.detach(), null, "detaching twice is refused");
 });
 

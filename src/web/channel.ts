@@ -4,9 +4,9 @@
 // Keeps a replay buffer (so a page that connects later sees the transcript),
 // the pending input/approval promises, and a coarse status for the sidebar.
 
-import { Attachment, UserInput } from "../attachments";
-import { Plan } from "../plan";
-import { SelectOption, SessionUI, SlashCommand, summarizeArgs } from "../ui";
+import type { Attachment, UserInput } from "../attachments";
+import type { Plan } from "../plan";
+import { type SelectOption, type SessionUI, type SlashCommand, summarizeArgs } from "../ui";
 import { renderEditDiff } from "./diff";
 
 export type Event = Record<string, any>;
@@ -53,7 +53,7 @@ export class SessionChannel implements SessionUI {
 
   restoreReplay(events: Event[]): void {
     this.replay = events.slice(-REPLAY_CAP).filter((e) => e.t !== "confirm" && e.t !== "select" && e.t !== "prompt" && e.t !== "answered");
-    this.askId = Math.max(0, ...events.map((e) => typeof e.id === "number" ? e.id : 0));
+    this.askId = Math.max(0, ...events.map((e) => (typeof e.id === "number" ? e.id : 0)));
   }
 
   constructor(
@@ -301,9 +301,7 @@ export class SessionChannel implements SessionUI {
 
   /** Skills that just auto-loaded: the status view lists them live. */
   skills(names: string[]): void {
-    this.skillsActive = (Array.isArray(names) ? names : [])
-      .filter((n) => typeof n === "string" && n.trim())
-      .slice(0, 20);
+    this.skillsActive = (Array.isArray(names) ? names : []).filter((n) => typeof n === "string" && n.trim()).slice(0, 20);
     this.broadcast({ t: "skills", names: this.skillsActive });
     this.pushState();
   }

@@ -26,14 +26,19 @@ test("editor tabs become clean after save and refuse accidental dirty close", ()
 
 test("editor tab close chooses a neighboring tab and explicit discard closes dirty content", () => {
   const tabs = makeEditorTabStore();
-  tabs.open("a", "a"); tabs.open("b", "b"); tabs.open("c", "c");
+  tabs.open("a", "a");
+  tabs.open("b", "b");
+  tabs.open("c", "c");
   tabs.update("b", "changed");
   const refused = tabs.close("b");
   assert.equal(refused.closed, false);
   const closed = tabs.close("b", true);
   assert.equal(closed.closed, true);
   assert.equal(closed.active.path, "c");
-  assert.deepEqual(tabs.list().map((tab) => tab.path), ["a", "c"]);
+  assert.deepEqual(
+    tabs.list().map((tab) => tab.path),
+    ["a", "c"]
+  );
 });
 
 test("editor tab save completion does not mark newer edits as saved", () => {

@@ -3,10 +3,10 @@
 // stores, serves and forgets them under its own data folder.
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("fs");
-const http = require("http");
-const os = require("os");
-const path = require("path");
+const fs = require("node:fs");
+const http = require("node:http");
+const os = require("node:os");
+const path = require("node:path");
 const { classifyUpload, extOf, renderAttachmentsForModel, safeName, IMAGE_TOKENS, MAX_TEXT_BYTES } = require("../dist/attachments");
 const { toWire: ollamaWire } = require("../dist/providers/ollama");
 const { toWire: lmWire } = require("../dist/providers/lmstudio");
@@ -29,7 +29,7 @@ async function until(fn, ms = 4000, label = "condition") {
   for (;;) {
     const v = fn();
     if (v) return v;
-    if (Date.now() - t0 > ms) throw new Error("timed out waiting for " + label);
+    if (Date.now() - t0 > ms) throw new Error(`timed out waiting for ${label}`);
     await sleep(25);
   }
 }
@@ -76,10 +76,23 @@ test("ollama and lm studio wire formats carry the image bytes and skip missing f
   const b64 = PNG.toString("base64");
   const msgs = [
     { role: "system", content: "sys" },
-    { role: "user", content: "look", images: [{ path: img, mime: "image/png", name: "c.png" }, { path: path.join(dir, "missing.png"), mime: "image/png", name: "missing.png" }] },
+    {
+      role: "user",
+      content: "look",
+      images: [
+        { path: img, mime: "image/png", name: "c.png" },
+        { path: path.join(dir, "missing.png"), mime: "image/png", name: "missing.png" },
+      ],
+    },
   ];
   assert.deepEqual(ollamaWire(msgs)[1], { role: "user", content: "look", images: [b64] });
-  assert.deepEqual(lmWire(msgs)[1], { role: "user", content: [{ type: "text", text: "look" }, { type: "image_url", image_url: { url: "data:image/png;base64," + b64 } }] });
+  assert.deepEqual(lmWire(msgs)[1], {
+    role: "user",
+    content: [
+      { type: "text", text: "look" },
+      { type: "image_url", image_url: { url: `data:image/png;base64,${b64}` } },
+    ],
+  });
   assert.deepEqual(ollamaWire([{ role: "user", content: "plain" }])[0], { role: "user", content: "plain" });
   assert.deepEqual(lmWire([{ role: "user", content: "plain" }])[0], { role: "user", content: "plain" });
   rm(dir);
@@ -91,7 +104,10 @@ test("context gauge counts images and lm studio listings report vision", () => {
   const withImg = m.estimateMessages([{ role: "user", content: "x", images: [{ path: "p", mime: "image/png", name: "n" }] }]);
   assert.equal(withImg - base, IMAGE_TOKENS);
   const models = parseLmStudioV1({ models: [{ key: "a", type: "vlm" }, { key: "b", type: "llm" }, { key: "c" }] });
-  assert.deepEqual(models.map((x) => x.vision), [true, false, undefined]);
+  assert.deepEqual(
+    models.map((x) => x.vision),
+    [true, false, undefined]
+  );
 });
 
 test("agent: a turn with attachments sends the file text and the images to the provider", async (t) => {
@@ -109,17 +125,51 @@ test("agent: a turn with attachments sends the file text and the images to the p
   const seen = [];
   const managers = [];
   const make = (vision) => {
-    const ui = { token() {}, thinking() {}, toolCall() {}, toolResult() {}, println() {}, status() {}, warn() {}, error() {}, startSpinner() {}, stopSpinner() {}, turnEnd() {}, planUpdated() {}, confirmCommand: async () => "yes" };
-    const provider = { label: "fake", modelId: "fake", contextWindow: 8000, maxOutputTokens: 2000, vision, setEffort() {}, effortLabel() { return null; }, async chat(messages) { seen.push(messages.at(-1)); return { content: "Done", toolCalls: [] }; } };
+    const ui = {
+      token() {},
+      thinking() {},
+      toolCall() {},
+      toolResult() {},
+      println() {},
+      status() {},
+      warn() {},
+      error() {},
+      startSpinner() {},
+      stopSpinner() {},
+      turnEnd() {},
+      planUpdated() {},
+      confirmCommand: async () => "yes",
+    };
+    const provider = {
+      label: "fake",
+      modelId: "fake",
+      contextWindow: 8000,
+      maxOutputTokens: 2000,
+      vision,
+      setEffort() {},
+      effortLabel() {
+        return null;
+      },
+      async chat(messages) {
+        seen.push(messages.at(-1));
+        return { content: "Done", toolCalls: [] };
+      },
+    };
     const taskManager = new TaskManager(ws);
     managers.push(taskManager);
     const ctx = { workspace: ws, plan: new Plan(), taskManager, filesTouched: new Set(), commandsRun: [] };
     return new Agent(provider, "ro", "sys", ctx, new ContextManager(8000, 2000), new EventBus(), ui, false, 5);
   };
-  t.after(() => { for (const m of managers) m.killAll(); rm(dir); });
+  t.after(() => {
+    for (const m of managers) m.killAll();
+    rm(dir);
+  });
   const sighted = make(true);
   await sighted.runTurn("what is this?", atts);
-  assert.match(seen[0].content, /^what is this\?\n\n\[Attached file: notes\.txt \(17 bytes\)\]\n```\nremember the milk\n```\n\n\[Attached image: shot\.png\]/);
+  assert.match(
+    seen[0].content,
+    /^what is this\?\n\n\[Attached file: notes\.txt \(17 bytes\)\]\n```\nremember the milk\n```\n\n\[Attached image: shot\.png\]/
+  );
   assert.deepEqual(seen[0].images, [{ path: img, mime: "image/png", name: "shot.png" }]);
   assert.equal(sighted.originalRequest, "what is this? [attached: notes.txt, shot.png]");
   const blind = make(false);
@@ -151,11 +201,20 @@ function request(hub, method, p, body, headers) {
   return new Promise((resolve, reject) => {
     const isBuf = Buffer.isBuffer(body);
     const req = http.request(
-      { host: "127.0.0.1", port: hub.port, method, path: p, headers: Object.assign({ "content-type": isBuf ? "application/octet-stream" : "application/json" }, headers || {}) },
+      {
+        host: "127.0.0.1",
+        port: hub.port,
+        method,
+        path: p,
+        headers: Object.assign({ "content-type": isBuf ? "application/octet-stream" : "application/json" }, headers || {}),
+      },
       (res) => {
         const chunks = [];
         res.on("data", (d) => chunks.push(d));
-        res.on("end", () => { const raw = Buffer.concat(chunks); resolve({ status: res.statusCode, headers: res.headers, raw, body: raw.toString("utf8") }); });
+        res.on("end", () => {
+          const raw = Buffer.concat(chunks);
+          resolve({ status: res.statusCode, headers: res.headers, raw, body: raw.toString("utf8") });
+        });
       }
     );
     req.on("error", reject);
@@ -167,9 +226,12 @@ function request(hub, method, p, body, headers) {
 function readEvents(hub, stopWhen) {
   return new Promise((resolve, reject) => {
     const events = [];
-    const req = http.get({ host: "127.0.0.1", port: hub.port, path: "/events?k=" + hub.authToken }, (res) => {
+    const req = http.get({ host: "127.0.0.1", port: hub.port, path: `/events?k=${hub.authToken}` }, (res) => {
       let buf = "";
-      const finish = () => { req.destroy(); resolve(events); };
+      const finish = () => {
+        req.destroy();
+        resolve(events);
+      };
       const timer = setTimeout(finish, 3000);
       res.on("data", (d) => {
         buf += d;
@@ -179,7 +241,10 @@ function readEvents(hub, stopWhen) {
           buf = buf.slice(i + 2);
           if (chunk.startsWith("data: ")) events.push(JSON.parse(chunk.slice(6)));
         }
-        if (events.some(stopWhen)) { clearTimeout(timer); finish(); }
+        if (events.some(stopWhen)) {
+          clearTimeout(timer);
+          finish();
+        }
       });
     });
     req.on("error", (e) => (e.code === "ECONNRESET" ? resolve(events) : reject(e)));
@@ -197,12 +262,29 @@ function fakeFactory(seen) {
       state: () => ({ mode: "edit", model: "fake-model", backend: "ollama", workspace, urls: [], commands: [] }),
       announce() {},
       restore() {},
-      snapshot: () => ({ messages: [], plan: [], filesTouched: [], commandsRun: [], originalRequest: "", currentRequest: "", mode: "edit", effort: null, model: "fake-model", backend: "ollama" }),
-      async suggestTitle() { return null; },
+      snapshot: () => ({
+        messages: [],
+        plan: [],
+        filesTouched: [],
+        commandsRun: [],
+        originalRequest: "",
+        currentRequest: "",
+        mode: "edit",
+        effort: null,
+        model: "fake-model",
+        backend: "ollama",
+      }),
+      async suggestTitle() {
+        return null;
+      },
       async run() {
         for (;;) {
           const input = await ui.readInput();
-          if (input === "/exit") { ui.close(); if (session.onExit) session.onExit(); return; }
+          if (input === "/exit") {
+            ui.close();
+            if (session.onExit) session.onExit();
+            return;
+          }
           seen.push(input);
           ui.startSpinner("thinking");
           ui.token("ok");
@@ -222,10 +304,11 @@ test("hub: uploads are stored, served, attached to a message, and removed with t
   const seen = [];
   const hub = new WebHub({ port: 0, prefs: {}, help: "help", version: "9.9.9", dataDir, factory: fakeFactory(seen), quiet: true });
   await hub.start();
-  const k = "?k=" + hub.authToken;
+  const k = `?k=${hub.authToken}`;
   try {
-    const { id: sid } = JSON.parse((await request(hub, "POST", "/sessions/new" + k, { workspace: ws })).body);
-    const up = (name, bytes, type) => request(hub, "POST", "/upload" + k + "&sid=" + sid + "&name=" + encodeURIComponent(name), bytes, { "content-type": type });
+    const { id: sid } = JSON.parse((await request(hub, "POST", `/sessions/new${k}`, { workspace: ws })).body);
+    const up = (name, bytes, type) =>
+      request(hub, "POST", `/upload${k}&sid=${sid}&name=${encodeURIComponent(name)}`, bytes, { "content-type": type });
 
     // a pasted screenshot arrives as raw png bytes
     const shotRes = await up("pasted-image.png", PNG, "image/png");
@@ -234,46 +317,55 @@ test("hub: uploads are stored, served, attached to a message, and removed with t
     assert.equal(shot.kind, "image");
     assert.equal(shot.size, PNG.length);
     assert.match(shot.warning, /fake-model cannot see images/);
-    const stored = path.join(dataDir, "uploads", sid, shot.id + ".png");
+    const stored = path.join(dataDir, "uploads", sid, `${shot.id}.png`);
     assert.ok(fs.existsSync(stored), "stored under the data folder, not the workspace");
     assert.deepEqual(fs.readdirSync(ws), []);
 
     // served back for thumbnails and links
-    const got = await request(hub, "GET", shot.url + "&k=" + hub.authToken);
+    const got = await request(hub, "GET", `${shot.url}&k=${hub.authToken}`);
     assert.equal(got.status, 200);
     assert.equal(got.headers["content-type"], "image/png");
     assert.ok(got.raw.equals(PNG));
     assert.equal((await request(hub, "GET", shot.url)).status, 403, "the key is still required");
-    assert.equal((await request(hub, "GET", "/upload" + k + "&sid=" + sid + "&id=../../x")).status, 404);
+    assert.equal((await request(hub, "GET", `/upload${k}&sid=${sid}&id=../../x`)).status, 404);
 
     // a text file, and the kinds that are refused
     const tx = JSON.parse((await up("notes.md", Buffer.from("# plan"), "text/markdown")).body);
     assert.equal(tx.kind, "text");
     assert.equal(tx.warning, undefined);
     assert.equal((await up("a.zip", Buffer.from([0x50, 0x4b, 3, 4, 0, 0]), "application/zip")).status, 415);
-    assert.equal((await request(hub, "POST", "/upload" + k + "&sid=nope&name=a.png", PNG, { "content-type": "image/png" })).status, 404);
+    assert.equal((await request(hub, "POST", `/upload${k}&sid=nope&name=a.png`, PNG, { "content-type": "image/png" })).status, 404);
 
     // a removed upload is gone from disk and can no longer be attached
     const gone = JSON.parse((await up("x.txt", Buffer.from("x"), "text/plain")).body);
-    await request(hub, "POST", "/upload/remove" + k, { sid, id: gone.id });
-    assert.ok(!fs.existsSync(path.join(dataDir, "uploads", sid, gone.id + ".txt")));
-    assert.match((await request(hub, "POST", "/msg" + k, { sid, text: "hi", attachments: [gone.id] })).body, /no longer available/);
+    await request(hub, "POST", `/upload/remove${k}`, { sid, id: gone.id });
+    assert.ok(!fs.existsSync(path.join(dataDir, "uploads", sid, `${gone.id}.txt`)));
+    assert.match((await request(hub, "POST", `/msg${k}`, { sid, text: "hi", attachments: [gone.id] })).body, /no longer available/);
 
     // the message carries both attachments to the session and to the page
-    assert.equal((await request(hub, "POST", "/msg" + k, { sid, text: "what is this?", attachments: [shot.id, tx.id] })).status, 200);
+    assert.equal((await request(hub, "POST", `/msg${k}`, { sid, text: "what is this?", attachments: [shot.id, tx.id] })).status, 200);
     await until(() => seen.length === 1, 4000, "session input");
     assert.equal(seen[0].text, "what is this?");
-    assert.deepEqual(seen[0].attachments.map((a) => [a.name, a.kind, a.path]), [
-      ["pasted-image.png", "image", stored],
-      ["notes.md", "text", path.join(dataDir, "uploads", sid, tx.id + ".md")],
-    ]);
+    assert.deepEqual(
+      seen[0].attachments.map((a) => [a.name, a.kind, a.path]),
+      [
+        ["pasted-image.png", "image", stored],
+        ["notes.md", "text", path.join(dataDir, "uploads", sid, `${tx.id}.md`)],
+      ]
+    );
     const events = await readEvents(hub, (e) => e.t === "user");
     const user = events.find((e) => e.t === "user");
     assert.equal(user.s, "what is this?");
-    assert.deepEqual(user.files.map((f) => [f.name, f.kind, f.url]), [["pasted-image.png", "image", shot.url], ["notes.md", "text", tx.url]]);
+    assert.deepEqual(
+      user.files.map((f) => [f.name, f.kind, f.url]),
+      [
+        ["pasted-image.png", "image", shot.url],
+        ["notes.md", "text", tx.url],
+      ]
+    );
 
     // deleting the session takes its uploads with it
-    await request(hub, "POST", "/sessions/delete" + k, { id: sid });
+    await request(hub, "POST", `/sessions/delete${k}`, { id: sid });
     await until(() => !fs.existsSync(path.join(dataDir, "uploads", sid)), 4000, "uploads removed");
   } finally {
     hub.close();

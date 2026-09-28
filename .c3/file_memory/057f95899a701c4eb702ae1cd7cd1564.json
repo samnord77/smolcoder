@@ -1,10 +1,10 @@
 {
   "path": "test/verification.test.js",
-  "content_hash": "2fce4476ffa9251f5ff9a89f71551294",
-  "updated_at": "2026-09-27T23:58:46",
-  "lines": 344,
-  "size_bytes": 21682,
-  "mtime_ns": 1790547929893989700,
+  "content_hash": "91b69a9f62d2ff27f81d2f7d3aa74b58",
+  "updated_at": "2026-09-28T19:36:40",
+  "lines": 564,
+  "size_bytes": 24013,
+  "mtime_ns": 1790620582015380200,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -14,41 +14,41 @@
       "name": "test",
       "line_start": 1,
       "line_end": 1,
-      "signature": "const test = require('node:test');"
+      "signature": "const test = require(\"node:test\");"
     },
     {
       "type": "constant",
       "name": "assert",
       "line_start": 2,
       "line_end": 2,
-      "signature": "const assert = require('node:assert/strict');"
+      "signature": "const assert = require(\"node:assert/strict\");"
     },
     {
       "type": "constant",
       "name": "fs",
       "line_start": 3,
       "line_end": 3,
-      "signature": "const fs = require('node:fs');"
+      "signature": "const fs = require(\"node:fs\");"
     },
     {
       "type": "constant",
       "name": "os",
       "line_start": 4,
       "line_end": 4,
-      "signature": "const os = require('node:os');"
+      "signature": "const os = require(\"node:os\");"
     },
     {
       "type": "constant",
       "name": "path",
       "line_start": 5,
       "line_end": 5,
-      "signature": "const path = require('node:path');"
+      "signature": "const path = require(\"node:path\");"
     },
     {
       "type": "function",
       "name": "removeWorkspace",
       "line_start": 16,
-      "line_end": 25,
+      "line_end": 27,
       "signature": "async function removeWorkspace(dir) {",
       "async": true,
       "doc": "Windows can hold a just-killed command's working directory open for a"
@@ -56,16 +56,16 @@
     {
       "type": "function",
       "name": "setup",
-      "line_start": 27,
-      "line_end": 36,
+      "line_start": 29,
+      "line_end": 65,
       "signature": "function setup(t, chat, verification) {"
     },
     {
       "type": "function",
       "name": "answer",
-      "line_start": 37,
-      "line_end": 37,
-      "signature": "const answer = () => ({content:'Done',toolCalls:[]});"
+      "line_start": 66,
+      "line_end": 66,
+      "signature": "const answer = () => ({ content: \"Done\", toolCalls: [] });"
     }
   ]
 }

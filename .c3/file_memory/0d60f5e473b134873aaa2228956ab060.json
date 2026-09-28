@@ -1,10 +1,10 @@
 {
   "path": "src/crdt.ts",
-  "content_hash": "257de04dd1dad6b4e6d768cc9408058e",
-  "updated_at": "2026-09-27T22:11:37",
-  "lines": 184,
-  "size_bytes": 6756,
-  "mtime_ns": 1790543364073480600,
+  "content_hash": "54db4c947625f77413f1f91aca00edd6",
+  "updated_at": "2026-09-28T19:36:38",
+  "lines": 182,
+  "size_bytes": 6748,
+  "mtime_ns": 1790620578154743000,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -79,49 +79,49 @@
       "type": "function",
       "name": "sortDoc",
       "line_start": 95,
-      "line_end": 99,
+      "line_end": 97,
       "signature": "function sortDoc(doc: CrdtDoc): void {"
     },
     {
       "type": "function",
       "name": "liveChars",
-      "line_start": 101,
-      "line_end": 103,
+      "line_start": 99,
+      "line_end": 101,
       "signature": "function liveChars(doc: CrdtDoc): CrdtChar[] {"
     },
     {
       "type": "function",
       "name": "localInsert",
-      "line_start": 106,
-      "line_end": 121,
+      "line_start": 104,
+      "line_end": 119,
       "signature": "function localInsert(doc: CrdtDoc, visibleIndex: number, text: string): CrdOp[] {"
     },
     {
       "type": "function",
       "name": "localDelete",
-      "line_start": 124,
-      "line_end": 136,
+      "line_start": 122,
+      "line_end": 134,
       "signature": "function localDelete(doc: CrdtDoc, visibleIndex: number, count: number): CrdOp[] {"
     },
     {
       "type": "function",
       "name": "applyOp",
-      "line_start": 140,
-      "line_end": 158,
+      "line_start": 138,
+      "line_end": 156,
       "signature": "function applyOp(doc: CrdtDoc, op: CrdOp): boolean {"
     },
     {
       "type": "function",
       "name": "diffForSync",
-      "line_start": 163,
-      "line_end": 175,
+      "line_start": 161,
+      "line_end": 173,
       "signature": "function diffForSync(before: string, after: string): { at: number; del: number; ins: string } {"
     },
     {
       "type": "constant",
       "name": "browserCrdtSource",
-      "line_start": 179,
-      "line_end": 184,
+      "line_start": 177,
+      "line_end": 182,
       "signature": "const browserCrdtSource = ["
     }
   ]

@@ -1,10 +1,10 @@
 {
   "path": "src/web/page.ts",
-  "content_hash": "b9abb53bb2ce461675ac3c508bfa9d72",
-  "updated_at": "2026-09-27T20:34:07",
-  "lines": 124,
-  "size_bytes": 7845,
-  "mtime_ns": 1790537547636594700,
+  "content_hash": "6ab040d08e0640f4bed63cab10051607",
+  "updated_at": "2026-09-28T20:52:43",
+  "lines": 128,
+  "size_bytes": 7996,
+  "mtime_ns": 1790624578327830400,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -76,7 +76,7 @@
       "type": "constant",
       "name": "PAGE_HTML",
       "line_start": 23,
-      "line_end": 124,
+      "line_end": 128,
       "signature": "const PAGE_HTML = `<!doctype html>"
     }
   ]

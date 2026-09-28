@@ -1,0 +1,9 @@
+{
+  "original_tokens": 1604,
+  "compressed_tokens": 69,
+  "saved_tokens": 1535,
+  "savings_pct": 95.7,
+  "compressed": "# fs-manage.test.js (.js) \u2014 93 lines\nconst test = require(\"node:test\");\nconst assert = require(\"node:assert/strict\");\nconst fs = require(\"node:fs\");\nconst os = require(\"node:os\");\nconst path = require(\"node:path\");\nfunction scratch(files = {})\nfunction ctxFor(dir)",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\fs-manage.test.js"
+}

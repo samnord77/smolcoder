@@ -28,16 +28,12 @@ export function truncateMiddle(s: string, maxChars: number): string {
   const head = Math.floor(maxChars * 0.6);
   const tail = maxChars - head;
   const omitted = s.length - maxChars;
-  return (
-    s.slice(0, head) +
-    `\n... [${omitted} characters omitted to save context] ...\n` +
-    s.slice(s.length - tail)
-  );
+  return s.slice(0, head) + `\n... [${omitted} characters omitted to save context] ...\n` + s.slice(s.length - tail);
 }
 
 export function truncateEnd(s: string, maxChars: number, note?: string): string {
   if (s.length <= maxChars) return s;
-  return s.slice(0, maxChars) + `\n... [truncated${note ? ": " + note : ""}]`;
+  return `${s.slice(0, maxChars)}\n... [truncated${note ? `: ${note}` : ""}]`;
 }
 
 export function plural(n: number, word: string): string {
@@ -68,11 +64,7 @@ export async function probeJson(url: string, timeoutMs = 1500): Promise<{ reache
 }
 
 /** fetch with a hard timeout; returns null on any failure (used for detection probes). */
-export async function tryFetchJson(
-  url: string,
-  init?: RequestInit,
-  timeoutMs = 1500
-): Promise<any | null> {
+export async function tryFetchJson(url: string, init?: RequestInit, timeoutMs = 1500): Promise<any | null> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), timeoutMs);
   try {

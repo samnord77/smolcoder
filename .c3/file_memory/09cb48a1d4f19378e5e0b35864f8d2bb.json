@@ -1,10 +1,10 @@
 {
   "path": "test/code-api.test.js",
-  "content_hash": "4bf44f413c3e6cdb9e1c650d4afd7c83",
-  "updated_at": "2026-09-28T16:54:05",
-  "lines": 515,
-  "size_bytes": 24799,
-  "mtime_ns": 1790609889255321100,
+  "content_hash": "9282a8fbf886572b9c65fbfa190a0576",
+  "updated_at": "2026-09-28T21:15:44",
+  "lines": 599,
+  "size_bytes": 25838,
+  "mtime_ns": 1790626031352962000,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -70,21 +70,21 @@
       "type": "function",
       "name": "stubFactory",
       "line_start": 23,
-      "line_end": 44,
+      "line_end": 56,
       "signature": "function stubFactory(calls) {"
     },
     {
       "type": "function",
       "name": "request",
-      "line_start": 46,
-      "line_end": 60,
+      "line_start": 58,
+      "line_end": 72,
       "signature": "function request(hub, method, p, body) {"
     },
     {
       "type": "function",
       "name": "followShare",
-      "line_start": 101,
-      "line_end": 129,
+      "line_start": 121,
+      "line_end": 149,
       "signature": "function followShare(hub, path) {"
     }
   ]

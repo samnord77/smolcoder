@@ -76,9 +76,7 @@ test("bad config entries are skipped, good ones kept", () => {
       "junk",
     ])
   );
-  assert.deepEqual(loadMcpConfig(ws), [
-    { name: "ok", command: "node", args: ["a"], env: { K: "v" }, timeoutMs: 5000 },
-  ]);
+  assert.deepEqual(loadMcpConfig(ws), [{ name: "ok", command: "node", args: ["a"], env: { K: "v" }, timeoutMs: 5000 }]);
 });
 
 test("list, call, server errors and bad args", async (t) => {
@@ -175,11 +173,26 @@ test("user-scope servers merge under workspace ones", () => {
   const ws = fs.mkdtempSync(path.join(os.tmpdir(), "smol-mcp-"));
   const globalFile = path.join(ws, "global.json");
   fs.mkdirSync(path.join(ws, ".smol"), { recursive: true });
-  fs.writeFileSync(globalFile, JSON.stringify([{ name: "g", command: "gc" }, { name: "shared", command: "old" }]));
-  fs.writeFileSync(path.join(ws, ".smol", "mcp.json"), JSON.stringify([{ name: "shared", command: "new" }, { name: "w", command: "wc" }]));
+  fs.writeFileSync(
+    globalFile,
+    JSON.stringify([
+      { name: "g", command: "gc" },
+      { name: "shared", command: "old" },
+    ])
+  );
+  fs.writeFileSync(
+    path.join(ws, ".smol", "mcp.json"),
+    JSON.stringify([
+      { name: "shared", command: "new" },
+      { name: "w", command: "wc" },
+    ])
+  );
   process.env.SMOLCODER_MCP_CONFIG = globalFile;
   try {
-    assert.deepEqual(loadMcpConfig(ws).map((s) => `${s.name}=${s.command}`), ["g=gc", "shared=new", "w=wc"]);
+    assert.deepEqual(
+      loadMcpConfig(ws).map((s) => `${s.name}=${s.command}`),
+      ["g=gc", "shared=new", "w=wc"]
+    );
   } finally {
     process.env.SMOLCODER_MCP_CONFIG = path.join(os.tmpdir(), "smol-mcp-no-global.json");
   }

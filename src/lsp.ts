@@ -8,11 +8,11 @@
 //   SMOLCODER_LSP_DISABLE=1 — the symbols tool answers "désactivé", no spawn.
 //   SMOLCODER_LSP_COMMAND="npx typescript-language-server --stdio" — custom
 //   server command (space-separated, no shell).
-import { spawn, ChildProcess } from "child_process";
-import * as fs from "fs";
-import * as path from "path";
-import { resolveInWorkspace, SandboxError } from "./sandbox";
+import { type ChildProcess, spawn } from "node:child_process";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import { resolveCommand } from "./mcp";
+import { resolveInWorkspace } from "./sandbox";
 
 export function lspDisabled(): boolean {
   return process.env.SMOLCODER_LSP_DISABLE === "1";
@@ -241,7 +241,12 @@ function fmtLoc(root: string, uri: string, range: any): string {
 function fmtHover(res: any): string {
   if (!res) return "No hover info at that position.";
   const c = res.contents;
-  const text = typeof c === "string" ? c : Array.isArray(c) ? c.map((x) => (typeof x === "string" ? x : x?.value ?? "")).join("\n") : c?.value ?? "";
+  const text =
+    typeof c === "string"
+      ? c
+      : Array.isArray(c)
+        ? c.map((x) => (typeof x === "string" ? x : (x?.value ?? ""))).join("\n")
+        : (c?.value ?? "");
   const clean = String(text).trim().slice(0, RESULT_CAP);
   return clean || "No hover info at that position.";
 }
@@ -264,9 +269,11 @@ function fmtDiagnostics(root: string, uri: string, diags: any[]): string {
   return diags
     .slice(0, 20)
     .map((d) => {
-      const line = (d?.range?.start?.line ?? 0) + 1;
+      const _line = (d?.range?.start?.line ?? 0) + 1;
       const sev = d?.severity === 1 ? "error" : d?.severity === 2 ? "warning" : "info";
-      return `${fmtLoc(root, uri, d?.range)} [${sev}] ${String(d?.message ?? "").split("\n")[0].slice(0, 200)}`;
+      return `${fmtLoc(root, uri, d?.range)} [${sev}] ${String(d?.message ?? "")
+        .split("\n")[0]
+        .slice(0, 200)}`;
     })
     .join("\n");
 }

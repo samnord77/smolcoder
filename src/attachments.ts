@@ -4,8 +4,8 @@
 // user turn. The bytes live under ~/.smolcoder/uploads/<session>/, never
 // inside the workspace, so an attachment can never dirty the user's repo.
 
-import * as fs from "fs";
-import { ImageRef } from "./providers/types";
+import * as fs from "node:fs";
+import type { ImageRef } from "./providers/types";
 
 export interface Attachment {
   id: string;
@@ -44,8 +44,14 @@ const IMAGE_MIMES: Record<string, string> = {
 
 /** Strip any path and control characters from a user-supplied file name. */
 export function safeName(name: unknown): string {
-  const base = String(name ?? "").split(/[\\/]/).pop() ?? "";
-  const cleaned = base.replace(/[\x00-\x1f\x7f]/g, "").trim().slice(0, 80);
+  const base =
+    String(name ?? "")
+      .split(/[\\/]/)
+      .pop() ?? "";
+  const cleaned = base
+    .replace(/[\x00-\x1f\x7f]/g, "")
+    .trim()
+    .slice(0, 80);
   return cleaned || "file";
 }
 
@@ -72,11 +78,7 @@ export function looksLikeText(bytes: Buffer): boolean {
 }
 
 /** Decide how an upload is used, or say why it cannot be. */
-export function classifyUpload(
-  name: string,
-  mime: string,
-  bytes: Buffer
-): { kind: "image" | "text"; mime: string } | { error: string } {
+export function classifyUpload(name: string, mime: string, bytes: Buffer): { kind: "image" | "text"; mime: string } | { error: string } {
   if (bytes.length === 0) return { error: `"${name}" is empty.` };
   const ext = extOf(name, mime);
   if (IMAGE_MIMES[ext]) return { kind: "image", mime: IMAGE_MIMES[ext] };
@@ -111,10 +113,7 @@ const FENCE = "```";
 /** The prompt text and image references for a turn's attachments. Text files
  * are inlined verbatim; images become vision input when the model can see,
  * otherwise a note so the model can tell the user what it cannot do. */
-export function renderAttachmentsForModel(
-  attachments: Attachment[],
-  canSeeImages: boolean
-): { text: string; images: ImageRef[] } {
+export function renderAttachmentsForModel(attachments: Attachment[], canSeeImages: boolean): { text: string; images: ImageRef[] } {
   const parts: string[] = [];
   const images: ImageRef[] = [];
   for (const a of attachments) {
@@ -135,8 +134,8 @@ export function renderAttachmentsForModel(
     } catch {
       body = "(the file is no longer available)";
     }
-    if (body.length > MAX_TEXT_BYTES) body = body.slice(0, MAX_TEXT_BYTES) + `\n… [truncated: ${a.size} bytes in total]`;
-    const fence = body.includes(FENCE) ? FENCE + "`" : FENCE;
+    if (body.length > MAX_TEXT_BYTES) body = `${body.slice(0, MAX_TEXT_BYTES)}\n… [truncated: ${a.size} bytes in total]`;
+    const fence = body.includes(FENCE) ? `${FENCE}\`` : FENCE;
     parts.push(`[Attached file: ${a.name} (${a.size} bytes)]\n${fence}\n${body}\n${fence}`);
   }
   return { text: parts.join("\n\n"), images };

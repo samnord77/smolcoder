@@ -1,10 +1,10 @@
 {
   "path": "test/diff.test.js",
-  "content_hash": "5ece78797c2d984717bce8dcef7be93c",
-  "updated_at": "2026-09-24T22:50:35",
+  "content_hash": "3123fd9fb56266936e032747adbb350b",
+  "updated_at": "2026-09-28T19:33:35",
   "lines": 35,
   "size_bytes": 1462,
-  "mtime_ns": 1790286347414491300,
+  "mtime_ns": 1790620408469677100,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",

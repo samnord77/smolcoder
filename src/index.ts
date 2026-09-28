@@ -8,20 +8,22 @@
 // projects and sessions side by side, started from anywhere.
 // Headless: smol -p "prompt" for people and automations.
 
-import * as fs from "fs";
-import * as os from "os";
-import * as path from "path";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
 import { Agent } from "./agent";
 import { ensureBuilt } from "./build-check";
 import { effortForBackend, loadConfig } from "./config";
 import { ContextManager } from "./context";
 import { detectAll } from "./detect";
-import { routeProvider } from "./router";
 import { EventBus } from "./events";
 import { terminalLogo } from "./logo";
+import { createMcpBridge } from "./mcp";
 import { Plan } from "./plan";
+import { loadPlugins } from "./plugins";
 import { buildSystemPrompt, loadAgentsMd, loadMemoryMd } from "./prompt";
-import { Effort } from "./providers/types";
+import type { Effort } from "./providers/types";
+import { routeProvider } from "./router";
 import {
   effortAdvice,
   makeProvider,
@@ -29,21 +31,19 @@ import {
   prepareModel,
   reportCompactions,
   Session,
-  SessionPrefs,
+  type SessionPrefs,
   sessionLine,
   setupWithoutLocalModels,
   yoloBanner,
 } from "./session";
-import { Mode, ToolContext } from "./tools/index";
-import { createMcpBridge } from "./mcp";
-import { loadPlugins } from "./plugins";
+import type { Mode, ToolContext } from "./tools/index";
 import { pickShell } from "./tools/shell";
 import { TaskManager } from "./tools/tasks";
 import { Tui } from "./tui/tui";
 import { UI } from "./ui";
 import { c } from "./util";
-import { askHubToOpen, hubVersion, pingHub, readHubRecord, WebHub } from "./web/hub";
 import { launchApp } from "./web/app";
+import { askHubToOpen, hubVersion, pingHub, readHubRecord, WebHub } from "./web/hub";
 
 const VERSION = require("../package.json").version as string;
 const DEFAULT_WEB_PORT = 7433;
@@ -86,8 +86,7 @@ function parseArgs(argv: string[]): CliArgs {
       const v = needValue(a, argv[++i]);
       if (v === "ro" || v === "read-only" || v === "readonly") args.mode = "ro";
       else if (v === "edit" || v === "e" || v === "write" || v === "w") args.mode = "edit";
-      else if (v === "bypass" || v === "bypass-permissions" || v === "b" || v === "yolo" || v === "y")
-        args.mode = "bypass";
+      else if (v === "bypass" || v === "bypass-permissions" || v === "b" || v === "yolo" || v === "y") args.mode = "bypass";
       else {
         console.error(`Unknown mode "${v}". Use ro, edit, or bypass.`);
         process.exit(1);
@@ -101,8 +100,7 @@ function parseArgs(argv: string[]): CliArgs {
         console.error("--ctx must be a whole number of at least 1024 tokens.");
         process.exit(1);
       }
-    }
-    else if (a === "--effort") {
+    } else if (a === "--effort") {
       const v = needValue(a, argv[++i]);
       if (v === "off" || v === "low" || v === "medium" || v === "high") args.effort = v;
       else if (v === "default") args.effort = null;
@@ -124,7 +122,7 @@ function parseArgs(argv: string[]): CliArgs {
         console.error("--verify-attempts must be a positive whole number.");
         process.exit(1);
       }
-    }     else if (a === "--print" || a === "-p") args.print = needValue(a, argv[++i]);
+    } else if (a === "--print" || a === "-p") args.print = needValue(a, argv[++i]);
     else if (a === "--app") args.app = true;
     else if (a === "--host") {
       const v = needValue(a, argv[++i]).trim();
@@ -258,9 +256,9 @@ async function main(): Promise<void> {
     console.error("Cannot run without dist/. Run `npm run build` in the project, then retry.");
     process.exit(1);
   }
-  if (args.verify && (!args.print || args.web)) throw new Error('--verify requires a headless -p run');
-  if (args.verifyAttempts !== undefined && !args.verify) throw new Error('--verify-attempts requires --verify');
-  if (args.app && !args.web) throw new Error('--app needs --web (smol --web --app)');
+  if (args.verify && (!args.print || args.web)) throw new Error("--verify requires a headless -p run");
+  if (args.verifyAttempts !== undefined && !args.verify) throw new Error("--verify-attempts requires --verify");
+  if (args.app && !args.web) throw new Error("--app needs --web (smol --web --app)");
   if (!fs.existsSync(args.workspace) || !fs.statSync(args.workspace).isDirectory()) {
     console.error(`Workspace folder does not exist: ${args.workspace}`);
     process.exit(1);
@@ -328,8 +326,18 @@ async function runHeadless(args: CliArgs): Promise<void> {
   const memoryMd = loadMemoryMd(args.workspace);
   if (memoryMd) ui.status(`· MEMORY.md loaded (${memoryMd.split("\n").length} lines)`);
   const systemPrompt = buildSystemPrompt({ workspace: args.workspace, mode, shellLabel: shell.label, agentsMd, memoryMd });
-  const agent = new Agent(provider, mode, systemPrompt, toolCtx, ctxMgr, bus, ui, false, 1000,
-    args.verify ? { command: args.verify, maxAttempts: args.verifyAttempts } : undefined);
+  const agent = new Agent(
+    provider,
+    mode,
+    systemPrompt,
+    toolCtx,
+    ctxMgr,
+    bus,
+    ui,
+    false,
+    1000,
+    args.verify ? { command: args.verify, maxAttempts: args.verifyAttempts } : undefined
+  );
   reportCompactions(bus, ui);
   const shutdownTools = (): void => {
     taskManager.killAll();
@@ -363,7 +371,9 @@ async function runHeadless(args: CliArgs): Promise<void> {
       `[stats] ${JSON.stringify({
         backend: chosen.backend,
         outcome: agent.outcome,
-        verification: agent.verificationResult ? { attempts: agent.verificationResult.attempts, passed: agent.verificationResult.passed } : null,
+        verification: agent.verificationResult
+          ? { attempts: agent.verificationResult.attempts, passed: agent.verificationResult.passed }
+          : null,
         model: chosen.id,
         durationMs: st.durationMs,
         modelCalls: st.modelCalls,
@@ -385,9 +395,7 @@ async function runHeadless(args: CliArgs): Promise<void> {
 
 async function runInteractive(args: CliArgs): Promise<void> {
   if (!process.stdout.isTTY || !process.stdin.isTTY) {
-    console.error(
-      'Interactive mode needs a terminal. For headless use, run: smol -p "your prompt" — or serve a browser UI with --web'
-    );
+    console.error('Interactive mode needs a terminal. For headless use, run: smol -p "your prompt" — or serve a browser UI with --web');
     process.exit(1);
   }
 
@@ -395,7 +403,7 @@ async function runInteractive(args: CliArgs): Promise<void> {
   const cfg = loadConfig();
   process.stdout.write(c.dim("· looking for Ollama and LM Studio…"));
   let chosen = await prepareModel(prefsOf(args), cfg, (label) => {
-    process.stdout.write("\r\x1b[2K" + c.dim(`· ${label}…`));
+    process.stdout.write(`\r\x1b[2K${c.dim(`· ${label}…`)}`);
   });
   process.stdout.write("\r\x1b[2K");
 
@@ -445,7 +453,7 @@ function isHomeOrRoot(p: string): boolean {
 }
 
 async function runWeb(args: CliArgs): Promise<void> {
-  console.log(`${c.bold("smol")}${c.dim(c.bold("coder"))} ${c.dim("v" + VERSION + " · web")}`);
+  console.log(`${c.bold("smol")}${c.dim(c.bold("coder"))} ${c.dim(`v${VERSION} · web`)}`);
   const port = args.webPort ?? DEFAULT_WEB_PORT;
   const workspace = args.workspace;
   const autoStart = !!args.workspaceGiven || !isHomeOrRoot(workspace);
@@ -462,10 +470,8 @@ async function runWeb(args: CliArgs): Promise<void> {
     }
     const r = await askHubToOpen(rec, workspace, autoStart);
     if (r) {
-      const url = `http://127.0.0.1:${rec.port}/?k=${rec.token}${r.id ? "#" + r.id : ""}`;
-      console.log(
-        `\n  ${autoStart ? "started a session for" : "added"} ${workspace} in the running web UI:\n  ${url}\n`
-      );
+      const url = `http://127.0.0.1:${rec.port}/?k=${rec.token}${r.id ? `#${r.id}` : ""}`;
+      console.log(`\n  ${autoStart ? "started a session for" : "added"} ${workspace} in the running web UI:\n  ${url}\n`);
       if (args.app) openAppWindow(url);
       return;
     }

@@ -54,10 +54,7 @@ test("relevant skills auto-match design work, ignore backend work", () => {
 
 test("auto repair lessons are kept only for hard repairs and capped", () => {
   const ws = scratch();
-  assert.equal(
-    skills.saveAutoRepairLesson(ws, { command: "npm test", attempts: 1, failure: "x", files: [], commands: [] }),
-    null
-  );
+  assert.equal(skills.saveAutoRepairLesson(ws, { command: "npm test", attempts: 1, failure: "x", files: [], commands: [] }), null);
   const name = skills.saveAutoRepairLesson(ws, {
     command: "npm run build && npm test",
     attempts: 3,
@@ -70,7 +67,11 @@ test("auto repair lessons are kept only for hard repairs and capped", () => {
   const dir = path.join(ws, ".smol", "skills");
   for (let i = 0; i < 25; i++) fs.writeFileSync(path.join(dir, `auto-seed${i}.md`), "x");
   skills.saveAutoRepairLesson(ws, {
-    command: "npm test", attempts: 2, failure: "y", files: [], commands: [],
+    command: "npm test",
+    attempts: 2,
+    failure: "y",
+    files: [],
+    commands: [],
   });
   const autos = fs.readdirSync(dir).filter((f) => f.startsWith("auto-"));
   assert.ok(autos.length <= 20, `expected at most 20 auto lessons, got ${autos.length}`);

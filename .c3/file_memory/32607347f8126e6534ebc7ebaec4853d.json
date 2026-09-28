@@ -1,10 +1,10 @@
 {
   "path": "package-lock.json",
-  "content_hash": "cc0a51af12f038d6e323bfd6dbd37731",
-  "updated_at": "2026-09-27T23:02:43",
-  "lines": 2175,
-  "size_bytes": 79618,
-  "mtime_ns": 1790546483557680100,
+  "content_hash": "a5d53fe1d7cc14258a7a05507ab0f169",
+  "updated_at": "2026-09-28T19:28:34",
+  "lines": 2368,
+  "size_bytes": 85642,
+  "mtime_ns": 1790620044609857600,
   "language": "json",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -41,7 +41,7 @@
       "type": "property",
       "name": "packages",
       "line_start": 6,
-      "line_end": 2174,
+      "line_end": 2367,
       "signature": "packages"
     }
   ]

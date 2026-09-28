@@ -3,10 +3,10 @@
 // about what it is. No ping, no raw sockets, no admin rights — the same on
 // Windows, macOS and Linux. Only ever run when the user asks for it.
 
-import * as dns from "dns";
-import * as net from "net";
-import * as os from "os";
-import { BackendKind, identifyServer } from "./detect";
+import * as dns from "node:dns";
+import * as net from "node:net";
+import * as os from "node:os";
+import { type BackendKind, identifyServer } from "./detect";
 import { LMSTUDIO_PORT, OLLAMA_PORT } from "./hosts";
 
 export interface Subnet {

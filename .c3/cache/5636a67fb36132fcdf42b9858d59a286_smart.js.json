@@ -1,0 +1,9 @@
+{
+  "original_tokens": 251,
+  "compressed_tokens": 53,
+  "saved_tokens": 198,
+  "savings_pct": 78.9,
+  "compressed": "# edit-feedback.test.js (.js) \u2014 17 lines\nconst test=require('node:test');\nconst assert=require('node:assert/strict');\nconst fs=require('node:fs');\nconst os=require('node:os');\nconst path=require('node:path');",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\edit-feedback.test.js"
+}

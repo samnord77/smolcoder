@@ -1,20 +1,20 @@
 {
   "path": "src/hosts.ts",
-  "content_hash": "f2cda4bab93fd4ef777284964e211c1e",
-  "updated_at": "2026-09-24T23:44:45",
-  "lines": 112,
-  "size_bytes": 5547,
-  "mtime_ns": 1790289881941166900,
+  "content_hash": "6cbabaab1289ec75fb38b11b64a62866",
+  "updated_at": "2026-09-28T19:36:39",
+  "lines": 119,
+  "size_bytes": 5484,
+  "mtime_ns": 1790620578715893600,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
   "sections": [
     {
       "type": "import",
-      "name": "import { SavedHost } from \"./config\";",
+      "name": "import type { SavedHost } from \"./config\";",
       "line_start": 6,
       "line_end": 6,
-      "signature": "import { SavedHost } from \"./config\";"
+      "signature": "import type { SavedHost } from \"./config\";"
     },
     {
       "type": "constant",
@@ -91,7 +91,7 @@
       "type": "function",
       "name": "isPrivateHost",
       "line_start": 102,
-      "line_end": 112,
+      "line_end": 119,
       "signature": "function isPrivateHost(hostname: string): boolean {"
     }
   ]

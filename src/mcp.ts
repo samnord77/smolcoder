@@ -8,10 +8,10 @@
 // stay in your environment (`"Bearer ${MY_KEY}"`), never in files. Every call
 // in edit mode asks first (like outside commands); bypass runs without asking;
 // headless -p refuses. Server config example lives in docs/plugins.md.
-import { spawn, ChildProcess } from "child_process";
-import * as fs from "fs";
-import * as os from "os";
-import * as path from "path";
+import { type ChildProcess, spawn } from "node:child_process";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
 import { shellEnv } from "./tools/shell";
 
 export interface McpServerConfig {
@@ -40,7 +40,7 @@ const MAX_TOOLS = 50;
 function fallbackBinDirs(): string[] {
   const out: string[] = [];
   const push = (p: string | undefined) => {
-    if (p && p.trim()) out.push(p.trim());
+    if (p?.trim()) out.push(p.trim());
   };
   push(path.dirname(process.execPath)); // node.exe's own folder
   const pf = process.env.ProgramFiles ?? "C:\\Program Files";
@@ -83,9 +83,7 @@ export function resolveCommand(cmd: string): string {
   // .cmd first: npx/npm/yarn wrappers are .cmd, the tests and real configs rely on it.
   const exts = [".cmd", ".exe", ".bat", ".ps1", ...fromExt].filter((e, i, all) => all.indexOf(e) === i);
   const inheritedPath = process.env.PATH ?? process.env.Path ?? "";
-  const dirs = [...inheritedPath.split(path.delimiter), ...fallbackBinDirs()]
-    .map((d) => d.trim().replace(/^"|"$/g, ""))
-    .filter(Boolean);
+  const dirs = [...inheritedPath.split(path.delimiter), ...fallbackBinDirs()].map((d) => d.trim().replace(/^"|"$/g, "")).filter(Boolean);
   const seen = new Set<string>();
   for (const ext of exts) {
     for (const dir of dirs) {
@@ -244,7 +242,10 @@ export class McpClient {
         };
         proc =
           process.platform === "win32" && /\.(cmd|bat)$/i.test(resolved)
-            ? spawn([resolved, ...args].map((a) => (/[\s&|<>^"]/.test(a) ? `"${a.replace(/"/g, '""')}"` : a)).join(" "), { ...opts, shell: true })
+            ? spawn([resolved, ...args].map((a) => (/[\s&|<>^"]/.test(a) ? `"${a.replace(/"/g, '""')}"` : a)).join(" "), {
+                ...opts,
+                shell: true,
+              })
             : spawn(resolved, args, opts);
       } catch (err: any) {
         reject(new Error(`could not start MCP server "${this.cfg.name}": ${err?.message ?? err}`));
@@ -309,7 +310,7 @@ export class McpClient {
       return;
     }
     try {
-      this.proc?.stdin?.write(JSON.stringify({ jsonrpc: "2.0", method }) + "\n");
+      this.proc?.stdin?.write(`${JSON.stringify({ jsonrpc: "2.0", method })}\n`);
     } catch {
       /* best effort */
     }
@@ -317,10 +318,7 @@ export class McpClient {
 
   /** POST one JSON-RPC message to a remote address (plain JSON or SSE
    * answer). Servers may pin a session id header for follow-up calls. */
-  private async remotePost(
-    payload: any,
-    timeoutMs: number
-  ): Promise<{ status: number; text: string }> {
+  private async remotePost(payload: any, timeoutMs: number): Promise<{ status: number; text: string }> {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), timeoutMs);
     try {
@@ -425,7 +423,7 @@ export class McpClient {
       }, timeoutMs);
       this.pending.set(id, { resolve, reject, timer });
       try {
-        this.proc?.stdin?.write(JSON.stringify({ jsonrpc: "2.0", id, method, params }) + "\n");
+        this.proc?.stdin?.write(`${JSON.stringify({ jsonrpc: "2.0", id, method, params })}\n`);
       } catch (err: any) {
         this.pending.delete(id);
         clearTimeout(timer);
@@ -441,7 +439,8 @@ export class McpClient {
     for (let page = 0; page < 4 && out.length < MAX_TOOLS; page++) {
       const res = await this.request("tools/list", cursor ? { cursor } : {}, this.cfg.timeoutMs ?? DEFAULT_TIMEOUT_MS);
       for (const t of res?.tools ?? []) {
-        if (t && typeof t.name === "string") out.push({ name: t.name, ...(typeof t.description === "string" ? { description: t.description } : {}) });
+        if (t && typeof t.name === "string")
+          out.push({ name: t.name, ...(typeof t.description === "string" ? { description: t.description } : {}) });
         if (out.length >= MAX_TOOLS) break;
       }
       cursor = typeof res?.nextCursor === "string" ? res.nextCursor : undefined;
@@ -536,7 +535,7 @@ export function createMcpBridge(workspace: string): McpBridge {
       found.client.close();
       clients.delete(found.cfg.name);
       const why = String(err?.message ?? err);
-      const missing = /ENOENT/i.test(why) ? (cfg.command ?? "").split(/[\\/]/).pop() ?? "" : "";
+      const missing = /ENOENT/i.test(why) ? ((cfg.command ?? "").split(/[\\/]/).pop() ?? "") : "";
       return {
         name: cfg.name,
         ok: false,
@@ -586,7 +585,11 @@ export function createMcpBridge(workspace: string): McpBridge {
       }
       const found = of(server);
       if (!found) {
-        return `Error: no MCP server named "${server}". Configured: ${loadMcpConfig(workspace).map((s) => s.name).join(", ") || "none"}. See docs/plugins.md.`;
+        return `Error: no MCP server named "${server}". Configured: ${
+          loadMcpConfig(workspace)
+            .map((s) => s.name)
+            .join(", ") || "none"
+        }. See docs/plugins.md.`;
       }
       let args: Record<string, any> = {};
       const raw = (argsJson ?? "").trim();
@@ -641,15 +644,21 @@ export function createMcpBridge(workspace: string): McpBridge {
     async debugServer(name: string): Promise<string> {
       const needle = (name ?? "").trim().toLowerCase();
       if (!needle) {
-        return `Error: usage /mcp debug <nom> — ex. /mcp debug files. Configured: ${loadMcpConfig(workspace).map((s) => s.name).join(", ") || "none"}.`;
+        return `Error: usage /mcp debug <nom> — ex. /mcp debug files. Configured: ${
+          loadMcpConfig(workspace)
+            .map((s) => s.name)
+            .join(", ") || "none"
+        }.`;
       }
       const cfg = loadMcpConfig(workspace).find((s) => s.name.toLowerCase() === needle);
       if (!cfg) {
-        return `Error: no MCP server named "${name}". Configured: ${loadMcpConfig(workspace).map((s) => s.name).join(", ") || "none"}. See docs/plugins.md.`;
+        return `Error: no MCP server named "${name}". Configured: ${
+          loadMcpConfig(workspace)
+            .map((s) => s.name)
+            .join(", ") || "none"
+        }. See docs/plugins.md.`;
       }
-      const where = cfg.command
-        ? `command "${cfg.command}${cfg.args?.length ? " " + cfg.args.join(" ") : ""}"`
-        : `url "${cfg.url ?? ""}"`;
+      const where = cfg.command ? `command "${cfg.command}${cfg.args?.length ? ` ${cfg.args.join(" ")}` : ""}"` : `url "${cfg.url ?? ""}"`;
       const disabledNote = cfg.enabled === false ? " (désactivé — test forcé malgré enabled: false)" : "";
       const probe = new McpClient({ ...cfg, timeoutMs: 8000 }, workspace);
       try {

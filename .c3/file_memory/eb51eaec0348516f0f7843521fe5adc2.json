@@ -1,34 +1,34 @@
 {
   "path": "src/subagents.ts",
-  "content_hash": "1ee5f9b3b2ed02954944ce6e4dd876cc",
-  "updated_at": "2026-09-26T17:51:05",
-  "lines": 173,
-  "size_bytes": 8954,
-  "mtime_ns": 1790425667206424600,
+  "content_hash": "a6192ec40640b4025ea19bf8f488c71e",
+  "updated_at": "2026-09-28T19:36:38",
+  "lines": 197,
+  "size_bytes": 8997,
+  "mtime_ns": 1790620579683423700,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
   "sections": [
     {
       "type": "import",
-      "name": "import * as fs from \"fs\";",
+      "name": "import * as fs from \"node:fs\";",
       "line_start": 6,
       "line_end": 6,
-      "signature": "import * as fs from \"fs\";"
+      "signature": "import * as fs from \"node:fs\";"
     },
     {
       "type": "import",
-      "name": "import * as os from \"os\";",
+      "name": "import * as os from \"node:os\";",
       "line_start": 7,
       "line_end": 7,
-      "signature": "import * as os from \"os\";"
+      "signature": "import * as os from \"node:os\";"
     },
     {
       "type": "import",
-      "name": "import * as path from \"path\";",
+      "name": "import * as path from \"node:path\";",
       "line_start": 8,
       "line_end": 8,
-      "signature": "import * as path from \"path\";"
+      "signature": "import * as path from \"node:path\";"
     },
     {
       "type": "interface",
@@ -56,49 +56,49 @@
       "type": "constant",
       "name": "BUILTIN_ROLES",
       "line_start": 26,
-      "line_end": 99,
+      "line_end": 121,
       "signature": "const BUILTIN_ROLES: SubagentRole[] = ["
     },
     {
       "type": "function",
       "name": "rolesDir",
-      "line_start": 101,
-      "line_end": 103,
+      "line_start": 123,
+      "line_end": 125,
       "signature": "function rolesDir(workspace: string): string {"
     },
     {
       "type": "function",
       "name": "machineDirs",
-      "line_start": 105,
-      "line_end": 108,
+      "line_start": 127,
+      "line_end": 130,
       "signature": "function machineDirs(): string[] {"
     },
     {
       "type": "function",
       "name": "parseRole",
-      "line_start": 110,
-      "line_end": 127,
+      "line_start": 132,
+      "line_end": 151,
       "signature": "function parseRole(raw: string, fallbackName: string, source: SubagentRole[\"source\"]): SubagentRole | null {"
     },
     {
       "type": "function",
       "name": "readDirRoles",
-      "line_start": 129,
-      "line_end": 147,
+      "line_start": 153,
+      "line_end": 171,
       "signature": "function readDirRoles(dir: string, source: SubagentRole[\"source\"]): SubagentRole[] {"
     },
     {
       "type": "function",
       "name": "loadSubagentRoles",
-      "line_start": 151,
-      "line_end": 159,
+      "line_start": 175,
+      "line_end": 183,
       "signature": "function loadSubagentRoles(workspace: string): SubagentRole[] {"
     },
     {
       "type": "function",
       "name": "delegatePrompt",
-      "line_start": 163,
-      "line_end": 173,
+      "line_start": 187,
+      "line_end": 197,
       "signature": "function delegatePrompt(role: SubagentRole, task: string): string {"
     }
   ]

@@ -1,0 +1,121 @@
+{
+  "job_id": "94e9aea8c29c",
+  "kind": "session_digest",
+  "session_id": "20260928_112948_915b31715629",
+  "created_at": "2026-09-28T16:32:26.420982+00:00",
+  "updated_at": "2026-09-28T16:36:23.549395+00:00",
+  "attempts": 2,
+  "status": "done_degraded",
+  "last_error": "no LLM tier available",
+  "tier_used": "mechanical",
+  "payload": {
+    "session_file": "C:\\Users\\DELL\\smolcoder-source\\.c3\\sessions\\session_20260928_112948_915b31715629.json",
+    "started_at": "2026-09-28T11:29:48.706450+00:00",
+    "ended_at": "2026-09-28T16:32:26.419984+00:00",
+    "description": "MCP server session",
+    "decisions": [
+      {
+        "decision": "Vague unstage livr\u00e9e et commit\u00e9e (73cf328) : src/git.ts (gitUnstage, gitApplyHunk action \"unstage\", queryGit cases unstage/unstage_hunk, GIT_ACTIONS), src/web/hub.ts (POST /code/diff/unstage, guard unstage sur /code/diff/hunk), src/web/client.ts (bouton Unstage fichier+hunk en mode staged, Stage/Revert/lignes masqu\u00e9s), tests git.test.js (2 nouveaux), code-api.test.js (endpoint + read-only gate), client-smoke.test.js (mode staged : Unstage pr\u00e9sent, Stage/Revert absents). Bug de harness trouv\u00e9 et corrig\u00e9 : stub DOM sans querySelector/querySelectorAll \u2192 applyReviewFilter() throwt en fin de rendu review \u2192 catch qui jette tout le contenu. Suite compl\u00e8te en 5 lots : 326 pass / 1 skip / 1 flaky recovery (pr\u00e9-existant).",
+        "reasoning": "",
+        "timestamp": "2026-09-28T14:44:44.597342+00:00"
+      },
+      {
+        "decision": "Vague smolcoder compl\u00e8te livr\u00e9e : \u00e9tapes 1-6 (outils d\u00e9di\u00e9s fs-manage 5/5, suivi UI dynamique, offload shell r\u00e9el avec ShellControl/endpoints/carte, onglet revue redesign\u00e9 en deux colonnes, suite compl\u00e8te 5 lots 337 pass/1 skip/1 flaky, contr\u00f4le visuel r\u00e9el Chrome CDP avec 3 captures valid\u00e9es puis script temp supprim\u00e9). Corrections de compteurs de tests (19\u219222 dans lsp/lsp-pro/mcp). Commit a513aa9 sur main.",
+        "reasoning": "Prochaine \u00e9tape : nouvelle vague ou demandes utilisateur (les 6 \u00e9tapes de la vague sont closes).",
+        "timestamp": "2026-09-28T16:08:25.311048+00:00"
+      }
+    ],
+    "files_touched": [
+      {
+        "file": "src/git.ts",
+        "type": "modified",
+        "summary": "",
+        "timestamp": "2026-09-28T11:43:43.731604+00:00"
+      },
+      {
+        "file": "src/git.ts",
+        "type": "modified",
+        "summary": "",
+        "timestamp": "2026-09-28T11:44:09.071526+00:00"
+      },
+      {
+        "file": "src/git.ts",
+        "type": "modified",
+        "summary": "",
+        "timestamp": "2026-09-28T11:56:55.708204+00:00"
+      },
+      {
+        "file": "src/mcp.ts",
+        "type": "modified",
+        "summary": "",
+        "timestamp": "2026-09-28T12:13:12.871203+00:00"
+      },
+      {
+        "file": "test/mcp.test.js",
+        "type": "modified",
+        "summary": "",
+        "timestamp": "2026-09-28T12:13:30.272204+00:00"
+      },
+      {
+        "file": "src/session.ts",
+        "type": "modified",
+        "summary": "",
+        "timestamp": "2026-09-28T12:36:20.203662+00:00"
+      },
+      {
+        "file": "test/network.test.js",
+        "type": "modified",
+        "summary": "",
+        "timestamp": "2026-09-28T12:37:04.655559+00:00"
+      },
+      {
+        "file": "test/network.test.js",
+        "type": "modified",
+        "summary": "",
+        "timestamp": "2026-09-28T12:40:04.358636+00:00"
+      },
+      {
+        "file": "src/network.ts",
+        "type": "modified",
+        "summary": "",
+        "timestamp": "2026-09-28T12:45:55.711214+00:00"
+      },
+      {
+        "file": "src/tui/tui.ts",
+        "type": "modified",
+        "summary": "",
+        "timestamp": "2026-09-28T12:45:56.458636+00:00"
+      },
+      {
+        "file": "src/session.ts",
+        "type": "modified",
+        "summary": "",
+        "timestamp": "2026-09-28T12:46:44.755975+00:00"
+      },
+      {
+        "file": "test/network.test.js",
+        "type": "modified",
+        "summary": "",
+        "timestamp": "2026-09-28T12:47:11.491534+00:00"
+      },
+      {
+        "file": "test/network.test.js",
+        "type": "modified",
+        "summary": "",
+        "timestamp": "2026-09-28T12:56:26.997935+00:00"
+      },
+      {
+        "file": "src/tui/tui.ts",
+        "type": "modified",
+        "summary": "",
+        "timestamp": "2026-09-28T13:03:15.358883+00:00"
+      },
+      {
+        "file": "test/web.test.js",
+        "type": "modified",
+        "summary": "",
+        "timestamp": "2026-09-28T13:25:21.936577+00:00"
+      }
+    ]
+  }
+}

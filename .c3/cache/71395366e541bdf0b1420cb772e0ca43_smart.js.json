@@ -1,0 +1,9 @@
+{
+  "original_tokens": 3823,
+  "compressed_tokens": 259,
+  "saved_tokens": 3564,
+  "savings_pct": 93.2,
+  "compressed": "# recovery.test.js (.js) \u2014 218 lines\nconst test = require('node:test');\nconst assert = require('node:assert/strict');\nconst fs = require('node:fs');\nconst os = require('node:os');\nconst path = require('node:path');\nconst state = { originalRequest: 'Build the app; preserve keyboard support.', currentRequest: 'Fix the editor.', filesTouched: new Set(['editor.js']), commandsRun: ['npm test'], planLine: 'Plan: verify editor' };\nconst messages = [{ role: 'system', content: 'code' }, { role: 'user', content: 'hello' }];\nconst ui = () => ({ token() {}, thinking() {}, toolCall() {}, toolResult() {}, println() {}, status() {}, warn() {}, error() {}, startSpinner() {}, stopSpinner() {}, turnEnd() {}, planUpdated() {}, async confirmCommand() { return 'yes'; } });\nconst fake = (fn) => ({ label: 'fake', modelId: 'fake', contextWindow: 8000, maxOutputTokens: 2000, setEffort() {}, effortLabel() { return null; }, chat: fn });\nfunction agentFor(provider, view = ui(), max = 10)",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\recovery.test.js"
+}

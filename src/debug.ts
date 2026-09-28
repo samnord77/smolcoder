@@ -13,15 +13,15 @@
 //   {"transport":"stdio","adapter":["my-dap-adapter"],"request":"launch",
 //    "program":"app.js","breakpoints":[{"path":"app.js","lines":[5]}]}
 // No config, no mock: the tool answers with setup coaching. Never throws.
-import { spawn, ChildProcess } from "child_process";
-import * as fs from "fs";
-import * as net from "net";
-import * as path from "path";
+import { type ChildProcess, spawn } from "node:child_process";
+import * as fs from "node:fs";
+import * as net from "node:net";
+import * as path from "node:path";
 import { encodeLsp } from "./lsp";
-import { resolveInWorkspace } from "./sandbox";
 import { resolveCommand } from "./mcp";
+import { resolveInWorkspace } from "./sandbox";
 
-const DEFAULT_BUDGET_MS = 60_000;
+const _DEFAULT_BUDGET_MS = 60_000;
 const TRANSCRIPT_CAP = 6000;
 
 interface DapPending {
@@ -236,21 +236,21 @@ export async function runDebugSession(client: DapClient, plan: DebugPlan, root: 
   const deadline = Date.now() + plan.budgetMs;
   const left = () => Math.max(1000, deadline - Date.now());
 
-  await client.request("initialize", {
-    clientID: "smolcoder",
-    adapterID: "smolcoder",
-    pathFormat: "path",
-    linesStartAt1: true,
-    columnsStartAt1: true,
-  }, left());
+  await client.request(
+    "initialize",
+    {
+      clientID: "smolcoder",
+      adapterID: "smolcoder",
+      pathFormat: "path",
+      linesStartAt1: true,
+      columnsStartAt1: true,
+    },
+    left()
+  );
   if (plan.request === "attach") {
     await client.request("attach", plan.launchArgs ?? {}, left());
   } else {
-    await client.request(
-      "launch",
-      plan.launchArgs ?? { program: plan.program, args: plan.programArgs ?? [], noDebug: false },
-      left()
-    );
+    await client.request("launch", plan.launchArgs ?? { program: plan.program, args: plan.programArgs ?? [], noDebug: false }, left());
   }
   let verified = 0;
   let wanted = 0;
@@ -307,11 +307,7 @@ export async function runDebugSession(client: DapClient, plan: DebugPlan, root: 
             const scopes = await client.request("scopes", { frameId: frames[0].id }, left());
             const first = Array.isArray(scopes?.scopes) ? scopes.scopes[0] : null;
             if (first) {
-              const vars = await client.request(
-                "variables",
-                { variablesReference: first.variablesReference, count: 20 },
-                left()
-              );
+              const vars = await client.request("variables", { variablesReference: first.variablesReference, count: 20 }, left());
               const arr = Array.isArray(vars?.variables) ? vars.variables : [];
               for (const v of arr.slice(0, 20)) {
                 say(`  ${String(v?.name ?? "?").slice(0, 40)} = ${fmtValue(v?.value)}`);
@@ -420,7 +416,10 @@ export async function queryDebug(root: string, args: DebugQuery, opts?: { canWri
   if (Array.isArray(cfg.breakpoints)) {
     for (const b of cfg.breakpoints.slice(0, 5)) {
       if (b && typeof b.path === "string") {
-        breakpoints.push({ path: b.path, lines: Array.isArray(b.lines) ? b.lines.map(Number).filter((n: number) => Number.isSafeInteger(n)) : [] });
+        breakpoints.push({
+          path: b.path,
+          lines: Array.isArray(b.lines) ? b.lines.map(Number).filter((n: number) => Number.isSafeInteger(n)) : [],
+        });
       }
     }
   }

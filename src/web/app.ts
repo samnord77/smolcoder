@@ -2,10 +2,10 @@
 // window instead of a browser tab. Chrome/Edge `--app=` gives a chromeless
 // window with its own icon; anywhere else the system browser opens the URL.
 // No new dependency: only the browsers already on the machine are used.
-import { spawn } from "child_process";
-import * as fs from "fs";
-import * as os from "os";
-import * as path from "path";
+import { spawn } from "node:child_process";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
 
 export interface AppEnv {
   [k: string]: string | undefined;
@@ -22,9 +22,7 @@ export function findAppBrowser(platform: string = process.platform, env: AppEnv 
     }
   };
   if (platform === "win32") {
-    const roots = [env["ProgramFiles"], env["ProgramFiles(x86)"], env["LOCALAPPDATA"]].filter(
-      (r): r is string => !!r
-    );
+    const roots = [env.ProgramFiles, env["ProgramFiles(x86)"], env.LOCALAPPDATA].filter((r): r is string => !!r);
     for (const exe of ["Google\\Chrome\\Application\\chrome.exe", "Microsoft\\Edge\\Application\\msedge.exe"]) {
       for (const root of roots) {
         const full = path.join(root, exe);

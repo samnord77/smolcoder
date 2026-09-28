@@ -98,9 +98,15 @@ export async function fetchUrl(root: string, args: any, signal?: AbortSignal): P
     const isHtml = /<html|<!doctype/i.test(body);
     const title = isHtml ? htmlToText(body).title : pageTitle(body);
     const rawText = isHtml ? htmlToText(body).text : body;
-    const clean = rawText.replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+    const clean = rawText
+      .replace(/[ \t]+\n/g, "\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
     if (!clean) return "Error: the page contains no readable text.";
-    const head = clean.length > OUTPUT_CAP ? clean.slice(0, OUTPUT_CAP) + `\n[page capped at ${OUTPUT_CAP} characters — ask for one section at a time]` : clean;
+    const head =
+      clean.length > OUTPUT_CAP
+        ? `${clean.slice(0, OUTPUT_CAP)}\n[page capped at ${OUTPUT_CAP} characters — ask for one section at a time]`
+        : clean;
     return `${title ? `Title: ${title}\n` : ""}URL: ${url.toString()}\n\n${head}`;
   } catch (err: any) {
     if (err?.name === "AbortError" || signal?.aborted) return "Error: the page took too long (25s) — try a lighter page.";

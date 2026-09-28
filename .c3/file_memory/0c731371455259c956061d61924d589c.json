@@ -1,48 +1,48 @@
 {
   "path": "src/providers/lmstudio.ts",
-  "content_hash": "71b26777d5ee61a40f178146808cbe59",
-  "updated_at": "2026-09-24T17:24:23",
-  "lines": 345,
-  "size_bytes": 14044,
-  "mtime_ns": 1790260569954405500,
+  "content_hash": "eb0f318ca609b820ac509d522682663f",
+  "updated_at": "2026-09-28T19:36:40",
+  "lines": 342,
+  "size_bytes": 13710,
+  "mtime_ns": 1790620579326803300,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
   "sections": [
     {
       "type": "import",
-      "name": "import {",
-      "line_start": 14,
-      "line_end": 27,
-      "signature": "import {"
-    },
-    {
-      "type": "import",
-      "name": "import { responseLines, streamJson, withDeadline } from \"./transport\";",
-      "line_start": 28,
-      "line_end": 28,
-      "signature": "import { responseLines, streamJson, withDeadline } from \"./transport\";"
-    },
-    {
-      "type": "import",
-      "name": "import { scheduleInference } from \"./scheduler\";",
-      "line_start": 29,
-      "line_end": 29,
-      "signature": "import { scheduleInference } from \"./scheduler\";"
-    },
-    {
-      "type": "import",
       "name": "import { imageDataUrl } from \"../attachments\";",
-      "line_start": 30,
-      "line_end": 30,
+      "line_start": 14,
+      "line_end": 14,
       "signature": "import { imageDataUrl } from \"../attachments\";"
     },
     {
       "type": "import",
       "name": "import { tryFetchJson } from \"../util\";",
-      "line_start": 31,
-      "line_end": 31,
+      "line_start": 15,
+      "line_end": 15,
       "signature": "import { tryFetchJson } from \"../util\";"
+    },
+    {
+      "type": "import",
+      "name": "import { scheduleInference } from \"./scheduler\";",
+      "line_start": 16,
+      "line_end": 16,
+      "signature": "import { scheduleInference } from \"./scheduler\";"
+    },
+    {
+      "type": "import",
+      "name": "import { responseLines, streamJson, withDeadline } from \"./transport\";",
+      "line_start": 17,
+      "line_end": 17,
+      "signature": "import { responseLines, streamJson, withDeadline } from \"./transport\";"
+    },
+    {
+      "type": "import",
+      "name": "import {",
+      "line_start": 18,
+      "line_end": 31,
+      "signature": "import {"
     },
     {
       "type": "interface",
@@ -77,7 +77,7 @@
       "type": "class",
       "name": "LmStudioProvider",
       "line_start": 104,
-      "line_end": 345,
+      "line_end": 342,
       "signature": "class LmStudioProvider implements Provider {",
       "children": [
         {
@@ -167,7 +167,7 @@
           "type": "method",
           "name": "chain",
           "line_start": 195,
-          "line_end": 220,
+          "line_end": 216,
           "signature": "private async chain(base: any, opts: ChatOptions, started: { streaming: boolean }): Promise<ChatResult> {",
           "async": true,
           "access": "private"
@@ -175,8 +175,8 @@
         {
           "type": "method",
           "name": "request",
-          "line_start": 222,
-          "line_end": 224,
+          "line_start": 218,
+          "line_end": 220,
           "signature": "private async request(body: any, opts: ChatOptions, started?: { streaming: boolean }): Promise<ChatResult> {",
           "async": true,
           "access": "private"
@@ -184,8 +184,8 @@
         {
           "type": "method",
           "name": "readResponse",
-          "line_start": 226,
-          "line_end": 344,
+          "line_start": 222,
+          "line_end": 341,
           "signature": "private async readResponse(body: any, opts: ChatOptions, activity: () => void, started?: { streaming: boolean }): Promise<ChatResult> {",
           "async": true,
           "access": "private"

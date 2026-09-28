@@ -3,7 +3,7 @@
 // here accepts loose input ("192.168.1.50", "gpu-box.local", "box:1234",
 // "https://llm.example.com") and works out the rest.
 
-import { SavedHost } from "./config";
+import type { SavedHost } from "./config";
 
 export const OLLAMA_PORT = 11434;
 export const LMSTUDIO_PORT = 1234;
@@ -104,7 +104,14 @@ export function isPrivateHost(hostname: string): boolean {
   const v4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(h);
   if (v4) {
     const [a, b] = [Number(v4[1]), Number(v4[2])];
-    return a === 10 || a === 127 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 169 && b === 254) || (a === 100 && b >= 64 && b <= 127);
+    return (
+      a === 10 ||
+      a === 127 ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168) ||
+      (a === 169 && b === 254) ||
+      (a === 100 && b >= 64 && b <= 127)
+    );
   }
   if (h.includes(":")) return h === "::1" || /^f[cd]/.test(h) || /^fe[89ab]/.test(h);
   // Single-label and .local/.lan/.home names resolve inside the network.

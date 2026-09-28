@@ -1,34 +1,34 @@
 {
   "path": "src/tools/shell.ts",
-  "content_hash": "f96ac035bb23d84c126aa2eddf4c0585",
-  "updated_at": "2026-09-28T16:28:04",
-  "lines": 422,
-  "size_bytes": 12043,
-  "mtime_ns": 1790609244337649600,
+  "content_hash": "9b092d6526bc3707d107c4fb1b8a73bc",
+  "updated_at": "2026-09-28T19:36:38",
+  "lines": 330,
+  "size_bytes": 12326,
+  "mtime_ns": 1790620579898573400,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
   "sections": [
     {
       "type": "import",
-      "name": "import { spawn, spawnSync } from \"child_process\";",
+      "name": "import { spawn, spawnSync } from \"node:child_process\";",
       "line_start": 7,
       "line_end": 7,
-      "signature": "import { spawn, spawnSync } from \"child_process\";"
+      "signature": "import { spawn, spawnSync } from \"node:child_process\";"
     },
     {
       "type": "import",
-      "name": "import * as fs from \"fs\";",
+      "name": "import * as fs from \"node:fs\";",
       "line_start": 8,
       "line_end": 8,
-      "signature": "import * as fs from \"fs\";"
+      "signature": "import * as fs from \"node:fs\";"
     },
     {
       "type": "import",
-      "name": "import * as path from \"path\";",
+      "name": "import * as path from \"node:path\";",
       "line_start": 9,
       "line_end": 9,
-      "signature": "import * as path from \"path\";"
+      "signature": "import * as path from \"node:path\";"
     },
     {
       "type": "import",
@@ -56,87 +56,87 @@
       "type": "function",
       "name": "pickShell",
       "line_start": 20,
-      "line_end": 131,
+      "line_end": 92,
       "signature": "function pickShell(): ShellInfo {"
     },
     {
       "type": "function",
       "name": "killTree",
-      "line_start": 133,
-      "line_end": 149,
+      "line_start": 94,
+      "line_end": 110,
       "signature": "function killTree(pid: number): void {"
     },
     {
       "type": "constant",
       "name": "OUTPUT_CAP",
-      "line_start": 151,
-      "line_end": 151,
+      "line_start": 112,
+      "line_end": 112,
       "signature": "const OUTPUT_CAP = 8000;"
     },
     {
       "type": "function",
       "name": "shellTimeoutMs",
-      "line_start": 153,
-      "line_end": 156,
+      "line_start": 114,
+      "line_end": 117,
       "signature": "function shellTimeoutMs(): number {",
       "doc": "Override with SMOL_SHELL_TIMEOUT_MS (used by the demo and by tests)."
     },
     {
       "type": "constant",
       "name": "DEFAULT_TIMEOUT_MS",
-      "line_start": 157,
-      "line_end": 157,
+      "line_start": 118,
+      "line_end": 118,
       "signature": "const DEFAULT_TIMEOUT_MS = shellTimeoutMs();"
     },
     {
       "type": "interface",
       "name": "ShellControl",
-      "line_start": 164,
-      "line_end": 177,
+      "line_start": 125,
+      "line_end": 138,
       "signature": "interface ShellControl {",
       "children": []
     },
     {
       "type": "constant",
       "name": "liveShells",
-      "line_start": 180,
-      "line_end": 180,
+      "line_start": 141,
+      "line_end": 141,
       "signature": "const liveShells = new Set<ShellControl>();"
     },
     {
       "type": "function",
       "name": "liveShellList",
-      "line_start": 182,
-      "line_end": 184,
+      "line_start": 143,
+      "line_end": 145,
       "signature": "function liveShellList(): { command: string; startedAt: number; deadline: number | null }[] {"
     },
     {
       "type": "function",
       "name": "findLiveShell",
-      "line_start": 186,
-      "line_end": 190,
+      "line_start": 147,
+      "line_end": 151,
       "signature": "function findLiveShell(command: string): ShellControl | null {"
     },
     {
       "type": "function",
       "name": "managedCommand",
-      "line_start": 194,
-      "line_end": 198,
+      "line_start": 155,
+      "line_end": 159,
       "signature": "function managedCommand(shell: ShellInfo, command: string): string {"
     },
     {
       "type": "function",
       "name": "shellEnv",
-      "line_start": 200,
-      "line_end": 269,
+      "line_start": 161,
+      "line_end": 201,
       "signature": "function shellEnv(): NodeJS.ProcessEnv {"
     },
     {
       "type": "function",
       "name": "runCommand",
-      "line_start": 271,
-      "line_end": 422,
-      "signature": "function runCommand("
+      "line_start": 203,
+      "line_end": 330,
+      "signature": "function runCommand(command: string, cwd: string, signal?: AbortSignal, onCtl?: (ctl: ShellControl) => void): Promise<string> {"
     }
   ]
 }

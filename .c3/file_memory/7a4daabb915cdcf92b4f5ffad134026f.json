@@ -1,10 +1,10 @@
 {
   "path": "test/plan.test.js",
-  "content_hash": "44a2cdc2aadc7146d0978a182a013be8",
-  "updated_at": "2026-09-27T22:56:43",
+  "content_hash": "aada1800762476ff3790961fdb25a60b",
+  "updated_at": "2026-09-28T19:36:38",
   "lines": 88,
-  "size_bytes": 3943,
-  "mtime_ns": 1790546118107843300,
+  "size_bytes": 3964,
+  "mtime_ns": 1790620581742997700,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -14,14 +14,14 @@
       "name": "test",
       "line_start": 1,
       "line_end": 1,
-      "signature": "const test = require('node:test');"
+      "signature": "const test = require(\"node:test\");"
     },
     {
       "type": "constant",
       "name": "assert",
       "line_start": 2,
       "line_end": 2,
-      "signature": "const assert = require('node:assert/strict');"
+      "signature": "const assert = require(\"node:assert/strict\");"
     }
   ]
 }

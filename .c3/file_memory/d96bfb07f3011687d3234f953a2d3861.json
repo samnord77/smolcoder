@@ -1,27 +1,27 @@
 {
   "path": "src/plugins.ts",
-  "content_hash": "e01444ab1667d07fb189b32a2b700ad2",
-  "updated_at": "2026-09-27T19:22:50",
-  "lines": 182,
-  "size_bytes": 6193,
-  "mtime_ns": 1790533244976860900,
+  "content_hash": "c9277d2ad15b91089b7d7de70f299694",
+  "updated_at": "2026-09-28T19:36:40",
+  "lines": 179,
+  "size_bytes": 6194,
+  "mtime_ns": 1790620579254269600,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
   "sections": [
     {
       "type": "import",
-      "name": "import * as fs from \"fs\";",
+      "name": "import * as fs from \"node:fs\";",
       "line_start": 13,
       "line_end": 13,
-      "signature": "import * as fs from \"fs\";"
+      "signature": "import * as fs from \"node:fs\";"
     },
     {
       "type": "import",
-      "name": "import * as path from \"path\";",
+      "name": "import * as path from \"node:path\";",
       "line_start": 14,
       "line_end": 14,
-      "signature": "import * as path from \"path\";"
+      "signature": "import * as path from \"node:path\";"
     },
     {
       "type": "type",
@@ -35,29 +35,29 @@
       "type": "type",
       "name": "PluginAfterTool",
       "line_start": 21,
-      "line_end": 24,
-      "signature": "type PluginAfterTool = (",
+      "line_end": 21,
+      "signature": "type PluginAfterTool = (toolName: string, result: string) => string | null | undefined | undefined;",
       "children": []
     },
     {
       "type": "interface",
       "name": "LoadedPlugin",
-      "line_start": 26,
-      "line_end": 32,
+      "line_start": 23,
+      "line_end": 29,
       "signature": "interface LoadedPlugin {",
       "children": []
     },
     {
       "type": "constant",
       "name": "PLUGINS_DIR",
-      "line_start": 34,
-      "line_end": 34,
+      "line_start": 31,
+      "line_end": 31,
       "signature": "const PLUGINS_DIR = \".smol/plugins\";"
     },
     {
       "type": "function",
       "name": "loadPlugins",
-      "line_start": 36,
+      "line_start": 33,
       "line_end": 81,
       "signature": "function loadPlugins(workspace: string): LoadedPlugin[] {"
     },
@@ -73,36 +73,36 @@
       "type": "function",
       "name": "readPluginManifest",
       "line_start": 99,
-      "line_end": 126,
+      "line_end": 123,
       "signature": "function readPluginManifest(workspace: string, name: string): PluginManifest | null {"
     },
     {
       "type": "interface",
       "name": "PluginInfo",
-      "line_start": 128,
-      "line_end": 133,
+      "line_start": 125,
+      "line_end": 130,
       "signature": "interface PluginInfo extends LoadedPlugin {",
       "children": []
     },
     {
       "type": "function",
       "name": "listPluginInfos",
-      "line_start": 136,
-      "line_end": 154,
+      "line_start": 133,
+      "line_end": 151,
       "signature": "function listPluginInfos(workspace: string): PluginInfo[] {"
     },
     {
       "type": "constant",
       "name": "PLUGIN_EXAMPLE",
-      "line_start": 156,
-      "line_end": 161,
+      "line_start": 153,
+      "line_end": 158,
       "signature": "const PLUGIN_EXAMPLE = `module.exports = {"
     },
     {
       "type": "function",
       "name": "describePlugins",
-      "line_start": 164,
-      "line_end": 182,
+      "line_start": 161,
+      "line_end": 179,
       "signature": "function describePlugins(workspace: string): string {"
     }
   ]

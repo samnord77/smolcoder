@@ -1,0 +1,9 @@
+{
+  "original_tokens": 821,
+  "compressed_tokens": 153,
+  "saved_tokens": 668,
+  "savings_pct": 81.4,
+  "compressed": "# util.ts (.ts) \u2014 87 lines\nconst useColor = process.stdout.isTTY && !process.env.NO_COLOR;\nfunction wrap(code: string, s: string): string\nexport const c =\nexport function estimateTokens(text: string): number\nexport function truncateMiddle(s: string, maxChars: number): string\nexport function truncateEnd(s: string, maxChars: number, note?: string): string\nexport function plural(n: number, word: string): string\nexport function fmtDuration(ms: number): string\nexport async function probeJson(url: string, timeoutMs = 1500): Promise<{ reached: boolean; data: any | null }>\nexport async function tryFetchJson( url: string, init?: RequestInit,",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\util.ts"
+}

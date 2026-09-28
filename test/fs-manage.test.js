@@ -3,9 +3,9 @@
 // read-only gate that keeps them out of ro mode entirely.
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("fs");
-const os = require("os");
-const path = require("path");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
 const { movePath, deletePath, createFolder } = require("../dist/tools/fs-tools");
 const { executeTool, buildToolSpecs } = require("../dist/tools/index");
 const { Plan } = require("../dist/plan");

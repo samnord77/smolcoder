@@ -1,48 +1,48 @@
 {
   "path": "src/tools/fs-tools.ts",
-  "content_hash": "00b79873bb9aad292e5350189c8a50bc",
-  "updated_at": "2026-09-28T16:02:03",
-  "lines": 500,
-  "size_bytes": 21868,
-  "mtime_ns": 1790607699075579600,
+  "content_hash": "d11b80c6a75242092e2556474571ce3f",
+  "updated_at": "2026-09-28T19:36:41",
+  "lines": 546,
+  "size_bytes": 21516,
+  "mtime_ns": 1790620579791810700,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
   "sections": [
     {
       "type": "import",
-      "name": "import * as fs from \"fs\";",
+      "name": "import * as fs from \"node:fs\";",
       "line_start": 6,
       "line_end": 6,
-      "signature": "import * as fs from \"fs\";"
+      "signature": "import * as fs from \"node:fs\";"
     },
     {
       "type": "import",
-      "name": "import * as path from \"path\";",
+      "name": "import * as path from \"node:path\";",
       "line_start": 7,
       "line_end": 7,
-      "signature": "import * as path from \"path\";"
-    },
-    {
-      "type": "import",
-      "name": "import { resolveInWorkspace, relPath, SandboxError } from \"../sandbox\";",
-      "line_start": 8,
-      "line_end": 8,
-      "signature": "import { resolveInWorkspace, relPath, SandboxError } from \"../sandbox\";"
-    },
-    {
-      "type": "import",
-      "name": "import { truncateEnd } from \"../util\";",
-      "line_start": 9,
-      "line_end": 9,
-      "signature": "import { truncateEnd } from \"../util\";"
+      "signature": "import * as path from \"node:path\";"
     },
     {
       "type": "import",
       "name": "import { isHistoryPlaceholder } from \"../history\";",
+      "line_start": 8,
+      "line_end": 8,
+      "signature": "import { isHistoryPlaceholder } from \"../history\";"
+    },
+    {
+      "type": "import",
+      "name": "import { relPath, resolveInWorkspace, SandboxError } from \"../sandbox\";",
+      "line_start": 9,
+      "line_end": 9,
+      "signature": "import { relPath, resolveInWorkspace, SandboxError } from \"../sandbox\";"
+    },
+    {
+      "type": "import",
+      "name": "import { truncateEnd } from \"../util\";",
       "line_start": 10,
       "line_end": 10,
-      "signature": "import { isHistoryPlaceholder } from \"../history\";"
+      "signature": "import { truncateEnd } from \"../util\";"
     },
     {
       "type": "constant",
@@ -83,99 +83,99 @@
       "type": "constant",
       "name": "IGNORED_DIRS",
       "line_start": 21,
-      "line_end": 25,
+      "line_end": 40,
       "signature": "const IGNORED_DIRS = new Set(["
     },
     {
       "type": "constant",
       "name": "BINARY_EXTS",
-      "line_start": 27,
-      "line_end": 32,
+      "line_start": 42,
+      "line_end": 76,
       "signature": "const BINARY_EXTS = new Set(["
     },
     {
       "type": "function",
       "name": "isProbablyBinary",
-      "line_start": 34,
-      "line_end": 46,
+      "line_start": 78,
+      "line_end": 90,
       "signature": "function isProbablyBinary(filePath: string): boolean {"
     },
     {
       "type": "function",
       "name": "assertFinalInside",
-      "line_start": 51,
-      "line_end": 65,
+      "line_start": 95,
+      "line_end": 109,
       "signature": "function assertFinalInside(root: string, abs: string, userPath: string): void {",
       "doc": "Re-v\u00e9rifie apr\u00e8s le premier contr\u00f4le : si le fichier final est un lien"
     },
     {
       "type": "function",
       "name": "readFile",
-      "line_start": 67,
-      "line_end": 126,
+      "line_start": 111,
+      "line_end": 168,
       "signature": "function readFile(root: string, args: any, maxChars = READ_CHAR_LIMIT): string {"
     },
     {
       "type": "function",
       "name": "writeFile",
-      "line_start": 128,
-      "line_end": 148,
+      "line_start": 170,
+      "line_end": 188,
       "signature": "function writeFile(root: string, args: any): string {"
     },
     {
       "type": "function",
       "name": "movePath",
-      "line_start": 157,
-      "line_end": 182,
+      "line_start": 197,
+      "line_end": 222,
       "signature": "function movePath(root: string, args: any): string {"
     },
     {
       "type": "function",
       "name": "deletePath",
-      "line_start": 184,
-      "line_end": 218,
+      "line_start": 224,
+      "line_end": 258,
       "signature": "function deletePath(root: string, args: any): string {"
     },
     {
       "type": "function",
       "name": "createFolder",
-      "line_start": 220,
-      "line_end": 236,
+      "line_start": 260,
+      "line_end": 276,
       "signature": "function createFolder(root: string, args: any): string {"
     },
     {
       "type": "function",
       "name": "findTrimmedMatch",
-      "line_start": 245,
-      "line_end": 255,
+      "line_start": 285,
+      "line_end": 295,
       "signature": "function findTrimmedMatch(fileLines: string[], oldLines: string[]): number[] {"
     },
     {
       "type": "function",
       "name": "closestSnippet",
-      "line_start": 257,
-      "line_end": 285,
+      "line_start": 297,
+      "line_end": 325,
       "signature": "function closestSnippet(fileLines: string[], oldText: string): { text: string; offset: number; limit: number } | null {"
     },
     {
       "type": "function",
       "name": "editFile",
-      "line_start": 287,
-      "line_end": 351,
+      "line_start": 327,
+      "line_end": 385,
       "signature": "function editFile(root: string, args: any): string {"
     },
     {
       "type": "function",
       "name": "listFiles",
-      "line_start": 353,
-      "line_end": 397,
+      "line_start": 387,
+      "line_end": 437,
       "signature": "function listFiles(root: string, args: any): string {"
     },
     {
       "type": "function",
       "name": "searchFiles",
-      "line_start": 399,
-      "line_end": 498,
+      "line_start": 439,
+      "line_end": 544,
       "signature": "function searchFiles(root: string, args: any): string {"
     }
   ]

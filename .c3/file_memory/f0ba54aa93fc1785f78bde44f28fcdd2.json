@@ -1,10 +1,10 @@
 {
   "path": "test/attachments.test.js",
-  "content_hash": "943d514828fe51b1cbceec83e91dff05",
-  "updated_at": "2026-09-24T17:36:22",
-  "lines": 282,
-  "size_bytes": 15212,
-  "mtime_ns": 1790260570012150000,
+  "content_hash": "fac5a55c78b69a7663c01f006bf445cd",
+  "updated_at": "2026-09-28T19:36:40",
+  "lines": 374,
+  "size_bytes": 15554,
+  "mtime_ns": 1790620581077674700,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -28,28 +28,28 @@
       "name": "fs",
       "line_start": 6,
       "line_end": 6,
-      "signature": "const fs = require(\"fs\");"
+      "signature": "const fs = require(\"node:fs\");"
     },
     {
       "type": "constant",
       "name": "http",
       "line_start": 7,
       "line_end": 7,
-      "signature": "const http = require(\"http\");"
+      "signature": "const http = require(\"node:http\");"
     },
     {
       "type": "constant",
       "name": "os",
       "line_start": 8,
       "line_end": 8,
-      "signature": "const os = require(\"os\");"
+      "signature": "const os = require(\"node:os\");"
     },
     {
       "type": "constant",
       "name": "path",
       "line_start": 9,
       "line_end": 9,
-      "signature": "const path = require(\"path\");"
+      "signature": "const path = require(\"node:path\");"
     },
     {
       "type": "constant",
@@ -90,22 +90,22 @@
     {
       "type": "function",
       "name": "request",
-      "line_start": 150,
-      "line_end": 165,
+      "line_start": 200,
+      "line_end": 224,
       "signature": "function request(hub, method, p, body, headers) {"
     },
     {
       "type": "function",
       "name": "readEvents",
-      "line_start": 167,
-      "line_end": 187,
+      "line_start": 226,
+      "line_end": 252,
       "signature": "function readEvents(hub, stopWhen) {"
     },
     {
       "type": "function",
       "name": "fakeFactory",
-      "line_start": 190,
-      "line_end": 216,
+      "line_start": 255,
+      "line_end": 298,
       "signature": "function fakeFactory(seen) {",
       "doc": "A session whose model cannot see images; it records what readInput hands it."
     }

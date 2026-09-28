@@ -1,10 +1,10 @@
 {
   "path": "src/web/diff.ts",
-  "content_hash": "2ef7a71fc6ddff3890ef303064adbb94",
-  "updated_at": "2026-09-24T22:44:35",
-  "lines": 101,
-  "size_bytes": 2869,
-  "mtime_ns": 1790286252557250600,
+  "content_hash": "da4dc6ca78879e34ab0af4ec05c4b8d7",
+  "updated_at": "2026-09-28T19:36:40",
+  "lines": 105,
+  "size_bytes": 2889,
+  "mtime_ns": 1790620580272989300,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -50,21 +50,21 @@
       "type": "function",
       "name": "diffLines",
       "line_start": 15,
-      "line_end": 69,
+      "line_end": 73,
       "signature": "function diffLines(oldText: string, newText: string): DiffLine[] {"
     },
     {
       "type": "function",
       "name": "collapseRuns",
-      "line_start": 71,
-      "line_end": 93,
+      "line_start": 75,
+      "line_end": 97,
       "signature": "function collapseRuns(lines: DiffLine[]): DiffLine[] {"
     },
     {
       "type": "function",
       "name": "renderEditDiff",
-      "line_start": 96,
-      "line_end": 101,
+      "line_start": 100,
+      "line_end": 105,
       "signature": "function renderEditDiff(oldText: string, newText: string): string {"
     }
   ]

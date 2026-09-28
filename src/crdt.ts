@@ -93,9 +93,7 @@ export function docText(doc: CrdtDoc): string {
 }
 
 function sortDoc(doc: CrdtDoc): void {
-  doc.chars.sort(
-    (a, b) => comparePos(a.pos, b.pos) || (a.site < b.site ? -1 : a.site > b.site ? 1 : 0)
-  );
+  doc.chars.sort((a, b) => comparePos(a.pos, b.pos) || (a.site < b.site ? -1 : a.site > b.site ? 1 : 0));
 }
 
 function liveChars(doc: CrdtDoc): CrdtChar[] {

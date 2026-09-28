@@ -3,9 +3,9 @@
 // `node --version` exits 0, so no real install ever runs here).
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
+const _fs = require("node:fs");
 const os = require("node:os");
-const path = require("node:path");
+const _path = require("node:path");
 const { installLspServer, lspDoctor, setupLsp } = require("../dist/lsp-install");
 
 test("lspDoctor lists the four languages with install hints", () => {
@@ -20,7 +20,7 @@ test("setupLsp refuses unknown languages without spawning anything", () => {
 });
 
 test("installLspServer short-circuits when the server resolves", () => {
-  process.env.SMOLCODER_LSP_PYTHON = '"' + process.execPath + '" --version';
+  process.env.SMOLCODER_LSP_PYTHON = `"${process.execPath}" --version`;
   try {
     const r = installLspServer("python", os.tmpdir());
     assert.equal(r.ok, true);

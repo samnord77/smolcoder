@@ -10,15 +10,19 @@ export interface EditorTab {
 export function makeEditorTabStore() {
   const tabs = new Map<string, EditorTab>();
   let activePath: string | null = null;
-  const copy = (tab: EditorTab | undefined): EditorTab | null => tab ? { ...tab } : null;
+  const copy = (tab: EditorTab | undefined): EditorTab | null => (tab ? { ...tab } : null);
   return {
     open(filePath: string, content: string, mtimeMs = 0): EditorTab {
       if (typeof filePath !== "string" || !filePath.trim()) throw new Error("File path is required.");
       if (typeof content !== "string") throw new Error("File content must be text.");
       const existing = tabs.get(filePath);
-      if (existing) { activePath = filePath; return { ...existing }; }
+      if (existing) {
+        activePath = filePath;
+        return { ...existing };
+      }
       const tab = { path: filePath, content, savedContent: content, mtimeMs: Number(mtimeMs) || 0, dirty: false };
-      tabs.set(filePath, tab); activePath = filePath;
+      tabs.set(filePath, tab);
+      activePath = filePath;
       return { ...tab };
     },
     activate(filePath: string): EditorTab | null {
@@ -30,7 +34,8 @@ export function makeEditorTabStore() {
     update(filePath: string, content: string): EditorTab | null {
       const tab = tabs.get(filePath);
       if (!tab || typeof content !== "string") return null;
-      tab.content = content; tab.dirty = content !== tab.savedContent;
+      tab.content = content;
+      tab.dirty = content !== tab.savedContent;
       return { ...tab };
     },
     saved(filePath: string, mtimeMs?: number, savedContent?: string): EditorTab | null {
@@ -51,9 +56,16 @@ export function makeEditorTabStore() {
       if (activePath === filePath) activePath = order[index + 1] || order[index - 1] || null;
       return { closed: true, active: copy(tabs.get(activePath || "")) };
     },
-    active(): EditorTab | null { return copy(tabs.get(activePath || "")); },
-    list(): EditorTab[] { return [...tabs.values()].map((tab) => ({ ...tab })); },
-    clear(): void { tabs.clear(); activePath = null; },
+    active(): EditorTab | null {
+      return copy(tabs.get(activePath || ""));
+    },
+    list(): EditorTab[] {
+      return [...tabs.values()].map((tab) => ({ ...tab }));
+    },
+    clear(): void {
+      tabs.clear();
+      activePath = null;
+    },
   };
 }
 

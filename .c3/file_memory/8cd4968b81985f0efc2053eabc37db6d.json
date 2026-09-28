@@ -1,10 +1,10 @@
 {
   "path": "src/util.ts",
-  "content_hash": "139fd31350d7f90d0abe4ddb3c419570",
-  "updated_at": "2026-09-24T17:24:23",
-  "lines": 87,
-  "size_bytes": 2983,
-  "mtime_ns": 1790260569983958200,
+  "content_hash": "8536c5ac91c29f18b9d7149125d8cef1",
+  "updated_at": "2026-09-28T19:36:39",
+  "lines": 79,
+  "size_bytes": 2870,
+  "mtime_ns": 1790620580156585700,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -41,44 +41,44 @@
       "type": "function",
       "name": "truncateMiddle",
       "line_start": 26,
-      "line_end": 36,
+      "line_end": 32,
       "signature": "function truncateMiddle(s: string, maxChars: number): string {"
     },
     {
       "type": "function",
       "name": "truncateEnd",
-      "line_start": 38,
-      "line_end": 41,
+      "line_start": 34,
+      "line_end": 37,
       "signature": "function truncateEnd(s: string, maxChars: number, note?: string): string {"
     },
     {
       "type": "function",
       "name": "plural",
-      "line_start": 43,
-      "line_end": 45,
+      "line_start": 39,
+      "line_end": 41,
       "signature": "function plural(n: number, word: string): string {"
     },
     {
       "type": "function",
       "name": "fmtDuration",
-      "line_start": 47,
-      "line_end": 52,
+      "line_start": 43,
+      "line_end": 48,
       "signature": "function fmtDuration(ms: number): string {"
     },
     {
       "type": "function",
       "name": "probeJson",
-      "line_start": 56,
-      "line_end": 68,
+      "line_start": 52,
+      "line_end": 64,
       "signature": "async function probeJson(url: string, timeoutMs = 1500): Promise<{ reached: boolean; data: any | null }> {",
       "async": true
     },
     {
       "type": "function",
       "name": "tryFetchJson",
-      "line_start": 71,
-      "line_end": 87,
-      "signature": "async function tryFetchJson(",
+      "line_start": 67,
+      "line_end": 79,
+      "signature": "async function tryFetchJson(url: string, init?: RequestInit, timeoutMs = 1500): Promise<any | null> {",
       "async": true
     }
   ]

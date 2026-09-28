@@ -1,20 +1,20 @@
 {
   "path": "src/tools/search-worker.ts",
-  "content_hash": "bcd5e3325ddf6c9c8991f02d44c13ddf",
-  "updated_at": "2026-09-24T17:24:23",
-  "lines": 28,
-  "size_bytes": 1415,
-  "mtime_ns": 1790260569968922600,
+  "content_hash": "218e2955deae30c1bdfcc6a10e720e92",
+  "updated_at": "2026-09-28T19:36:38",
+  "lines": 30,
+  "size_bytes": 1402,
+  "mtime_ns": 1790620579857505900,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
   "sections": [
     {
       "type": "import",
-      "name": "import { isMainThread, parentPort, workerData, Worker } from \"worker_threads\";",
+      "name": "import { isMainThread, parentPort, Worker, workerData } from \"node:worker_threads\";",
       "line_start": 1,
       "line_end": 1,
-      "signature": "import { isMainThread, parentPort, workerData, Worker } from \"worker_threads\";"
+      "signature": "import { isMainThread, parentPort, Worker, workerData } from \"node:worker_threads\";"
     },
     {
       "type": "import",
@@ -27,7 +27,7 @@
       "type": "function",
       "name": "searchFilesBounded",
       "line_start": 7,
-      "line_end": 28,
+      "line_end": 30,
       "signature": "function searchFilesBounded(root: string, args: Record<string, any>, signal?: AbortSignal, timeoutMs = 5000): Promise<string> {"
     }
   ]

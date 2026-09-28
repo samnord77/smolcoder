@@ -4,9 +4,9 @@
 // after every command reports its exit code and the shell's cwd. No TTY means
 // no colors from most tools and no interactive programs — the panel says so.
 
-import { ChildProcess, spawn } from "child_process";
-import { killTree, pickShell, ShellInfo, shellEnv } from "../tools/shell";
+import { type ChildProcess, spawn } from "node:child_process";
 import { commandEscapesWorkspace } from "../sandbox";
+import { killTree, pickShell, type ShellInfo, shellEnv } from "../tools/shell";
 
 const RS = "\x1e"; // record separator — never appears in normal output
 const SENTINEL = /\x1e(-?\d+)\x1e([^\x1e]*)\x1e\r?\n?/;

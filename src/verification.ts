@@ -1,11 +1,15 @@
-import * as fs from "fs";
-import * as path from "path";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import { resolveInWorkspace } from "./sandbox";
 
 /** A repeat hint only: timings, coordinates and stack line numbers may vary.
  * The original output remains the evidence presented to the model. */
 export function failureSignature(output: string): string {
-  return output.replace(/\x1b\[[0-9;]*m/g, "").replace(/\d+(?:\.\d+)?/g, "#").replace(/\s+/g, " ").trim();
+  return output
+    .replace(/\x1b\[[0-9;]*m/g, "")
+    .replace(/\d+(?:\.\d+)?/g, "#")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function workspaceEntry(workspace: string, relative: string, kind: "file" | "directory" = "file"): string | null {
@@ -13,7 +17,7 @@ function workspaceEntry(workspace: string, relative: string, kind: "file" | "dir
     const abs = resolveInWorkspace(workspace, relative);
     if (!fs.existsSync(abs)) return null;
     const stat = fs.statSync(abs);
-    return kind === "file" ? (stat.isFile() ? abs : null) : (stat.isDirectory() ? abs : null);
+    return kind === "file" ? (stat.isFile() ? abs : null) : stat.isDirectory() ? abs : null;
   } catch {
     return null;
   }
@@ -25,8 +29,11 @@ function hasPythonTests(workspace: string, relative: string, depth = 2): boolean
   const directory = workspaceEntry(workspace, relative, "directory");
   if (!directory) return false;
   let entries: fs.Dirent[];
-  try { entries = fs.readdirSync(directory, { withFileTypes: true }).slice(0, 500); }
-  catch { return false; }
+  try {
+    entries = fs.readdirSync(directory, { withFileTypes: true }).slice(0, 500);
+  } catch {
+    return false;
+  }
   for (const entry of entries) {
     if (entry.isFile() && /^(?:test_.*|.*_test)\.py$/i.test(entry.name)) return true;
     if (depth > 0 && entry.isDirectory() && hasPythonTests(workspace, path.join(relative, entry.name), depth - 1)) return true;
@@ -57,13 +64,19 @@ export function projectVerification(workspace: string): string | undefined {
     }
   }
 
-  const pythonProject = workspaceEntry(workspace, "pyproject.toml") || workspaceEntry(workspace, "setup.cfg") || workspaceEntry(workspace, "pytest.ini");
-  const pythonConfig = workspaceEntry(workspace, "pytest.ini") || workspaceEntry(workspace, "tox.ini") ||
+  const pythonProject =
+    workspaceEntry(workspace, "pyproject.toml") || workspaceEntry(workspace, "setup.cfg") || workspaceEntry(workspace, "pytest.ini");
+  const pythonConfig =
+    workspaceEntry(workspace, "pytest.ini") ||
+    workspaceEntry(workspace, "tox.ini") ||
     (() => {
       const file = workspaceEntry(workspace, "pyproject.toml");
       if (!file) return null;
-      try { return /\[tool\.pytest(?:\.|\])/i.test(fs.readFileSync(file, "utf8").slice(0, 256 * 1024)) ? file : null; }
-      catch { return null; }
+      try {
+        return /\[tool\.pytest(?:\.|\])/i.test(fs.readFileSync(file, "utf8").slice(0, 256 * 1024)) ? file : null;
+      } catch {
+        return null;
+      }
     })();
   if (pythonProject && (pythonConfig || hasPythonTests(workspace, "tests") || hasPythonTests(workspace, ".", 0))) {
     commands.push("python -m pytest -q");
@@ -88,9 +101,13 @@ export function projectVerification(workspace: string): string | undefined {
   if (workspaceEntry(workspace, "Cargo.toml")) commands.push("cargo test --workspace");
   const dotnetExtensions = [".sln", ".slnx", ".csproj", ".fsproj", ".vbproj"];
   try {
-    if (fs.readdirSync(workspace).slice(0, 500).some((name) =>
-      dotnetExtensions.some((ext) => name.toLowerCase().endsWith(ext)) && !!workspaceEntry(workspace, name)
-    )) commands.push("dotnet test --nologo");
+    if (
+      fs
+        .readdirSync(workspace)
+        .slice(0, 500)
+        .some((name) => dotnetExtensions.some((ext) => name.toLowerCase().endsWith(ext)) && !!workspaceEntry(workspace, name))
+    )
+      commands.push("dotnet test --nologo");
   } catch {
     /* an unreadable workspace root simply has no discovered .NET check */
   }

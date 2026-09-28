@@ -1,0 +1,9 @@
+{
+  "original_tokens": 207,
+  "compressed_tokens": 68,
+  "saved_tokens": 139,
+  "savings_pct": 67.1,
+  "compressed": "# biome.json (.json) \u2014 33 lines\n\"$schema\": \"https://biomejs.dev/schemas/2.5.14/schema.json\",\n\"assist\": { \"actions\": { \"source\": { \"organizeImports\": \"on\" } } },\n\"linter\":\n\"formatter\":\n\"javascript\":\n\"json\":",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\biome.json"
+}

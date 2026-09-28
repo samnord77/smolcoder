@@ -3,9 +3,9 @@
 // (CLI, TUI, web, desktop, packaged app) calls ensureBuilt() first:
 // missing/stale dist triggers one synchronous rebuild, never interactive.
 // Pure stdio + fs: safe to require from anywhere, including Electron main.
-import { spawnSync } from "child_process";
-import * as fs from "fs";
-import * as path from "path";
+import { spawnSync } from "node:child_process";
+import * as fs from "node:fs";
+import * as path from "node:path";
 
 export function repoRoot(fromDir = __dirname): string {
   return path.resolve(fromDir, "..");

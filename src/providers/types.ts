@@ -1,5 +1,5 @@
 // One internal message/tool shape; each provider adapts it to its wire format.
-import { randomBytes } from "crypto";
+import { randomBytes } from "node:crypto";
 
 export interface ToolCall {
   id: string;

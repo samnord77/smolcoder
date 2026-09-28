@@ -1,10 +1,10 @@
 {
   "path": "test/web.test.js",
-  "content_hash": "1da1405d7d089b2ee62efdf92d68082e",
-  "updated_at": "2026-09-28T14:28:01",
-  "lines": 623,
-  "size_bytes": 32017,
-  "mtime_ns": 1790601960538501700,
+  "content_hash": "5f0ed390438b4a545f8cbe62f97f58c4",
+  "updated_at": "2026-09-28T19:36:40",
+  "lines": 733,
+  "size_bytes": 32084,
+  "mtime_ns": 1790620582103960600,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -28,28 +28,28 @@
       "name": "fs",
       "line_start": 7,
       "line_end": 7,
-      "signature": "const fs = require(\"fs\");"
+      "signature": "const fs = require(\"node:fs\");"
     },
     {
       "type": "constant",
       "name": "http",
       "line_start": 8,
       "line_end": 8,
-      "signature": "const http = require(\"http\");"
+      "signature": "const http = require(\"node:http\");"
     },
     {
       "type": "constant",
       "name": "os",
       "line_start": 9,
       "line_end": 9,
-      "signature": "const os = require(\"os\");"
+      "signature": "const os = require(\"node:os\");"
     },
     {
       "type": "constant",
       "name": "path",
       "line_start": 10,
       "line_end": 10,
-      "signature": "const path = require(\"path\");"
+      "signature": "const path = require(\"node:path\");"
     },
     {
       "type": "function",
@@ -83,23 +83,23 @@
     {
       "type": "function",
       "name": "fakeFactory",
-      "line_start": 243,
-      "line_end": 285,
+      "line_start": 261,
+      "line_end": 335,
       "signature": "function fakeFactory(log) {",
       "doc": "A stand-in for Session: echoes each input back, honours /exit."
     },
     {
       "type": "function",
       "name": "request",
-      "line_start": 287,
-      "line_end": 301,
+      "line_start": 337,
+      "line_end": 351,
       "signature": "function request(hub, method, p, body) {"
     },
     {
       "type": "function",
       "name": "readEvents",
-      "line_start": 304,
-      "line_end": 323,
+      "line_start": 354,
+      "line_end": 380,
       "signature": "function readEvents(hub, stopWhen) {",
       "doc": "Read SSE events from /events until one satisfies `stopWhen` (or 3s pass)."
     }

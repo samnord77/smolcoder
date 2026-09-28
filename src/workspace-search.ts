@@ -1,5 +1,5 @@
-import * as fs from "fs";
-import * as path from "path";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import { resolveInWorkspace } from "./sandbox";
 
 const SKIP_DIRS = new Set([".git", "node_modules", "dist", "build", "coverage", ".playwright-mcp", ".c3"]);
@@ -27,7 +27,7 @@ export interface WorkspaceSearchResult {
 export function searchWorkspace(
   workspace: string,
   query: string,
-  options: { path?: string; maxMatches?: number; maxFiles?: number; maxBytes?: number } = {},
+  options: { path?: string; maxMatches?: number; maxFiles?: number; maxBytes?: number } = {}
 ): WorkspaceSearchResult {
   if (typeof query !== "string" || !query.trim()) throw new Error("Search query is required.");
   const needle = query.trim();
@@ -45,8 +45,11 @@ export function searchWorkspace(
   const walk = (dir: string): void => {
     if (truncated) return;
     let entries: fs.Dirent[];
-    try { entries = fs.readdirSync(dir, { withFileTypes: true }); }
-    catch { return; }
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
     entries.sort((a, b) => a.name.localeCompare(b.name));
     for (const entry of entries) {
       if (truncated) return;
@@ -58,14 +61,28 @@ export function searchWorkspace(
       }
       if (!entry.isFile() || entry.name.startsWith(".")) continue;
       let stat: fs.Stats;
-      try { stat = fs.statSync(abs); } catch { continue; }
+      try {
+        stat = fs.statSync(abs);
+      } catch {
+        continue;
+      }
       if (stat.size > MAX_FILE_BYTES) continue;
-      if (scannedBytes + stat.size > maxBytes) { truncated = true; return; }
-      if (scannedFiles >= maxFiles) { truncated = true; return; }
+      if (scannedBytes + stat.size > maxBytes) {
+        truncated = true;
+        return;
+      }
+      if (scannedFiles >= maxFiles) {
+        truncated = true;
+        return;
+      }
       scannedFiles++;
       scannedBytes += stat.size;
       let data: Buffer;
-      try { data = fs.readFileSync(abs); } catch { continue; }
+      try {
+        data = fs.readFileSync(abs);
+      } catch {
+        continue;
+      }
       if (data.includes(0)) continue;
       const text = data.toString("utf8");
       const lines = text.split(/\r?\n/);
@@ -73,19 +90,26 @@ export function searchWorkspace(
         const lineText = lines[index];
         const column = lineText.toLocaleLowerCase().indexOf(lowerNeedle);
         if (column < 0) continue;
-        if (matches.length >= maxMatches) { truncated = true; return; }
+        if (matches.length >= maxMatches) {
+          truncated = true;
+          return;
+        }
         matches.push({
           path: path.relative(workspace, abs).split(path.sep).join("/"),
           line: index + 1,
           column: column + 1,
-          text: lineText.length > MAX_LINE_LENGTH ? lineText.slice(0, MAX_LINE_LENGTH) + "…" : lineText,
+          text: lineText.length > MAX_LINE_LENGTH ? `${lineText.slice(0, MAX_LINE_LENGTH)}…` : lineText,
         });
       }
     }
   };
 
   let startStat: fs.Stats;
-  try { startStat = fs.lstatSync(start); } catch { throw new Error("Search path does not exist."); }
+  try {
+    startStat = fs.lstatSync(start);
+  } catch {
+    throw new Error("Search path does not exist.");
+  }
   if (startStat.isSymbolicLink()) throw new Error("Search path cannot be a symbolic link.");
   if (startStat.isDirectory()) walk(start);
   else if (startStat.isFile()) {
@@ -103,8 +127,16 @@ export function searchWorkspace(
           const lineText = lines[index];
           const column = lineText.toLocaleLowerCase().indexOf(lowerNeedle);
           if (column < 0) continue;
-          if (matches.length >= maxMatches) { truncated = true; break; }
-          matches.push({ path: path.relative(workspace, path.join(parent, name)).split(path.sep).join("/"), line: index + 1, column: column + 1, text: lineText.length > MAX_LINE_LENGTH ? lineText.slice(0, MAX_LINE_LENGTH) + "…" : lineText });
+          if (matches.length >= maxMatches) {
+            truncated = true;
+            break;
+          }
+          matches.push({
+            path: path.relative(workspace, path.join(parent, name)).split(path.sep).join("/"),
+            line: index + 1,
+            column: column + 1,
+            text: lineText.length > MAX_LINE_LENGTH ? `${lineText.slice(0, MAX_LINE_LENGTH)}…` : lineText,
+          });
         }
       }
     }

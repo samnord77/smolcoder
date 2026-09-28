@@ -19,14 +19,14 @@ function stubServer(mode, { needKey = false } = {}) {
     req.on("data", (d) => (body += d));
     req.on("end", () => {
       seen.sessions.push(req.headers["mcp-session-id"] || null);
-      seen.auth.push(req.headers["authorization"] || null);
+      seen.auth.push(req.headers.authorization || null);
       let msg = {};
       try {
         msg = JSON.parse(body);
       } catch {
         /* fall through */
       }
-      if (needKey && req.headers["authorization"] !== "Bearer secret") {
+      if (needKey && req.headers.authorization !== "Bearer secret") {
         res.writeHead(401, { "content-type": "application/json" });
         res.end(JSON.stringify({ jsonrpc: "2.0", id: msg.id ?? null, error: { code: -32000, message: "bad key" } }));
         return;
@@ -49,7 +49,7 @@ function stubServer(mode, { needKey = false } = {}) {
           res.end(JSON.stringify(payload));
         }
       } else if (msg.method === "tools/call") {
-        const payload = answer({ content: [{ type: "text", text: "pong:" + (msg.params?.name ?? "?") }] });
+        const payload = answer({ content: [{ type: "text", text: `pong:${msg.params?.name ?? "?"}` }] });
         res.writeHead(200, { "content-type": "application/json" });
         res.end(JSON.stringify(payload));
       } else {
@@ -58,7 +58,9 @@ function stubServer(mode, { needKey = false } = {}) {
       }
     });
   });
-  return new Promise((resolve) => server.listen(0, "127.0.0.1", () => resolve({ server, seen, url: `http://127.0.0.1:${server.address().port}/mcp` })));
+  return new Promise((resolve) =>
+    server.listen(0, "127.0.0.1", () => resolve({ server, seen, url: `http://127.0.0.1:${server.address().port}/mcp` }))
+  );
 }
 
 test("remote list and call over plain JSON, session id reused", async (t) => {
@@ -66,9 +68,12 @@ test("remote list and call over plain JSON, session id reused", async (t) => {
   t.after(() => server.close());
   const c = new (require("../dist/mcp").McpClient)({ name: "r", url, timeoutMs: 10000 });
   t.after(() => c.close());
-  assert.deepEqual((await c.listTools()).map((x) => x.name), ["ping"]);
+  assert.deepEqual(
+    (await c.listTools()).map((x) => x.name),
+    ["ping"]
+  );
   assert.match(await c.callTool("ping", {}), /pong:ping/);
-  assert.ok(seen.sessions.includes("sess-1"), "session id sent back, got: " + JSON.stringify(seen.sessions));
+  assert.ok(seen.sessions.includes("sess-1"), `session id sent back, got: ${JSON.stringify(seen.sessions)}`);
 });
 
 test("remote list over SSE", async (t) => {
@@ -76,7 +81,10 @@ test("remote list over SSE", async (t) => {
   t.after(() => server.close());
   const c = new (require("../dist/mcp").McpClient)({ name: "r", url, timeoutMs: 10000 });
   t.after(() => c.close());
-  assert.deepEqual((await c.listTools()).map((x) => x.name), ["ping"]);
+  assert.deepEqual(
+    (await c.listTools()).map((x) => x.name),
+    ["ping"]
+  );
 });
 
 test("wrong key is refused with a clear message", async (t) => {
@@ -101,7 +109,10 @@ test("secrets expand from the environment, never from files", async (t) => {
   t.after(() => c.close());
   assert.equal(expandEnvVars("Bearer ${SMOKE_MCP_KEY}"), "Bearer ");
   process.env.SMOKE_MCP_KEY = "secret";
-  assert.deepEqual((await c.listTools()).map((x) => x.name), ["ping"]);
+  assert.deepEqual(
+    (await c.listTools()).map((x) => x.name),
+    ["ping"]
+  );
   assert.ok(seen.auth.includes("Bearer secret"));
   delete process.env.SMOKE_MCP_KEY;
 });

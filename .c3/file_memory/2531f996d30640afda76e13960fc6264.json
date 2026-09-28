@@ -1,10 +1,10 @@
 {
   "path": "test/highlight-display.test.js",
-  "content_hash": "861de4cbfccafdf194697a5491f15b62",
-  "updated_at": "2026-09-28T10:44:58",
+  "content_hash": "00ba62cb0929e3a649206cfb274135f5",
+  "updated_at": "2026-09-28T19:36:40",
   "lines": 33,
   "size_bytes": 1831,
-  "mtime_ns": 1790588359860311900,
+  "mtime_ns": 1790620581510996800,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",

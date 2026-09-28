@@ -26,7 +26,11 @@ function makeCtx(ws, plugins) {
 test("before-hook block stops the tool and returns the block message", async () => {
   const ws = scratch();
   assert.deepEqual(loadPlugins(ws), []);
-  writePlugin(ws, "block.cjs", 'module.exports = { beforeTool(name) { if (name === "write_file") return { block: "no writes in test" }; return null; } };');
+  writePlugin(
+    ws,
+    "block.cjs",
+    'module.exports = { beforeTool(name) { if (name === "write_file") return { block: "no writes in test" }; return null; } };'
+  );
   const plugins = loadPlugins(ws);
   assert.equal(plugins.length, 1);
   assert.equal(plugins[0].ok, true);
@@ -40,7 +44,11 @@ test("before-hook rewrite replaces args", async () => {
   const ws = scratch();
   fs.writeFileSync(path.join(ws, "orig.txt"), "ORIG", "utf8");
   fs.writeFileSync(path.join(ws, "rewritten.txt"), "REWRITTEN", "utf8");
-  writePlugin(ws, "rewrite.cjs", 'module.exports = { beforeTool(name, args) { if (name === "read_file" && args.path === "orig.txt") return { args: { ...args, path: "rewritten.txt" } }; return null; } };');
+  writePlugin(
+    ws,
+    "rewrite.cjs",
+    'module.exports = { beforeTool(name, args) { if (name === "read_file" && args.path === "orig.txt") return { args: { ...args, path: "rewritten.txt" } }; return null; } };'
+  );
   const plugins = loadPlugins(ws);
   assert.equal(plugins[0].ok, true);
   const ctx = makeCtx(ws, plugins);
@@ -51,7 +59,11 @@ test("before-hook rewrite replaces args", async () => {
 test("after-hook transforms the result", async () => {
   const ws = scratch();
   fs.writeFileSync(path.join(ws, "a.txt"), "hello", "utf8");
-  writePlugin(ws, "after.cjs", 'module.exports = { afterTool(name, result) { if (name === "read_file") return result + "\\n[via-plugin]"; } };');
+  writePlugin(
+    ws,
+    "after.cjs",
+    'module.exports = { afterTool(name, result) { if (name === "read_file") return result + "\\n[via-plugin]"; } };'
+  );
   const plugins = loadPlugins(ws);
   assert.equal(plugins[0].ok, true);
   const ctx = makeCtx(ws, plugins);

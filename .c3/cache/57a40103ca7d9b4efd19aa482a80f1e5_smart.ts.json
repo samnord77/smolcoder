@@ -1,0 +1,9 @@
+{
+  "original_tokens": 324,
+  "compressed_tokens": 74,
+  "saved_tokens": 250,
+  "savings_pct": 77.2,
+  "compressed": "# search-worker.ts (.ts) \u2014 28 lines\nimport { isMainThread, parentPort, Worker, workerData } from \"node:worker_threads\";\nimport { searchFiles } from \"./fs-tools\";\n\nexport function searchFilesBounded(root: string, args: Record<string, any>, signal?: AbortSignal, timeoutMs = 5000): Promise<string>",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\tools\\search-worker.ts"
+}

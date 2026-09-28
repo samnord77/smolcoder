@@ -26,10 +26,10 @@ test("long unchanged runs collapse", () => {
   const filler = Array.from({ length: 30 }, (_, i) => `line ${i}`).join("\n");
   const text = renderEditDiff(`${filler}\nold`, `${filler}\nnew`);
   assert.match(text, /unchanged lines/);
-  assert.ok(text.split("\n").length < 25, "collapsed, got " + text.split("\n").length);
+  assert.ok(text.split("\n").length < 25, `collapsed, got ${text.split("\n").length}`);
 });
 
 test("output stays capped on large inputs", () => {
   const big = Array.from({ length: 500 }, (_, i) => `l${i}`).join("\n");
-  assert.ok(renderEditDiff(big, big + "\nend").split("\n").length <= 80);
+  assert.ok(renderEditDiff(big, `${big}\nend`).split("\n").length <= 80);
 });

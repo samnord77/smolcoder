@@ -22,7 +22,7 @@ export const LOGO_TEXT = LOGO_ROWS.map((r) => r.trimEnd()).join("\n");
 
 /** One-line fallback for wherever the art does not fit. */
 export function plainBrand(version: string): string {
-  return `${c.bold("smol")}${c.dim(c.bold("coder"))} ${c.dim("v" + version)}`;
+  return `${c.bold("smol")}${c.dim(c.bold("coder"))} ${c.dim(`v${version}`)}`;
 }
 
 /**
@@ -34,12 +34,12 @@ export function terminalLogo(cols: number, version: string): string[] {
   const indent = " ";
   if (cols < indent.length + LOGO_WIDTH) return [plainBrand(version)];
   const tailText = `coder v${version}`;
-  const tail = c.dim(c.bold("coder") + " v" + version);
+  const tail = c.dim(`${c.bold("coder")} v${version}`);
   const tailFits = cols >= indent.length + LOGO_WIDTH + 2 + tailText.length;
   const lines = [""];
   LOGO_ROWS.forEach((row, i) => {
     const last = i === LOGO_ROWS.length - 1;
-    lines.push(indent + c.cyan(row) + (last && tailFits ? "  " + tail : ""));
+    lines.push(indent + c.cyan(row) + (last && tailFits ? `  ${tail}` : ""));
   });
   if (!tailFits) lines.push(indent + tail);
   lines.push("");

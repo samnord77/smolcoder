@@ -10,7 +10,7 @@ test("stripAnsiDisplay removes escapes without touching text", () => {
 
 test("tokenizer colors PascalCase types and decorators", () => {
   const { tokenizeCode } = require("../dist/highlight");
-  const kinds = (src, lang) => tokenizeCode(src, lang).map((t) => t.kind + ":" + t.text);
+  const kinds = (src, lang) => tokenizeCode(src, lang).map((t) => `${t.kind}:${t.text}`);
   const ts = kinds("const x: Agent = new Agent();", "ts");
   assert.ok(ts.includes("tok-t:Agent"), JSON.stringify(ts));
   assert.ok(!ts.includes("tok-t:x"), "lowercase stays plain");
@@ -21,7 +21,7 @@ test("tokenizer colors PascalCase types and decorators", () => {
 });
 
 test("colorizeResultBlock colors fences, errors and exit codes", () => {
-  const src = '```js\nconst x = 1;\n```\n[exit code 0 in 0.2s]';
+  const src = "```js\nconst x = 1;\n```\n[exit code 0 in 0.2s]";
   const colored = colorizeResultBlock(src, true);
   assert.match(colored, /\x1b\[35mconst/);
   assert.match(colored, /\x1b\[32m\[exit code 0/);

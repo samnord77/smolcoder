@@ -1,27 +1,27 @@
 {
   "path": "src/workspace-search.ts",
-  "content_hash": "8dfa0923a31ab217698964ae82fcddc4",
-  "updated_at": "2026-09-26T17:51:05",
-  "lines": 118,
-  "size_bytes": 5186,
-  "mtime_ns": 1790422442084948700,
+  "content_hash": "582f28d452b3cece01299acc598da017",
+  "updated_at": "2026-09-28T19:36:39",
+  "lines": 150,
+  "size_bytes": 5443,
+  "mtime_ns": 1790620580708788800,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
   "sections": [
     {
       "type": "import",
-      "name": "import * as fs from \"fs\";",
+      "name": "import * as fs from \"node:fs\";",
       "line_start": 1,
       "line_end": 1,
-      "signature": "import * as fs from \"fs\";"
+      "signature": "import * as fs from \"node:fs\";"
     },
     {
       "type": "import",
-      "name": "import * as path from \"path\";",
+      "name": "import * as path from \"node:path\";",
       "line_start": 2,
       "line_end": 2,
-      "signature": "import * as path from \"path\";"
+      "signature": "import * as path from \"node:path\";"
     },
     {
       "type": "import",
@@ -99,14 +99,14 @@
       "type": "function",
       "name": "searchWorkspace",
       "line_start": 27,
-      "line_end": 113,
+      "line_end": 145,
       "signature": "function searchWorkspace("
     },
     {
       "type": "function",
       "name": "boundedInteger",
-      "line_start": 115,
-      "line_end": 118,
+      "line_start": 147,
+      "line_end": 150,
       "signature": "function boundedInteger(value: unknown, fallback: number, min: number, max: number): number {"
     }
   ]

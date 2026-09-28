@@ -1,34 +1,34 @@
 {
   "path": "src/web/terminal.ts",
-  "content_hash": "099cb7882287723d7fac40438a53bf1f",
-  "updated_at": "2026-09-28T10:17:56",
+  "content_hash": "2c7516102ac1b19e4359206dbc9401a0",
+  "updated_at": "2026-09-28T19:33:34",
   "lines": 224,
-  "size_bytes": 8365,
-  "mtime_ns": 1790586965934461600,
+  "size_bytes": 8380,
+  "mtime_ns": 1790620408389821400,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
   "sections": [
     {
       "type": "import",
-      "name": "import { ChildProcess, spawn } from \"child_process\";",
+      "name": "import { type ChildProcess, spawn } from \"node:child_process\";",
       "line_start": 7,
       "line_end": 7,
-      "signature": "import { ChildProcess, spawn } from \"child_process\";"
-    },
-    {
-      "type": "import",
-      "name": "import { killTree, pickShell, ShellInfo, shellEnv } from \"../tools/shell\";",
-      "line_start": 8,
-      "line_end": 8,
-      "signature": "import { killTree, pickShell, ShellInfo, shellEnv } from \"../tools/shell\";"
+      "signature": "import { type ChildProcess, spawn } from \"node:child_process\";"
     },
     {
       "type": "import",
       "name": "import { commandEscapesWorkspace } from \"../sandbox\";",
+      "line_start": 8,
+      "line_end": 8,
+      "signature": "import { commandEscapesWorkspace } from \"../sandbox\";"
+    },
+    {
+      "type": "import",
+      "name": "import { killTree, pickShell, type ShellInfo, shellEnv } from \"../tools/shell\";",
       "line_start": 9,
       "line_end": 9,
-      "signature": "import { commandEscapesWorkspace } from \"../sandbox\";"
+      "signature": "import { killTree, pickShell, type ShellInfo, shellEnv } from \"../tools/shell\";"
     },
     {
       "type": "constant",

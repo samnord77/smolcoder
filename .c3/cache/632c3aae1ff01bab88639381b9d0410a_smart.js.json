@@ -1,0 +1,9 @@
+{
+  "original_tokens": 187,
+  "compressed_tokens": 56,
+  "saved_tokens": 131,
+  "savings_pct": 70.1,
+  "compressed": "# editor-ui.test.js (.js) \u2014 20 lines\nconst test = require(\"node:test\");\nconst assert = require(\"node:assert/strict\");\nconst fs = require(\"node:fs\");\nconst path = require(\"node:path\");\nfunction inlineScript(html, label)",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\editor-ui.test.js"
+}

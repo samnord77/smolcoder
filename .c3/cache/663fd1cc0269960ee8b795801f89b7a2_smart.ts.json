@@ -1,0 +1,9 @@
+{
+  "original_tokens": 1691,
+  "compressed_tokens": 303,
+  "saved_tokens": 1388,
+  "savings_pct": 82.1,
+  "compressed": "# router.ts (.ts) \u2014 195 lines\nimport type { DetectedModel } from \"./detect\";\nimport type { ChatOptions, ChatResult, Effort, Msg, Provider, ToolSpec } from \"./providers/types\";\n\nexport interface FallbackSpec\nexport function parseFallbacks(raw: string | undefined): FallbackSpec[]\nexport function isTransientError(err: any): boolean\nexport interface RouteSnapshot\n\nexport class RoutingProvider implements Provider\n  private fallbacks: Provider[] = [];\n  private resolved = false;\n  private current = 0;\n  private failures: Array<{ provider: string; error: string }> = [];\n  private effort: Effort | null = null;\n  constructor( private primary: Provider, private specs: FallbackSpec[],\n  get label(): string\n  get modelId(): string\n  get contextWindow(): number\n  get maxOutputTokens(): number\n  get vision(): boolean | undefined\n  get replaysThinking(): boolean | undefined\n  setEffort(e: Effort | null): void\n  effortLabel(): string | null\n  async loadedContextWindow(): Promise<number | undefined>\n  private active(): Provider\n  private chain(): Provider[]\n  private async ensureFallbacks(): Promise<void>\n  async chat(messages: Msg[], tools: ToolSpec[], opts: ChatOptions = {}): Promise<ChatResult>\n  snapshot(): RouteSnapshot\n  describe(): string\nexport function routeProvider( primary: Provider, raw: string | undefined,",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\router.ts"
+}

@@ -14,13 +14,13 @@
 //     The same endpoint tells us which reasoning levels the model supports
 //     and which one it defaults to — that default is often the MAXIMUM.
 
-import { execFile } from "child_process";
-import * as fs from "fs";
-import * as os from "os";
-import * as path from "path";
-import { SavedHost } from "./config";
+import { execFile } from "node:child_process";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
+import type { SavedHost } from "./config";
 import { hostLabel, hostUrls, LMSTUDIO_PORT, OLLAMA_PORT } from "./hosts";
-import { ReasoningInfo } from "./providers/lmstudio";
+import type { ReasoningInfo } from "./providers/lmstudio";
 import { probeJson, tryFetchJson } from "./util";
 
 export type BackendKind = "ollama" | "lmstudio";
@@ -154,7 +154,9 @@ function containerPublishedUrls(containerPorts: number[]): Promise<string[]> {
       );
     });
   // Podman prints the same port format; only ask it when Docker is absent.
-  return ask("docker").then((urls) => urls ?? ask("podman")).then((urls) => urls ?? []);
+  return ask("docker")
+    .then((urls) => urls ?? ask("podman"))
+    .then((urls) => urls ?? []);
 }
 
 /** Exported for tests: the default gateway in /proc/net/route (little-endian hex). */
@@ -217,8 +219,7 @@ export function parseLmStudioV1(data: any, base = DEFAULT_LMSTUDIO_BASE): Detect
       const inst = Array.isArray(m.loaded_instances) ? m.loaded_instances[0] : undefined;
       const loaded = !!inst;
       const max = typeof m.max_context_length === "number" ? m.max_context_length : undefined;
-      const loadedCtx =
-        typeof inst?.config?.context_length === "number" ? inst.config.context_length : undefined;
+      const loadedCtx = typeof inst?.config?.context_length === "number" ? inst.config.context_length : undefined;
       const r = m.capabilities?.reasoning;
       const reasoning: ReasoningInfo | undefined =
         r && Array.isArray(r.allowed_options)
@@ -245,8 +246,7 @@ function parseLmStudioV0(data: any, base: string): DetectedModel[] | null {
     .map((m: any) => {
       const loaded = m.state === "loaded";
       const max = typeof m.max_context_length === "number" ? m.max_context_length : undefined;
-      const loadedCtx =
-        typeof m.loaded_context_length === "number" ? m.loaded_context_length : undefined;
+      const loadedCtx = typeof m.loaded_context_length === "number" ? m.loaded_context_length : undefined;
       let contextWindow: number;
       let note: string | undefined;
       if (loaded && loadedCtx) {
@@ -278,13 +278,11 @@ export interface ServerInfo {
  * nothing there). Both native listings are requested together so a dead
  * address costs one timeout, not one per backend. */
 export async function identifyServer(base: string, timeoutMs = NETWORK_PROBE_TIMEOUT_MS): Promise<ServerInfo | null> {
-  const [tags, v1] = await Promise.all([
-    probeJson(`${base}/api/tags`, timeoutMs),
-    probeJson(`${base}/api/v1/models`, timeoutMs),
-  ]);
+  const [tags, v1] = await Promise.all([probeJson(`${base}/api/tags`, timeoutMs), probeJson(`${base}/api/v1/models`, timeoutMs)]);
   if (!tags.reached && !v1.reached) return null;
   // LM Studio first: its listing names models by "key", which nothing else does.
-  const lmKeyed = Array.isArray(v1.data?.models) && v1.data.models.length > 0 && v1.data.models.every((m: any) => typeof m?.key === "string");
+  const lmKeyed =
+    Array.isArray(v1.data?.models) && v1.data.models.length > 0 && v1.data.models.every((m: any) => typeof m?.key === "string");
   if (lmKeyed) return { backend: "lmstudio", baseUrl: base, models: parseLmStudioV1(v1.data, base) ?? [] };
   const ollama = parseOllamaTags(tags.data, base);
   if (ollama) return { backend: "ollama", baseUrl: base, models: ollama };
@@ -388,11 +386,14 @@ export async function detectAll(opts: DetectOptions = {}): Promise<DetectedModel
       ? []
       : [
           containerPublishedUrls(ports).then(async (urls) => {
-            const groups = groupServers(urls.filter((u) => !covered.has(u)), LOCAL_PROBE_TIMEOUT_MS);
+            const groups = groupServers(
+              urls.filter((u) => !covered.has(u)),
+              LOCAL_PROBE_TIMEOUT_MS
+            );
             return (await Promise.all(groups.map(probeGroup))).flatMap((s) => s?.models ?? []);
           }),
         ]),
-    ...(!opts.fast ? opts.hosts ?? [] : []).flatMap((host) =>
+    ...(!opts.fast ? (opts.hosts ?? []) : []).flatMap((host) =>
       groupServers(hostUrls(host), NETWORK_PROBE_TIMEOUT_MS, hostLabel(host)).map((g) => probeGroup(g).then((s) => s?.models ?? []))
     ),
   ];
@@ -400,10 +401,12 @@ export async function detectAll(opts: DetectOptions = {}): Promise<DetectedModel
   const done: (DetectedModel[] | undefined)[] = slots.map(() => undefined);
   const merged = () => {
     const seen = new Set<string>();
-    return done.flatMap((models) => models ?? []).filter((m) => {
-      const key = `${m.baseUrl}|${m.id}`;
-      return seen.has(key) ? false : (seen.add(key), true);
-    });
+    return done
+      .flatMap((models) => models ?? [])
+      .filter((m) => {
+        const key = `${m.baseUrl}|${m.id}`;
+        return seen.has(key) ? false : (seen.add(key), true);
+      });
   };
   return new Promise((resolve) => {
     let left = slots.length;
@@ -430,11 +433,9 @@ const DEFAULT_OLLAMA_CTX_CAP = 32768; // avoid surprise VRAM blowups on huge-win
  * --ctx override, or an old Ollama whose /api/ps doesn't report context (where
  * the tiny silent default is the classic footgun).
  */
-export async function resolveContextWindow(
-  model: DetectedModel,
-  ctxOverride?: number
-): Promise<DetectedModel> {
-  if (ctxOverride !== undefined && (!Number.isSafeInteger(ctxOverride) || ctxOverride < 1024)) throw new Error("Context window must be a whole number of at least 1024 tokens.");
+export async function resolveContextWindow(model: DetectedModel, ctxOverride?: number): Promise<DetectedModel> {
+  if (ctxOverride !== undefined && (!Number.isSafeInteger(ctxOverride) || ctxOverride < 1024))
+    throw new Error("Context window must be a whole number of at least 1024 tokens.");
   if (model.backend === "ollama") {
     const info = await tryFetchJson(`${model.baseUrl}/api/show`, {
       method: "POST",
@@ -498,14 +499,19 @@ export async function resolveContextWindow(
   if (model.loaded === false && ctxOverride) {
     const desired = Math.min(ctxOverride, model.maxContext ?? ctxOverride);
     const response = await fetch(`${model.baseUrl}/api/v1/models/load`, {
-      method: "POST", headers: { "content-type": "application/json" },
+      method: "POST",
+      headers: { "content-type": "application/json" },
       body: JSON.stringify({ model: model.id, context_length: desired, echo_load_config: true }),
       signal: AbortSignal.timeout(180_000),
     });
-    if (!response.ok) throw new Error(`LM Studio could not load ${model.id} with ${desired} context tokens (${response.status}). Load the model in LM Studio or reduce --ctx.`);
+    if (!response.ok)
+      throw new Error(
+        `LM Studio could not load ${model.id} with ${desired} context tokens (${response.status}). Load the model in LM Studio or reduce --ctx.`
+      );
     const loaded: any = await response.json();
     const actual = loaded.load_config?.context_length;
-    if (!Number.isSafeInteger(actual) || actual < 1024 || !loaded.instance_id) throw new Error("LM Studio did not confirm the loaded context. Load the model in LM Studio and select it again.");
+    if (!Number.isSafeInteger(actual) || actual < 1024 || !loaded.instance_id)
+      throw new Error("LM Studio did not confirm the loaded context. Load the model in LM Studio and select it again.");
     return { ...model, id: loaded.instance_id, loaded: true, contextWindow: Math.min(desired, actual), note: undefined };
   }
   // LM Studio: an already-loaded model stays resident; an override only shrinks our budget

@@ -2,11 +2,11 @@
 // approval), a spinner for the silent gap before the first streamed token,
 // and small helpers for status lines. No dependencies.
 
-import * as readline from "readline";
-import { UserInput } from "./attachments";
-import { Plan } from "./plan";
+import * as readline from "node:readline";
+import type { UserInput } from "./attachments";
+import { colorizeResultBlock, createCodeStreamColorizer } from "./highlight";
+import type { Plan } from "./plan";
 import { c } from "./util";
-import { createCodeStreamColorizer, colorizeResultBlock } from "./highlight";
 
 /** What the agent loop needs from a UI — implemented by the plain UI (used in
  * -p / non-TTY mode) and by the interactive Tui. */
@@ -70,9 +70,9 @@ export function renderPlan(plan: Plan, indent = "  "): string {
   const cur = plan.currentIndex;
   const header = `${indent}${c.bold("Plan")} ${c.dim(`${plan.doneCount} tâches sur ${plan.steps.length} terminées`)}`;
   const rows = plan.steps.map((s, i) => {
-    if (s.done) return `${indent}${c.dim("☑ " + s.text)}`;
-    if (i === cur) return `${indent}${c.cyan("◉ " + s.text)}`;
-    return `${indent}${c.gray("☐ " + s.text)}`;
+    if (s.done) return `${indent}${c.dim(`☑ ${s.text}`)}`;
+    if (i === cur) return `${indent}${c.cyan(`◉ ${s.text}`)}`;
+    return `${indent}${c.gray(`☐ ${s.text}`)}`;
   });
   return [header, ...rows].join("\n");
 }
@@ -139,9 +139,7 @@ export class UI implements AgentUI {
     this.spinnerActive = true;
     this.spinnerTimer = setInterval(() => {
       const secs = Math.floor((Date.now() - started) / 1000);
-      process.stdout.write(
-        `\r${c.cyan(frames[i++ % frames.length])} ${c.dim(label + (secs > 2 ? ` ${secs}s` : ""))}   `
-      );
+      process.stdout.write(`\r${c.cyan(frames[i++ % frames.length])} ${c.dim(label + (secs > 2 ? ` ${secs}s` : ""))}   `);
     }, 100);
   }
 
@@ -151,7 +149,7 @@ export class UI implements AgentUI {
       this.spinnerTimer = null;
     }
     if (this.spinnerActive) {
-      process.stdout.write("\r" + " ".repeat(60) + "\r");
+      process.stdout.write(`\r${" ".repeat(60)}\r`);
       this.spinnerActive = false;
     }
   }
@@ -168,7 +166,7 @@ export class UI implements AgentUI {
   private meta(s: string): void {
     this.stopSpinner();
     this.ensureLine();
-    process.stderr.write(s + "\n");
+    process.stderr.write(`${s}\n`);
   }
 
   /** Streamed model text goes straight to stdout. */
@@ -190,23 +188,21 @@ export class UI implements AgentUI {
     const firstLine = result.split("\n")[0] ?? "";
     const isError = firstLine.startsWith("Error");
     const lines = result.split("\n").length;
-    const label = isError
-      ? c.red(firstLine.slice(0, 120))
-      : c.dim(firstLine.slice(0, 100) + (lines > 1 ? ` (+${lines - 1} lines)` : ""));
+    const label = isError ? c.red(firstLine.slice(0, 120)) : c.dim(firstLine.slice(0, 100) + (lines > 1 ? ` (+${lines - 1} lines)` : ""));
     this.meta(`  ${isError ? c.red("✗") : c.green("✓")} ${label}`);
     // Short results print in full with code colors (stderr: automations
     // parsing stdout are unaffected); long ones stay a one-line summary.
     if (!isError && lines > 1 && lines <= 25 && result.length <= 2500) {
       this.stopSpinner();
       this.ensureLine();
-      process.stderr.write(colorizeResultBlock(result, process.stdout.isTTY && !process.env.NO_COLOR) + "\n");
+      process.stderr.write(`${colorizeResultBlock(result, process.stdout.isTTY && !process.env.NO_COLOR)}\n`);
     }
   }
 
   println(s = ""): void {
     this.stopSpinner();
     this.ensureLine();
-    process.stdout.write(s + "\n");
+    process.stdout.write(`${s}\n`);
     this.atLineStart = true;
   }
 
@@ -265,8 +261,12 @@ export function summarizeArgs(name: string, args: Record<string, any>): string {
         return [args.action, args.command ?? args.task_id ?? ""].filter(Boolean).join(" ");
       case "plan": {
         if (args.action === "set")
-          return `set (${String(args.steps ?? "").split("\n").filter(Boolean).length} steps)`;
-        if (args.action === "done") return `done${args.step ? " " + args.step : ""}`;
+          return `set (${
+            String(args.steps ?? "")
+              .split("\n")
+              .filter(Boolean).length
+          } steps)`;
+        if (args.action === "done") return `done${args.step ? ` ${args.step}` : ""}`;
         if (args.action === "add") return `add: ${String(args.text ?? "").slice(0, 60)}`;
         return String(args.action ?? "");
       }

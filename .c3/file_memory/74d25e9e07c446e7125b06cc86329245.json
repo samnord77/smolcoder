@@ -1,48 +1,48 @@
 {
   "path": "src/ui.ts",
-  "content_hash": "bbc0a21dae49b2540904d78367f9d293",
-  "updated_at": "2026-09-27T20:57:14",
+  "content_hash": "d7a81035c92ab3bf8cfe6ef8620ee252",
+  "updated_at": "2026-09-28T19:36:41",
   "lines": 279,
-  "size_bytes": 10011,
-  "mtime_ns": 1790538888863332800,
+  "size_bytes": 9768,
+  "mtime_ns": 1790620580142149500,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
   "sections": [
     {
       "type": "import",
-      "name": "import * as readline from \"readline\";",
+      "name": "import * as readline from \"node:readline\";",
       "line_start": 5,
       "line_end": 5,
-      "signature": "import * as readline from \"readline\";"
+      "signature": "import * as readline from \"node:readline\";"
     },
     {
       "type": "import",
-      "name": "import { UserInput } from \"./attachments\";",
+      "name": "import type { UserInput } from \"./attachments\";",
       "line_start": 6,
       "line_end": 6,
-      "signature": "import { UserInput } from \"./attachments\";"
+      "signature": "import type { UserInput } from \"./attachments\";"
     },
     {
       "type": "import",
-      "name": "import { Plan } from \"./plan\";",
+      "name": "import { colorizeResultBlock, createCodeStreamColorizer } from \"./highlight\";",
       "line_start": 7,
       "line_end": 7,
-      "signature": "import { Plan } from \"./plan\";"
+      "signature": "import { colorizeResultBlock, createCodeStreamColorizer } from \"./highlight\";"
+    },
+    {
+      "type": "import",
+      "name": "import type { Plan } from \"./plan\";",
+      "line_start": 8,
+      "line_end": 8,
+      "signature": "import type { Plan } from \"./plan\";"
     },
     {
       "type": "import",
       "name": "import { c } from \"./util\";",
-      "line_start": 8,
-      "line_end": 8,
-      "signature": "import { c } from \"./util\";"
-    },
-    {
-      "type": "import",
-      "name": "import { createCodeStreamColorizer, colorizeResultBlock } from \"./highlight\";",
       "line_start": 9,
       "line_end": 9,
-      "signature": "import { createCodeStreamColorizer, colorizeResultBlock } from \"./highlight\";"
+      "signature": "import { c } from \"./util\";"
     },
     {
       "type": "interface",
@@ -87,7 +87,7 @@
       "type": "class",
       "name": "UI",
       "line_start": 80,
-      "line_end": 243,
+      "line_end": 239,
       "signature": "class UI implements AgentUI {",
       "children": [
         {
@@ -164,29 +164,29 @@
           "type": "method",
           "name": "startSpinner",
           "line_start": 122,
-          "line_end": 146,
+          "line_end": 144,
           "signature": "startSpinner(label: string): void {"
         },
         {
           "type": "method",
           "name": "stopSpinner",
-          "line_start": 148,
-          "line_end": 157,
+          "line_start": 146,
+          "line_end": 155,
           "signature": "stopSpinner(): void {"
         },
         {
           "type": "method",
           "name": "ensureLine",
-          "line_start": 159,
-          "line_end": 164,
+          "line_start": 157,
+          "line_end": 162,
           "signature": "private ensureLine(): void {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "meta",
-          "line_start": 168,
-          "line_end": 172,
+          "line_start": 166,
+          "line_end": 170,
           "signature": "private meta(s: string): void {",
           "access": "private",
           "doc": "Meta output (tool lines, status, warnings) goes to stderr so headless"
@@ -194,87 +194,87 @@
         {
           "type": "method",
           "name": "token",
-          "line_start": 175,
-          "line_end": 179,
+          "line_start": 173,
+          "line_end": 177,
           "signature": "token(text: string): void {",
           "doc": "Streamed model text goes straight to stdout."
         },
         {
           "type": "method",
           "name": "thinking",
-          "line_start": 182,
-          "line_end": 182,
+          "line_start": 180,
+          "line_end": 180,
           "signature": "thinking(_text: string): void {}",
           "doc": "Headless mode: reasoning noise is suppressed \u2014 automations want the answer."
         },
         {
           "type": "method",
           "name": "toolCall",
-          "line_start": 184,
-          "line_end": 187,
+          "line_start": 182,
+          "line_end": 185,
           "signature": "toolCall(name: string, args: Record<string, any>): void {"
         },
         {
           "type": "method",
           "name": "toolResult",
-          "line_start": 189,
-          "line_end": 204,
+          "line_start": 187,
+          "line_end": 200,
           "signature": "toolResult(result: string): void {"
         },
         {
           "type": "method",
           "name": "println",
-          "line_start": 206,
-          "line_end": 211,
+          "line_start": 202,
+          "line_end": 207,
           "signature": "println(s = \"\"): void {"
         },
         {
           "type": "method",
           "name": "status",
-          "line_start": 213,
-          "line_end": 215,
+          "line_start": 209,
+          "line_end": 211,
           "signature": "status(s: string): void {"
         },
         {
           "type": "method",
           "name": "turnEnd",
-          "line_start": 217,
-          "line_end": 220,
+          "line_start": 213,
+          "line_end": 216,
           "signature": "turnEnd(label: string): void {"
         },
         {
           "type": "method",
           "name": "planUpdated",
-          "line_start": 222,
-          "line_end": 224,
+          "line_start": 218,
+          "line_end": 220,
           "signature": "planUpdated(plan: Plan): void {"
         },
         {
           "type": "method",
           "name": "subagent",
-          "line_start": 226,
-          "line_end": 228,
+          "line_start": 222,
+          "line_end": 224,
           "signature": "subagent(phase: \"start\" | \"done\", label: string): void {"
         },
         {
           "type": "method",
           "name": "warn",
-          "line_start": 230,
-          "line_end": 232,
+          "line_start": 226,
+          "line_end": 228,
           "signature": "warn(s: string): void {"
         },
         {
           "type": "method",
           "name": "error",
-          "line_start": 234,
-          "line_end": 237,
+          "line_start": 230,
+          "line_end": 233,
           "signature": "error(s: string): void {"
         },
         {
           "type": "method",
           "name": "close",
-          "line_start": 239,
-          "line_end": 242,
+          "line_start": 235,
+          "line_end": 238,
           "signature": "close(): void {"
         }
       ]
@@ -282,7 +282,7 @@
     {
       "type": "function",
       "name": "summarizeArgs",
-      "line_start": 245,
+      "line_start": 241,
       "line_end": 279,
       "signature": "function summarizeArgs(name: string, args: Record<string, any>): string {"
     }

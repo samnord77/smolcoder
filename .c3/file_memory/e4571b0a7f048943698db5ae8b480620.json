@@ -1,10 +1,10 @@
 {
   "path": "test/client-smoke.test.js",
-  "content_hash": "00eb4239210ed4515bdf489a35e727cd",
-  "updated_at": "2026-09-28T16:37:04",
-  "lines": 430,
-  "size_bytes": 16511,
-  "mtime_ns": 1790609677141585200,
+  "content_hash": "53883d59da6b863305dbab9b67cc1ade",
+  "updated_at": "2026-09-28T20:25:42",
+  "lines": 538,
+  "size_bytes": 17373,
+  "mtime_ns": 1790622479465311000,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -48,63 +48,63 @@
       "type": "function",
       "name": "makeEl",
       "line_start": 12,
-      "line_end": 68,
+      "line_end": 88,
       "signature": "function makeEl(all) {"
     },
     {
       "type": "function",
       "name": "boot",
-      "line_start": 70,
-      "line_end": 175,
+      "line_start": 90,
+      "line_end": 227,
       "signature": "function boot(treeEntries, diffPayload, shellItems = []) {"
     },
     {
       "type": "constant",
       "name": "TREE",
-      "line_start": 177,
-      "line_end": 180,
+      "line_start": 229,
+      "line_end": 232,
       "signature": "const TREE = ["
     },
     {
       "type": "constant",
       "name": "DIFF",
-      "line_start": 181,
-      "line_end": 184,
+      "line_start": 233,
+      "line_end": 236,
       "signature": "const DIFF = {"
     },
     {
       "type": "function",
       "name": "emitHub",
-      "line_start": 186,
-      "line_end": 199,
+      "line_start": 238,
+      "line_end": 271,
       "signature": "function emitHub(ctx, sid = \"s1\", startedAt = 1000) {"
     },
     {
       "type": "constant",
       "name": "OFFLOAD_COMMAND",
-      "line_start": 369,
-      "line_end": 369,
+      "line_start": 467,
+      "line_end": 467,
       "signature": "const OFFLOAD_COMMAND = 'node -e \"long build\"';"
     },
     {
       "type": "function",
       "name": "startRun",
-      "line_start": 370,
-      "line_end": 372,
+      "line_start": 468,
+      "line_end": 470,
       "signature": "function startRun(c) {"
     },
     {
       "type": "function",
       "name": "cardsOf",
-      "line_start": 374,
-      "line_end": 374,
-      "signature": "const cardsOf = (c) => c.allElements().filter((e) => String(e.className || \"\").split(/\\s+/).indexOf(\"offload-card\") >= 0);"
+      "line_start": 472,
+      "line_end": 478,
+      "signature": "const cardsOf = (c) =>"
     },
     {
       "type": "function",
       "name": "buttonsOf",
-      "line_start": 375,
-      "line_end": 375,
+      "line_start": 479,
+      "line_end": 479,
       "signature": "const buttonsOf = (card) => (card.children[2] ? card.children[2].children : []);"
     }
   ]

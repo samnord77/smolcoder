@@ -1,10 +1,10 @@
 {
   "path": "test/editor-ui.test.js",
-  "content_hash": "5b819703e3655227d9c2181bb68cddfa",
-  "updated_at": "2026-09-26T17:56:05",
-  "lines": 26,
-  "size_bytes": 780,
-  "mtime_ns": 1790428073868101800,
+  "content_hash": "632c3aae1ff01bab88639381b9d0410a",
+  "updated_at": "2026-09-28T19:36:39",
+  "lines": 20,
+  "size_bytes": 770,
+  "mtime_ns": 1790620581412733800,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -41,7 +41,7 @@
       "type": "function",
       "name": "inlineScript",
       "line_start": 7,
-      "line_end": 14,
+      "line_end": 11,
       "signature": "function inlineScript(html, label) {"
     }
   ]

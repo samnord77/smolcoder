@@ -3,30 +3,22 @@
 // model emits several anyway, they simply run sequentially. Malformed calls
 // come back as coaching errors so the model can retry instead of derailing.
 
-import { Attachment, renderAttachmentsForModel } from "./attachments";
+import { createHash } from "node:crypto";
+import { type Attachment, renderAttachmentsForModel } from "./attachments";
 import { ContextManager } from "./context";
-import { EventBus } from "./events";
+import type { EventBus } from "./events";
+import { gitTurnSummary } from "./git";
 import { Plan } from "./plan";
-import { ChatResult, Msg, Provider, ToolSpec } from "./providers/types";
-import {
-  buildToolSpecs,
-  executeTool,
-  Mode,
-  MODE_LABELS,
-  commandOf,
-  ToolContext,
-} from "./tools/index";
-import { AgentUI } from "./ui";
-import { c, fmtDuration } from "./util";
-import { commandEscapesWorkspace } from "./sandbox";
 import { abortableDelay } from "./providers/transport";
-import { truncateMiddle } from "./util";
-import { createHash } from "crypto";
-import { runCommand } from "./tools/shell";
-import { failureSignature, mergeVerificationCommands, projectVerification } from "./verification";
+import type { ChatResult, Msg, Provider, ToolSpec } from "./providers/types";
+import { commandEscapesWorkspace } from "./sandbox";
 import { recordDelegateStats, relevantSkillNames, relevantSkills, saveAutoRepairLesson } from "./skills";
 import { loadSubagentRoles } from "./subagents";
-import { gitTurnSummary } from "./git";
+import { buildToolSpecs, commandOf, executeTool, MODE_LABELS, type Mode, type ToolContext } from "./tools/index";
+import { runCommand } from "./tools/shell";
+import type { AgentUI } from "./ui";
+import { c, fmtDuration, truncateMiddle } from "./util";
+import { failureSignature, mergeVerificationCommands, projectVerification } from "./verification";
 
 /** Supplied by the caller, never generated or changed by a model tool. */
 export interface Verification {
@@ -130,7 +122,7 @@ export class Agent {
   constructor(
     public provider: Provider,
     public mode: Mode,
-    private systemPrompt: string,
+    systemPrompt: string,
     private toolCtx: ToolContext,
     private ctxMgr: ContextManager,
     private bus: EventBus,
@@ -141,7 +133,13 @@ export class Agent {
     private callerVerification?: Verification
   ) {
     this.verification = callerVerification;
-    if (callerVerification && (!callerVerification.command.trim() || (callerVerification.maxAttempts !== undefined && (!Number.isSafeInteger(callerVerification.maxAttempts) || callerVerification.maxAttempts < 1)))) throw new Error("Verification needs a command and a positive attempt limit.");
+    if (
+      callerVerification &&
+      (!callerVerification.command.trim() ||
+        (callerVerification.maxAttempts !== undefined &&
+          (!Number.isSafeInteger(callerVerification.maxAttempts) || callerVerification.maxAttempts < 1)))
+    )
+      throw new Error("Verification needs a command and a positive attempt limit.");
     this.messages = [{ role: "system", content: systemPrompt }];
     this.tools = this.toolsFor(mode);
     this.toolCtx.canWrite = mode !== "ro";
@@ -193,7 +191,9 @@ export class Agent {
         const roleName = (requestedRole || "expert").trim().toLowerCase();
         const found = loadSubagentRoles(this.toolCtx.workspace).find((candidate) => candidate.name === roleName);
         if (!found) {
-          const available = loadSubagentRoles(this.toolCtx.workspace).map((candidate) => candidate.name).join(", ");
+          const available = loadSubagentRoles(this.toolCtx.workspace)
+            .map((candidate) => candidate.name)
+            .join(", ");
           return `Error: unknown sub-agent role "${roleName}". Available roles: ${available}.`;
         }
         role = found;
@@ -228,7 +228,9 @@ export class Agent {
       this.ui.status(`· sous-agent ${role.name} : travail délégué (max 12 actions)`);
       this.ui.subagent?.("start", `${role.name}: ${task}`.slice(0, 120));
       try {
-        await child.runTurn(`Subtask (answer with a short report: what you found or changed, files + line numbers, what remains):\n${task}`);
+        await child.runTurn(
+          `Subtask (answer with a short report: what you found or changed, files + line numbers, what remains):\n${task}`
+        );
       } catch (err: any) {
         try {
           recordDelegateStats(this.toolCtx.workspace, child.lastTurnStats?.toolCalls ?? 0);
@@ -302,7 +304,9 @@ export class Agent {
     this.currentRequest = currentRequest;
     this.planNudged = false;
     this.ctxMgr.resetAnchor();
-    this.repairTranscript("[Tool execution was interrupted by a restart. Its outcome is unknown. Inspect files or command state before retrying; do not assume it failed or rerun it blindly.]");
+    this.repairTranscript(
+      "[Tool execution was interrupted by a restart. Its outcome is unknown. Inspect files or command state before retrying; do not assume it failed or rerun it blindly.]"
+    );
   }
 
   cancel(): void {
@@ -318,13 +322,26 @@ export class Agent {
     return this.ctxMgr.estimatePrompt(this.messages, this.tools);
   }
 
-  contextBudget() { return this.ctxMgr.budget(this.messages, this.tools); }
+  contextBudget() {
+    return this.ctxMgr.budget(this.messages, this.tools);
+  }
 
   private compactState() {
-    const failure = this.verificationResult && !this.verificationResult.passed
-      ? `\nLast acceptance failure (actual command output; resolve before completion):\n${truncateMiddle(this.verificationResult.output, 1800)}` : "";
-    const progress = this.progressFailure ? `\nLast project check failure (may predate subsequent edits):\n${truncateMiddle(this.progressFailure, 1800)}` : "";
-    return { originalRequest: this.originalRequest, currentRequest: this.currentRequest, verificationLine: this.verificationInstruction() + failure + progress, filesTouched: this.toolCtx.filesTouched, commandsRun: this.toolCtx.commandsRun, planLine: this.toolCtx.plan.compactLine() };
+    const failure =
+      this.verificationResult && !this.verificationResult.passed
+        ? `\nLast acceptance failure (actual command output; resolve before completion):\n${truncateMiddle(this.verificationResult.output, 1800)}`
+        : "";
+    const progress = this.progressFailure
+      ? `\nLast project check failure (may predate subsequent edits):\n${truncateMiddle(this.progressFailure, 1800)}`
+      : "";
+    return {
+      originalRequest: this.originalRequest,
+      currentRequest: this.currentRequest,
+      verificationLine: this.verificationInstruction() + failure + progress,
+      filesTouched: this.toolCtx.filesTouched,
+      commandsRun: this.toolCtx.commandsRun,
+      planLine: this.toolCtx.plan.compactLine(),
+    };
   }
 
   private async checkProgress(signal: AbortSignal): Promise<boolean> {
@@ -339,14 +356,19 @@ export class Agent {
     this.progressFailure = passed ? "" : output;
     this.ui.toolResult(output);
     await this.bus.emit("post_progress_check", { command, passed, output });
-    this.messages.push({ role: "user", content: passed
-      ? `[Project checks passed: ${command}. Continue the remaining work in the original request.]`
-      : `[Progress checks failed. Fix the first concrete failure before further investigation. Continue the same task.\nCommand: ${command}\n${truncateMiddle(output, this.ctxMgr.toolResultCharLimit())}]` });
+    this.messages.push({
+      role: "user",
+      content: passed
+        ? `[Project checks passed: ${command}. Continue the remaining work in the original request.]`
+        : `[Progress checks failed. Fix the first concrete failure before further investigation. Continue the same task.\nCommand: ${command}\n${truncateMiddle(output, this.ctxMgr.toolResultCharLimit())}]`,
+    });
     return true;
   }
 
   private verificationInstruction(): string {
-    return this.verification ? `\n${this.verification.source === "project" ? `Project checks (${this.verification.command})` : "Caller-owned acceptance checks"} must pass before completion. The harness runs them automatically and returns failures for repair. Use project files and returned failures to fix the application. Do not weaken or bypass acceptance checks.` : "";
+    return this.verification
+      ? `\n${this.verification.source === "project" ? `Project checks (${this.verification.command})` : "Caller-owned acceptance checks"} must pass before completion. The harness runs them automatically and returns failures for repair. Use project files and returned failures to fix the application. Do not weaken or bypass acceptance checks.`
+      : "";
   }
 
   private discoverVerification(wroteThisTurn: boolean): void {
@@ -365,15 +387,20 @@ export class Agent {
     if (this.mode === "ro") throw new Error("Acceptance commands are unavailable in read-only mode.");
     const check = this.verification!;
     const attempts = (this.verificationResult?.attempts ?? 0) + 1;
-    if (attempts > (check.maxAttempts ?? 6)) throw new Error("Acceptance attempt limit reached before the agent finished. The task is incomplete.");
+    if (attempts > (check.maxAttempts ?? 6))
+      throw new Error("Acceptance attempt limit reached before the agent finished. The task is incomplete.");
     this.ui.status(`· checking acceptance (${attempts}/${check.maxAttempts ?? 6})`);
     this.ui.toolCall("verification", { command: check.command });
     const output = await runCommand(check.command, this.toolCtx.workspace, signal);
     if (signal.aborted) throw abortError();
     const passed = !output.startsWith("Error") && /\[exit code 0 in [^\]]+\]\s*$/.test(output);
-    this.sameVerificationFailures = passed ? 0
-      : this.verificationResult && !this.verificationResult.passed && failureSignature(this.verificationResult.output) === failureSignature(output)
-        ? this.sameVerificationFailures + 1 : 1;
+    this.sameVerificationFailures = passed
+      ? 0
+      : this.verificationResult &&
+          !this.verificationResult.passed &&
+          failureSignature(this.verificationResult.output) === failureSignature(output)
+        ? this.sameVerificationFailures + 1
+        : 1;
     this.verificationResult = { attempts, passed, output };
     this.ui.toolResult(output);
     await this.bus.emit("post_verify", this.verificationResult);
@@ -397,7 +424,8 @@ export class Agent {
       }
       return true;
     }
-    if (attempts >= (check.maxAttempts ?? 6)) throw new Error(`Acceptance checks still fail after ${attempts} attempts. The task is incomplete.\n${truncateMiddle(output, 1600)}`);
+    if (attempts >= (check.maxAttempts ?? 6))
+      throw new Error(`Acceptance checks still fail after ${attempts} attempts. The task is incomplete.\n${truncateMiddle(output, 1600)}`);
     this.ui.status("· acceptance failed — continuing repairs automatically");
     // Auto-evolution at the moment of need: past lessons for similar
     // failures ride into the repair, not just the next turn's prompt.
@@ -408,7 +436,10 @@ export class Agent {
     } catch {
       /* lessons must never break a repair */
     }
-    this.messages.push({ role: "user", content: `[Acceptance failed; the task is not complete. Repair the first failing behavior. The harness will rerun acceptance automatically. Do not skip tests or report success.${check.source === "project" ? `\nCommand: ${check.command}` : ""}\n${truncateMiddle(output, this.ctxMgr.toolResultCharLimit())}${lessonNote}]` });
+    this.messages.push({
+      role: "user",
+      content: `[Acceptance failed; the task is not complete. Repair the first failing behavior. The harness will rerun acceptance automatically. Do not skip tests or report success.${check.source === "project" ? `\nCommand: ${check.command}` : ""}\n${truncateMiddle(output, this.ctxMgr.toolResultCharLimit())}${lessonNote}]`,
+    });
     if (this.sameVerificationFailures === 2 && this.canRefreshVerification) {
       this.ui.status("· same check failed again — refreshing working context");
       // Repeating an unchanged hypothesis in a larger transcript is not
@@ -416,7 +447,7 @@ export class Agent {
       // old model-written narratives before a facts-only handover. Current
       // files remain untouched and can be reread; no additional inference.
       this.ctxMgr.cancelBackground(true);
-      this.messages = this.messages.filter(message => !message.compactNote);
+      this.messages = this.messages.filter((message) => !message.compactNote);
       this.ctxMgr.resetAnchor();
       await this.compactNow(true, true);
     }
@@ -428,13 +459,11 @@ export class Agent {
     try {
       await this.ctxMgr.foreground();
       await this.bus.emit("pre_compact");
-      const { messages, report } = await this.ctxMgr.manage(
-        this.messages,
-        this.tools,
-        this.provider,
-        this.compactState(),
-        { force, deterministic, signal: this.abort?.signal }
-      );
+      const { messages, report } = await this.ctxMgr.manage(this.messages, this.tools, this.provider, this.compactState(), {
+        force,
+        deterministic,
+        signal: this.abort?.signal,
+      });
       this.messages = messages;
       await this.bus.emit("post_compact", report);
       await this.bus.emit("context_update");
@@ -493,7 +522,7 @@ export class Agent {
     }
     this.messages.push({
       role: "user",
-      content: request + (rendered.text ? "\n\n" + rendered.text : "") + this.verificationInstruction(),
+      content: request + (rendered.text ? `\n\n${rendered.text}` : "") + this.verificationInstruction(),
       ...(rendered.images.length ? { images: rendered.images } : {}),
     });
     this.abort = new AbortController();
@@ -536,7 +565,19 @@ export class Agent {
     try {
       await this.refreshLoadedWindow();
       agentLoop: while (steps++ < this.maxSteps) {
-        if (process.env.SMOL_DEBUG_VERIFY) console.error("MODEL_STEP", steps, "calls", toolCallsThisTurn, "verification", !!this.verification, "result", (this.verificationResult as any)?.attempts ?? 0, "progress", !!this.progressFailure);
+        if (process.env.SMOL_DEBUG_VERIFY)
+          console.error(
+            "MODEL_STEP",
+            steps,
+            "calls",
+            toolCallsThisTurn,
+            "verification",
+            !!this.verification,
+            "result",
+            (this.verificationResult as any)?.attempts ?? 0,
+            "progress",
+            !!this.progressFailure
+          );
         // Context management before every request.
         await this.bus.emit("pre_request");
         if (this.ctxMgr.needsAttention(this.messages, this.tools)) {
@@ -578,11 +619,7 @@ export class Agent {
         // Anchor AFTER the push: lastPromptTokens+lastCompletionTokens then
         // cover exactly the first `messages.length` messages — recording
         // before the push double-counted the reply in every estimate.
-        this.ctxMgr.recordUsage(
-          result.promptTokens,
-          result.completionTokens,
-          this.messages.length
-        );
+        this.ctxMgr.recordUsage(result.promptTokens, result.completionTokens, this.messages.length);
         if (stats.modelCalls === 0) await this.refreshLoadedWindow();
         await this.bus.emit("context_update");
         stats.modelCalls++;
@@ -613,7 +650,9 @@ export class Agent {
             if (burnedByThinking) {
               reasoningExhaustions++;
               actionOnlyCalls = reasoningExhaustions === 1 ? 1 : Math.min(8, 2 ** Math.min(reasoningExhaustions, 3));
-              this.ui.status(`· reasoning exhausted the reply budget — ${actionOnlyCalls} response${actionOnlyCalls === 1 ? "" : "s"} with thinking off, then restore the selected effort`);
+              this.ui.status(
+                `· reasoning exhausted the reply budget — ${actionOnlyCalls} response${actionOnlyCalls === 1 ? "" : "s"} with thinking off, then restore the selected effort`
+              );
             }
             const nudgeText = burnedByThinking
               ? `[Your reasoning used the entire output limit (${this.provider.maxOutputTokens} tokens) and produced no answer. Do not re-derive everything — reply now with your next tool call or a brief answer.]`
@@ -628,8 +667,7 @@ export class Agent {
             this.ui.status("· empty reply — nudging the model");
             this.messages.push({
               role: "user",
-              content:
-                "[Your reply was empty. If the task is finished, summarize what you did. Otherwise make the next tool call now.]",
+              content: "[Your reply was empty. If the task is finished, summarize what you did. Otherwise make the next tool call now.]",
             });
             continue;
           }
@@ -648,10 +686,17 @@ export class Agent {
             });
             continue;
           }
-          if (result.truncated || !result.content.trim()) throw new Error("The model repeatedly returned an empty or cut-off reply. Progress is kept. Try /effort off, switch models with /models, or say continue.");
+          if (result.truncated || !result.content.trim())
+            throw new Error(
+              "The model repeatedly returned an empty or cut-off reply. Progress is kept. Try /effort off, switch models with /models, or say continue."
+            );
           this.discoverVerification(wroteThisTurn);
           if (this.verification && !(await runAcceptance())) {
-            repeatedReads.clear(); repeats = 0; failedCalls = 0; readsSinceAction = 0; lastProgressCheck = toolCallsThisTurn;
+            repeatedReads.clear();
+            repeats = 0;
+            failedCalls = 0;
+            readsSinceAction = 0;
+            lastProgressCheck = toolCallsThisTurn;
             continue;
           }
           completed = true;
@@ -669,10 +714,7 @@ export class Agent {
         for (const call of result.toolCalls) {
           if (process.env.SMOL_DEBUG_VERIFY) console.error("TOOL", call.name, toolCallsThisTurn + 1);
           if (signal.aborted) throw abortError();
-          this.ui.toolCall(
-            call.name,
-            call.parseError ? { __raw: (call.rawArgs ?? "").slice(0, 80) } : call.args
-          );
+          this.ui.toolCall(call.name, call.parseError ? { __raw: (call.rawArgs ?? "").slice(0, 80) } : call.args);
 
           let output: string;
           let observedOutput: string | undefined;
@@ -688,9 +730,10 @@ export class Agent {
             // HARD mode enforcement. The schemas sent to the model are only
             // advisory — a hallucinated or injected write_file/run_command in
             // read-only mode must be rejected here, at execution time.
-            output = this.toolCtx.allowedTools && !this.toolCtx.allowedTools.has(call.name)
-              ? `Error: ${call.name} is not allowed for the ${this.toolCtx.role ?? "restricted"} role. Available tools: ${this.tools.map((t) => t.name).join(", ")}.`
-              : `Error: the tool "${call.name}" is not available in ${MODE_LABELS[this.mode]} mode. Available tools: ${this.tools.map((t) => t.name).join(", ")}.`;
+            output =
+              this.toolCtx.allowedTools && !this.toolCtx.allowedTools.has(call.name)
+                ? `Error: ${call.name} is not allowed for the ${this.toolCtx.role ?? "restricted"} role. Available tools: ${this.tools.map((t) => t.name).join(", ")}.`
+                : `Error: the tool "${call.name}" is not available in ${MODE_LABELS[this.mode]} mode. Available tools: ${this.tools.map((t) => t.name).join(", ")}.`;
           } else {
             this.toolCtx.resultCharLimit = this.ctxMgr.toolResultCharLimit();
             if (call.name === "run_command") {
@@ -704,7 +747,11 @@ export class Agent {
             stats.toolCalls++;
             // Tier-0 context hygiene: a full overwrite makes every earlier
             // read of that file wrong. Stub them out right away.
-            if ((call.name === "write_file" || call.name === "edit_file") && !output.startsWith("Error") && typeof call.args?.path === "string") {
+            if (
+              (call.name === "write_file" || call.name === "edit_file") &&
+              !output.startsWith("Error") &&
+              typeof call.args?.path === "string"
+            ) {
               wroteThisTurn = true;
               this.ctxMgr.evictStaleReads(this.messages, call.args.path);
               repeatedReads.clear();
@@ -728,14 +775,20 @@ export class Agent {
           repeats = key === repeatKey ? repeats + 1 : 1;
           repeatKey = key;
           failedCalls = output.startsWith("Error") ? failedCalls + 1 : 0;
-          if (repeats === 3 || failedCalls === 3) output += "\n[Repeated attempts are not making progress. Inspect the error or relevant file and change your approach before trying again.]";
+          if (repeats === 3 || failedCalls === 3)
+            output +=
+              "\n[Repeated attempts are not making progress. Inspect the error or relevant file and change your approach before trying again.]";
           let readRepeats = 0;
           let readKey = "";
           if (["read_file", "search", "list_files"].includes(call.name) && !output.startsWith("Error")) {
-            if (++readsSinceAction % 12 === 0 && this.mode !== "ro") output += "\n[Investigation checkpoint: record the exact APIs, unresolved error and next small edit with plan checkpoint. Then make and verify that edit before inspecting more modules.]";
+            if (++readsSinceAction % 12 === 0 && this.mode !== "ro")
+              output +=
+                "\n[Investigation checkpoint: record the exact APIs, unresolved error and next small edit with plan checkpoint. Then make and verify that edit before inspecting more modules.]";
             // Match both the request and file/output contents: rereading an
             // edited file or a different line range is legitimate progress.
-            readKey = createHash("sha256").update(call.name + JSON.stringify(call.args) + (observedOutput ?? output)).digest("hex");
+            readKey = createHash("sha256")
+              .update(call.name + JSON.stringify(call.args) + (observedOutput ?? output))
+              .digest("hex");
             const previous = repeatedReads.get(readKey);
             // Refetching evidence that WE removed is legitimate. Count only
             // repeated observations the model can still see in its context.
@@ -743,12 +796,15 @@ export class Agent {
             readRepeats = retained ? previous!.count + 1 : 1;
             if (!retained) repeats = 1; // the generic consecutive-call guard must agree
             repeatedReads.set(readKey, { count: readRepeats });
-            if (readRepeats >= 3) output += "\n[This unchanged result has already been read repeatedly. Do not restart the same reads after compaction. Use a different small line range or narrow search if needed, then implement the next step.]";
+            if (readRepeats >= 3)
+              output +=
+                "\n[This unchanged result has already been read repeatedly. Do not restart the same reads after compaction. Use a different small line range or narrow search if needed, then implement the next step.]";
           }
           const outputCap = this.ctxMgr.toolResultCharLimit();
           // read_file already paginates on complete lines. Never middle-cut
           // that page while its trailer claims a contiguous line range.
-          if (output.length > outputCap && call.name !== "read_file") output = truncateMiddle(output, outputCap) + "\n[Output capped for this context window. Read a smaller line range or narrow the search.]";
+          if (output.length > outputCap && call.name !== "read_file")
+            output = `${truncateMiddle(output, outputCap)}\n[Output capped for this context window. Read a smaller line range or narrow the search.]`;
 
           // Plan changes render as the visual checklist instead of a ✓ line.
           if (
@@ -776,8 +832,8 @@ export class Agent {
           // investigation with no edit must still return to executable evidence.
           // Preserve this counter across compaction; only an edit or check
           // resets it. Read-only investigations never execute commands.
-          const needsEvidence = readRepeats >= 5 || repeats >= 6 || failedCalls >= 6 ||
-            (wroteThisTurn && readsSinceAction >= 24 && this.mode !== "ro");
+          const needsEvidence =
+            readRepeats >= 5 || repeats >= 6 || failedCalls >= 6 || (wroteThisTurn && readsSinceAction >= 24 && this.mode !== "ro");
           if (needsEvidence) this.discoverVerification(wroteThisTurn);
           if (this.verification && needsEvidence) {
             this.repairTranscript("[Not executed: the harness switched to executable checks after repeated attempts.]");
@@ -785,22 +841,43 @@ export class Agent {
             // During implementation, known failing project checks are already
             // the actionable evidence. Tool-recovery checks must not spend the
             // caller's final acceptance budget before acceptance has started.
-            if (!this.verificationResult && this.progressFailure && await this.checkProgress(signal)) {
-              repeatedReads.clear(); repeats = 0; failedCalls = 0; readsSinceAction = 0; lastProgressCheck = toolCallsThisTurn;
+            if (!this.verificationResult && this.progressFailure && (await this.checkProgress(signal))) {
+              repeatedReads.clear();
+              repeats = 0;
+              failedCalls = 0;
+              readsSinceAction = 0;
+              lastProgressCheck = toolCallsThisTurn;
               continue agentLoop;
             }
             if (!(await runAcceptance())) {
-              repeatedReads.clear(); repeats = 0; failedCalls = 0; readsSinceAction = 0; lastProgressCheck = toolCallsThisTurn;
+              repeatedReads.clear();
+              repeats = 0;
+              failedCalls = 0;
+              readsSinceAction = 0;
+              lastProgressCheck = toolCallsThisTurn;
               continue agentLoop;
             }
             // Passing acceptance does not authorize dropping the remaining
             // task: ask for a final requirements review before completion.
-            this.messages.push({role:"user",content:"[Acceptance passed. Review the original request, finish any remaining work, and summarize the verified result.]"});
-            repeatedReads.clear(); repeats = 0; failedCalls = 0; readsSinceAction = 0; lastProgressCheck = toolCallsThisTurn;
+            this.messages.push({
+              role: "user",
+              content: "[Acceptance passed. Review the original request, finish any remaining work, and summarize the verified result.]",
+            });
+            repeatedReads.clear();
+            repeats = 0;
+            failedCalls = 0;
+            readsSinceAction = 0;
+            lastProgressCheck = toolCallsThisTurn;
             continue agentLoop;
           }
-          if (readRepeats >= 5) throw new Error("Paused after repeatedly reading the same unchanged data without an edit. Progress is kept. Ask for a specific next change, read a different range, or use a larger context window.");
-          if (repeats >= 6 || failedCalls >= 6) throw new Error("Paused after repeated tool attempts made no progress. Progress is kept; inspect the error, change the request or model, then continue.");
+          if (readRepeats >= 5)
+            throw new Error(
+              "Paused after repeatedly reading the same unchanged data without an edit. Progress is kept. Ask for a specific next change, read a different range, or use a larger context window."
+            );
+          if (repeats >= 6 || failedCalls >= 6)
+            throw new Error(
+              "Paused after repeated tool attempts made no progress. Progress is kept; inspect the error, change the request or model, then continue."
+            );
         }
         // A model can cycle through different reads and small API edits forever
         // without triggering an identical-call guard. Periodic executable
@@ -811,10 +888,17 @@ export class Agent {
           if (this.verification && this.verificationResult) {
             // Once acceptance has found a real failure, keep checking THAT
             // behavior. Passing a weaker build check cannot resolve it.
-            if (await runAcceptance()) this.messages.push({role:"user",content:"[Acceptance checks passed. Finish your response with the verified result.]"});
-            readsSinceAction = 0; repeatedReads.clear(); repeats = 0; failedCalls = 0;
+            if (await runAcceptance())
+              this.messages.push({ role: "user", content: "[Acceptance checks passed. Finish your response with the verified result.]" });
+            readsSinceAction = 0;
+            repeatedReads.clear();
+            repeats = 0;
+            failedCalls = 0;
           } else if (await this.checkProgress(signal)) {
-            readsSinceAction = 0; repeatedReads.clear(); repeats = 0; failedCalls = 0;
+            readsSinceAction = 0;
+            repeatedReads.clear();
+            repeats = 0;
+            failedCalls = 0;
           }
         }
       }
@@ -836,9 +920,7 @@ export class Agent {
       this.abort = null;
       stats.durationMs = Date.now() - t0;
       if (completed) {
-        this.ui.turnEnd(
-          `${fmtDuration(stats.durationMs)}${describeStats(stats)}`
-        );
+        this.ui.turnEnd(`${fmtDuration(stats.durationMs)}${describeStats(stats)}`);
       }
     }
   }
@@ -869,8 +951,14 @@ export class Agent {
           signal,
           ...(actionOnly ? { effortOverride: "off" as const } : {}),
           maxTokens: Math.min(this.provider.maxOutputTokens, this.contextBudget().reserve),
-          onToken: (t) => { streamed = true; this.ui.token(t); },
-          onThinking: (t) => { streamed = true; this.ui.thinking(t); },
+          onToken: (t) => {
+            streamed = true;
+            this.ui.token(t);
+          },
+          onThinking: (t) => {
+            streamed = true;
+            this.ui.thinking(t);
+          },
         });
       } catch (err: any) {
         if (err?.name === "AbortError" || signal.aborted) throw err;
@@ -904,11 +992,7 @@ export class Agent {
     }
   }
 
-  private async gateAndExecute(
-    name: string,
-    args: Record<string, any>,
-    signal?: AbortSignal
-  ): Promise<string> {
+  private async gateAndExecute(name: string, args: Record<string, any>, signal?: AbortSignal): Promise<string> {
     const command = commandOf(name, args);
     // External MCP servers can send mail, edit sheets and browse the web —
     // always ask in edit mode (bypass runs without asking, like commands).
@@ -971,8 +1055,12 @@ export class Agent {
       repaired.push(m);
       if (!m.toolCalls?.length) continue;
       const results = new Map<string | undefined, Msg>();
-      while (this.messages[i + 1]?.role === "tool") { const t = this.messages[++i]; results.set(t.toolCallId, t); }
-      for (const call of m.toolCalls) repaired.push(results.get(call.id) ?? { role: "tool", toolCallId: call.id, toolName: call.name, content: reason });
+      while (this.messages[i + 1]?.role === "tool") {
+        const t = this.messages[++i];
+        results.set(t.toolCallId, t);
+      }
+      for (const call of m.toolCalls)
+        repaired.push(results.get(call.id) ?? { role: "tool", toolCallId: call.id, toolName: call.name, content: reason });
     }
     this.messages = repaired;
   }
@@ -991,9 +1079,7 @@ export class Agent {
     const pct = this.contextPercent();
     const tasks = this.toolCtx.taskManager.runningSummary();
     const taskPart = tasks.length ? ` · ${tasks.length} bg task${tasks.length > 1 ? "s" : ""}` : "";
-    return c.gray(
-      `ctx ${pct}% of ${this.provider.contextWindow.toLocaleString()} · ${this.provider.label} · ${this.mode}${taskPart}`
-    );
+    return c.gray(`ctx ${pct}% of ${this.provider.contextWindow.toLocaleString()} · ${this.provider.label} · ${this.mode}${taskPart}`);
   }
 }
 
@@ -1021,7 +1107,7 @@ export function describeStats(s: TurnStats): string {
     const rate = s.genSeconds > 0 ? ` @ ${Math.round(s.generatedTokens / s.genSeconds)} tok/s` : "";
     parts.push(`${k} tok${rate}`);
   }
-  return parts.length ? " · " + parts.join(" · ") : "";
+  return parts.length ? ` · ${parts.join(" · ")}` : "";
 }
 
 function abortError(): Error {

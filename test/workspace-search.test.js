@@ -1,8 +1,8 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("fs");
-const os = require("os");
-const path = require("path");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
 const { searchWorkspace } = require("../dist/workspace-search");
 
 test("workspace search is literal, bounded, ignores generated folders, and reports source locations", (t) => {

@@ -10,36 +10,36 @@
 // ~/.smolcoder/web.json and adds its folder there instead of starting a
 // second server.
 
-import * as crypto from "crypto";
-import * as fs from "fs";
-import * as http from "http";
-import * as os from "os";
-import * as path from "path";
-import { DATA_DIR, loadConfig } from "../config";
-import { noBackendsMessage, prepareModel, Session, SessionPrefs, SessionSnapshot, setupWithoutLocalModels } from "../session";
-import { tryFetchJson } from "../util";
-import { Attachment, classifyUpload, extOf, MAX_UPLOAD_BYTES, mimeForExt, safeName } from "../attachments";
-import { Event, SessionChannel, uploadUrl } from "./channel";
-import { PAGE_HTML } from "./page";
-import { SessionMeta, SessionStore, WorkspaceStore, workspaceKey } from "./store";
-import { Terminal } from "./terminal";
-import { resolveInWorkspace, SandboxError } from "../sandbox";
-import { describeSkills, readDelegateStats } from "../skills";
-import { delegatePrompt, loadSubagentRoles, SubagentRole } from "../subagents";
-import { searchWorkspace } from "../workspace-search";
-import { workspaceDiagnostics } from "../workspace-diagnostics";
-import { queryCode, lspAvailability, queryDiagStructured } from "../lsp-pro";
-import { queryIndex } from "../codeindex";
-import { applyOp, CrdOp, docFromText } from "../crdt";
+import * as crypto from "node:crypto";
+import * as fs from "node:fs";
+import * as http from "node:http";
+import * as os from "node:os";
+import * as path from "node:path";
 import { Agent } from "../agent";
+import { type Attachment, classifyUpload, extOf, MAX_UPLOAD_BYTES, mimeForExt, safeName } from "../attachments";
+import { queryIndex } from "../codeindex";
+import { DATA_DIR, loadConfig } from "../config";
 import { ContextManager } from "../context";
+import { applyOp, type CrdOp, docFromText } from "../crdt";
 import { EventBus } from "../events";
-import { Plan } from "../plan";
-import { renderEditDiff } from "./diff";
-import { AgentUI } from "../ui";
-import { ToolContext } from "../tools/index";
-import { findLiveShell, liveShellList } from "../tools/shell";
 import { gitApplyHunk, gitCommit, gitDiffFiles, gitRevertFile, gitStage, gitStageLines, gitStatusMap, gitUnstage } from "../git";
+import { lspAvailability, queryCode, queryDiagStructured } from "../lsp-pro";
+import { Plan } from "../plan";
+import { resolveInWorkspace, SandboxError } from "../sandbox";
+import { noBackendsMessage, prepareModel, Session, type SessionPrefs, type SessionSnapshot, setupWithoutLocalModels } from "../session";
+import { describeSkills, readDelegateStats } from "../skills";
+import { delegatePrompt, loadSubagentRoles, type SubagentRole } from "../subagents";
+import type { ToolContext } from "../tools/index";
+import { findLiveShell, liveShellList } from "../tools/shell";
+import type { AgentUI } from "../ui";
+import { tryFetchJson } from "../util";
+import { workspaceDiagnostics } from "../workspace-diagnostics";
+import { searchWorkspace } from "../workspace-search";
+import { type Event, SessionChannel, uploadUrl } from "./channel";
+import { renderEditDiff } from "./diff";
+import { PAGE_HTML } from "./page";
+import { type SessionMeta, SessionStore, WorkspaceStore, workspaceKey } from "./store";
+import { Terminal } from "./terminal";
 
 export type SessionFactory = (ui: SessionChannel, workspace: string, prefs: SessionPrefs, planKey?: string) => Promise<Session>;
 
@@ -118,7 +118,11 @@ function writeHubRecord(rec: HubRecord, dataDir: string): void {
     fs.mkdirSync(dataDir, { recursive: true });
     const file = path.join(dataDir, HUB_FILE);
     fs.writeFileSync(file, JSON.stringify(rec), { mode: 0o600 });
-    try { fs.chmodSync(file, 0o600); } catch { /* best effort on Windows */ }
+    try {
+      fs.chmodSync(file, 0o600);
+    } catch {
+      /* best effort on Windows */
+    }
   } catch {
     /* non-fatal: a second smol --web will just start its own server */
   }
@@ -173,7 +177,7 @@ export function askHubToOpen(rec: HubRecord, workspace: string, start: boolean):
 function tilde(p: string): string {
   const home = os.homedir();
   const same = process.platform === "win32" ? p.slice(0, home.length).toLowerCase() === home.toLowerCase() : p.startsWith(home);
-  return same ? "~" + p.slice(home.length).replace(/\\/g, "/") : p;
+  return same ? `~${p.slice(home.length).replace(/\\/g, "/")}` : p;
 }
 
 function expandHome(s: string): string {
@@ -214,7 +218,7 @@ const SKIP_DIRS = /^(node_modules|\$recycle\.bin|system volume information|windo
 /** Folder listing for the "open folder" picker. Exported for tests. */
 export function browseDir(input: string | null | undefined): Record<string, any> {
   const home = os.homedir();
-  const target = input && input.trim() ? path.resolve(expandHome(input.trim())) : home;
+  const target = input?.trim() ? path.resolve(expandHome(input.trim())) : home;
   const roots = listRoots();
   const base = { path: target, display: tilde(target), home, roots };
   let st: fs.Stats;
@@ -330,9 +334,7 @@ export class WebHub {
       /* none */
     }
     this.authToken =
-      prev && typeof prev.token === "string" && prev.token.length >= 8
-        ? prev.token
-        : crypto.randomBytes(9).toString("base64url");
+      prev && typeof prev.token === "string" && prev.token.length >= 8 ? prev.token : crypto.randomBytes(9).toString("base64url");
     this.store = new SessionStore(this.dataDir);
     this.workspaces = new WorkspaceStore(this.dataDir);
     for (const m of this.store.listMetas()) this.metas.set(m.id, m);
@@ -351,7 +353,10 @@ export class WebHub {
       server.listen(this.opts.port, this.opts.host || "127.0.0.1", () => {
         const addr = server.address();
         if (addr && typeof addr === "object") this.port = addr.port;
-        writeHubRecord({ port: this.port, token: this.authToken, pid: process.pid, startedAt: this.bootedAt, version: this.opts.version }, this.dataDir);
+        writeHubRecord(
+          { port: this.port, token: this.authToken, pid: process.pid, startedAt: this.bootedAt, version: this.opts.version },
+          this.dataDir
+        );
         resolve();
       });
     });
@@ -553,8 +558,15 @@ export class WebHub {
     if (restore) {
       // A saved bypass mode is not inherited silently, same as the config:
       // the user re-enables it per session.
-      const mode = restore.mode === "bypass" ? "edit" : restore.mode ?? prefs.mode;
-      prefs = { ...prefs, mode, backend: restore.backend, model: restore.model ?? prefs.model, baseUrl: restore.baseUrl, effort: restore.effort !== undefined ? restore.effort : prefs.effort };
+      const mode = restore.mode === "bypass" ? "edit" : (restore.mode ?? prefs.mode);
+      prefs = {
+        ...prefs,
+        mode,
+        backend: restore.backend,
+        model: restore.model ?? prefs.model,
+        baseUrl: restore.baseUrl,
+        effort: restore.effort !== undefined ? restore.effort : prefs.effort,
+      };
     }
     try {
       const session = await this.factory(live.channel, live.workspace, prefs, live.id);
@@ -649,7 +661,9 @@ export class WebHub {
     } catch (err: any) {
       if (!live.saveFailed) {
         live.saveFailed = true;
-        live.channel.warn(`Session could not be saved: ${err?.message ?? err}. Keep this session open and check free disk space and permissions.`);
+        live.channel.warn(
+          `Session could not be saved: ${err?.message ?? err}. Keep this session open and check free disk space and permissions.`
+        );
       }
     }
     live.saving = false;
@@ -671,10 +685,15 @@ export class WebHub {
     if (!live) return null;
     const tid = `t${++this.termCounter}`;
     this.send({ t: "termopen", sid, tid, cwd: live.workspace });
-    const term = new Terminal(tid, live.workspace, {
-      output: (text) => this.send({ t: "term", sid, tid, s: text }),
-      done: (code, cwd) => this.send({ t: "termdone", sid, tid, code, cwd }),
-    }, live.workspace);
+    const term = new Terminal(
+      tid,
+      live.workspace,
+      {
+        output: (text) => this.send({ t: "term", sid, tid, s: text }),
+        done: (code, cwd) => this.send({ t: "termdone", sid, tid, code, cwd }),
+      },
+      live.workspace
+    );
     live.terminals.set(tid, term);
     this.changed();
     return { tid, cwd: term.cwd };
@@ -869,18 +888,30 @@ export class WebHub {
         case "/workspace/search": {
           const sid = String(url.searchParams.get("sid") ?? "");
           const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
-          if (!live) { json(404, { error: "no such session" }); return; }
+          if (!live) {
+            json(404, { error: "no such session" });
+            return;
+          }
           try {
-            json(200, searchWorkspace(live.workspace, String(url.searchParams.get("q") ?? ""), {
-              path: String(url.searchParams.get("path") ?? "."), maxMatches: 200,
-            }));
-          } catch (err: any) { json(400, { error: String(err?.message ?? err) }); }
+            json(
+              200,
+              searchWorkspace(live.workspace, String(url.searchParams.get("q") ?? ""), {
+                path: String(url.searchParams.get("path") ?? "."),
+                maxMatches: 200,
+              })
+            );
+          } catch (err: any) {
+            json(400, { error: String(err?.message ?? err) });
+          }
           return;
         }
         case "/workspace/diagnostics": {
           const sid = String(url.searchParams.get("sid") ?? "");
           const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
-          if (!live) { json(404, { error: "no such session" }); return; }
+          if (!live) {
+            json(404, { error: "no such session" });
+            return;
+          }
           void workspaceDiagnostics(live.workspace, url.searchParams.get("path"))
             .then((result) => json(200, result))
             .catch((err: any) => json(400, { error: String(err?.message ?? err).slice(0, 500) }));
@@ -889,7 +920,10 @@ export class WebHub {
         case "/code/lsp": {
           const sid = String(url.searchParams.get("sid") ?? "");
           const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
-          if (!live) { json(404, { error: "no such session" }); return; }
+          if (!live) {
+            json(404, { error: "no such session" });
+            return;
+          }
           const num = (v: string | null): number | undefined => {
             const n = Number(v);
             return Number.isSafeInteger(n) && n >= 1 ? n : undefined;
@@ -910,25 +944,38 @@ export class WebHub {
         case "/code/symbols": {
           const sid = String(url.searchParams.get("sid") ?? "");
           const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
-          if (!live) { json(404, { error: "no such session" }); return; }
+          if (!live) {
+            json(404, { error: "no such session" });
+            return;
+          }
           try {
             const q = String(url.searchParams.get("q") ?? "");
             json(200, { result: queryIndex(live.workspace, q ? { action: "search", query: q } : { action: "stats" }) });
-          } catch (err: any) { json(400, { error: String(err?.message ?? err).slice(0, 500) }); }
+          } catch (err: any) {
+            json(400, { error: String(err?.message ?? err).slice(0, 500) });
+          }
           return;
         }
         case "/code/availability": {
           try {
             json(200, { servers: lspAvailability() });
-          } catch (err: any) { json(400, { error: String(err?.message ?? err).slice(0, 500) }); }
+          } catch (err: any) {
+            json(400, { error: String(err?.message ?? err).slice(0, 500) });
+          }
           return;
         }
         case "/code/diag-structured": {
           const sid = String(url.searchParams.get("sid") ?? "");
           const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
-          if (!live) { json(404, { error: "no such session" }); return; }
+          if (!live) {
+            json(404, { error: "no such session" });
+            return;
+          }
           const rel = String(url.searchParams.get("path") ?? "");
-          if (!rel) { json(400, { error: "path is required" }); return; }
+          if (!rel) {
+            json(400, { error: "path is required" });
+            return;
+          }
           void queryDiagStructured(live.workspace, rel)
             .then((result) => json(200, result))
             .catch((err: any) => json(400, { error: String(err?.message ?? err).slice(0, 500) }));
@@ -937,10 +984,15 @@ export class WebHub {
         case "/code/diff": {
           const sid = String(url.searchParams.get("sid") ?? "");
           const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
-          if (!live) { json(404, { error: "no such session" }); return; }
+          if (!live) {
+            json(404, { error: "no such session" });
+            return;
+          }
           try {
             json(200, gitDiffFiles(live.workspace, url.searchParams.get("staged") === "1"));
-          } catch (err: any) { json(400, { error: String(err?.message ?? err).slice(0, 500) }); }
+          } catch (err: any) {
+            json(400, { error: String(err?.message ?? err).slice(0, 500) });
+          }
           return;
         }
         case "/shell/live": {
@@ -951,7 +1003,10 @@ export class WebHub {
         case "/code/inline/result": {
           const id = String(url.searchParams.get("id") ?? "");
           const job = this.inlineJobs.get(id);
-          if (!job) { json(404, { error: "unknown edit job" }); return; }
+          if (!job) {
+            json(404, { error: "unknown edit job" });
+            return;
+          }
           if (job.status === "running" && Date.now() - job.at > 10 * 60 * 1000) {
             this.inlineJobs.delete(id);
             json(200, { status: "error", error: "edit job expired" });
@@ -969,22 +1024,32 @@ export class WebHub {
         case "/plan": {
           const sid = String(url.searchParams.get("sid") ?? "");
           const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
-          if (!live) { json(404, { error: "no such session" }); return; }
+          if (!live) {
+            json(404, { error: "no such session" });
+            return;
+          }
           try {
             json(200, this.planView(live));
-          } catch (err: any) { json(400, { error: String(err?.message ?? err).slice(0, 500) }); }
+          } catch (err: any) {
+            json(400, { error: String(err?.message ?? err).slice(0, 500) });
+          }
           return;
         }
         case "/edit/doc": {
           const sid = String(url.searchParams.get("sid") ?? "");
           const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
-          if (!live) { json(404, { error: "no such session" }); return; }
+          if (!live) {
+            json(404, { error: "no such session" });
+            return;
+          }
           try {
             const rel = String(url.searchParams.get("path") ?? "");
             const rec = this.editDocs.get(this.editKey(live.workspace, rel));
             if (!rec) throw new Error("open the file for collaboration first (open it in the editor)");
             json(200, { version: rec.version, chars: rec.chars });
-          } catch (err: any) { json(400, { error: String(err?.message ?? err).slice(0, 500) }); }
+          } catch (err: any) {
+            json(400, { error: String(err?.message ?? err).slice(0, 500) });
+          }
           return;
         }
         case "/workspace/file":
@@ -993,7 +1058,10 @@ export class WebHub {
         case "/workspace/preview": {
           const sid = String(url.searchParams.get("sid") ?? "");
           const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
-          if (!live) { json(404, { error: "no such session" }); return; }
+          if (!live) {
+            json(404, { error: "no such session" });
+            return;
+          }
           try {
             const rel = String(url.searchParams.get("path") ?? "");
             const abs = resolveInWorkspace(live.workspace, rel);
@@ -1124,7 +1192,10 @@ export class WebHub {
     if (!share || !this.live.has(share.sid)) {
       throw new Error("unknown or expired share — ask the owner for a fresh link");
     }
-    const viewer = String(name ?? "").trim().slice(0, 40) || "anonymous";
+    const viewer =
+      String(name ?? "")
+        .trim()
+        .slice(0, 40) || "anonymous";
     let map = this.viewers.get(share.sid);
     if (!map) {
       map = new Map();
@@ -1156,7 +1227,10 @@ export class WebHub {
       return;
     }
     const name = safeName(url.searchParams.get("name"));
-    const mime = String(req.headers["content-type"] ?? "application/octet-stream").split(";")[0].trim().toLowerCase();
+    const mime = String(req.headers["content-type"] ?? "application/octet-stream")
+      .split(";")[0]
+      .trim()
+      .toLowerCase();
     const chunks: Buffer[] = [];
     let size = 0;
     let failed = false;
@@ -1217,7 +1291,7 @@ export class WebHub {
   private findUpload(sid: string, id: string): string | null {
     const dir = this.uploadsDir(sid);
     try {
-      const entry = fs.readdirSync(dir).find((f) => f.startsWith(id + "."));
+      const entry = fs.readdirSync(dir).find((f) => f.startsWith(`${id}.`));
       return entry ? path.join(dir, entry) : null;
     } catch {
       return null;
@@ -1352,8 +1426,13 @@ export class WebHub {
       }
       case "/cursor": {
         const l = live();
-        const name = String(d.name ?? "").trim().slice(0, 40) || "anonymous";
-        const rel = String(d.path ?? "").trim().slice(0, 200);
+        const name =
+          String(d.name ?? "")
+            .trim()
+            .slice(0, 40) || "anonymous";
+        const rel = String(d.path ?? "")
+          .trim()
+          .slice(0, 200);
         const line = Math.max(1, Number(d.line) || 1);
         let map = this.cursors.get(l.id);
         if (!map) {
@@ -1376,7 +1455,8 @@ export class WebHub {
       case "/code/diff/hunk": {
         const l = this.editLive(sid);
         const action = String(d.action ?? "");
-        if (action !== "stage" && action !== "unstage" && action !== "revert") throw new Error('action must be "stage", "unstage" or "revert"');
+        if (action !== "stage" && action !== "unstage" && action !== "revert")
+          throw new Error('action must be "stage", "unstage" or "revert"');
         return { message: gitApplyHunk(l.workspace, String(d.path ?? ""), Number(d.hunk), action) };
       }
       case "/code/diff/stage": {
@@ -1467,7 +1547,8 @@ export class WebHub {
     const st = fs.statSync(abs);
     if (!st.isDirectory()) throw new Error("not a folder");
     const statusMap = gitStatusMap(live.workspace, abs);
-    const entries = fs.readdirSync(abs, { withFileTypes: true })
+    const entries = fs
+      .readdirSync(abs, { withFileTypes: true })
       .filter((e) => !e.name.startsWith(".") && !["node_modules", "dist", "build", "coverage", ".git"].includes(e.name))
       .sort((a, b) => (a.isDirectory() === b.isDirectory() ? a.name.localeCompare(b.name) : a.isDirectory() ? -1 : 1))
       .slice(0, WEB_TREE_CAP)
@@ -1480,7 +1561,9 @@ export class WebHub {
             const cs = fs.statSync(child);
             size = cs.size;
             mtimeMs = cs.mtimeMs;
-          } catch { /* best effort */ }
+          } catch {
+            /* best effort */
+          }
         }
         return {
           name: e.name,
@@ -1521,12 +1604,14 @@ export class WebHub {
       if (st.size > WEB_FILE_CAP) throw new Error(`file is larger than ${WEB_FILE_CAP} bytes`);
       const content = fs.readFileSync(abs, "utf8");
       res.writeHead(200, { "content-type": "application/json" });
-      res.end(JSON.stringify({
-        path: path.relative(live.workspace, abs).split(path.sep).join("/"),
-        content,
-        size: st.size,
-        mtimeMs: st.mtimeMs,
-      }));
+      res.end(
+        JSON.stringify({
+          path: path.relative(live.workspace, abs).split(path.sep).join("/"),
+          content,
+          size: st.size,
+          mtimeMs: st.mtimeMs,
+        })
+      );
     } catch (err: any) {
       res.writeHead(400, { "content-type": "application/json" });
       res.end(JSON.stringify({ error: err instanceof SandboxError ? err.message : String(err?.message ?? err) }));
@@ -1535,7 +1620,7 @@ export class WebHub {
 
   private saveWorkspaceFile(sid: string, d: any): any {
     const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
-    if (!live || !live.session) throw new Error("no such session");
+    if (!live?.session) throw new Error("no such session");
     const mode = live.session.agent.mode;
     if (mode === "ro") throw new Error("workspace is read-only; switch the session to edit mode first");
     const rel = String(d.path ?? "").trim();
@@ -1569,7 +1654,7 @@ export class WebHub {
   /** Guard for every mutating workspace-file endpoint. */
   private editLive(sid: string): Live & { session: Session } {
     const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
-    if (!live || !live.session) throw new Error("no such session");
+    if (!live?.session) throw new Error("no such session");
     if ((live.session as any)?.agent?.mode === "ro") {
       throw new Error("workspace is read-only; switch the session to edit mode first");
     }
@@ -1715,10 +1800,7 @@ export class WebHub {
 
   /** Sync validation + file read for an inline edit (throws immediately so
    * the start call fails fast on bad input; the model work stays async). */
-  private prepareInlineEdit(
-    live: Live,
-    d: any
-  ): { rel: string; instruction: string; selection: string; start: number; end: number } {
+  private prepareInlineEdit(live: Live, d: any): { rel: string; instruction: string; selection: string; start: number; end: number } {
     const rel = String(d.path ?? "").trim();
     const instruction = String(d.instruction ?? "").trim();
     const selection = typeof d.selection === "string" ? d.selection : "";
@@ -1852,7 +1934,9 @@ export class WebHub {
     }
     const tools = (session?.agent?.tools ?? []).map((t: any) => ({
       name: String(t.name ?? ""),
-      description: String(t.description ?? "").split("\n")[0].slice(0, 220),
+      description: String(t.description ?? "")
+        .split("\n")[0]
+        .slice(0, 220),
     }));
     return {
       t: "status",
@@ -1886,10 +1970,18 @@ export class WebHub {
         artifacts: fs.existsSync(path.join(live.workspace, ".c3", "agent_artifacts")),
         memory: fs.existsSync(path.join(live.workspace, ".c3", "file_memory")),
         cacheFiles: (() => {
-          try { return fs.readdirSync(path.join(live.workspace, ".c3", "cache")).length; } catch { return 0; }
+          try {
+            return fs.readdirSync(path.join(live.workspace, ".c3", "cache")).length;
+          } catch {
+            return 0;
+          }
         })(),
         indexedBytes: (() => {
-          try { return fs.statSync(path.join(live.workspace, ".c3", "index", "index.sqlite")).size; } catch { return 0; }
+          try {
+            return fs.statSync(path.join(live.workspace, ".c3", "index", "index.sqlite")).size;
+          } catch {
+            return 0;
+          }
         })(),
       },
     };
@@ -1900,10 +1992,11 @@ export class WebHub {
   private agentDraft(workspace: string, roleName: string, task: string): any {
     const clean = task.trim();
     if (!clean) throw new Error("écrivez la tâche à déléguer");
-    const wanted = String(roleName ?? "").trim().toLowerCase();
+    const wanted = String(roleName ?? "")
+      .trim()
+      .toLowerCase();
     const role = loadSubagentRoles(workspace).find((r: SubagentRole) => r.name === wanted);
     if (!role) throw new Error(`rôle de sous-agent inconnu : ${roleName}`);
     return { role: role.name, title: role.role, text: delegatePrompt(role, clean) };
   }
-
 }

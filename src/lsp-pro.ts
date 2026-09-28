@@ -15,12 +15,12 @@
 //   SMOLCODER_LSP_COMMAND="..." — overrides the TypeScript server command.
 //   SMOLCODER_LSP_PYTHON="pylsp" / SMOLCODER_LSP_RUST="rust-analyzer" /
 //   SMOLCODER_LSP_GO="gopls" — per-language command overrides (space-separated).
-import { spawn, ChildProcess } from "child_process";
-import * as fs from "fs";
-import * as path from "path";
-import { resolveInWorkspace } from "./sandbox";
-import { resolveCommand } from "./mcp";
+import { type ChildProcess, spawn } from "node:child_process";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import { encodeLsp, isTsLike, lspDisabled, querySymbols, splitCommand } from "./lsp";
+import { resolveCommand } from "./mcp";
+import { resolveInWorkspace } from "./sandbox";
 
 export { splitCommand };
 
@@ -52,6 +52,21 @@ function tsCandidates(): string[][] {
   }
   return [["npx", "typescript-language-server", "--stdio"]];
 }
+
+export const LSP_LANGS = [
+  "typescript", "python", "rust", "go",
+  "java", "kotlin", "scala",
+  "csharp", "fsharp",
+  "cpp", "c", "objective-c", "objective-cpp",
+  "ruby", "php", "perl", "lua",
+  "swift", "dart",
+  "html", "css", "scss", "less",
+  "json", "yaml", "toml",
+  "markdown", "rst",
+  "bash", "powershell", "fish",
+  "dockerfile", "sql", "graphql", "protobuf",
+  "haskell", "elixir"
+];
 
 /** Fresh on every call so env overrides apply even when set late (tests). */
 export function serverDefForLang(lang: string): LspServerDef | null {
@@ -93,19 +108,289 @@ export function serverDefForLang(lang: string): LspServerDef | null {
         candidates: [...envCandidate("SMOLCODER_LSP_GO"), ["gopls"]],
         installHint: "Install once with: go install golang.org/x/tools/gopls@latest",
       };
+    case "java":
+      return {
+        lang,
+        languageId: "java",
+        exts: [".java"],
+        candidates: [...envCandidate("SMOLCODER_LSP_JAVA"), ["jdtls"]],
+        installHint: "Install jdtls (Eclipse JDT Language Server) from https://github.com/eclipse-jdtls/eclipse.jdt.ls",
+      };
+    case "kotlin":
+      return {
+        lang,
+        languageId: "kotlin",
+        exts: [".kt", ".kts"],
+        candidates: [...envCandidate("SMOLCODER_LSP_KOTLIN"), ["kotlin-language-server"]],
+        installHint: "Install kotlin-language-server from https://github.com/fwcd/kotlin-language-server",
+      };
+    case "scala":
+      return {
+        lang,
+        languageId: "scala",
+        exts: [".scala", ".sbt"],
+        candidates: [...envCandidate("SMOLCODER_LSP_SCALA"), ["metals"]],
+        installHint: "Install metals (Scala language server) from https://scalameta.org/metals/",
+      };
+    case "csharp":
+      return {
+        lang,
+        languageId: "csharp",
+        exts: [".cs"],
+        candidates: [...envCandidate("SMOLCODER_LSP_CSHARP"), ["csharp-ls"]],
+        installHint: "Install csharp-ls from https://github.com/razzmatazz/csharp-language-server",
+      };
+    case "fsharp":
+      return {
+        lang,
+        languageId: "fsharp",
+        exts: [".fs", ".fsx", ".fsi"],
+        candidates: [...envCandidate("SMOLCODER_LSP_FSHARP"), ["fsautocomplete"]],
+        installHint: "Install fsautocomplete from https://github.com/fsharp/fsautocomplete",
+      };
+    case "cpp":
+      return {
+        lang,
+        languageId: "cpp",
+        exts: [".cpp", ".cc", ".cxx", ".hpp", ".hh", ".hxx"],
+        candidates: [...envCandidate("SMOLCODER_LSP_CPP"), ["clangd"]],
+        installHint: "Install clangd from https://clangd.llvm.org/",
+      };
+    case "c":
+      return {
+        lang,
+        languageId: "c",
+        exts: [".c", ".h"],
+        candidates: [...envCandidate("SMOLCODER_LSP_C"), ["clangd"]],
+        installHint: "Install clangd from https://clangd.llvm.org/",
+      };
+    case "objective-c":
+      return {
+        lang,
+        languageId: "objective-c",
+        exts: [".m"],
+        candidates: [...envCandidate("SMOLCODER_LSP_OBJC"), ["clangd"]],
+        installHint: "Install clangd from https://clangd.llvm.org/",
+      };
+    case "objective-cpp":
+      return {
+        lang,
+        languageId: "objective-cpp",
+        exts: [".mm"],
+        candidates: [...envCandidate("SMOLCODER_LSP_OBJCPP"), ["clangd"]],
+        installHint: "Install clangd from https://clangd.llvm.org/",
+      };
+    case "ruby":
+      return {
+        lang,
+        languageId: "ruby",
+        exts: [".rb", ".rbw", ".rake", ".gemspec"],
+        candidates: [...envCandidate("SMOLCODER_LSP_RUBY"), ["solargraph", "stdio"], ["ruby-lsp"]],
+        installHint: "Install solargraph (gem install solargraph) or ruby-lsp (gem install ruby-lsp)",
+      };
+    case "php":
+      return {
+        lang,
+        languageId: "php",
+        exts: [".php", ".phtml", ".php8"],
+        candidates: [...envCandidate("SMOLCODER_LSP_PHP"), ["intelephense", "--stdio"]],
+        installHint: "Install intelephense (npm i -g intelephense) or phpactor (composer global require phpactor/phpactor)",
+      };
+    case "perl":
+      return {
+        lang,
+        languageId: "perl",
+        exts: [".pl", ".pm", ".pod", ".t"],
+        candidates: [...envCandidate("SMOLCODER_LSP_PERL"), ["perl-lsp"]],
+        installHint: "Install perl-lsp (cpanm Perl::LanguageServer)",
+      };
+    case "lua":
+      return {
+        lang,
+        languageId: "lua",
+        exts: [".lua"],
+        candidates: [...envCandidate("SMOLCODER_LSP_LUA"), ["lua-language-server"]],
+        installHint: "Install lua-language-server from https://github.com/LuaLS/lua-language-server",
+      };
+    case "swift":
+      return {
+        lang,
+        languageId: "swift",
+        exts: [".swift"],
+        candidates: [...envCandidate("SMOLCODER_LSP_SWIFT"), ["sourcekit-lsp"]],
+        installHint: "Install sourcekit-lsp (included with Xcode on macOS, or https://github.com/apple/sourcekit-lsp)",
+      };
+    case "dart":
+      return {
+        lang,
+        languageId: "dart",
+        exts: [".dart"],
+        candidates: [...envCandidate("SMOLCODER_LSP_DART"), ["dart", "language-server"]],
+        installHint: "Install Dart SDK (includes dart language-server) from https://dart.dev/get-dart",
+      };
+    case "html":
+      return {
+        lang,
+        languageId: "html",
+        exts: [".html", ".htm", ".xhtml"],
+        candidates: [...envCandidate("SMOLCODER_LSP_HTML"), ["vscode-html-language-server", "--stdio"]],
+        installHint: "Install vscode-langservers-extracted (npm i -g vscode-langservers-extracted)",
+      };
+    case "css":
+      return {
+        lang,
+        languageId: "css",
+        exts: [".css"],
+        candidates: [...envCandidate("SMOLCODER_LSP_CSS"), ["vscode-css-language-server", "--stdio"]],
+        installHint: "Install vscode-langservers-extracted (npm i -g vscode-langservers-extracted)",
+      };
+    case "scss":
+      return {
+        lang,
+        languageId: "scss",
+        exts: [".scss", ".sass"],
+        candidates: [...envCandidate("SMOLCODER_LSP_SCSS"), ["vscode-css-language-server", "--stdio"]],
+        installHint: "Install vscode-langservers-extracted (npm i -g vscode-langservers-extracted)",
+      };
+    case "less":
+      return {
+        lang,
+        languageId: "less",
+        exts: [".less"],
+        candidates: [...envCandidate("SMOLCODER_LSP_LESS"), ["vscode-css-language-server", "--stdio"]],
+        installHint: "Install vscode-langservers-extracted (npm i -g vscode-langservers-extracted)",
+      };
+    case "html":
+      return {
+        lang,
+        languageId: "html",
+        exts: [".html", ".htm", ".xhtml"],
+        candidates: [...envCandidate("SMOLCODER_LSP_HTML"), ["vscode-html-language-server", "--stdio"]],
+        installHint: "Install vscode-langservers-extracted (npm i -g vscode-langservers-extracted)",
+      };
+    case "json":
+      return {
+        lang,
+        languageId: "json",
+        exts: [".json", ".jsonc"],
+        candidates: [...envCandidate("SMOLCODER_LSP_JSON"), ["vscode-json-language-server", "--stdio"]],
+        installHint: "Install vscode-langservers-extracted (npm i -g vscode-langservers-extracted)",
+      };
+    case "yaml":
+      return {
+        lang,
+        languageId: "yaml",
+        exts: [".yaml", ".yml"],
+        candidates: [...envCandidate("SMOLCODER_LSP_YAML"), ["yaml-language-server", "--stdio"]],
+        installHint: "Install yaml-language-server (npm i -g yaml-language-server)",
+      };
+    case "toml":
+      return {
+        lang,
+        languageId: "toml",
+        exts: [".toml"],
+        candidates: [...envCandidate("SMOLCODER_LSP_TOML"), ["taplo", "lsp", "stdio"]],
+        installHint: "Install taplo (cargo install taplo-cli --features lsp)",
+      };
+    case "markdown":
+      return {
+        lang,
+        languageId: "markdown",
+        exts: [".md", ".markdown", ".mdx"],
+        candidates: [...envCandidate("SMOLCODER_LSP_MARKDOWN"), ["markdown-language-server", "--stdio"]],
+        installHint: "Install markdown-language-server (npm i -g @microsoft/markdown-language-server)",
+      };
+    case "rst":
+      return {
+        lang,
+        languageId: "restructuredtext",
+        exts: [".rst", ".rest"],
+        candidates: [...envCandidate("SMOLCODER_LSP_RST"), ["rst-language-server"]],
+        installHint: "Install rst-language-server (pip install rst-language-server)",
+      };
+    case "bash":
+      return {
+        lang,
+        languageId: "shell",
+        exts: [".sh", ".bash", ".bashrc", ".bash_profile", ".profile"],
+        candidates: [...envCandidate("SMOLCODER_LSP_BASH"), ["bash-language-server", "stdio"]],
+        installHint: "Install bash-language-server (npm i -g bash-language-server)",
+      };
+    case "powershell":
+      return {
+        lang,
+        languageId: "powershell",
+        exts: [".ps1", ".psm1", ".psd1"],
+        candidates: [...envCandidate("SMOLCODER_LSP_POWERSHELL"), ["powershell-editor-services"]],
+        installHint: "Install PowerShell Editor Services (built into PowerShell 7+)",
+      };
+    case "fish":
+      return {
+        lang,
+        languageId: "fish",
+        exts: [".fish"],
+        candidates: [...envCandidate("SMOLCODER_LSP_FISH"), ["fish-lsp"]],
+        installHint: "Install fish-lsp from https://github.com/ndonfris/fish-lsp",
+      };
+    case "dockerfile":
+      return {
+        lang,
+        languageId: "dockerfile",
+        exts: ["Dockerfile", ".dockerfile"],
+        candidates: [...envCandidate("SMOLCODER_LSP_DOCKERFILE"), ["dockerfile-language-server-nodejs", "--stdio"]],
+        installHint: "Install dockerfile-language-server-nodejs (npm i -g dockerfile-language-server-nodejs)",
+      };
+    case "sql":
+      return {
+        lang,
+        languageId: "sql",
+        exts: [".sql"],
+        candidates: [...envCandidate("SMOLCODER_LSP_SQL"), ["sql-language-server", "up", "--method", "stdio"]],
+        installHint: "Install sql-language-server (npm i -g sql-language-server)",
+      };
+    case "graphql":
+      return {
+        lang,
+        languageId: "graphql",
+        exts: [".graphql", ".gql"],
+        candidates: [...envCandidate("SMOLCODER_LSP_GRAPHQL"), ["graphql-lsp"]],
+        installHint: "Install graphql-lsp (npm i -g graphql-language-service-cli)",
+      };
+    case "protobuf":
+      return {
+        lang,
+        languageId: "protobuf",
+        exts: [".proto"],
+        candidates: [...envCandidate("SMOLCODER_LSP_PROTOBUF"), ["protolint", "lsp"]],
+        installHint: "Install protolint (go install github.com/yoheimuta/protolint/cmd/protolint@latest)",
+      };
+    case "haskell":
+      return {
+        lang,
+        languageId: "haskell",
+        exts: [".hs", ".lhs"],
+        candidates: [...envCandidate("SMOLCODER_LSP_HASKELL"), ["haskell-language-server-wrapper", "--lsp"]],
+        installHint: "Install haskell-language-server from https://haskell-language-server.readthedocs.io/",
+      };
+    case "elixir":
+      return {
+        lang,
+        languageId: "elixir",
+        exts: [".ex", ".exs"],
+        candidates: [...envCandidate("SMOLCODER_LSP_ELIXIR"), ["elixir-ls"]],
+        installHint: "Install elixir-ls from https://github.com/elixir-lsp/elixir-ls",
+      };
     default:
       return null;
   }
 }
-
-export const LSP_LANGS = ["typescript", "python", "rust", "go"];
 
 /** Which server owns a file, by extension. Null = unsupported language. */
 export function serverForFile(filePath: string): LspServerDef | null {
   const ext = path.extname(String(filePath)).toLowerCase();
   for (const lang of LSP_LANGS) {
     const def = serverDefForLang(lang);
-    if (def && def.exts.includes(ext)) return def;
+    if (def?.exts.includes(ext)) return def;
   }
   return null;
 }
@@ -180,8 +465,8 @@ export class RpcClient {
   private pending = new Map<number, RpcPending>();
   private buf = Buffer.alloc(0);
   private diagByUri = new Map<string, any[]>();
-  private watched = "";
   private dead: Error | null = null;
+  private watched: string;
 
   constructor(
     private workspace: string,
@@ -369,8 +654,8 @@ function fmtHoverText(res: any): string {
     typeof c === "string"
       ? c
       : Array.isArray(c)
-        ? c.map((x) => (typeof x === "string" ? x : x?.value ?? "")).join("\n")
-        : c?.value ?? "";
+        ? c.map((x) => (typeof x === "string" ? x : (x?.value ?? ""))).join("\n")
+        : (c?.value ?? "");
   const clean = String(text).trim().slice(0, RESULT_CAP);
   return clean || "No hover info at that position.";
 }
@@ -381,16 +666,39 @@ function fmtDiagList(root: string, uri: string, diags: any[]): string {
     .slice(0, 20)
     .map((d) => {
       const sev = d?.severity === 1 ? "error" : d?.severity === 2 ? "warning" : "info";
-      return `${fmtLoc(root, uri, d?.range)} [${sev}] ${String(d?.message ?? "").split("\n")[0].slice(0, 200)}`;
+      return `${fmtLoc(root, uri, d?.range)} [${sev}] ${String(d?.message ?? "")
+        .split("\n")[0]
+        .slice(0, 200)}`;
     })
     .join("\n");
 }
 
 const COMPLETION_KINDS: Record<number, string> = {
-  1: "text", 2: "method", 3: "function", 4: "constructor", 5: "field", 6: "variable", 7: "class",
-  8: "interface", 9: "module", 10: "property", 11: "unit", 12: "value", 13: "enum", 14: "keyword",
-  15: "snippet", 16: "color", 17: "file", 18: "reference", 19: "folder", 20: "enum-member",
-  21: "constant", 22: "struct", 23: "event", 24: "operator", 25: "type-param",
+  1: "text",
+  2: "method",
+  3: "function",
+  4: "constructor",
+  5: "field",
+  6: "variable",
+  7: "class",
+  8: "interface",
+  9: "module",
+  10: "property",
+  11: "unit",
+  12: "value",
+  13: "enum",
+  14: "keyword",
+  15: "snippet",
+  16: "color",
+  17: "file",
+  18: "reference",
+  19: "folder",
+  20: "enum-member",
+  21: "constant",
+  22: "struct",
+  23: "event",
+  24: "operator",
+  25: "type-param",
 };
 
 function fmtCompletion(res: any): string {
@@ -401,7 +709,9 @@ function fmtCompletion(res: any): string {
     .map((it: any) => {
       const label = String(it?.label ?? "?").slice(0, 80);
       const kind = COMPLETION_KINDS[Number(it?.kind)] ?? "";
-      const detail = String(it?.detail ?? it?.documentation ?? "").split("\n")[0].slice(0, 80);
+      const detail = String(it?.detail ?? it?.documentation ?? "")
+        .split("\n")[0]
+        .slice(0, 80);
       return `- ${label}${kind ? ` (${kind})` : ""}${detail ? ` — ${detail}` : ""}`;
     })
     .join("\n");
@@ -415,8 +725,7 @@ function fmtSignature(res: any): string {
     .slice(0, 5)
     .map((s: any, i: number) => {
       const label = String(s?.label ?? "").slice(0, 300);
-      const doc =
-        typeof s?.documentation === "string" ? s.documentation : String(s?.documentation?.value ?? "").split("\n")[0];
+      const doc = typeof s?.documentation === "string" ? s.documentation : String(s?.documentation?.value ?? "").split("\n")[0];
       return `${i === active ? "▶ " : "  "}${label}${doc ? `\n  ${doc.slice(0, 200)}` : ""}`;
     })
     .join("\n");
@@ -453,11 +762,21 @@ function fmtWorkspaceEdit(root: string, edit: any): string {
     }
     let rel = uri;
     try {
-      rel = path.relative(root, decodeURIComponent(new URL(uri).pathname)).split(path.sep).join("/");
+      rel = path
+        .relative(root, decodeURIComponent(new URL(uri).pathname))
+        .split(path.sep)
+        .join("/");
     } catch {
       /* keep raw uri */
     }
-    ones.push({ uri: rel, line: (e.range.start.line ?? 0) + 1, oldLine, newText: String(e.newText ?? "").split("\n")[0].slice(0, 120) });
+    ones.push({
+      uri: rel,
+      line: (e.range.start.line ?? 0) + 1,
+      oldLine,
+      newText: String(e.newText ?? "")
+        .split("\n")[0]
+        .slice(0, 120),
+    });
   };
   if (edit && typeof edit === "object") {
     if (Array.isArray(edit.documentChanges)) {
@@ -557,7 +876,7 @@ export class LspManager {
   private async ensureServer(def: LspServerDef, signal?: AbortSignal): Promise<LiveServer> {
     this.sweepIdle();
     const live = this.servers.get(def.lang);
-    if (live && live.client.alive) {
+    if (live?.client.alive) {
       live.lastUsed = Date.now();
       return live;
     }
@@ -638,7 +957,8 @@ export class LspManager {
       return `Error: action must be one of ${CODE_ACTIONS.map((a) => `"${a}"`).join(", ")}. Example: {"action": "hover", "path": "src/agent.ts", "line": 10, "col": 15}`;
     }
     const rel = typeof raw.path === "string" ? raw.path : "";
-    if (!rel) return `Error: path is required. Example: {"action": "${action}", "path": "src/agent.ts"${action === "diag" ? "" : ', "line": 10, "col": 15'}}`;
+    if (!rel)
+      return `Error: path is required. Example: {"action": "${action}", "path": "src/agent.ts"${action === "diag" ? "" : ', "line": 10, "col": 15'}}`;
     let abs: string;
     try {
       abs = resolveInWorkspace(this.root, rel);
@@ -689,7 +1009,11 @@ export class LspManager {
         case "refs":
           return fmtLocList(
             this.root,
-            await live.client.request("textDocument/references", { textDocument: docId, position: pos, context: { includeDeclaration: true } })
+            await live.client.request("textDocument/references", {
+              textDocument: docId,
+              position: pos,
+              context: { includeDeclaration: true },
+            })
           );
         case "diag": {
           let diags: any[];
@@ -767,9 +1091,7 @@ export class LspManager {
     }
     const def = serverForFile(abs);
     if (!def) {
-      return none(
-        `Error: "${rel}" is not a supported language — code intelligence works on ${supportedLspExts().join(", ")}.`
-      );
+      return none(`Error: "${rel}" is not a supported language — code intelligence works on ${supportedLspExts().join(", ")}.`);
     }
     let stat: fs.Stats;
     try {
@@ -784,9 +1106,7 @@ export class LspManager {
     try {
       live = await this.ensureServer(def, signal);
     } catch (err: any) {
-      return none(
-        `Error: ${def.lang} language server unavailable (${String(err?.message ?? err).slice(0, 160)}). ${def.installHint}`
-      );
+      return none(`Error: ${def.lang} language server unavailable (${String(err?.message ?? err).slice(0, 160)}). ${def.installHint}`);
     }
     const uri = lspUri(abs);
     try {
@@ -806,7 +1126,9 @@ export class LspManager {
       line: (d?.range?.start?.line ?? 0) + 1,
       col: (d?.range?.start?.character ?? 0) + 1,
       severity: d?.severity === 1 ? "error" : d?.severity === 2 ? "warning" : "info",
-      message: String(d?.message ?? "").split("\n")[0].slice(0, 300),
+      message: String(d?.message ?? "")
+        .split("\n")[0]
+        .slice(0, 300),
     }));
     return { text: fmtDiagList(this.root, uri, diags), diagnostics };
   }

@@ -1,10 +1,10 @@
 {
   "path": "src/web/notify.ts",
-  "content_hash": "ef8a7e6d94f4913a22dad17de757fb8b",
-  "updated_at": "2026-09-24T23:03:36",
-  "lines": 36,
-  "size_bytes": 1265,
-  "mtime_ns": 1790287384480133100,
+  "content_hash": "63f652497588879c4e1a71e7064e033b",
+  "updated_at": "2026-09-28T19:36:41",
+  "lines": 40,
+  "size_bytes": 1290,
+  "mtime_ns": 1790620580593929900,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -44,14 +44,14 @@
       "type": "function",
       "name": "decideNotice",
       "line_start": 29,
-      "line_end": 33,
+      "line_end": 37,
       "signature": "function decideNotice(input: NoticeInput): Notice | null {"
     },
     {
       "type": "constant",
       "name": "NOTIFY_KEY",
-      "line_start": 36,
-      "line_end": 36,
+      "line_start": 40,
+      "line_end": 40,
       "signature": "const NOTIFY_KEY = \"smol-notify\";"
     }
   ]

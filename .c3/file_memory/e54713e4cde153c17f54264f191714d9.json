@@ -1,41 +1,41 @@
 {
   "path": "src/tools/check.ts",
-  "content_hash": "a7f8b110010fda2ee5a4f93b771d64db",
-  "updated_at": "2026-09-24T17:24:24",
+  "content_hash": "db80f7a1c2a50ba102f4313384f46c22",
+  "updated_at": "2026-09-28T19:33:34",
   "lines": 149,
-  "size_bytes": 5740,
-  "mtime_ns": 1790260569965211100,
+  "size_bytes": 5611,
+  "mtime_ns": 1790620408158484900,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
   "sections": [
     {
       "type": "import",
-      "name": "import { spawnSync } from \"child_process\";",
+      "name": "import { spawnSync } from \"node:child_process\";",
       "line_start": 9,
       "line_end": 9,
-      "signature": "import { spawnSync } from \"child_process\";"
+      "signature": "import { spawnSync } from \"node:child_process\";"
     },
     {
       "type": "import",
-      "name": "import * as fs from \"fs\";",
+      "name": "import * as fs from \"node:fs\";",
       "line_start": 10,
       "line_end": 10,
-      "signature": "import * as fs from \"fs\";"
+      "signature": "import * as fs from \"node:fs\";"
     },
     {
       "type": "import",
-      "name": "import * as os from \"os\";",
+      "name": "import * as os from \"node:os\";",
       "line_start": 11,
       "line_end": 11,
-      "signature": "import * as os from \"os\";"
+      "signature": "import * as os from \"node:os\";"
     },
     {
       "type": "import",
-      "name": "import * as path from \"path\";",
+      "name": "import * as path from \"node:path\";",
       "line_start": 12,
       "line_end": 12,
-      "signature": "import * as path from \"path\";"
+      "signature": "import * as path from \"node:path\";"
     },
     {
       "type": "constant",

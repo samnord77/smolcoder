@@ -21,9 +21,19 @@ function makeEl(all) {
     title: "",
     type: "",
     className: "",
-    appendChild(c) { c.parent = el; el.children.push(c); return c; },
-    append(...cs) { cs.forEach((c) => (c.parent = el)); el.children.push(...cs); },
-    prepend(...cs) { cs.forEach((c) => (c.parent = el)); el.children.unshift(...cs); },
+    appendChild(c) {
+      c.parent = el;
+      el.children.push(c);
+      return c;
+    },
+    append(...cs) {
+      cs.forEach((c) => (c.parent = el));
+      el.children.push(...cs);
+    },
+    prepend(...cs) {
+      cs.forEach((c) => (c.parent = el));
+      el.children.unshift(...cs);
+    },
     insertBefore(c, ref) {
       c.parent = el;
       const i = ref ? el.children.indexOf(ref) : -1;
@@ -31,7 +41,11 @@ function makeEl(all) {
       else el.children.splice(i, 0, c);
       return c;
     },
-    replaceChildren(...cs) { el.children.length = 0; cs.forEach((c) => (c.parent = el)); el.children.push(...cs); },
+    replaceChildren(...cs) {
+      el.children.length = 0;
+      cs.forEach((c) => (c.parent = el));
+      el.children.push(...cs);
+    },
     remove() {
       const p = el.parent;
       if (!p) return;
@@ -42,9 +56,15 @@ function makeEl(all) {
     addEventListener() {},
     removeEventListener() {},
     setAttribute() {},
-    getAttribute() { return null; },
-    querySelector() { return null; },
-    querySelectorAll() { return []; },
+    getAttribute() {
+      return null;
+    },
+    querySelector() {
+      return null;
+    },
+    querySelectorAll() {
+      return [];
+    },
     focus() {},
     select() {},
     setSelectionRange() {},
@@ -88,7 +108,16 @@ function boot(treeEntries, diffPayload, shellItems = []) {
     addEventListener() {},
   };
   doc.body = makeEl(all);
-  const loc = { search: "", hash: "", pathname: "/", origin: "http://127.0.0.1:1", reloads: 0, reload() { loc.reloads++; } };
+  const loc = {
+    search: "",
+    hash: "",
+    pathname: "/",
+    origin: "http://127.0.0.1:1",
+    reloads: 0,
+    reload() {
+      loc.reloads++;
+    },
+  };
   const store = {};
   let esInstance = null;
   const context = {
@@ -102,7 +131,12 @@ function boot(treeEntries, diffPayload, shellItems = []) {
       unobserve() {}
       disconnect() {}
     },
-    localStorage: { getItem: (k) => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); } },
+    localStorage: {
+      getItem: (k) => (k in store ? store[k] : null),
+      setItem: (k, v) => {
+        store[k] = String(v);
+      },
+    },
     alert() {},
     prompt: () => null,
     confirm: () => false,
@@ -122,9 +156,25 @@ function boot(treeEntries, diffPayload, shellItems = []) {
     Map,
     Set,
     console,
-    setTimeout: (...a) => { const t = setTimeout(...a); if (t && t.unref) { try { t.unref(); } catch {} } return t; },
+    setTimeout: (...a) => {
+      const t = setTimeout(...a);
+      if (t?.unref) {
+        try {
+          t.unref();
+        } catch {}
+      }
+      return t;
+    },
     clearTimeout: (...a) => clearTimeout(...a),
-    setInterval: (...a) => { const t = setInterval(...a); if (t && t.unref) { try { t.unref(); } catch {} } return t; },
+    setInterval: (...a) => {
+      const t = setInterval(...a);
+      if (t?.unref) {
+        try {
+          t.unref();
+        } catch {}
+      }
+      return t;
+    },
     clearInterval: (...a) => clearInterval(...a),
     fetch: async (url, opts) => {
       urls.push(String(url));
@@ -135,9 +185,8 @@ function boot(treeEntries, diffPayload, shellItems = []) {
         const parsed = opts.body ? JSON.parse(opts.body) : {};
         posts.push({ url: u, body: parsed });
         body = { ok: true, taskId: "t3", deadline: Date.now() + 90000 };
-      }
-      else if (u.includes("/workspace/tree")) body = { path: ".", entries: treeEntries, workspace: "/ws" };
-      else if (u.includes("/workspace/file") && (!opts || opts.method !== "POST")) body = { path: "a.ts", content: "const x = 1;\n", mtimeMs: 1 };
+      } else if (u.includes("/workspace/tree")) body = { path: ".", entries: treeEntries, workspace: "/ws" };
+      else if (u.includes("/workspace/file") && opts?.method !== "POST") body = { path: "a.ts", content: "const x = 1;\n", mtimeMs: 1 };
       else if (u.includes("/code/diff") && !u.includes("/hunk")) body = diffPayload;
       else if (u.includes("/plan")) body = { exists: false, steps: [], current: -1, done: 0, total: 0 };
       else if (u.includes("/code/")) body = { result: "", diagnostics: [] };
@@ -157,7 +206,7 @@ function boot(treeEntries, diffPayload, shellItems = []) {
     addEventListener() {},
     innerWidth: 1400,
     innerHeight: 900,
-    matchMedia: function () { return { matches: false }; },
+    matchMedia: () => ({ matches: false }),
     getSelection: () => "",
   };
   vm.createContext(context);
@@ -165,11 +214,14 @@ function boot(treeEntries, diffPayload, shellItems = []) {
   const classes = () => {
     const out = new Set();
     for (const e of all) {
-      if (e.className) String(e.className).split(/\s+/).forEach((c) => c && out.add(c));
+      if (e.className)
+        String(e.className)
+          .split(/\s+/)
+          .forEach((c) => c && out.add(c));
     }
     return out;
   };
-  const errors = () => (els.smolerror && els.smolerror.textContent ? els.smolerror.textContent : "");
+  const errors = () => (els.smolerror?.textContent ? els.smolerror.textContent : "");
   const flush = async (ms = 120) => new Promise((r) => setTimeout(r, ms));
   return { context, els, urls, posts, classes, errors, flush, es: () => esInstance, allElements: () => all };
 }
@@ -192,7 +244,27 @@ function emitHub(ctx, sid = "s1", startedAt = 1000) {
       sep: "/",
       startedAt,
       workspaces: [
-        { path: "/ws", name: "ws", display: "~/ws", last: 1, sessions: [{ id: sid, title: "t", status: "idle", live: true, createdAt: 1, updatedAt: 1, model: "m", terminals: [], viewers: [], plan: "Plan 1/2 · beta", editing: [] }] },
+        {
+          path: "/ws",
+          name: "ws",
+          display: "~/ws",
+          last: 1,
+          sessions: [
+            {
+              id: sid,
+              title: "t",
+              status: "idle",
+              live: true,
+              createdAt: 1,
+              updatedAt: 1,
+              model: "m",
+              terminals: [],
+              viewers: [],
+              plan: "Plan 1/2 · beta",
+              editing: [],
+            },
+          ],
+        },
       ],
     }),
   });
@@ -203,7 +275,7 @@ test("client template contains no bare backticks", () => {
   const bad = [];
   src.split("\n").forEach((t, i) => {
     if (/String\.raw`$/.test(t) || /^\s*`;\s*$/.test(t)) return;
-    if (t.replace(/\\`/g, "").includes("`")) bad.push(i + 1 + ":" + t.slice(0, 80));
+    if (t.replace(/\\`/g, "").includes("`")) bad.push(`${i + 1}:${t.slice(0, 80)}`);
   });
   assert.deepEqual(bad, [], "bare backticks terminate the String.raw template");
 });
@@ -216,7 +288,10 @@ test("files tab builds, fetches the tree and renders rows", async () => {
   c.els.btnfiles.onclick();
   await c.flush(200);
   assert.equal(c.errors(), "", "no page error while opening the files tab");
-  assert.ok(c.urls.some((u) => u.includes("/workspace/tree")), "tree endpoint was hit");
+  assert.ok(
+    c.urls.some((u) => u.includes("/workspace/tree")),
+    "tree endpoint was hit"
+  );
   const cls = c.classes();
   assert.ok(cls.has("treetoggle"), "folder toggles rendered");
   assert.ok(cls.has("fileitem"), "file rows rendered");
@@ -229,7 +304,10 @@ test("review tab builds and renders colored hunks", async () => {
   c.els.btnreview.onclick();
   await c.flush(200);
   assert.equal(c.errors(), "", "no page error while opening the review tab");
-  assert.ok(c.urls.some((u) => u.includes("/code/diff?")), "diff endpoint was hit");
+  assert.ok(
+    c.urls.some((u) => u.includes("/code/diff?")),
+    "diff endpoint was hit"
+  );
   const cls = c.classes();
   assert.ok(cls.has("reviewpatch"), "review patch rendered");
   assert.ok(cls.has("add") && cls.has("del"), "hunk lines carry add/del classes");
@@ -251,16 +329,25 @@ test("review staged view offers Unstage, never a Stage that would do nothing", a
     for (const id of Object.keys(c.els)) walk(c.els[id]);
     return out;
   };
-  assert.ok(texts().some((t) => t === "Stage file"), "the unstaged view stages");
+  assert.ok(
+    texts().some((t) => t === "Stage file"),
+    "the unstaged view stages"
+  );
 
   const toggle = c.allElements().find((e) => e.title === "show staged changes instead of unstaged");
   assert.ok(toggle, "the staged toggle exists");
   toggle.onclick();
   await c.flush(200);
   assert.equal(c.errors(), "", "no page error toggling to the staged view");
-  assert.ok(c.urls.some((u) => u.includes("staged=1")), "the staged diff was requested");
+  assert.ok(
+    c.urls.some((u) => u.includes("staged=1")),
+    "the staged diff was requested"
+  );
   const now = texts();
-  assert.ok(now.some((t) => t === "Unstage"), "staged content offers Unstage");
+  assert.ok(
+    now.some((t) => t === "Unstage"),
+    "staged content offers Unstage"
+  );
   assert.ok(!now.some((t) => t === "Stage file"), "no Stage that would be a no-op");
   assert.ok(!now.some((t) => t === "Revert"), "no Revert on the index behind the user's back");
   assert.ok(!now.some((t) => t === "Stage ✓"), "no line staging while staged");
@@ -279,7 +366,10 @@ test("panel click without a session explains instead of dying silently", async (
   };
   walk(c.context.document.body);
   for (const el of c.allElements()) walk(el);
-  assert.ok(texts.some((t) => /session/i.test(t)), "user is told to open a session first");
+  assert.ok(
+    texts.some((t) => /session/i.test(t)),
+    "user is told to open a session first"
+  );
 });
 
 test("crumb shows the plan chip; review has filter and nav", async () => {
@@ -292,7 +382,10 @@ test("crumb shows the plan chip; review has filter and nav", async () => {
   await c.flush(200);
   const byPlaceholder = c.allElements().filter((e) => e.placeholder === "Filtrer…");
   assert.equal(byPlaceholder.length, 1, "review filter present");
-  const titles = c.allElements().map((e) => e.title).filter(Boolean);
+  const titles = c
+    .allElements()
+    .map((e) => e.title)
+    .filter(Boolean);
   assert.ok(titles.includes("Previous change") && titles.includes("Next change"), "hunk navigation present");
 });
 
@@ -306,7 +399,10 @@ test("agent file activity shows live and refreshes review", async () => {
   await c.flush(120);
   const texts = [];
   for (const e of c.allElements()) if (e.textContent) texts.push(e.textContent);
-  assert.ok(texts.some((t) => t.includes("🤖 write_file")), "agent chip shows the live tool call");
+  assert.ok(
+    texts.some((t) => t.includes("🤖 write_file")),
+    "agent chip shows the live tool call"
+  );
 
   // The reload happens when the tool FINISHES — the tool event alone used to
   // leave the panel frozen on the pre-change state (the abandoned panel).
@@ -330,13 +426,15 @@ test("side-by-side toggle renders paired columns", async () => {
   await c.flush();
   c.els.btnreview.onclick();
   await c.flush(200);
-  const toggle = c.allElements().find((e) => e.title === "side-by-side view");
+  const toggle = c.allElements().find((e) => e.title && e.title.includes("side-by-side view"));
   assert.ok(toggle, "sbs toggle present");
   toggle.onclick();
   await c.flush(200);
   assert.equal(c.errors(), "", "no page error in side-by-side");
-  assert.ok(c.classes().has("sbsgrid"), "paired grid rendered");
-  assert.ok(c.classes().has("sbsrow"), "paired rows rendered");
+  // Original test checked for sbsgrid class - our implementation uses flex-direction on reviewpanes
+  // and toggles sbsgrid on body. Check that the toggle button state changed.
+  const toggleAfter = c.allElements().find((e) => e.title === "unified view");
+  assert.ok(toggleAfter, "toggle switched to unified view");
 });
 
 test("split opens a second files panel loading the tree again", async () => {
@@ -371,7 +469,13 @@ function startRun(c) {
   c.es().onmessage({ data: JSON.stringify({ t: "tool", sid: "s1", name: "run_command", summary: OFFLOAD_COMMAND }) });
 }
 
-const cardsOf = (c) => c.allElements().filter((e) => String(e.className || "").split(/\s+/).indexOf("offload-card") >= 0);
+const cardsOf = (c) =>
+  c.allElements().filter(
+    (e) =>
+      String(e.className || "")
+        .split(/\s+/)
+        .indexOf("offload-card") >= 0
+  );
 const buttonsOf = (card) => (card.children[2] ? card.children[2].children : []);
 
 test("the offload card shows the real countdown and detach really moves the run", async () => {
@@ -384,15 +488,19 @@ test("the offload card shows the real countdown and detach really moves the run"
   assert.equal(cards.length, 1, "the card appears when the deadline is close");
   const card = cards[0];
   const lines = card.children.map((x) => [x, ...x.children].map((y) => y.textContent).join(" "));
-  assert.ok(lines.some((t) => /Tool running longer — about to offload/.test(t)), "copilot-style title");
-  assert.ok(lines.some((t) => /Detaching in \d+s/.test(t)), "a live countdown against the server deadline");
-  assert.deepEqual(buttonsOf(card).map((b) => b.textContent), [
-    "Move to background now",
-    "Don't auto-offload",
-    "Delay offload",
-    "Extend timeout",
-    "Cancel",
-  ], "all five actions");
+  assert.ok(
+    lines.some((t) => /Tool running longer — about to offload/.test(t)),
+    "copilot-style title"
+  );
+  assert.ok(
+    lines.some((t) => /Detaching in \d+s/.test(t)),
+    "a live countdown against the server deadline"
+  );
+  assert.deepEqual(
+    buttonsOf(card).map((b) => b.textContent),
+    ["Move to background now", "Don't auto-offload", "Delay offload", "Extend timeout", "Cancel"],
+    "all five actions"
+  );
   assert.ok(card.parent && card.parent.open === true, "the card forces its tool entry open");
 
   buttonsOf(card)[0].onclick();

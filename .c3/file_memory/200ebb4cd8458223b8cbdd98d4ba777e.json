@@ -1,27 +1,27 @@
 {
   "path": "src/router.ts",
-  "content_hash": "599f19126c588255c88019b2fb433dbb",
-  "updated_at": "2026-09-27T21:01:15",
-  "lines": 200,
-  "size_bytes": 6806,
-  "mtime_ns": 1790539050328059100,
+  "content_hash": "663fd1cc0269960ee8b795801f89b7a2",
+  "updated_at": "2026-09-28T19:36:40",
+  "lines": 195,
+  "size_bytes": 6773,
+  "mtime_ns": 1790620579447460900,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
   "sections": [
     {
       "type": "import",
-      "name": "import { DetectedModel } from \"./detect\";",
+      "name": "import type { DetectedModel } from \"./detect\";",
       "line_start": 8,
       "line_end": 8,
-      "signature": "import { DetectedModel } from \"./detect\";"
+      "signature": "import type { DetectedModel } from \"./detect\";"
     },
     {
       "type": "import",
-      "name": "import { ChatOptions, ChatResult, Effort, Msg, Provider, ToolSpec } from \"./providers/types\";",
+      "name": "import type { ChatOptions, ChatResult, Effort, Msg, Provider, ToolSpec } from \"./providers/types\";",
       "line_start": 9,
       "line_end": 9,
-      "signature": "import { ChatOptions, ChatResult, Effort, Msg, Provider, ToolSpec } from \"./providers/types\";"
+      "signature": "import type { ChatOptions, ChatResult, Effort, Msg, Provider, ToolSpec } from \"./providers/types\";"
     },
     {
       "type": "interface",
@@ -57,7 +57,7 @@
       "type": "class",
       "name": "RoutingProvider",
       "line_start": 47,
-      "line_end": 186,
+      "line_end": 181,
       "signature": "class RoutingProvider implements Provider {",
       "children": [
         {
@@ -191,7 +191,7 @@
           "type": "method",
           "name": "ensureFallbacks",
           "line_start": 112,
-          "line_end": 142,
+          "line_end": 140,
           "signature": "private async ensureFallbacks(): Promise<void> {",
           "async": true,
           "access": "private"
@@ -199,23 +199,23 @@
         {
           "type": "method",
           "name": "chat",
-          "line_start": 144,
-          "line_end": 165,
+          "line_start": 142,
+          "line_end": 163,
           "signature": "async chat(messages: Msg[], tools: ToolSpec[], opts: ChatOptions = {}): Promise<ChatResult> {",
           "async": true
         },
         {
           "type": "method",
           "name": "snapshot",
-          "line_start": 167,
-          "line_end": 173,
+          "line_start": 165,
+          "line_end": 171,
           "signature": "snapshot(): RouteSnapshot {"
         },
         {
           "type": "method",
           "name": "describe",
-          "line_start": 176,
-          "line_end": 185,
+          "line_start": 174,
+          "line_end": 180,
           "signature": "describe(): string {",
           "doc": "Human-readable chain for /route. Never throws."
         }
@@ -224,8 +224,8 @@
     {
       "type": "function",
       "name": "routeProvider",
-      "line_start": 190,
-      "line_end": 200,
+      "line_start": 185,
+      "line_end": 195,
       "signature": "function routeProvider("
     }
   ]

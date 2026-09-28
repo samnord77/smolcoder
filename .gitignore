@@ -3,3 +3,6 @@ dist/
 playground/
 .claude/
 release/
+
+# local runtime state (session databases, delegate counters)
+.smol/

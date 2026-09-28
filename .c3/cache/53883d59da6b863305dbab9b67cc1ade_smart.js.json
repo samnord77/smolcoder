@@ -1,0 +1,9 @@
+{
+  "original_tokens": 4728,
+  "compressed_tokens": 193,
+  "saved_tokens": 4535,
+  "savings_pct": 95.9,
+  "compressed": "# client-smoke.test.js (.js) \u2014 538 lines\nconst test = require(\"node:test\");\nconst assert = require(\"node:assert/strict\");\nconst fs = require(\"node:fs\");\nconst path = require(\"node:path\");\nconst vm = require(\"node:vm\");\nfunction makeEl(all)\nfunction boot(treeEntries, diffPayload, shellItems = [])\nconst TREE = [ { name: \"src\", path: \"src\", dir: true }, { name: \"a.ts\", path: \"a.ts\", dir: false },\nconst DIFF =\nfunction emitHub(ctx, sid = \"s1\", startedAt = 1000)\nconst OFFLOAD_COMMAND = 'node -e \"long build\"';\nfunction startRun(c)\nconst cardsOf = (c) => c.allElements().filter( (e) =>\nconst buttonsOf = (card) => (card.children[2] ? card.children[2].children : []);",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\client-smoke.test.js"
+}

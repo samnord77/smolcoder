@@ -1,41 +1,41 @@
 {
   "path": "src/netscan.ts",
-  "content_hash": "3405b2a250e3af105b398397a496f5de",
-  "updated_at": "2026-09-24T17:24:23",
+  "content_hash": "fed1422b90290f6c54d7d4b1e2fc66d8",
+  "updated_at": "2026-09-28T19:33:37",
   "lines": 146,
-  "size_bytes": 6132,
-  "mtime_ns": 1790260569948451300,
+  "size_bytes": 6006,
+  "mtime_ns": 1790620408039907900,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
   "sections": [
     {
       "type": "import",
-      "name": "import * as dns from \"dns\";",
+      "name": "import * as dns from \"node:dns\";",
       "line_start": 6,
       "line_end": 6,
-      "signature": "import * as dns from \"dns\";"
+      "signature": "import * as dns from \"node:dns\";"
     },
     {
       "type": "import",
-      "name": "import * as net from \"net\";",
+      "name": "import * as net from \"node:net\";",
       "line_start": 7,
       "line_end": 7,
-      "signature": "import * as net from \"net\";"
+      "signature": "import * as net from \"node:net\";"
     },
     {
       "type": "import",
-      "name": "import * as os from \"os\";",
+      "name": "import * as os from \"node:os\";",
       "line_start": 8,
       "line_end": 8,
-      "signature": "import * as os from \"os\";"
+      "signature": "import * as os from \"node:os\";"
     },
     {
       "type": "import",
-      "name": "import { BackendKind, identifyServer } from \"./detect\";",
+      "name": "import { type BackendKind, identifyServer } from \"./detect\";",
       "line_start": 9,
       "line_end": 9,
-      "signature": "import { BackendKind, identifyServer } from \"./detect\";"
+      "signature": "import { type BackendKind, identifyServer } from \"./detect\";"
     },
     {
       "type": "import",

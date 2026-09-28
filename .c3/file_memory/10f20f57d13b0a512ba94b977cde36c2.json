@@ -1,10 +1,10 @@
 {
   "path": "test/read-budget.test.js",
-  "content_hash": "c911e587a15287adb2db3f95ac447be0",
-  "updated_at": "2026-09-24T17:36:23",
+  "content_hash": "d6a465dda486046c40b17d68884cc100",
+  "updated_at": "2026-09-28T19:36:40",
   "lines": 31,
-  "size_bytes": 1513,
-  "mtime_ns": 1790260570023955600,
+  "size_bytes": 1532,
+  "mtime_ns": 1790620581827557600,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -14,35 +14,35 @@
       "name": "test",
       "line_start": 1,
       "line_end": 1,
-      "signature": "const test = require('node:test');"
+      "signature": "const test = require(\"node:test\");"
     },
     {
       "type": "constant",
       "name": "assert",
       "line_start": 2,
       "line_end": 2,
-      "signature": "const assert = require('node:assert/strict');"
+      "signature": "const assert = require(\"node:assert/strict\");"
     },
     {
       "type": "constant",
       "name": "fs",
       "line_start": 3,
       "line_end": 3,
-      "signature": "const fs = require('node:fs');"
+      "signature": "const fs = require(\"node:fs\");"
     },
     {
       "type": "constant",
       "name": "os",
       "line_start": 4,
       "line_end": 4,
-      "signature": "const os = require('node:os');"
+      "signature": "const os = require(\"node:os\");"
     },
     {
       "type": "constant",
       "name": "path",
       "line_start": 5,
       "line_end": 5,
-      "signature": "const path = require('node:path');"
+      "signature": "const path = require(\"node:path\");"
     }
   ]
 }

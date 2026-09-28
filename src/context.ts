@@ -25,18 +25,19 @@
 //     alone exceeds the threshold, we stop trying instead of thrashing a
 //     futile summarizer call before every request
 
-import { lastUserIndex, Msg, Provider, ToolSpec } from "./providers/types";
-import { estimateTokens, truncateEnd, truncateMiddle } from "./util";
-import { abortableDelay } from "./providers/transport";
-import { isHistoryPlaceholder } from "./history";
 import { IMAGE_TOKENS } from "./attachments";
+import { isHistoryPlaceholder } from "./history";
+import { abortableDelay } from "./providers/transport";
+import { lastUserIndex, type Msg, type Provider, type ToolSpec } from "./providers/types";
+import { estimateTokens, truncateEnd, truncateMiddle } from "./util";
 
 // Protection anti-timeout Cloudflare (100s) et saturation GPU
 const MAX_SAFE_TUNNEL_WINDOW = 28000;
 const MSG_OVERHEAD_TOKENS = 8;
 const EVICT_KEEP_RECENT = 6; // never evict tool results in the last N messages
 const EVICT_STUB = "[old output removed to save space — run the tool again if you need it]";
-const STALE_READ_STUB = "[this read is out of date — the file was rewritten afterwards. Call read_file again if you need its current content.]";
+const STALE_READ_STUB =
+  "[this read is out of date — the file was rewritten afterwards. Call read_file again if you need its current content.]";
 const STALE_READ_MIN_CHARS = 1500; // small reads are cheaper to keep than to re-prefill around
 
 export interface CompactionReport {
@@ -134,15 +135,17 @@ export class ContextManager {
     return estimateTokens(JSON.stringify(tools));
   }
 
-  setReplayThinking(value: boolean): void { this.replaysThinking = value; this.resetAnchor(); }
+  setReplayThinking(value: boolean): void {
+    this.replaysThinking = value;
+    this.resetAnchor();
+  }
 
   /** Best estimate of the next request's prompt size in tokens. */
   estimatePrompt(messages: Msg[], tools: ToolSpec[]): number {
     const charBased = Math.ceil((this.estimateMessages(messages) + this.estimateTools(tools)) * this.calibration);
     if (this.lastPromptTokens > 0 && this.anchorIndex <= messages.length) {
       const newMsgs = messages.slice(this.anchorIndex);
-      const anchored =
-        this.lastPromptTokens + this.lastCompletionTokens + this.estimateMessages(newMsgs);
+      const anchored = this.lastPromptTokens + this.lastCompletionTokens + this.estimateMessages(newMsgs);
       return Math.max(charBased, anchored);
     }
     return charBased;
@@ -169,19 +172,33 @@ export class ContextManager {
 
   budget(messages: Msg[], tools: ToolSpec[]) {
     const prompt = this.estimatePrompt(messages, tools);
-    return { prompt, window: this.window, reserve: this.reserve, available: Math.max(0, this.usableWindow() - prompt), source: this.lastPromptTokens > 0 ? "measured + estimate" : "estimate" };
+    return {
+      prompt,
+      window: this.window,
+      reserve: this.reserve,
+      available: Math.max(0, this.usableWindow() - prompt),
+      source: this.lastPromptTokens > 0 ? "measured + estimate" : "estimate",
+    };
   }
 
   assertFits(messages: Msg[], tools: ToolSpec[]): void {
     const size = this.estimatePrompt(messages, tools);
     if (size > this.usableWindow()) {
-      throw new Error(`Context budget exceeded: about ${size} input tokens, ${this.usableWindow()} available after reserving the reply. Shorten the request or AGENTS.md, use /models for a larger loaded window, or restart with --ctx. The request was not sent.`);
+      throw new Error(
+        `Context budget exceeded: about ${size} input tokens, ${this.usableWindow()} available after reserving the reply. Shorten the request or AGENTS.md, use /models for a larger loaded window, or restart with --ctx. The request was not sent.`
+      );
     }
   }
 
   /** Only run while a command is using the CPU/shell. Never queue behind coding. */
   prepareBackground(messages: Msg[], tools: ToolSpec[], provider: Provider, state: CompactState, delayMs = 750): void {
-    if (this.background || this.prepared || messages.length < Math.max(10, this.preparedAt + 6) || this.estimatePrompt(messages, tools) < this.usableWindow() * 0.6) return;
+    if (
+      this.background ||
+      this.prepared ||
+      messages.length < Math.max(10, this.preparedAt + 6) ||
+      this.estimatePrompt(messages, tools) < this.usableWindow() * 0.6
+    )
+      return;
     this.preparedAt = messages.length;
     const snapshot: Msg[] = JSON.parse(JSON.stringify(messages));
     const source = JSON.stringify(snapshot);
@@ -190,19 +207,26 @@ export class ContextManager {
     // Most shell checks finish faster than a local-model prefill. Give them
     // time to finish before occupying the GPU with a summary we'd immediately
     // cancel. Long installs/builds still overlap with useful compaction.
-    const work = abortableDelay(delayMs, controller.signal).then(() =>
-      this.compact(snapshot, provider, frozen, { signal: controller.signal, background: true })
-    ).then((compacted) => {
-      if (!controller.signal.aborted && this.estimatePrompt(compacted, tools) < this.estimatePrompt(snapshot, tools)) {
-        this.prepared = { source, count: snapshot.length, messages: compacted };
-      }
-    }).catch(() => {}).finally(() => { if (this.background?.controller === controller) this.background = null; });
+    const work = abortableDelay(delayMs, controller.signal)
+      .then(() => this.compact(snapshot, provider, frozen, { signal: controller.signal, background: true }))
+      .then((compacted) => {
+        if (!controller.signal.aborted && this.estimatePrompt(compacted, tools) < this.estimatePrompt(snapshot, tools)) {
+          this.prepared = { source, count: snapshot.length, messages: compacted };
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (this.background?.controller === controller) this.background = null;
+      });
     this.background = { controller, work };
   }
 
   cancelBackground(discard = false): void {
     this.background?.controller.abort();
-    if (discard) { this.prepared = null; this.preparedAt = 0; }
+    if (discard) {
+      this.prepared = null;
+      this.preparedAt = 0;
+    }
   }
 
   async foreground(): Promise<void> {
@@ -241,7 +265,7 @@ export class ContextManager {
       const m = messages[i];
       if (m.role !== "tool" || m.evicted || m.content.length < STALE_READ_MIN_CHARS) continue;
       const call = callFor(messages, i);
-      if (!call || call.name !== "read_file") continue;
+      if (call?.name !== "read_file") continue;
       if (norm(String(call.args?.path ?? "")) !== target) continue;
       m.content = STALE_READ_STUB;
       m.evicted = true;
@@ -288,7 +312,10 @@ export class ContextManager {
     // newest assistant group's reasoning; tool calls/results remain intact.
     let thinkingFrom = messages.length;
     for (let i = messages.length - 1; i >= 1; i--) {
-      if (messages[i].role === "assistant") { thinkingFrom = i; break; }
+      if (messages[i].role === "assistant") {
+        thinkingFrom = i;
+        break;
+      }
     }
     for (let i = 1; i < thinkingFrom; i++) {
       if (messages[i].role === "assistant" && messages[i].thinking) {
@@ -304,7 +331,10 @@ export class ContextManager {
     // Keep the newest group intact and never remove an unexecuted/failed call.
     let latestGroup = messages.length;
     for (let i = messages.length - 1; i >= 1; i--) {
-      if (messages[i].role === "assistant" && messages[i].toolCalls?.length) { latestGroup = i; break; }
+      if (messages[i].role === "assistant" && messages[i].toolCalls?.length) {
+        latestGroup = i;
+        break;
+      }
     }
     for (let i = latestGroup - 1; i >= 1; i--) {
       const message = messages[i];
@@ -317,8 +347,10 @@ export class ContextManager {
         const receipt = results.find((m) => m.toolCallId === call.id);
         if (!receipt || !/^(Created|Overwrote|Edited) /.test(receipt.content)) continue;
         const keys = call.name === "write_file" ? ["content"] : call.name === "edit_file" ? ["old_text", "new_text"] : [];
-        if (!keys.some((key) => typeof call.args[key] === "string" &&
-          (call.args[key].length > 1200 || isHistoryPlaceholder(call.args[key])))) continue;
+        if (
+          !keys.some((key) => typeof call.args[key] === "string" && (call.args[key].length > 1200 || isHistoryPlaceholder(call.args[key])))
+        )
+          continue;
         removed.add(call.id);
         receipts.push(`${call.name}: ${truncateEnd(receipt.content, 600)}`);
       }
@@ -326,9 +358,12 @@ export class ContextManager {
       const remainingCalls = message.toolCalls.filter((call) => !removed.has(call.id));
       const retained: Msg[] = remainingCalls.length
         ? [{ ...message, toolCalls: remainingCalls }, ...results.filter((result) => !removed.has(result.toolCallId!))]
-        : message.content ? [{ role: "assistant", content: message.content }] : [];
+        : message.content
+          ? [{ role: "assistant", content: message.content }]
+          : [];
       messages.splice(i, results.length + 1, ...retained, {
-        role: "user", historyNote: true,
+        role: "user",
+        historyNote: true,
         content: `[Harness history record — earlier tool executions, not a new request. Applied code omitted; read_file returns current source. Future changes require actual tool calls.]\n${receipts.join("\n")}`,
       });
       this.resetAnchor();
@@ -402,7 +437,12 @@ export class ContextManager {
     if (state.commandsRun.length) {
       // Keep recent outcomes, not entire inline scripts or the oldest command
       // swallowing the facts budget. Middle truncation preserves the exit code.
-      facts.push(`Recent commands: ${state.commandsRun.slice(-6).map((s) => truncateMiddle(s.replace(/\s+/g, " "), 180)).join("; ")}`);
+      facts.push(
+        `Recent commands: ${state.commandsRun
+          .slice(-6)
+          .map((s) => truncateMiddle(s.replace(/\s+/g, " "), 180))
+          .join("; ")}`
+      );
     }
 
     // Model-written progress summary — structured, thinking off, short cap.
@@ -415,7 +455,10 @@ export class ContextManager {
     if (!opts.deterministic && digestBudgetChars >= 3000) {
       try {
         // Prior notes contain decisions that may exist nowhere else now.
-        const previous = allMessages.filter((m) => m.compactNote).map((m) => m.content.split("Hand-over notes:\n")[1] ?? m.content).join("\n");
+        const previous = allMessages
+          .filter((m) => m.compactNote)
+          .map((m) => m.content.split("Hand-over notes:\n")[1] ?? m.content)
+          .join("\n");
         const transcript = renderForDigest(messages.slice(1), Math.max(0, digestBudgetChars - Math.min(previous.length, 2400)));
         const res = await provider.chat(
           [
@@ -438,9 +481,16 @@ export class ContextManager {
             },
           ],
           [],
-          { effortOverride: "off", maxTokens: Math.min(700, this.reserve), signal: opts.signal, timeoutMs: 45_000, background: opts.background }
+          {
+            effortOverride: "off",
+            maxTokens: Math.min(700, this.reserve),
+            signal: opts.signal,
+            timeoutMs: 45_000,
+            background: opts.background,
+          }
         );
-        if (!res.truncated) narrative = truncateEnd(res.content.trim(), Math.min(2800, Math.max(600, Math.floor(this.usableWindow() * 0.3))));
+        if (!res.truncated)
+          narrative = truncateEnd(res.content.trim(), Math.min(2800, Math.max(600, Math.floor(this.usableWindow() * 0.3))));
       } catch (err) {
         if (opts.signal?.aborted) throw opts.signal.reason;
         if (opts.background) throw err;
@@ -448,7 +498,13 @@ export class ContextManager {
       }
     }
     if (!narrative) {
-      narrative = truncateEnd(allMessages.filter((m) => m.compactNote).map((m) => m.content.split("Hand-over notes:\n")[1] ?? "").join("\n"), Math.min(2800, Math.max(600, Math.floor(this.usableWindow() * 0.3))));
+      narrative = truncateEnd(
+        allMessages
+          .filter((m) => m.compactNote)
+          .map((m) => m.content.split("Hand-over notes:\n")[1] ?? "")
+          .join("\n"),
+        Math.min(2800, Math.max(600, Math.floor(this.usableWindow() * 0.3)))
+      );
     }
 
     // Keep a clean tail. Preferred cut: the most recent plain user message.
@@ -457,15 +513,16 @@ export class ContextManager {
     // so the model retains the material it just fetched for its next action.
     let keepFrom = messages.length;
     for (let i = messages.length - 1; i >= Math.max(1, messages.length - 8); i--) {
-      if (messages[i].role === "user" && !messages[i].compactNote && !messages[i].historyNote) { keepFrom = i; break; }
+      if (messages[i].role === "user" && !messages[i].compactNote && !messages[i].historyNote) {
+        keepFrom = i;
+        break;
+      }
     }
     if (keepFrom === messages.length) {
       for (let i = messages.length - 1; i >= 1; i--) {
         const m = messages[i];
         if (m.role === "assistant" && m.toolCalls?.length) {
-          const allAnswered = m.toolCalls.every((tc) =>
-            messages.slice(i + 1).some((t) => t.role === "tool" && t.toolCallId === tc.id)
-          );
+          const allAnswered = m.toolCalls.every((tc) => messages.slice(i + 1).some((t) => t.role === "tool" && t.toolCallId === tc.id));
           if (allAnswered) keepFrom = i;
           break;
         }
@@ -488,8 +545,8 @@ export class ContextManager {
     const note =
       `[The conversation so far was compacted to save context. Continue the task from these notes — do not start over, and do not redo finished steps.]\n` +
       requestLines +
-      (state.verificationLine ? state.verificationLine + "\n" : "") +
-      (facts.length ? truncateEnd(facts.join("\n"), 2400) + "\n" : "") +
+      (state.verificationLine ? `${state.verificationLine}\n` : "") +
+      (facts.length ? `${truncateEnd(facts.join("\n"), 2400)}\n` : "") +
       (narrative ? `\n[Model-written summary; file contents and tool results take precedence.]\nHand-over notes:\n${narrative}` : "");
 
     return [system, { role: "user", content: note, compactNote: true }, ...tail];
@@ -522,7 +579,7 @@ export function renderForDigest(messages: Msg[], budgetChars: number): string {
   let out = lines.join("\n");
   if (out.length > budgetChars) {
     // Keep the END of the log — that is where the current state lives.
-    out = "[earlier log omitted]\n" + out.slice(out.length - budgetChars);
+    out = `[earlier log omitted]\n${out.slice(out.length - budgetChars)}`;
   }
   return out;
 }

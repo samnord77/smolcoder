@@ -13,8 +13,12 @@ const MAX_OUT_LINES = 80;
 const COLLAPSE_AFTER = 3;
 
 export function diffLines(oldText: string, newText: string): DiffLine[] {
-  const a = String(oldText ?? "").split("\n").slice(0, MAX_INPUT_LINES);
-  const b = String(newText ?? "").split("\n").slice(0, MAX_INPUT_LINES);
+  const a = String(oldText ?? "")
+    .split("\n")
+    .slice(0, MAX_INPUT_LINES);
+  const b = String(newText ?? "")
+    .split("\n")
+    .slice(0, MAX_INPUT_LINES);
   const n = a.length;
   const m = b.length;
   // LCS lengths, two rows.

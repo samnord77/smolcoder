@@ -1,0 +1,69 @@
+{
+  "path": ".prettierrc.json",
+  "content_hash": "f4eeb8ca93e4e50a984164e5aea702a9",
+  "updated_at": "2026-09-28T19:30:33",
+  "lines": 10,
+  "size_bytes": 180,
+  "mtime_ns": 1790620147541216900,
+  "language": "json",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "property",
+      "name": "semi",
+      "line_start": 2,
+      "line_end": 2,
+      "signature": "semi"
+    },
+    {
+      "type": "property",
+      "name": "singleQuote",
+      "line_start": 3,
+      "line_end": 3,
+      "signature": "singleQuote"
+    },
+    {
+      "type": "property",
+      "name": "tabWidth",
+      "line_start": 4,
+      "line_end": 4,
+      "signature": "tabWidth"
+    },
+    {
+      "type": "property",
+      "name": "trailingComma",
+      "line_start": 5,
+      "line_end": 5,
+      "signature": "trailingComma"
+    },
+    {
+      "type": "property",
+      "name": "printWidth",
+      "line_start": 6,
+      "line_end": 6,
+      "signature": "printWidth"
+    },
+    {
+      "type": "property",
+      "name": "bracketSpacing",
+      "line_start": 7,
+      "line_end": 7,
+      "signature": "bracketSpacing"
+    },
+    {
+      "type": "property",
+      "name": "arrowParens",
+      "line_start": 8,
+      "line_end": 8,
+      "signature": "arrowParens"
+    },
+    {
+      "type": "property",
+      "name": "endOfLine",
+      "line_start": 9,
+      "line_end": 9,
+      "signature": "endOfLine"
+    }
+  ]
+}

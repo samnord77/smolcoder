@@ -3,9 +3,9 @@
 // file in one call" failure), and the per-turn stats.
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("fs");
-const os = require("os");
-const path = require("path");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
 const { Agent } = require("../dist/agent");
 const { ContextManager } = require("../dist/context");
 const { EventBus } = require("../dist/events");
@@ -16,10 +16,29 @@ function fakeUi() {
   const lines = [];
   return {
     lines,
-    token() {}, thinking() {}, toolCall() {}, toolResult() {}, println() {},
-    status(s) { lines.push(s); }, warn(s) { lines.push(s); }, error(s) { lines.push(s); },
-    startSpinner() {}, stopSpinner() {}, async confirmCommand() { return "yes"; },
-    turnEnd(label) { lines.push("END " + label); }, planUpdated() {},
+    token() {},
+    thinking() {},
+    toolCall() {},
+    toolResult() {},
+    println() {},
+    status(s) {
+      lines.push(s);
+    },
+    warn(s) {
+      lines.push(s);
+    },
+    error(s) {
+      lines.push(s);
+    },
+    startSpinner() {},
+    stopSpinner() {},
+    async confirmCommand() {
+      return "yes";
+    },
+    turnEnd(label) {
+      lines.push(`END ${label}`);
+    },
+    planUpdated() {},
   };
 }
 
@@ -30,8 +49,14 @@ function scriptedProvider(replies) {
   return {
     seen,
     toolsets,
-    label: "fake", modelId: "fake", contextWindow: 8000, maxOutputTokens: 2000,
-    setEffort() {}, effortLabel() { return null; },
+    label: "fake",
+    modelId: "fake",
+    contextWindow: 8000,
+    maxOutputTokens: 2000,
+    setEffort() {},
+    effortLabel() {
+      return null;
+    },
     async chat(messages, tools) {
       seen.push(messages.map((m) => ({ role: m.role, content: m.content })));
       toolsets.push((tools ?? []).map((t) => t.name));
@@ -48,28 +73,33 @@ function makeAgent(provider, ui, mode = "bypass", interactive = false) {
 }
 
 test("alternating unchanged reads stop with a recoverable error before the model-step limit", async () => {
-  const replies = Array.from({length:12}, (_, i) => ({ content:'', toolCalls:[{id:`r${i}`, name:'read_file', args:{path:i%2?'b.txt':'a.txt'}}] }));
+  const replies = Array.from({ length: 12 }, (_, i) => ({
+    content: "",
+    toolCalls: [{ id: `r${i}`, name: "read_file", args: { path: i % 2 ? "b.txt" : "a.txt" } }],
+  }));
   const agent = makeAgent(scriptedProvider(replies), fakeUi());
-  fs.writeFileSync(path.join(agent.toolCtx.workspace,'a.txt'),'first module');
-  fs.writeFileSync(path.join(agent.toolCtx.workspace,'b.txt'),'second module');
-  await assert.rejects(agent.runTurn('implement the next module'), /same unchanged data/);
-  assert.equal(agent.outcome, 'error');
+  fs.writeFileSync(path.join(agent.toolCtx.workspace, "a.txt"), "first module");
+  fs.writeFileSync(path.join(agent.toolCtx.workspace, "b.txt"), "second module");
+  await assert.rejects(agent.runTurn("implement the next module"), /same unchanged data/);
+  assert.equal(agent.outcome, "error");
   assert.equal(agent.lastTurnStats.toolCalls, 9);
   assert.match(agent.messages.at(-1).content, /Do not restart the same reads/);
 });
 
 test("implicit plan creation renders once; showing it does not re-arm its completion nudge", async () => {
   const provider = scriptedProvider([
-    {toolCalls:[{id:'p1',name:'plan',args:{steps:'Implement; Test'}}]},
-    {content:'paused'},
-    {toolCalls:[{id:'p2',name:'plan',args:{action:'show'}}]},
-    {content:'blocked and needs clarification'},
+    { toolCalls: [{ id: "p1", name: "plan", args: { steps: "Implement; Test" } }] },
+    { content: "paused" },
+    { toolCalls: [{ id: "p2", name: "plan", args: { action: "show" } }] },
+    { content: "blocked and needs clarification" },
   ]);
-  let updates=0;const ui=fakeUi();ui.planUpdated=()=>updates++;
+  let updates = 0;
+  const ui = fakeUi();
+  ui.planUpdated = () => updates++;
   const agent = makeAgent(provider, ui);
-  await agent.runTurn('build');
+  await agent.runTurn("build");
   assert.equal(provider.seen.length, 4);
-  assert.equal(updates,1);
+  assert.equal(updates, 1);
 });
 
 test("a cut-off tool call (empty, truncated, no thinking) is coached to split the file", async () => {
@@ -97,28 +127,38 @@ test("an empty truncated reply WITH thinking is blamed on reasoning", async () =
   assert.match(provider.seen[1].at(-1).content, /reasoning used the entire output limit \(2000 tokens\)/);
 });
 
-test('reasoning exhaustion uses one action-only retry without changing session effort',async()=>{
-  const options=[];
-  const provider=scriptedProvider([
-    {thinking:'long reasoning',truncated:true},
-    {toolCalls:[{id:'read',name:'list_files',args:{}}]},
-    {content:'done'}
+test("reasoning exhaustion uses one action-only retry without changing session effort", async () => {
+  const options = [];
+  const provider = scriptedProvider([
+    { thinking: "long reasoning", truncated: true },
+    { toolCalls: [{ id: "read", name: "list_files", args: {} }] },
+    { content: "done" },
   ]);
-  const chat=provider.chat.bind(provider);
-  provider.chat=(messages,tools,opts)=>{options.push(opts);return chat(messages);};
-  provider.setEffort=()=>{throw Error('must not mutate preference');};
-  const ui=fakeUi();const agent=makeAgent(provider,ui);
-  await agent.runTurn('make progress');
-  assert.equal(agent.outcome,'completed');
-  assert.equal(options[0].effortOverride,undefined);
-  assert.equal(options[1].effortOverride,'off');
-  assert.equal(options[2].effortOverride,undefined);
-  assert.ok(ui.lines.some(s=>s.includes('thinking off')));
+  const chat = provider.chat.bind(provider);
+  provider.chat = (messages, _tools, opts) => {
+    options.push(opts);
+    return chat(messages);
+  };
+  provider.setEffort = () => {
+    throw Error("must not mutate preference");
+  };
+  const ui = fakeUi();
+  const agent = makeAgent(provider, ui);
+  await agent.runTurn("make progress");
+  assert.equal(agent.outcome, "completed");
+  assert.equal(options[0].effortOverride, undefined);
+  assert.equal(options[1].effortOverride, "off");
+  assert.equal(options[2].effortOverride, undefined);
+  assert.ok(ui.lines.some((s) => s.includes("thinking off")));
 });
 
 test("a truncated call that arrives as unparseable JSON (LM Studio) gets the same coaching", async () => {
   const provider = scriptedProvider([
-    { content: "", toolCalls: [{ id: "c1", name: "write_file", args: {}, rawArgs: '{"path": "a.js", "content": "....', parseError: "invalid JSON" }], truncated: true },
+    {
+      content: "",
+      toolCalls: [{ id: "c1", name: "write_file", args: {}, rawArgs: '{"path": "a.js", "content": "....', parseError: "invalid JSON" }],
+      truncated: true,
+    },
     { content: "ok", toolCalls: [] },
   ]);
   const agent = makeAgent(provider, fakeUi());
@@ -128,20 +168,28 @@ test("a truncated call that arrives as unparseable JSON (LM Studio) gets the sam
   assert.match(toolMsg.content, /^Error: Your tool call was cut off by the output limit of 2000 tokens/);
 });
 
-test('repeated reasoning exhaustion extends a bounded recovery interval then restores effort',async()=>{
-  const options=[];
-  const read=i=>({toolCalls:[{id:'read'+i,name:'list_files',args:{path:'.',limit:10+i}}]});
-  const provider=scriptedProvider([
-    {thinking:'exhausted',truncated:true},read(0),
-    {thinking:'exhausted again',truncated:true},...Array.from({length:4},(_,i)=>read(i+1)),
-    {content:'done'}
+test("repeated reasoning exhaustion extends a bounded recovery interval then restores effort", async () => {
+  const options = [];
+  const read = (i) => ({ toolCalls: [{ id: `read${i}`, name: "list_files", args: { path: ".", limit: 10 + i } }] });
+  const provider = scriptedProvider([
+    { thinking: "exhausted", truncated: true },
+    read(0),
+    { thinking: "exhausted again", truncated: true },
+    ...Array.from({ length: 4 }, (_, i) => read(i + 1)),
+    { content: "done" },
   ]);
-  const chat=provider.chat.bind(provider);
-  provider.chat=(messages,tools,opts)=>{options.push(opts.effortOverride);return chat(messages);};
-  provider.setEffort=()=>{throw Error('must not mutate preference');};
-  const agent=makeAgent(provider,fakeUi());await agent.runTurn('make progress');
-  assert.equal(agent.outcome,'completed');
-  assert.deepEqual(options,[undefined,'off',undefined,'off','off','off','off',undefined]);
+  const chat = provider.chat.bind(provider);
+  provider.chat = (messages, _tools, opts) => {
+    options.push(opts.effortOverride);
+    return chat(messages);
+  };
+  provider.setEffort = () => {
+    throw Error("must not mutate preference");
+  };
+  const agent = makeAgent(provider, fakeUi());
+  await agent.runTurn("make progress");
+  assert.equal(agent.outcome, "completed");
+  assert.deepEqual(options, [undefined, "off", undefined, "off", "off", "off", "off", undefined]);
 });
 
 test("turn stats accumulate tokens, speed and tool calls", async () => {
@@ -159,7 +207,10 @@ test("turn stats accumulate tokens, speed and tool calls", async () => {
   assert.equal(st.generatedTokens, 250);
   // 200 tok @ 100/s = 2 s, 50 tok @ 50/s = 1 s → 250 tok over 3 s ≈ 83 tok/s
   assert.equal(Math.round(st.generatedTokens / st.genSeconds), 83);
-  assert.match(ui.lines.find((l) => l.startsWith("END ")), /1 tool · 250 tok @ 83 tok\/s/);
+  assert.match(
+    ui.lines.find((l) => l.startsWith("END ")),
+    /1 tool · 250 tok @ 83 tok\/s/
+  );
 });
 
 test("edit mode: an in-workspace command runs without asking", async () => {
@@ -169,7 +220,10 @@ test("edit mode: an in-workspace command runs without asking", async () => {
   ]);
   const ui = fakeUi();
   let asked = 0;
-  ui.confirmCommand = async () => { asked++; return "no"; };
+  ui.confirmCommand = async () => {
+    asked++;
+    return "no";
+  };
   const agent = makeAgent(provider, ui, "edit", true);
   await agent.runTurn("go");
   assert.equal(asked, 0);
@@ -184,7 +238,10 @@ test("edit mode: a command reaching outside the workspace asks, with the reason"
   ]);
   const ui = fakeUi();
   const asks = [];
-  ui.confirmCommand = async (command, reason) => { asks.push({ command, reason }); return "no"; };
+  ui.confirmCommand = async (command, reason) => {
+    asks.push({ command, reason });
+    return "no";
+  };
   const agent = makeAgent(provider, ui, "edit", true);
   await agent.runTurn("go");
   assert.equal(asks.length, 1);
@@ -199,7 +256,9 @@ test("edit mode, headless: an outside command is refused with coaching instead o
     { content: "done", toolCalls: [] },
   ]);
   const ui = fakeUi();
-  ui.confirmCommand = async () => { throw new Error("must not prompt when non-interactive"); };
+  ui.confirmCommand = async () => {
+    throw new Error("must not prompt when non-interactive");
+  };
   const agent = makeAgent(provider, ui, "edit", false);
   await agent.runTurn("go");
   const toolMsg = provider.seen[1].find((m) => m.role === "tool");
@@ -213,7 +272,9 @@ test("bypass mode never asks", async () => {
     { content: "done", toolCalls: [] },
   ]);
   const ui = fakeUi();
-  ui.confirmCommand = async () => { throw new Error("bypass must not prompt"); };
+  ui.confirmCommand = async () => {
+    throw new Error("bypass must not prompt");
+  };
   const agent = makeAgent(provider, ui, "bypass", true);
   await agent.runTurn("go");
   const toolMsg = provider.seen[1].find((m) => m.role === "tool");
@@ -263,10 +324,18 @@ test("an interactive office sub-agent relays MCP approval to the user", async ()
   ]);
   const ui = fakeUi();
   const approvals = [];
-  ui.confirmCommand = async (...args) => { approvals.push(args); return "yes"; };
+  ui.confirmCommand = async (...args) => {
+    approvals.push(args);
+    return "yes";
+  };
   const agent = makeAgent(provider, ui, "edit", true);
   let calls = 0;
-  agent.toolCtx.mcp = { call: async () => { calls++; return "Document created"; } };
+  agent.toolCtx.mcp = {
+    call: async () => {
+      calls++;
+      return "Document created";
+    },
+  };
   await agent.runTurn("Prepare a report using Word");
   assert.equal(calls, 1);
   assert.equal(approvals.length, 1);
@@ -310,7 +379,11 @@ test("delegate refuses custom tools outside the parent allowlist", async () => {
   const ui = fakeUi();
   const ws = fs.mkdtempSync(path.join(os.tmpdir(), "tc-agent-"));
   const toolCtx = {
-    workspace: ws, taskManager: new TaskManager(ws), plan: new Plan(), filesTouched: new Set(), commandsRun: [],
+    workspace: ws,
+    taskManager: new TaskManager(ws),
+    plan: new Plan(),
+    filesTouched: new Set(),
+    commandsRun: [],
     allowedTools: new Set(["delegate", "read_file", "search"]),
   };
   const agent = new Agent(provider, "bypass", "sys", toolCtx, new ContextManager(8000, 2000), new EventBus(), ui, false, 20);
@@ -325,9 +398,18 @@ test("delegate validates custom instruction length", async () => {
   const ws = fs.mkdtempSync(path.join(os.tmpdir(), "tc-agent-"));
   const tm = new TaskManager(ws);
   try {
-    const ctx = { workspace: ws, taskManager: tm, plan: new Plan(), filesTouched: new Set(), commandsRun: [], delegate: async () => "never" };
+    const ctx = {
+      workspace: ws,
+      taskManager: tm,
+      plan: new Plan(),
+      filesTouched: new Set(),
+      commandsRun: [],
+      delegate: async () => "never",
+    };
     assert.match(await executeTool("delegate", { task: "x", instructions: "y".repeat(1001) }, ctx), /under 1000/);
   } finally {
-    try { tm.killAll(); } catch {}
+    try {
+      tm.killAll();
+    } catch {}
   }
 });

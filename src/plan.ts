@@ -3,8 +3,8 @@
 // summaries; each `done` result restates the next step to keep small models on
 // track. In-memory instances remain available for isolated sub-agents/tests.
 
-import * as fs from "fs";
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
+import * as fs from "node:fs";
 import { resolveInWorkspace } from "./sandbox";
 
 export interface PlanStep {
@@ -32,7 +32,7 @@ export class Plan {
       const stat = fs.statSync(file);
       if (!stat.isFile() || stat.size > 128 * 1024) throw new Error("saved plan exceeds its size limit or is not a regular file");
       const data = JSON.parse(fs.readFileSync(file, "utf8"));
-      if (!data || data.version !== 1 || !Array.isArray(data.steps) || !Plan.validSteps(data.steps)) {
+      if (data?.version !== 1 || !Array.isArray(data.steps) || !Plan.validSteps(data.steps)) {
         throw new Error("saved plan has an unsupported format");
       }
       this.steps = data.steps.map((step: PlanStep) => ({ ...step }));
@@ -42,12 +42,21 @@ export class Plan {
   }
 
   private static validSteps(value: unknown): value is PlanStep[] {
-    return Array.isArray(value) && value.length <= 20 && value.every((step) => {
-      if (!step || typeof step !== "object") return false;
-      const s = step as PlanStep;
-      return typeof s.text === "string" && s.text.trim().length > 0 && s.text.length <= 4000 &&
-        typeof s.done === "boolean" && (s.note === undefined || (typeof s.note === "string" && s.note.length <= 1000));
-    });
+    return (
+      Array.isArray(value) &&
+      value.length <= 20 &&
+      value.every((step) => {
+        if (!step || typeof step !== "object") return false;
+        const s = step as PlanStep;
+        return (
+          typeof s.text === "string" &&
+          s.text.trim().length > 0 &&
+          s.text.length <= 4000 &&
+          typeof s.done === "boolean" &&
+          (s.note === undefined || (typeof s.note === "string" && s.note.length <= 1000))
+        );
+      })
+    );
   }
 
   private storagePath(): string {
@@ -74,7 +83,11 @@ export class Plan {
     } catch (error: any) {
       return `Error: could not save the project plan: ${String(error?.message ?? error).slice(0, 240)}`;
     } finally {
-      try { if (temp && fs.existsSync(temp)) fs.unlinkSync(temp); } catch { /* preserve the primary result */ }
+      try {
+        if (temp && fs.existsSync(temp)) fs.unlinkSync(temp);
+      } catch {
+        /* preserve the primary result */
+      }
     }
   }
 
@@ -145,7 +158,7 @@ export class Plan {
         return `Error: step ${stepNumber} does not exist. The plan has ${this.steps.length} steps.`;
       }
     }
-    const nextSteps = this.steps.map((step, i) => i === idx ? { ...step, done: true } : step);
+    const nextSteps = this.steps.map((step, i) => (i === idx ? { ...step, done: true } : step));
     const failure = this.persist(nextSteps);
     if (failure) return failure;
     this.steps = nextSteps;
@@ -170,9 +183,10 @@ export class Plan {
 
   checkpoint(text: string): string {
     const idx = this.currentIndex;
-    if (idx < 0) return 'Error: create a plan with an unfinished step before recording a checkpoint.';
-    if (typeof text !== "string" || !text.trim() || text.length > 1000) return 'Error: checkpoint text must be 1–1000 characters. Keep exact APIs, the unresolved error and the next small edit.';
-    const next = this.steps.map((step, i) => i === idx ? { ...step, note: text.trim() } : step);
+    if (idx < 0) return "Error: create a plan with an unfinished step before recording a checkpoint.";
+    if (typeof text !== "string" || !text.trim() || text.length > 1000)
+      return "Error: checkpoint text must be 1–1000 characters. Keep exact APIs, the unresolved error and the next small edit.";
+    const next = this.steps.map((step, i) => (i === idx ? { ...step, note: text.trim() } : step));
     const failure = this.persist(next);
     if (failure) return failure;
     this.steps = next;
@@ -183,8 +197,11 @@ export class Plan {
   modelView(): string {
     if (!this.exists) return "No plan set.";
     return this.steps
-      .map((s, i) => `${i + 1}.[${s.done ? "x" : i === this.currentIndex ? ">" : " "}] ${s.text}` +
-        (s.note && i === this.currentIndex ? `\nWorking checkpoint (agent notes; verify against files): ${s.note}` : ""))
+      .map(
+        (s, i) =>
+          `${i + 1}.[${s.done ? "x" : i === this.currentIndex ? ">" : " "}] ${s.text}` +
+          (s.note && i === this.currentIndex ? `\nWorking checkpoint (agent notes; verify against files): ${s.note}` : "")
+      )
       .join("\n");
   }
 

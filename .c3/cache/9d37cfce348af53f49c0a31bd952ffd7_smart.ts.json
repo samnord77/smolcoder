@@ -1,0 +1,9 @@
+{
+  "original_tokens": 1383,
+  "compressed_tokens": 164,
+  "saved_tokens": 1219,
+  "savings_pct": 88.1,
+  "compressed": "# lsp-install.ts (.ts) \u2014 139 lines\nimport { spawnSync } from \"node:child_process\";\nimport { LSP_LANGS, lspAvailability, serverDefForLang } from \"./lsp-pro\";\nimport { resolveCommand } from \"./mcp\";\n\nconst INSTALL_TIMEOUT_MS = 120_000;\nexport interface InstallStep\nfunction run(cmd: string[], cwd: string): { code: number; out: string }\nfunction installCommands(lang: string): string[][]\nfunction tsPeerNote(cwd: string): string\nfunction serverResolves(def: { candidates: string[][] }): string | null\nexport function installLspServer(lang: string, cwd: string): InstallStep\nexport function lspDoctor(): string\nexport function setupLsp(root: string, lang: string): string",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\lsp-install.ts"
+}

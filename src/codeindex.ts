@@ -4,8 +4,8 @@
 // file walk, cached in .smol/codeindex.json so the first search builds it
 // and the next ones answer instantly. The agent uses it to find "where is
 // X defined" without burning model context on full-text grep.
-import * as fs from "fs";
-import * as path from "path";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import { resolveInWorkspace } from "./sandbox";
 
 export interface CodeSymbol {
@@ -49,9 +49,7 @@ const SKIP_DIRS = new Set([
   ".scratch",
 ]);
 
-const KEYWORDS = new Set([
-  "if", "for", "while", "switch", "catch", "with", "return", "else", "do", "try", "finally",
-]);
+const KEYWORDS = new Set(["if", "for", "while", "switch", "catch", "with", "return", "else", "do", "try", "finally"]);
 
 interface Rule {
   kind: string;
@@ -76,7 +74,11 @@ function tsRules(): Rule[] {
     { kind: "enum", re: /^\s*(?:export\s+)?(?:const\s+)?enum\s+([A-Za-z_$][\w$]*)/, group: 1 },
     { kind: "function", re: /^\s*(?:export\s+)?const\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?(?:\([^)]*\)\s*=>|function)/, group: 1 },
     { kind: "variable", re: /^\s*(?:export\s+)?(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=/, group: 1 },
-    { kind: "method", re: /^\s*(?:public|private|protected)?\s*(?:static\s+)?(?:async\s+)?([A-Za-z_$][\w$]*)\s*\([^;]*\)\s*(?::\s*[^{;=]+)?\{/, group: 1 },
+    {
+      kind: "method",
+      re: /^\s*(?:public|private|protected)?\s*(?:static\s+)?(?:async\s+)?([A-Za-z_$][\w$]*)\s*\([^;]*\)\s*(?::\s*[^{;=]+)?\{/,
+      group: 1,
+    },
   ];
 }
 
@@ -109,8 +111,16 @@ const LANGS: LangRules[] = [
   {
     exts: [".java", ".cs", ".kt"],
     rules: [
-      { kind: "class", re: /^\s*(?:public|private|protected|internal)?\s*(?:static\s+|abstract\s+|sealed\s+|final\s+)*(?:class|interface|enum|record)\s+([A-Za-z_]\w*)/, group: 1 },
-      { kind: "method", re: /^\s*(?:public|private|protected|internal)?\s*(?:static\s+|virtual\s+|override\s+|async\s+)*[\w<>\[\],\s]+\s+([A-Za-z_]\w*)\s*\([^;]*\)\s*(?:\{|=>)?/, group: 1 },
+      {
+        kind: "class",
+        re: /^\s*(?:public|private|protected|internal)?\s*(?:static\s+|abstract\s+|sealed\s+|final\s+)*(?:class|interface|enum|record)\s+([A-Za-z_]\w*)/,
+        group: 1,
+      },
+      {
+        kind: "method",
+        re: /^\s*(?:public|private|protected|internal)?\s*(?:static\s+|virtual\s+|override\s+|async\s+)*[\w<>[\],\s]+\s+([A-Za-z_]\w*)\s*\([^;]*\)\s*(?:\{|=>)?/,
+        group: 1,
+      },
     ],
   },
   {
@@ -361,15 +371,13 @@ export function queryIndex(root: string, args: IndexQuery, opts?: { canRefresh?:
     if (!rel) return 'Error: file needs a path. Example: {"action": "file", "path": "src/agent.ts"}';
     const found = idx.symbolsIn(rel);
     if (!found.length) return `No indexed symbols in "${rel}" (file may be unindexed or use an unsupported language).`;
-    return found
-      .slice(0, 50)
-      .map(fmtSym)
-      .join("\n");
+    return found.slice(0, 50).map(fmtSym).join("\n");
   }
   const q = typeof args.query === "string" ? args.query : "";
   if (!q.trim()) return 'Error: search needs a query. Example: {"action": "search", "query": "Agent"}';
   const limit = Number(args.limit) || 30;
   const found = idx.search(q, limit);
-  if (!found.length) return `No symbol matching "${q.trim().slice(0, 80)}". Try a shorter name or {"action": "refresh"} after adding files.`;
+  if (!found.length)
+    return `No symbol matching "${q.trim().slice(0, 80)}". Try a shorter name or {"action": "refresh"} after adding files.`;
   return found.map(fmtSym).join("\n");
 }

@@ -1,10 +1,10 @@
 {
   "path": "test/lsp-install.test.js",
-  "content_hash": "4b70465746b10d7098386b2c8b42e07d",
-  "updated_at": "2026-09-27T21:08:19",
+  "content_hash": "6c2cca5820add4e255c0103ff2e7e667",
+  "updated_at": "2026-09-28T19:33:33",
   "lines": 32,
-  "size_bytes": 1375,
-  "mtime_ns": 1790539653793764000,
+  "size_bytes": 1372,
+  "mtime_ns": 1790620408532677600,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -25,10 +25,10 @@
     },
     {
       "type": "constant",
-      "name": "fs",
+      "name": "_fs",
       "line_start": 6,
       "line_end": 6,
-      "signature": "const fs = require(\"node:fs\");"
+      "signature": "const _fs = require(\"node:fs\");"
     },
     {
       "type": "constant",
@@ -39,10 +39,10 @@
     },
     {
       "type": "constant",
-      "name": "path",
+      "name": "_path",
       "line_start": 8,
       "line_end": 8,
-      "signature": "const path = require(\"node:path\");"
+      "signature": "const _path = require(\"node:path\");"
     }
   ]
 }

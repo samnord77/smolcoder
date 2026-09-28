@@ -4,8 +4,8 @@
 // recent output so the agent (and the user, via /tasks and /logs) has
 // visibility. All tasks are killed when smolcoder exits.
 
-import { ChildProcess, spawn } from "child_process";
-import { pickShell, killTree, managedCommand, shellEnv } from "./shell";
+import { type ChildProcess, spawn } from "node:child_process";
+import { killTree, managedCommand, pickShell, shellEnv } from "./shell";
 
 export interface Task {
   id: string;
@@ -26,7 +26,10 @@ export class TaskManager {
   private counter = 0;
   private static readonly MAX_KEPT = 50;
 
-  constructor(private cwd: string, private onExit?: (t: Task) => void) {}
+  constructor(
+    private cwd: string,
+    private onExit?: (t: Task) => void
+  ) {}
 
   private prune(): void {
     if (this.tasks.size <= TaskManager.MAX_KEPT) return;
@@ -151,13 +154,13 @@ export class TaskManager {
   }
 
   list(): string {
-    if (this.tasks.size === 0) return "No background tasks. Start one with task {\"action\": \"start\", \"command\": \"...\"}.";
+    if (this.tasks.size === 0) return 'No background tasks. Start one with task {"action": "start", "command": "..."}.';
     const rows = [...this.tasks.values()].map((t) => {
       const age = Math.round((Date.now() - t.startedAt) / 1000);
       const status = t.status === "running" ? "running" : `${t.status}${t.exitCode !== null ? `(${t.exitCode})` : ""}`;
       return `${t.id}  ${status}  ${age}s  ${t.command}`;
     });
-    return "id  status  age  command\n" + rows.join("\n");
+    return `id  status  age  command\n${rows.join("\n")}`;
   }
 
   hasRunning(): boolean {
@@ -165,9 +168,7 @@ export class TaskManager {
   }
 
   runningSummary(): string[] {
-    return [...this.tasks.values()]
-      .filter((t) => t.status === "running")
-      .map((t) => `${t.id}: ${t.command}`);
+    return [...this.tasks.values()].filter((t) => t.status === "running").map((t) => `${t.id}: ${t.command}`);
   }
 
   /** http://localhost-style URLs printed by running tasks — what a dev server

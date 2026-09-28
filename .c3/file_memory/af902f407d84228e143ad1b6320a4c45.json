@@ -1,27 +1,27 @@
 {
   "path": "src/network.ts",
-  "content_hash": "49cd5ba5b6c053f023b890f5c74ae7c2",
-  "updated_at": "2026-09-28T13:48:05",
-  "lines": 202,
-  "size_bytes": 9500,
-  "mtime_ns": 1790599555365426400,
+  "content_hash": "bf0123a00098eba9387e9032678a8fd0",
+  "updated_at": "2026-09-28T19:36:40",
+  "lines": 209,
+  "size_bytes": 9569,
+  "mtime_ns": 1790620579196200200,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
   "sections": [
     {
       "type": "import",
-      "name": "import { loadConfig, SavedHost, updateConfig } from \"./config\";",
+      "name": "import { loadConfig, type SavedHost, updateConfig } from \"./config\";",
       "line_start": 9,
       "line_end": 9,
-      "signature": "import { loadConfig, SavedHost, updateConfig } from \"./config\";"
+      "signature": "import { loadConfig, type SavedHost, updateConfig } from \"./config\";"
     },
     {
       "type": "import",
-      "name": "import { identifyServer, probeHosts, ServerInfo } from \"./detect\";",
+      "name": "import { identifyServer, probeHosts, type ServerInfo } from \"./detect\";",
       "line_start": 10,
       "line_end": 10,
-      "signature": "import { identifyServer, probeHosts, ServerInfo } from \"./detect\";"
+      "signature": "import { identifyServer, probeHosts, type ServerInfo } from \"./detect\";"
     },
     {
       "type": "import",
@@ -32,17 +32,17 @@
     },
     {
       "type": "import",
-      "name": "import { FoundHost, localSubnets, scanSubnets, Subnet } from \"./netscan\";",
+      "name": "import { type FoundHost, localSubnets, type Subnet, scanSubnets } from \"./netscan\";",
       "line_start": 12,
       "line_end": 12,
-      "signature": "import { FoundHost, localSubnets, scanSubnets, Subnet } from \"./netscan\";"
+      "signature": "import { type FoundHost, localSubnets, type Subnet, scanSubnets } from \"./netscan\";"
     },
     {
       "type": "import",
-      "name": "import { SelectOption } from \"./ui\";",
+      "name": "import type { SelectOption } from \"./ui\";",
       "line_start": 13,
       "line_end": 13,
-      "signature": "import { SelectOption } from \"./ui\";"
+      "signature": "import type { SelectOption } from \"./ui\";"
     },
     {
       "type": "import",
@@ -99,7 +99,7 @@
       "type": "function",
       "name": "enterAddress",
       "line_start": 60,
-      "line_end": 84,
+      "line_end": 86,
       "signature": "async function enterAddress(ui: FlowUI, replace?: SavedHost): Promise<boolean> {",
       "async": true,
       "doc": "\"Enter an address\": returns true when a host was added."
@@ -107,15 +107,15 @@
     {
       "type": "function",
       "name": "savedAddressesOf",
-      "line_start": 86,
-      "line_end": 89,
+      "line_start": 88,
+      "line_end": 91,
       "signature": "function savedAddressesOf(found: FoundHost, hosts: SavedHost[]): boolean {"
     },
     {
       "type": "function",
       "name": "searchNetwork",
-      "line_start": 92,
-      "line_end": 137,
+      "line_start": 94,
+      "line_end": 139,
       "signature": "async function searchNetwork(ui: FlowUI, subnets: Subnet[], replace?: SavedHost): Promise<boolean> {",
       "async": true,
       "doc": "\"Search my network\": returns true when at least one host was added."
@@ -123,16 +123,16 @@
     {
       "type": "function",
       "name": "findModelsOnNetwork",
-      "line_start": 142,
-      "line_end": 154,
+      "line_start": 144,
+      "line_end": 156,
       "signature": "async function findModelsOnNetwork(ui: FlowUI, replace?: SavedHost): Promise<boolean> {",
       "async": true
     },
     {
       "type": "function",
       "name": "manageHosts",
-      "line_start": 159,
-      "line_end": 202,
+      "line_start": 161,
+      "line_end": 209,
       "signature": "async function manageHosts(ui: FlowUI): Promise<boolean> {",
       "async": true
     }

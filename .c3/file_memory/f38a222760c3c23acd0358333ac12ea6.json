@@ -1,27 +1,27 @@
 {
   "path": "src/attachments.ts",
-  "content_hash": "2037f9a1a468ef4ea419e7fca8430496",
-  "updated_at": "2026-09-24T17:24:23",
-  "lines": 143,
-  "size_bytes": 5560,
-  "mtime_ns": 1790260569927872300,
+  "content_hash": "fc2d3a347bdbfbf73503ebc15a9c7e79",
+  "updated_at": "2026-09-28T19:36:40",
+  "lines": 142,
+  "size_bytes": 5447,
+  "mtime_ns": 1790620577866071500,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
   "sections": [
     {
       "type": "import",
-      "name": "import * as fs from \"fs\";",
+      "name": "import * as fs from \"node:fs\";",
       "line_start": 7,
       "line_end": 7,
-      "signature": "import * as fs from \"fs\";"
+      "signature": "import * as fs from \"node:fs\";"
     },
     {
       "type": "import",
-      "name": "import { ImageRef } from \"./providers/types\";",
+      "name": "import type { ImageRef } from \"./providers/types\";",
       "line_start": 8,
       "line_end": 8,
-      "signature": "import { ImageRef } from \"./providers/types\";"
+      "signature": "import type { ImageRef } from \"./providers/types\";"
     },
     {
       "type": "interface",
@@ -71,64 +71,64 @@
       "type": "function",
       "name": "safeName",
       "line_start": 46,
-      "line_end": 50,
+      "line_end": 56,
       "signature": "function safeName(name: unknown): string {"
     },
     {
       "type": "function",
       "name": "extOf",
-      "line_start": 54,
-      "line_end": 60,
+      "line_start": 60,
+      "line_end": 66,
       "signature": "function extOf(name: string, mime: string): string {"
     },
     {
       "type": "function",
       "name": "mimeForExt",
-      "line_start": 64,
-      "line_end": 66,
+      "line_start": 70,
+      "line_end": 72,
       "signature": "function mimeForExt(ext: string): string {"
     },
     {
       "type": "function",
       "name": "looksLikeText",
-      "line_start": 68,
-      "line_end": 72,
+      "line_start": 74,
+      "line_end": 78,
       "signature": "function looksLikeText(bytes: Buffer): boolean {"
     },
     {
       "type": "function",
       "name": "classifyUpload",
-      "line_start": 75,
-      "line_end": 92,
-      "signature": "function classifyUpload("
+      "line_start": 81,
+      "line_end": 94,
+      "signature": "function classifyUpload(name: string, mime: string, bytes: Buffer): { kind: \"image\" | \"text\"; mime: string } | { error: string } {"
     },
     {
       "type": "function",
       "name": "imageBase64",
-      "line_start": 96,
-      "line_end": 102,
+      "line_start": 98,
+      "line_end": 104,
       "signature": "function imageBase64(ref: ImageRef): string | null {"
     },
     {
       "type": "function",
       "name": "imageDataUrl",
-      "line_start": 104,
-      "line_end": 107,
+      "line_start": 106,
+      "line_end": 109,
       "signature": "function imageDataUrl(ref: ImageRef): string | null {"
     },
     {
       "type": "constant",
       "name": "FENCE",
-      "line_start": 109,
-      "line_end": 109,
+      "line_start": 111,
+      "line_end": 111,
       "signature": "const FENCE = \"```\";"
     },
     {
       "type": "function",
       "name": "renderAttachmentsForModel",
-      "line_start": 114,
-      "line_end": 143,
-      "signature": "function renderAttachmentsForModel("
+      "line_start": 116,
+      "line_end": 142,
+      "signature": "function renderAttachmentsForModel(attachments: Attachment[], canSeeImages: boolean): { text: string; images: ImageRef[] } {"
     }
   ]
 }

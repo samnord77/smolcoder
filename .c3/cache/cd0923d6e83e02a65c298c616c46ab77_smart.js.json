@@ -1,0 +1,9 @@
+{
+  "original_tokens": 881,
+  "compressed_tokens": 76,
+  "saved_tokens": 805,
+  "savings_pct": 91.4,
+  "compressed": "# plugins.test.js (.js) \u2014 85 lines\nconst test = require(\"node:test\");\nconst assert = require(\"node:assert/strict\");\nconst fs = require(\"node:fs\");\nconst os = require(\"node:os\");\nconst path = require(\"node:path\");\nfunction scratch()\nfunction writePlugin(ws, name, content)\nfunction makeCtx(ws, plugins)",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\plugins.test.js"
+}

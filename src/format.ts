@@ -2,11 +2,11 @@
 // project already uses (prettier, black/ruff, rustfmt, gofmt). Never
 // reformats with guesses — if no formatter is installed, the answer is the
 // exact install command, not a half-formatted file. Never throws.
-import { spawnSync } from "child_process";
-import * as fs from "fs";
-import * as path from "path";
-import { resolveInWorkspace } from "./sandbox";
+import { spawnSync } from "node:child_process";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import { resolveCommand } from "./mcp";
+import { resolveInWorkspace } from "./sandbox";
 
 const FORMAT_TIMEOUT_MS = 30_000;
 const MAX_FILE_BYTES = 1024 * 1024;
