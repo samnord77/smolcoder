@@ -23,7 +23,7 @@ import { ContextManager } from "../context";
 import { applyOp, type CrdOp, docFromText } from "../crdt";
 import { EventBus } from "../events";
 import { gitApplyHunk, gitCommit, gitDiffFiles, gitRevertFile, gitStage, gitStageLines, gitStatusMap, gitUnstage } from "../git";
-import { LSP_LANGS, lspAvailability, queryCode, queryDiagStructured } from "../lsp-pro";
+import { LSP_LANGS, lspAvailability, queryCode, queryDiagStructured, serverDefForLang } from "../lsp-pro";
 import { loadMcpConfig } from "../mcp";
 import { installLspServer } from "../lsp-install";
 import { Plan } from "../plan";
@@ -960,7 +960,17 @@ export class WebHub {
         }
         case "/code/availability": {
           try {
-            json(200, { servers: lspAvailability() });
+            // exts lets the page route any catalogue language to its server
+            // instead of hardcoding a short list of extensions.
+            json(
+              200,
+              {
+                servers: lspAvailability().map((a) => ({
+                  ...a,
+                  exts: serverDefForLang(a.lang)?.exts ?? [],
+                })),
+              }
+            );
           } catch (err: any) {
             json(400, { error: String(err?.message ?? err).slice(0, 500) });
           }

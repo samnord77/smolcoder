@@ -1903,12 +1903,91 @@ function buildFilesTab(v, t) {
     meta.textContent = (t.filePath ? t.filePath + " · " : "") + "Ln " + position.line + ", Col " + position.column + (tab && tab.dirty ? " · modifié" : "");
     broadcastCursor(position.line);
   };
+  // Which extensions a pro language server can own. Asked of the hub rather
+  // than hardcoded: the catalogue has 37 languages, and a regex here silently
+  // excluded every one except py/rs/go.
+  let serverExts = null;
+  let missingLangs = null;
+  const proLangFor = async () => {
+    if (serverExts) return serverExts;
+    serverExts = [];
+    missingLangs = [];
+    try {
+      const r = await fetch("/code/availability?k=" + k + "&sid=" + encodeURIComponent(v.sid));
+      const d = await r.json();
+      const exts = [];
+      const missing = [];
+      for (const s of d.servers || []) {
+        exts.push(...(s.exts || []));
+        if (!s.ok) missing.push({ lang: s.lang, hint: s.hint, exts: s.exts || [] });
+      }
+      serverExts = exts;
+      missingLangs = missing;
+    } catch {
+      serverExts = [".py", ".rs", ".go"];
+    }
+    return serverExts;
+  };
+  /** When a file's language has no server installed, offer the install in the
+   * diagnostics panel rather than leaving a silent "unsupported language".
+   * Once per language, then never again for that session. */
+  const offerLspInstall = (filePath) => {
+    if (!missingLangs) return;
+    const ext = (String(filePath).match(/\.[A-Za-z0-9]+$/) || [""])[0].toLowerCase();
+    if (!ext) return;
+    const hit = missingLangs.find((m) => m && (m.exts || []).some((e) => ext === String(e).toLowerCase()));
+    if (!hit) return;
+    const key = "smol.lspask." + hit.lang;
+    if (ls.get(key)) return;
+    ls.set(key, "1");
+    const row = el("div", "filediagnostic-note lspinstall");
+    row.appendChild(el("span", "", "Aucun serveur de langage installé pour ." + ext + " — "));
+    const b = el("button", "iconbtn", "Installer " + hit.lang);
+    b.type = "button";
+    b.title = hit.hint || "Installer le serveur de langage";
+    b.onclick = async () => {
+      b.disabled = true;
+      b.textContent = "Installation…";
+      const r = await post("/code/lsp/install", { sid: v.sid, lang: hit.lang });
+      if (r && r.error) {
+        b.disabled = false;
+        b.textContent = "Réessayer";
+        row.appendChild(el("span", "note", " " + String(r.error).slice(0, 160)));
+        return;
+      }
+      row.remove();
+      showError((r && r.detail) || "Serveur installé.");
+      // The catalogue is cached for the page: re-read it so the next file of
+      // this language is analysed instead of refused.
+      serverExts = null;
+      missingLangs = null;
+    };
+    row.appendChild(b);
+    diagnosticsPanel.appendChild(row);
+  };
   const analyzeFile = async (filePath = t.filePath) => {
     if (!filePath) { diagnosticRequest++; diagnosticsPanel.replaceChildren(); return; }
-    // TypeScript/JavaScript go through the workspace diagnostics; Python,
-    // Rust and Go through the pro language servers (same panel, same rows).
-    const proLang = /\.(?:py|rs|go)$/i.test(filePath);
-    if (!proLang && !/\.(?:[cm]?js|jsx|tsx?)$/i.test(filePath)) { diagnosticRequest++; diagnosticsPanel.replaceChildren(); return; }
+    // TypeScript/JavaScript go through the workspace diagnostics; every other
+    // language goes through the pro language server for that extension.
+    const exts = await proLangFor();
+    const proLang = exts.some((e) => filePath.toLowerCase().endsWith(e));
+    if (!proLang && !/\.(?:[cm]?js|jsx|tsx?)$/i.test(filePath)) {
+      diagnosticRequest++;
+      diagnosticsPanel.replaceChildren();
+      return;
+    }
+    // A language with no server installed is the common case on a fresh
+    // machine: say so and offer the install instead of failing silently.
+    if (proLang) {
+      const ext = (filePath.match(/\.[A-Za-z0-9]+$/) || [""])[0].toLowerCase();
+      const missing = (missingLangs || []).find((m) => m && (m.exts || []).some((e) => ext === String(e).toLowerCase()));
+      if (missing) {
+        diagnosticRequest++;
+        diagnosticsPanel.replaceChildren();
+        offerLspInstall(filePath);
+        return;
+      }
+    }
     const active = t.tabStore.active();
     if (active && active.path === filePath && active.dirty) {
       diagnosticRequest++;

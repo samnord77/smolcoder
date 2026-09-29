@@ -283,6 +283,8 @@ export const STYLES = String.raw`
   .filediagnostic.error { box-shadow: inset 3px 0 var(--red); }
   .filediagnostic.warning { box-shadow: inset 3px 0 #c99a34; }
   .filediagnostic-note { color: var(--dim); }
+  .lspinstall { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .lspinstall .iconbtn { font-size: 11px; padding: 2px 8px; border: 1px solid var(--accent); border-radius: 4px; background: rgba(56,189,248,.12); color: var(--accent); cursor: pointer; }
   .filediagnostic-note.error { color: var(--red); }
   .reviewpanes { flex: 1; min-height: 0; display: flex; align-items: stretch; }
   .reviewfiles { display: flex; flex-direction: column; width: min(360px, 46%); min-width: 190px; border-right: 1px solid var(--line); background: rgba(0,0,0,.14); }
