@@ -176,5 +176,26 @@
     "facts_recalled": [],
     "decisions": [],
     "timestamp": "2026-09-28T22:46:03.786948+00:00"
+  },
+  {
+    "session_id": "20260929_011001_8c6335ee777e",
+    "files": [],
+    "facts_recalled": [],
+    "decisions": [],
+    "timestamp": "2026-09-29T01:10:35.749036+00:00"
+  },
+  {
+    "session_id": "20260929_013341_93d30204ea3b",
+    "files": [],
+    "facts_recalled": [],
+    "decisions": [],
+    "timestamp": "2026-09-29T01:33:43.874537+00:00"
+  },
+  {
+    "session_id": "20260929_013442_1c934cf252a0",
+    "files": [],
+    "facts_recalled": [],
+    "decisions": [],
+    "timestamp": "2026-09-29T01:34:45.819032+00:00"
   }
 ]

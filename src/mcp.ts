@@ -13,6 +13,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { shellEnv } from "./tools/shell";
+import { binSearchDirs } from "./util";
 
 export interface McpServerConfig {
   name: string;
@@ -37,43 +38,14 @@ const MAX_TOOLS = 50;
 /** Folders where Node/npm (and a few common tools) live, tried after PATH so
  * MCP servers keep starting when smolcoder is launched from a shell, an IDE or
  * a shortcut whose PATH is missing Node entirely. */
+/** Folders we search for a program, in order. Used for resolution AND handed
+ * to spawned servers as PATH, so a program smolcoder can find is always able
+ * to find its own helpers. Lives in util.ts: shell.ts needs it too, and
+ * mcp.ts already imports shell.ts, so importing it from here would be a cycle.
+ * Exported for tests. */
 function fallbackBinDirs(): string[] {
-  const out: string[] = [];
-  const push = (p: string | undefined) => {
-    if (p?.trim()) out.push(p.trim());
-  };
-  push(path.dirname(process.execPath)); // node.exe's own folder
-  const pf = process.env.ProgramFiles ?? "C:\\Program Files";
-  const pf86 = process.env["ProgramFiles(x86)"] ?? "C:\\Program Files (x86)";
-  const local = process.env.LOCALAPPDATA ?? path.join(os.homedir(), "AppData", "Local");
-  const roaming = process.env.APPDATA ?? path.join(os.homedir(), "AppData", "Roaming");
-  push(path.join(pf, "nodejs"));
-  push(path.join(pf86, "nodejs"));
-  push(path.join(local, "Programs", "nodejs"));
-  push(path.join(local, "Programs", "node"));
-  push(path.join(local, "fnm"));
-  push(path.join(roaming, "npm")); // global npm bin (npx.cmd, npm.cmd)
-  push(path.join(roaming, "nvm"));
-  push(path.join(local, "pnpm"));
-  push(path.join(local, "Yarn", "bin"));
-  push(path.join(local, "Microsoft", "WindowsApps")); // winget/store shims
-  push(path.join(roaming, "Python", "Scripts"));
-  push(path.join(local, "Programs", "Python", "Scripts"));
-  // ~/.local/bin is where the modern toolchain installers put their binaries:
-  // uv/uvx, cargo, pipx, bun, deno, and friends. Without it a perfectly good
-  // install looks "not found" and every MCP server that shells out to one of
-  // them is reported as broken.
-  push(path.join(os.homedir(), ".local", "bin"));
-  push(path.join(os.homedir(), ".local", "share", "pnpm"));
-  push(path.join(os.homedir(), ".bun", "bin"));
-  push(path.join(os.homedir(), ".deno", "bin"));
-  push(path.join(os.homedir(), ".cargo", "bin"));
-  push(path.join(os.homedir(), ".npm-global", "bin"));
-  push(path.join(os.homedir(), "go", "bin")); // gopls: `go install` default
-  push(path.join(os.homedir(), "bin"));
-  return out;
+  return binSearchDirs();
 }
-
 /** True when `full` is an existing regular file we may try to spawn. */
 function isRunnableFile(full: string): boolean {
   try {

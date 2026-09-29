@@ -1,4 +1,44 @@
 // Small shared helpers. Zero dependencies: ANSI codes are written by hand.
+import * as os from "node:os";
+import * as path from "node:path";
+
+/** Folders searched for an external program, in order. Two things depend on
+ * this list and must never drift apart: resolving a command, and the PATH given
+ * to processes we spawn. A program smolcoder can find has to be able to find
+ * its own helpers, so ~/.local/bin (uv, cargo, pipx, bun, deno), ~/go/bin
+ * (gopls) and friends are here, not only the classic Program Files entries. */
+export function binSearchDirs(): string[] {
+  const out: string[] = [];
+  const push = (p: string | undefined) => {
+    if (p?.trim()) out.push(p.trim());
+  };
+  push(path.dirname(process.execPath)); // node.exe's own folder
+  const pf = process.env.ProgramFiles ?? "C:\\Program Files";
+  const pf86 = process.env["ProgramFiles(x86)"] ?? "C:\\Program Files (x86)";
+  const local = process.env.LOCALAPPDATA ?? path.join(os.homedir(), "AppData", "Local");
+  const roaming = process.env.APPDATA ?? path.join(os.homedir(), "AppData", "Roaming");
+  push(path.join(pf, "nodejs"));
+  push(path.join(pf86, "nodejs"));
+  push(path.join(local, "Programs", "nodejs"));
+  push(path.join(local, "Programs", "node"));
+  push(path.join(local, "fnm"));
+  push(path.join(roaming, "npm")); // global npm bin (npx.cmd, npm.cmd)
+  push(path.join(roaming, "nvm"));
+  push(path.join(local, "pnpm"));
+  push(path.join(local, "Yarn", "bin"));
+  push(path.join(local, "Microsoft", "WindowsApps")); // winget/store shims
+  push(path.join(roaming, "Python", "Scripts"));
+  push(path.join(local, "Programs", "Python", "Scripts"));
+  push(path.join(os.homedir(), ".local", "bin"));
+  push(path.join(os.homedir(), ".local", "share", "pnpm"));
+  push(path.join(os.homedir(), ".bun", "bin"));
+  push(path.join(os.homedir(), ".deno", "bin"));
+  push(path.join(os.homedir(), ".cargo", "bin"));
+  push(path.join(os.homedir(), ".npm-global", "bin"));
+  push(path.join(os.homedir(), "go", "bin")); // gopls: `go install` default
+  push(path.join(os.homedir(), "bin"));
+  return out;
+}
 
 const useColor = process.stdout.isTTY && !process.env.NO_COLOR;
 

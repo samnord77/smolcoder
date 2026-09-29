@@ -1,10 +1,10 @@
 {
   "path": "src/lsp-install.ts",
-  "content_hash": "f804c0dd391fce37a18393b841276c8e",
-  "updated_at": "2026-09-28T19:36:39",
-  "lines": 138,
-  "size_bytes": 5027,
-  "mtime_ns": 1790620578823991300,
+  "content_hash": "9ebbff9f152b371db5136f37046c9f1d",
+  "updated_at": "2026-09-29T02:10:07",
+  "lines": 136,
+  "size_bytes": 5210,
+  "mtime_ns": 1790636188600191600,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -25,10 +25,10 @@
     },
     {
       "type": "import",
-      "name": "import { resolveCommand } from \"./mcp\";",
+      "name": "import { findCommand, resolveCommand } from \"./mcp\";",
       "line_start": 8,
       "line_end": 8,
-      "signature": "import { resolveCommand } from \"./mcp\";"
+      "signature": "import { findCommand, resolveCommand } from \"./mcp\";"
     },
     {
       "type": "constant",
@@ -71,28 +71,28 @@
       "type": "function",
       "name": "serverResolves",
       "line_start": 65,
-      "line_end": 75,
+      "line_end": 73,
       "signature": "function serverResolves(def: { candidates: string[][] }): string | null {"
     },
     {
       "type": "function",
       "name": "installLspServer",
-      "line_start": 78,
-      "line_end": 104,
+      "line_start": 76,
+      "line_end": 102,
       "signature": "function installLspServer(lang: string, cwd: string): InstallStep {"
     },
     {
       "type": "function",
       "name": "lspDoctor",
-      "line_start": 107,
-      "line_end": 118,
+      "line_start": 105,
+      "line_end": 116,
       "signature": "function lspDoctor(): string {"
     },
     {
       "type": "function",
       "name": "setupLsp",
-      "line_start": 121,
-      "line_end": 138,
+      "line_start": 119,
+      "line_end": 136,
       "signature": "function setupLsp(root: string, lang: string): string {"
     }
   ]

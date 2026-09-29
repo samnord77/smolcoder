@@ -1,0 +1,19 @@
+{
+  "job_id": "8256b172ee42",
+  "kind": "session_digest",
+  "session_id": "20260929_011001_8c6335ee777e",
+  "created_at": "2026-09-29T01:10:35.737975+00:00",
+  "updated_at": "2026-09-29T01:10:35.737975+00:00",
+  "attempts": 0,
+  "status": "pending",
+  "last_error": "",
+  "tier_used": "",
+  "payload": {
+    "session_file": "C:\\Users\\DELL\\smolcoder-source\\.c3\\sessions\\session_20260929_011001_8c6335ee777e.json",
+    "started_at": "2026-09-29T01:10:01.054229+00:00",
+    "ended_at": "2026-09-29T01:10:35.737975+00:00",
+    "description": "MCP server session",
+    "decisions": [],
+    "files_touched": []
+  }
+}

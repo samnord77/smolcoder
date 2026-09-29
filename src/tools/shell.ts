@@ -6,7 +6,9 @@
 
 import { spawn, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
+import { binSearchDirs } from "../util";
 import { truncateMiddle } from "../util";
 
 export interface ShellInfo {
@@ -158,25 +160,29 @@ export function managedCommand(shell: ShellInfo, command: string): string {
     : command;
 }
 
-export function shellEnv(): NodeJS.ProcessEnv {
-  const winPathAdditions =
-    process.platform === "win32"
-      ? [
-          path.join(process.env.LOCALAPPDATA ?? "C:\\Users\\DELL\\AppData\\Local", "Programs", "Ollama"),
-          "C:\\Program Files\\nodejs",
-          "C:\\npm-global",
-          path.join(process.env.APPDATA ?? "C:\\Users\\DELL\\AppData\\Roaming", "npm"),
-          path.join(process.env.ProgramFiles ?? "C:\\Program Files", "PowerShell", "7"),
-          path.join(process.env.ProgramFiles ?? "C:\\Program Files", "Git", "cmd"),
-          path.join(process.env.ProgramFiles ?? "C:\\Program Files", "Git", "bin"),
-          path.join(process.env.SystemRoot ?? "C:\\Windows", "System32"),
-          path.join(process.env.SystemRoot ?? "C:\\Windows", "System32", "WindowsPowerShell", "v1.0"),
-          process.env.SystemRoot ?? "C:\\Windows",
-        ]
-      : [];
+/** Windows-only folders that are not generic tool dirs: Ollama, PowerShell 7,
+ * Git. The generic toolchain dirs (~/.local/bin, cargo, ...) come from
+ * binSearchDirs() in mcp.ts so resolution and PATH never drift apart. */
+function windowsOnlyDirs(): string[] {
+  if (process.platform !== "win32") return [];
+  return [
+    path.join(process.env.LOCALAPPDATA ?? path.join(os.homedir(), "AppData", "Local"), "Programs", "Ollama"),
+    path.join(process.env.ProgramFiles ?? "C:\\Program Files", "PowerShell", "7"),
+    path.join(process.env.ProgramFiles ?? "C:\\Program Files", "Git", "cmd"),
+    path.join(process.env.ProgramFiles ?? "C:\\Program Files", "Git", "bin"),
+    path.join(process.env.SystemRoot ?? "C:\\Windows", "System32"),
+    path.join(process.env.SystemRoot ?? "C:\\Windows", "System32", "WindowsPowerShell", "v1.0"),
+    process.env.SystemRoot ?? "C:\\Windows",
+  ];
+}
 
+export function shellEnv(): NodeJS.ProcessEnv {
+  // Same folders the command resolver searches, so a program smolcoder can find
+  // can always find its own helpers. Kept in one place: a hardcoded list here
+  // silently broke servers whose runtime lived in ~/.local/bin (uvx).
+  const searchDirs = process.platform === "win32" ? [...windowsOnlyDirs(), ...binSearchDirs()] : [];
   const inheritedPath = process.platform === "win32" ? (process.env.Path ?? process.env.PATH ?? "") : (process.env.PATH ?? "");
-  const pathParts = [...winPathAdditions, inheritedPath.split(path.delimiter)].flat().filter(Boolean);
+  const pathParts = [...searchDirs, inheritedPath.split(path.delimiter)].flat().filter(Boolean);
   const seen = new Set<string>();
   const rawPath = pathParts
     .filter((part) => {
