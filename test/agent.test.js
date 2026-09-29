@@ -315,6 +315,33 @@ test("delegated role tool permissions are enforced, not just suggested", async (
   assert.equal(fs.existsSync(path.join(agent.toolCtx.workspace, "forbidden.txt")), false);
 });
 
+test("pro expert roles are scoped: read-only experts cannot write, editors can", async () => {
+  const { BUILTIN_ROLES } = require("../dist/subagents");
+  const byName = Object.fromEntries(BUILTIN_ROLES.map((r) => [r.name, r]));
+  // Read-only experts must not be handed any write/edit tool.
+  for (const name of ["security_auditor", "performance_profiler", "debugger"]) {
+    const t = byName[name].tools.join(" ");
+    assert.ok(!/\b(edit_file|write_file)\b/.test(t), name + " must be read-only");
+  }
+  // Editors are allowed to change files.
+  assert.ok(/\b(edit_file|write_file)\b/.test(byName.test_engineer.tools.join(" ")), "test_engineer writes tests");
+  assert.ok(/\b(edit_file|write_file)\b/.test(byName.refactorer.tools.join(" ")), "refactorer rewrites code");
+  // docs_writer writes docs but runs no shell.
+  assert.ok(/\b(edit_file|write_file)\b/.test(byName.docs_writer.tools.join(" ")), "docs_writer writes docs");
+  assert.ok(!/\brun_command\b/.test(byName.docs_writer.tools.join(" ")), "docs_writer runs no commands");
+  // A real enforcement pass: a read-only expert is blocked at the toolset.
+  const provider = scriptedProvider([
+    { toolCalls: [{ id: "d1", name: "delegate", args: { role: "security_auditor", task: "audit the auth code" } }] },
+    { toolCalls: [{ id: "w1", name: "write_file", args: { path: "pwned.txt", content: "no" } }] },
+    { content: "Audit report", toolCalls: [] },
+    { content: "Done", toolCalls: [] },
+  ]);
+  const agent = makeAgent(provider, fakeUi(), "bypass", true);
+  await agent.runTurn("Audit security");
+  assert.ok(!provider.toolsets[1].includes("write_file"), "read-only expert not given write_file");
+  assert.equal(fs.existsSync(path.join(agent.toolCtx.workspace, "pwned.txt")), false, "read-only expert cannot create files");
+});
+
 test("an interactive office sub-agent relays MCP approval to the user", async () => {
   const provider = scriptedProvider([
     { toolCalls: [{ id: "d1", name: "delegate", args: { role: "office_assistant", task: "prepare a Word report" } }] },
