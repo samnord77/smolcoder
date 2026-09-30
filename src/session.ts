@@ -29,6 +29,7 @@ import { resolveInWorkspace } from "./sandbox";
 import { listSkills } from "./skills";
 import { readFile } from "./tools/fs-tools";
 import { MODE_LABELS, type Mode, type ToolContext } from "./tools/index";
+import { buildStatusReport, renderStatusText } from "./status";
 import { pickShell, runCommand } from "./tools/shell";
 import { TaskManager } from "./tools/tasks";
 import { renderPlan, type SelectOption, type SessionUI, type SlashCommand } from "./ui";
@@ -62,6 +63,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { name: "logs", desc: "Show task output — /logs t1" },
   { name: "stop", desc: "Stop a background task — /stop t1" },
   { name: "mcp", desc: "MCP servers: green/red lights + tools" },
+  { name: "status", desc: "One report: model, MCP, language servers, build, system" },
   { name: "skills", desc: "Saved skills, incl. built-ins" },
   { name: "clear", desc: "Reset the conversation" },
   { name: "undo", desc: "Undo the last file write" },
@@ -1041,6 +1043,30 @@ export class Session {
                     ui.println(r.ok ? `● ${r.name} (${(r.tools ?? []).length} tools)` : `○ ${r.name} — ${r.error ?? "unreachable"}`);
                   }
                 }
+              } catch (err: any) {
+                ui.error(String(err?.message ?? err));
+              } finally {
+                ui.stopSpinner();
+              }
+              break;
+            case "status":
+              // One report for the terminal, the web hub and Electron: they
+              // read the same function, so the three surfaces cannot disagree.
+              ui.startSpinner("checking model, MCP, language servers, build");
+              try {
+                const report = await buildStatusReport({
+                  workspace: toolCtx.workspace,
+                  modelId: this.chosen.id,
+                  backend: this.chosen.backend,
+                  host: this.chosen.host,
+                  effort: this.agent.provider.effortLabel() ?? this.effort ?? undefined,
+                  mode: this.agent.mode,
+                  modeLabel: MODE_LABELS[this.agent.mode],
+                  contextTokens: this.agent.contextTokens(),
+                  contextWindow: this.chosen.contextWindow,
+                  mcpStatus: toolCtx.mcp ? () => toolCtx.mcp!.status(20000) : undefined,
+                });
+                ui.println(renderStatusText(report));
               } catch (err: any) {
                 ui.error(String(err?.message ?? err));
               } finally {

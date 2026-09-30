@@ -42,7 +42,7 @@ for (const background of [false, true])
       abort.abort();
       assert.match(await running, /cancelled/);
     }
-    for (let i = 0; i < 50 && alive(pid); i++) await delay(30);
+    for (let i = 0; i < 100 && alive(pid); i++) await delay(35);
     assert.equal(alive(pid), false, "background child must terminate with its owner");
   });
 

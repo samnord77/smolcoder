@@ -8,8 +8,7 @@ import { spawn, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { binSearchDirs } from "../util";
-import { truncateMiddle } from "../util";
+import { binSearchDirs, truncateMiddle } from "../util";
 
 export interface ShellInfo {
   exe: string;

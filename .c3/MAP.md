@@ -8,6 +8,7 @@
 
 - test: `npm run test`
 - build: `npm run build`
+- lint: `npm run lint`
 - dev: `npm run dev`
 
 ## Entry points
@@ -30,10 +31,10 @@
 smolcoder-source/
   .github/
     workflows/ (1 files)
+  .omo/
+    run-continuation/ (1 files)
   .playwright-mcp/
   .scratch/
-  .smol/
-    plans/ (3 files)
   bench/
   desktop/
   docs/
@@ -51,6 +52,10 @@ smolcoder-source/
 
 ## Key files
 
+- `src/web/client.ts` — frequently edited (session history)
+- `src/web/styles.ts` — frequently edited (session history)
+- `src/web/hub.ts` — frequently edited (session history)
+- `src/mcp.ts` — frequently edited (session history)
 - `src/index.ts` — frequently edited (session history)
 - `README.md` — project definition
 - `package.json` — project definition

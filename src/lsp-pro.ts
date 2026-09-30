@@ -260,14 +260,6 @@ export function serverDefForLang(lang: string): LspServerDef | null {
         candidates: [...envCandidate("SMOLCODER_LSP_LESS"), ["vscode-css-language-server", "--stdio"]],
         installHint: "Install vscode-langservers-extracted (npm i -g vscode-langservers-extracted)",
       };
-    case "html":
-      return {
-        lang,
-        languageId: "html",
-        exts: [".html", ".htm", ".xhtml"],
-        candidates: [...envCandidate("SMOLCODER_LSP_HTML"), ["vscode-html-language-server", "--stdio"]],
-        installHint: "Install vscode-langservers-extracted (npm i -g vscode-langservers-extracted)",
-      };
     case "json":
       return {
         lang,
