@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-01T08:25:33.174Z",
+  "updatedAt": "2026-10-01T09:37:48.008Z",
   "steps": [
     {
       "text": "Audit état global (fichiers, git, build, tests)",

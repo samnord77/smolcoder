@@ -3,10 +3,10 @@
   "kind": "session_digest",
   "session_id": "20261001_090312_4de0dcf22436",
   "created_at": "2026-10-01T09:04:14.917851+00:00",
-  "updated_at": "2026-10-01T09:04:14.917851+00:00",
-  "attempts": 0,
+  "updated_at": "2026-10-01T09:44:40.637192+00:00",
+  "attempts": 2,
   "status": "pending",
-  "last_error": "",
+  "last_error": "no LLM tier available",
   "tier_used": "",
   "payload": {
     "session_file": "C:\\Users\\DELL\\smolcoder-source\\.c3\\sessions\\session_20261001_090312_4de0dcf22436.json",

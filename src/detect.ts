@@ -474,16 +474,21 @@ export async function resolveContextWindow(model: DetectedModel, ctxOverride?: n
       180_000
     );
     const ps = await tryFetchJson(`${model.baseUrl}/api/ps`, undefined, 3000);
-    // Match the CHOSEN model only — never fall back to models[0]. If our
-    // preload failed (e.g. too big for VRAM) but a different model is still
-    // resident, models[0] would anchor the budget to the wrong window.
-    const entry = ps?.models?.find((m: any) => m.name === model.id || m.model === model.id);
+    const norm = (s: string) => (s || "").toLowerCase().replace(/^hf\.co\//, "").replace(/:latest$/, "");
+    const target = norm(model.id);
+    const entry =
+      ps?.models?.find((m: any) => {
+        const n = norm(m.name || "");
+        const mod = norm(m.model || "");
+        return n === target || mod === target || n.includes(target) || target.includes(n);
+      }) ?? (ps?.models?.length === 1 ? ps.models[0] : undefined);
     if (typeof entry?.context_length === "number" && entry.context_length > 0) {
       return {
         ...model,
         maxContext: max,
         contextWindow: entry.context_length,
         numCtx: undefined, // respect the server's configuration
+        note: undefined,
       };
     }
 

@@ -3,7 +3,11 @@
     ".smol/plans/947d10b7.json",
     "src/web/client.ts",
     "src/web/hub.ts",
-    "src/web/page.ts"
+    "src/web/page.ts",
+    "src/providers/lmstudio.ts",
+    "src/providers/ollama.ts",
+    "src/providers/types.ts",
+    "src/status.ts"
   ],
   "inflight": [
     "desktop/hub-client.js",
