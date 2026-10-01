@@ -95,7 +95,7 @@ export const PAGE_HTML = `<!doctype html>
     <div id="logs"></div>
     <div id="busywrap">
       <div id="busy">
-        <div class="pro-orbits" aria-hidden="true"><span></span><span></span><span></span></div>
+        <div class="halo-spinner" aria-hidden="true"><div class="halo-ring"></div></div>
         <span class="wave-dots" aria-hidden="true"><i></i><i></i><i></i></span>
         <span id="busylabel">Réflexion en cours…</span>
         <span id="busysecs"></span>
@@ -158,7 +158,7 @@ export const PAGE_HTML = `<!doctype html>
     <button type="button" class="vsc-sb-item" id="sb-eol" title="Fin de ligne">LF</button>
     <button type="button" class="vsc-sb-item" id="sb-lang" title="Sélectionner le mode de langage"><span class="vsc-sb-ico">{ }</span> <span id="sb-lang-text">JavaScript</span></button>
     <button type="button" class="vsc-sb-item" id="sb-formatter" title="Formateur actif : Biome"><span class="vsc-sb-ico">△</span> 2.5.14</button>
-    <button type="button" class="vsc-sb-item" id="sb-settings" title="Paramètres Antigravity"><span class="vsc-sb-ico">⚙</span> Antigravity - Settings</button>
+    <button type="button" class="vsc-sb-item" id="sb-settings" title="Paramètres et options"><span class="vsc-sb-ico">⚙</span> Paramètres</button>
     <button type="button" class="vsc-sb-item" id="sb-bell" title="Notifications"><span class="vsc-sb-ico">🔔</span></button>
   </div>
 </footer>

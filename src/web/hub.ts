@@ -1373,7 +1373,12 @@ export class WebHub {
   private async handlePost(p: string, d: any): Promise<any> {
     const sid = String(d.sid ?? "");
     const live = () => {
-      const l = this.live.get(sid);
+      let l = this.live.get(sid);
+      if (!l && sid && this.metas.has(sid)) {
+        if (this.resumeSession(sid)) {
+          l = this.live.get(sid);
+        }
+      }
       if (!l) throw new Error("no such session");
       return l;
     };

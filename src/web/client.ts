@@ -290,10 +290,27 @@ function copyBtn(getText) {
   };
   return b;
 }
+function replayBtn(getText) {
+  const b = el("button", "msgcopy", "↺");
+  b.type = "button";
+  b.title = "Rejouer ce message (insérer dans la saisie pour rééditer ou renvoyer)";
+  b.onclick = (ev) => {
+    ev.stopPropagation();
+    const text = getText() || "";
+    if (!text) return;
+    input.value = text;
+    autoGrow();
+    input.focus();
+    input.scrollIntoView({ behavior: "smooth", block: "center" });
+    showToast("Message inséré dans la saisie — modifiez ou appuyez sur Entrée", "info");
+  };
+  return b;
+}
 function msgMeta(getText) {
   const meta = el("div", "msgmeta");
   meta.appendChild(msgTime());
   meta.appendChild(copyBtn(getText));
+  meta.appendChild(replayBtn(getText));
   return meta;
 }
 // A sent message: its text, then thumbnails for images and links for files.
@@ -737,6 +754,7 @@ function renderState(v) {
 }
 
 function renderPlan(v, p) {
+  v.planCache = p;
   const box = document.createElement("details");
   box.className = "plan";
   box.open = true;
@@ -759,13 +777,12 @@ function renderPlan(v, p) {
     const mark = s.done ? "☑ " : i === p.current ? "◉ " : "☐ ";
     box.appendChild(el("div", state + " " + extra, mark + s.text));
   });
-  // Keep the active plan fixed above the transcript. It must remain visible
-  // while tool output grows, instead of being buried in the chat history.
-  if (v.planEl && v.planEl.isConnected) v.planEl.replaceWith(box);
-  else if (planTop) planTop.appendChild(box);
-  else add(v, box);
   v.planEl = box;
-  if (planTop) planTop.hidden = false;
+  if (v === active && planTop) {
+    planTop.innerHTML = "";
+    planTop.appendChild(box);
+    planTop.hidden = false;
+  }
 }
 
 // ---- event handling -------------------------------------------------------
@@ -1344,8 +1361,7 @@ function onHub(m) {
   renderSidebar(); renderCrumb(); renderTitle(); renderWelcome();
 }
 function select(id) {
-  const s = sessInfo.get(id);
-  if (s && (!s.live || s.status === "error")) post("/sessions/resume", { id });
+  post("/sessions/resume", { id }).catch(() => {});
   show(id);
 }
 function show(sid) {
@@ -1357,6 +1373,14 @@ function show(sid) {
   $("welcome").hidden = !!active;
   $("bottom").hidden = !active;
   busyEl.hidden = !active;
+  if (planTop) {
+    planTop.innerHTML = "";
+    if (active && active.planCache) {
+      renderPlan(active, active.planCache);
+    } else {
+      planTop.hidden = true;
+    }
+  }
   if (active) {
     active.logEl.hidden = false; active.unread = false;
     input.value = active.draft || ""; autoGrow(); menuIdx = 0; renderMenu();

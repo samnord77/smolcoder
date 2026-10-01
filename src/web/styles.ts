@@ -928,6 +928,43 @@ export const STYLES = `
     align-items: center;
     gap: 8px;
   }
+  /* Spinner Halo Lumineux Pro avec aura radiale pulsante */
+  .halo-spinner {
+    position: relative;
+    width: 20px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+  }
+  .halo-spinner::before {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(56, 189, 248, 0.45) 0%, rgba(168, 85, 247, 0.3) 50%, transparent 75%);
+    animation: haloPulse 1.5s ease-in-out infinite alternate;
+    pointer-events: none;
+  }
+  .halo-spinner .halo-ring {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    border-top-color: #38bdf8;
+    border-right-color: #a855f7;
+    border-bottom-color: #10b981;
+    animation: haloSpin 0.85s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.65), inset 0 0 6px rgba(168, 85, 247, 0.4);
+  }
+  @keyframes haloSpin {
+    to { transform: rotate(360deg); }
+  }
+  @keyframes haloPulse {
+    0% { transform: scale(0.8); opacity: 0.4; }
+    100% { transform: scale(1.35); opacity: 1; filter: blur(1.5px); }
+  }
   .pro-orbits {
     position: relative;
     width: 20px;
