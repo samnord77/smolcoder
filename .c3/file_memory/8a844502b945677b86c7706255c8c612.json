@@ -1,10 +1,10 @@
 {
   "path": "src/web/diff.ts",
-  "content_hash": "da4dc6ca78879e34ab0af4ec05c4b8d7",
-  "updated_at": "2026-09-28T19:36:40",
-  "lines": 105,
-  "size_bytes": 2889,
-  "mtime_ns": 1790620580272989300,
+  "content_hash": "dcea8669a318c706419e9d5b32315c3c",
+  "updated_at": "2026-09-30T23:04:31",
+  "lines": 159,
+  "size_bytes": 4658,
+  "mtime_ns": 1790797757663604400,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -26,45 +26,59 @@
       "children": []
     },
     {
+      "type": "function",
+      "name": "lineChangeFlags",
+      "line_start": 13,
+      "line_end": 61,
+      "signature": "function lineChangeFlags(oldText: string, newText: string): Array<{ added: boolean; removed: boolean }> {"
+    },
+    {
+      "type": "constant",
+      "name": "browserLineChangeSource",
+      "line_start": 63,
+      "line_end": 63,
+      "signature": "const browserLineChangeSource = `const lineChangeFlags = (${lineChangeFlags.toString()});`;"
+    },
+    {
       "type": "constant",
       "name": "MAX_INPUT_LINES",
-      "line_start": 11,
-      "line_end": 11,
+      "line_start": 65,
+      "line_end": 65,
       "signature": "const MAX_INPUT_LINES = 200;"
     },
     {
       "type": "constant",
       "name": "MAX_OUT_LINES",
-      "line_start": 12,
-      "line_end": 12,
+      "line_start": 66,
+      "line_end": 66,
       "signature": "const MAX_OUT_LINES = 80;"
     },
     {
       "type": "constant",
       "name": "COLLAPSE_AFTER",
-      "line_start": 13,
-      "line_end": 13,
+      "line_start": 67,
+      "line_end": 67,
       "signature": "const COLLAPSE_AFTER = 3;"
     },
     {
       "type": "function",
       "name": "diffLines",
-      "line_start": 15,
-      "line_end": 73,
+      "line_start": 69,
+      "line_end": 127,
       "signature": "function diffLines(oldText: string, newText: string): DiffLine[] {"
     },
     {
       "type": "function",
       "name": "collapseRuns",
-      "line_start": 75,
-      "line_end": 97,
+      "line_start": 129,
+      "line_end": 151,
       "signature": "function collapseRuns(lines: DiffLine[]): DiffLine[] {"
     },
     {
       "type": "function",
       "name": "renderEditDiff",
-      "line_start": 100,
-      "line_end": 105,
+      "line_start": 154,
+      "line_end": 159,
       "signature": "function renderEditDiff(oldText: string, newText: string): string {"
     }
   ]

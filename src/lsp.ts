@@ -23,8 +23,9 @@ export function lspDisabled(): boolean {
 export function splitCommand(raw: string): string[] {
   const parts: string[] = [];
   const re = /"([^"]*)"|'([^']*)'|(\S+)/g;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(raw)) !== null) parts.push(m[1] ?? m[2] ?? m[3]);
+  for (const m of raw.matchAll(re)) {
+    parts.push(m[1] ?? m[2] ?? m[3]);
+  }
   return parts;
 }
 

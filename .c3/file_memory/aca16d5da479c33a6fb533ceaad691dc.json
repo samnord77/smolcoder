@@ -1,10 +1,10 @@
 {
   "path": "src/tools/cowork.ts",
-  "content_hash": "c92e94c7d2cb986a3e50c9405ae9280f",
-  "updated_at": "2026-09-28T19:36:39",
-  "lines": 214,
-  "size_bytes": 8888,
-  "mtime_ns": 1790620579733399800,
+  "content_hash": "4b8c2d77bf94b96bcc33cfaa413da96a",
+  "updated_at": "2026-09-30T23:02:30",
+  "lines": 297,
+  "size_bytes": 11775,
+  "mtime_ns": 1790799720295684000,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -77,113 +77,160 @@
     },
     {
       "type": "constant",
-      "name": "PRIORITIES",
+      "name": "LOCK_TIMEOUT_MS",
       "line_start": 23,
       "line_end": 23,
+      "signature": "const LOCK_TIMEOUT_MS = 5000;"
+    },
+    {
+      "type": "constant",
+      "name": "STALE_LOCK_AGE_MS",
+      "line_start": 24,
+      "line_end": 24,
+      "signature": "const STALE_LOCK_AGE_MS = 60_000;"
+    },
+    {
+      "type": "constant",
+      "name": "PRIORITIES",
+      "line_start": 25,
+      "line_end": 25,
       "signature": "const PRIORITIES: WorkPriority[] = [\"low\", \"normal\", \"high\", \"urgent\"];"
     },
     {
       "type": "constant",
       "name": "STATUSES",
-      "line_start": 24,
-      "line_end": 24,
+      "line_start": 26,
+      "line_end": 26,
       "signature": "const STATUSES: WorkStatus[] = [\"open\", \"completed\", \"archived\"];"
     },
     {
       "type": "function",
       "name": "boundedText",
-      "line_start": 26,
-      "line_end": 32,
+      "line_start": 28,
+      "line_end": 34,
       "signature": "function boundedText(value: unknown, max: number, required = false): string | null {"
     },
     {
       "type": "function",
       "name": "validDate",
-      "line_start": 34,
-      "line_end": 38,
+      "line_start": 36,
+      "line_end": 40,
       "signature": "function validDate(value: unknown): value is string {"
     },
     {
       "type": "function",
       "name": "isItem",
-      "line_start": 40,
-      "line_end": 57,
+      "line_start": 42,
+      "line_end": 59,
       "signature": "function isItem(value: unknown): value is WorkItem {"
     },
     {
       "type": "class",
       "name": "CoworkBoard",
-      "line_start": 60,
-      "line_end": 214,
+      "line_start": 62,
+      "line_end": 297,
       "signature": "class CoworkBoard {",
       "children": [
         {
           "type": "property",
           "name": "file",
-          "line_start": 61,
-          "line_end": 61,
+          "line_start": 63,
+          "line_end": 63,
           "signature": "private readonly file: string;",
+          "access": "private"
+        },
+        {
+          "type": "property",
+          "name": "lockFile",
+          "line_start": 64,
+          "line_end": 64,
+          "signature": "private readonly lockFile: string;",
           "access": "private"
         },
         {
           "type": "method",
           "name": "constructor",
-          "line_start": 63,
-          "line_end": 65,
+          "line_start": 66,
+          "line_end": 69,
           "signature": "constructor(readonly workspace: string) {"
         },
         {
           "type": "method",
           "name": "run",
-          "line_start": 67,
-          "line_end": 87,
-          "signature": "run(args: Record<string, unknown>): string {"
+          "line_start": 71,
+          "line_end": 95,
+          "signature": "async run(args: Record<string, unknown>): Promise<string> {",
+          "async": true
+        },
+        {
+          "type": "method",
+          "name": "items",
+          "line_start": 97,
+          "line_end": 103,
+          "signature": "items(): WorkItem[] {"
         },
         {
           "type": "method",
           "name": "load",
-          "line_start": 89,
-          "line_end": 104,
+          "line_start": 105,
+          "line_end": 120,
           "signature": "private load(): WorkItem[] {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "save",
-          "line_start": 106,
-          "line_end": 121,
+          "line_start": 122,
+          "line_end": 137,
           "signature": "private save(items: WorkItem[]): void {",
           "access": "private"
         },
         {
           "type": "method",
+          "name": "withLock",
+          "line_start": 139,
+          "line_end": 177,
+          "signature": "private async withLock<T>(action: () => T): Promise<T> {",
+          "async": true,
+          "access": "private"
+        },
+        {
+          "type": "method",
+          "name": "removeStaleLock",
+          "line_start": 179,
+          "line_end": 204,
+          "signature": "private removeStaleLock(): void {",
+          "access": "private"
+        },
+        {
+          "type": "method",
           "name": "list",
-          "line_start": 123,
-          "line_end": 140,
+          "line_start": 206,
+          "line_end": 223,
           "signature": "private list(items: WorkItem[], args: Record<string, unknown>): string {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "create",
-          "line_start": 142,
-          "line_end": 168,
+          "line_start": 225,
+          "line_end": 251,
           "signature": "private create(items: WorkItem[], args: Record<string, unknown>): string {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "update",
-          "line_start": 170,
-          "line_end": 203,
+          "line_start": 253,
+          "line_end": 286,
           "signature": "private update(items: WorkItem[], args: Record<string, unknown>): string {",
           "access": "private"
         },
         {
           "type": "method",
           "name": "changeStatus",
-          "line_start": 205,
-          "line_end": 213,
+          "line_start": 288,
+          "line_end": 296,
           "signature": "private changeStatus(items: WorkItem[], args: Record<string, unknown>, status: \"completed\" | \"archived\"): string {",
           "access": "private"
         }

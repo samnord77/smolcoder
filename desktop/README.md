@@ -6,19 +6,20 @@ IDE bureau Electron autour du hub smolcoder existant. Zero changement du hub.
 
 ```powershell
 cd C:\Users\DELL\smolcoder-source
-npm run build
-cd desktop
 npm install
-npm start
+npm run desktop -- C:\chemin\vers\projet
 ```
 
-`npm start [dossier-projet]` ouvre un dossier precis. Sans argument : le projet
-smolcoder-source. Le hub demarre tout seul si besoin (Ollama ou LM Studio requis).
+Le depot racine est l’unique projet npm : il gere Electron, le CLI, le hub web
+et le core partage `src/` → `dist/`. `npm run desktop` compile le core puis
+ouvre Electron; omettez le chemin pour ouvrir le depot Smolcoder lui-meme.
+`npm run desktop:smoke` compile aussi le core avant le test de fumee.
+Le hub demarre tout seul si besoin (Ollama ou LM Studio requis).
 
 ## Contenu
 
 | Fichier | Role |
-|---|---|
+| --- | --- |
 | `main.js` | Processus principal : hub, fenetres, menus, fichiers editeur |
 | `preload.js` | Pont securise entre l’editeur et ses fonctions de fichiers |
 | `editor.html` | Editeur : onglets multi-fichiers, recherche projet, coloration et Ctrl+S |

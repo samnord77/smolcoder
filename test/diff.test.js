@@ -1,7 +1,7 @@
 // Web edit diffs: pure LCS engine, offline, deterministic.
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { diffLines, renderEditDiff } = require("../dist/web/diff");
+const { diffLines, lineChangeFlags, renderEditDiff } = require("../dist/web/diff");
 
 test("identical texts produce only same lines", () => {
   const out = diffLines("a\nb", "a\nb");
@@ -32,4 +32,16 @@ test("long unchanged runs collapse", () => {
 test("output stays capped on large inputs", () => {
   const big = Array.from({ length: 500 }, (_, i) => `l${i}`).join("\n");
   assert.ok(renderEditDiff(big, `${big}\nend`).split("\n").length <= 80);
+});
+
+test("editor gutter flags inserted lines green and removed lines red", () => {
+  assert.deepEqual(lineChangeFlags("a\nold\nc", "a\nnew\nc"), [
+    { added: false, removed: false },
+    { added: true, removed: true },
+    { added: false, removed: false },
+  ]);
+  assert.deepEqual(lineChangeFlags("a\nb\nc", "a\nc"), [
+    { added: false, removed: false },
+    { added: false, removed: true },
+  ]);
 });

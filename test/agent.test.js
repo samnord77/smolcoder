@@ -281,6 +281,56 @@ test("bypass mode never asks", async () => {
   assert.match(toolMsg.content, /nothing-is-read/);
 });
 
+test("a matching saved skill is sent to the model and shown in turn status", async () => {
+  const provider = scriptedProvider([{ content: "I used the project workflow.", toolCalls: [] }]);
+  const ui = fakeUi();
+  let loadedSkills = [];
+  ui.skills = (names) => {
+    loadedSkills = names;
+  };
+  const agent = makeAgent(provider, ui, "edit", false);
+  const { saveSkill } = require("../dist/skills");
+  saveSkill(
+    agent.toolCtx.workspace,
+    "release-checklist",
+    "---\nname: release-checklist\ndescription: Prepare a release checklist and version notes\n---\n# Release checklist\nCheck the version and changelog."
+  );
+
+  await agent.runTurn("Prepare the release checklist");
+
+  assert.match(JSON.stringify(provider.seen[0]), /Auto-loaded skills matching your task/);
+  assert.match(JSON.stringify(provider.seen[0]), /Check the version and changelog/);
+  assert.deepEqual(loadedSkills, ["release-checklist"]);
+});
+
+test("broad implementation requests get a visible plan and an automatic read-only sub-agent preflight", async () => {
+  const provider = scriptedProvider([
+    { content: "Found the file and UI wiring; the parent should handle changes.", toolCalls: [] },
+    { toolCalls: [{ id: "p1", name: "plan", args: { action: "done" } }] },
+    { toolCalls: [{ id: "p2", name: "plan", args: { action: "done" } }] },
+    { toolCalls: [{ id: "p3", name: "plan", args: { action: "done" } }] },
+    { content: "Completed the implementation.", toolCalls: [] },
+  ]);
+  const ui = fakeUi();
+  const subagentEvents = [];
+  const toolEvents = [];
+  ui.subagent = (phase, label) => subagentEvents.push([phase, label]);
+  ui.toolCall = (name, args) => toolEvents.push([name, args]);
+  const agent = makeAgent(provider, ui, "edit", false);
+  const request =
+    "Please fix, improve, and enrich all of the IDE and Cowork workflows in depth, including agent delegation, project file navigation, live editing, tasks above chat, and clear command output. Keep Electron, Web and CLI behavior synchronized while repairing the real user-facing flows.";
+
+  await agent.runTurn(request);
+
+  assert.equal(agent.outcome, "completed");
+  assert.deepEqual(subagentEvents.map(([phase]) => phase), ["start", "done"]);
+  assert.equal(toolEvents[0][0], "delegate");
+  assert.equal(toolEvents[0][1].tools, "read_file,list_files,search,symbols");
+  assert.ok(provider.seen[1].some((m) => /Found the file and UI wiring/.test(m.content)), "the parent receives the child report");
+  assert.match(agent.toolCtx.plan.modelView(), /\[x\]/);
+  assert.ok(agent.messages.some((m) => m.role === "tool" && m.toolName === "delegate"));
+});
+
 test("delegate announces sub-agent start and done to the UI", async () => {
   const provider = scriptedProvider([
     { content: "", toolCalls: [{ id: "d1", name: "delegate", args: { task: "find login" } }] },
@@ -321,7 +371,7 @@ test("pro expert roles are scoped: read-only experts cannot write, editors can",
   // Read-only experts must not be handed any write/edit tool.
   for (const name of ["security_auditor", "performance_profiler", "debugger"]) {
     const t = byName[name].tools.join(" ");
-    assert.ok(!/\b(edit_file|write_file)\b/.test(t), name + " must be read-only");
+    assert.ok(!/\b(edit_file|write_file)\b/.test(t), `${name} must be read-only`);
   }
   // Editors are allowed to change files.
   assert.ok(/\b(edit_file|write_file)\b/.test(byName.test_engineer.tools.join(" ")), "test_engineer writes tests");

@@ -1,10 +1,10 @@
 {
   "path": "src/skills.ts",
-  "content_hash": "b55dc72ee096e2f89d1c5d1360a9ab95",
-  "updated_at": "2026-09-28T19:36:38",
-  "lines": 362,
-  "size_bytes": 13592,
-  "mtime_ns": 1790620579659838900,
+  "content_hash": "5b2898fc1208bf656305a604d5e732ad",
+  "updated_at": "2026-09-30T23:02:30",
+  "lines": 365,
+  "size_bytes": 13800,
+  "mtime_ns": 1790796136969137800,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -147,57 +147,57 @@
       "type": "function",
       "name": "matchingSkills",
       "line_start": 225,
-      "line_end": 240,
+      "line_end": 243,
       "signature": "function matchingSkills(root: string, request: string): { name: string; score: number; excerpt: string }[] {",
-      "doc": "Skills whose vocabulary overlaps the request (score >= 2 shared keywords),"
+      "doc": "Skills whose name or declared description overlaps the request, best match first."
     },
     {
       "type": "function",
       "name": "relevantSkills",
-      "line_start": 244,
-      "line_end": 256,
+      "line_start": 247,
+      "line_end": 259,
       "signature": "function relevantSkills(root: string, request: string, maxChars = 1200): string {"
     },
     {
       "type": "function",
       "name": "relevantSkillNames",
-      "line_start": 259,
-      "line_end": 267,
+      "line_start": 262,
+      "line_end": 270,
       "signature": "function relevantSkillNames(root: string, request: string, limit = 2): string[] {"
     },
     {
       "type": "constant",
       "name": "MAX_AUTO_LESSONS",
-      "line_start": 269,
-      "line_end": 269,
+      "line_start": 272,
+      "line_end": 272,
       "signature": "const MAX_AUTO_LESSONS = 20;"
     },
     {
       "type": "function",
       "name": "saveAutoRepairLesson",
-      "line_start": 273,
-      "line_end": 301,
+      "line_start": 276,
+      "line_end": 304,
       "signature": "function saveAutoRepairLesson("
     },
     {
       "type": "function",
       "name": "pruneAutoLessons",
-      "line_start": 303,
-      "line_end": 321,
+      "line_start": 306,
+      "line_end": 324,
       "signature": "function pruneAutoLessons(root: string): void {"
     },
     {
       "type": "function",
       "name": "readDelegateStats",
-      "line_start": 323,
-      "line_end": 335,
+      "line_start": 326,
+      "line_end": 338,
       "signature": "function readDelegateStats(root: string): { runs: number; toolCalls: number; lastAt: number } {"
     },
     {
       "type": "function",
       "name": "recordDelegateStats",
-      "line_start": 338,
-      "line_end": 362,
+      "line_start": 341,
+      "line_end": 365,
       "signature": "function recordDelegateStats(root: string, toolCalls: number): void {"
     }
   ]

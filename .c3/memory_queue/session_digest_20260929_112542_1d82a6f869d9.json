@@ -1,0 +1,110 @@
+{
+  "job_id": "375e01125151",
+  "kind": "session_digest",
+  "session_id": "20260929_112542_1d82a6f869d9",
+  "created_at": "2026-09-29T14:44:41.216694+00:00",
+  "updated_at": "2026-09-29T14:48:40.542714+00:00",
+  "attempts": 2,
+  "status": "done_degraded",
+  "last_error": "no LLM tier available",
+  "tier_used": "mechanical",
+  "payload": {
+    "session_file": "C:\\Users\\DELL\\smolcoder-source\\.c3\\sessions\\session_20260929_112542_1d82a6f869d9.json",
+    "started_at": "2026-09-29T11:25:42.766056+00:00",
+    "ended_at": "2026-09-29T14:44:41.216694+00:00",
+    "description": "MCP server session",
+    "decisions": [],
+    "files_touched": [
+      {
+        "file": "test/status.test.js",
+        "type": "modified",
+        "summary": "",
+        "timestamp": "2026-09-29T11:31:48.717832+00:00"
+      },
+      {
+        "file": "src/web/styles.ts",
+        "type": "modified",
+        "summary": "",
+        "timestamp": "2026-09-29T12:29:06.663375+00:00"
+      },
+      {
+        "file": "src/web/page.ts",
+        "type": "modified",
+        "summary": "",
+        "timestamp": "2026-09-29T12:30:02.743244+00:00"
+      },
+      {
+        "file": "src/web/client.ts",
+        "type": "modified",
+        "summary": "",
+        "timestamp": "2026-09-29T12:30:08.082662+00:00"
+      },
+      {
+        "file": "src/web/styles.ts",
+        "type": "modified",
+        "summary": "",
+        "timestamp": "2026-09-29T12:31:58.780673+00:00"
+      },
+      {
+        "file": "src/web/client.ts",
+        "type": "modified",
+        "summary": "",
+        "timestamp": "2026-09-29T12:33:19.660266+00:00"
+      },
+      {
+        "file": "src/web/hub.ts",
+        "type": "modified",
+        "summary": "",
+        "timestamp": "2026-09-29T12:33:57.140195+00:00"
+      },
+      {
+        "file": "src/web/hub.ts",
+        "type": "modified",
+        "summary": "",
+        "timestamp": "2026-09-29T12:34:35.202820+00:00"
+      },
+      {
+        "file": "src/web/styles.ts",
+        "type": "modified",
+        "summary": "",
+        "timestamp": "2026-09-29T13:41:49.097749+00:00"
+      },
+      {
+        "file": "src/web/client.ts",
+        "type": "modified",
+        "summary": "",
+        "timestamp": "2026-09-29T13:43:24.362902+00:00"
+      },
+      {
+        "file": "src/web/client.ts",
+        "type": "modified",
+        "summary": "",
+        "timestamp": "2026-09-29T13:44:19.701747+00:00"
+      },
+      {
+        "file": "src/web/client.ts",
+        "type": "modified",
+        "summary": "",
+        "timestamp": "2026-09-29T13:44:37.129150+00:00"
+      },
+      {
+        "file": "src/web/client.ts",
+        "type": "modified",
+        "summary": "",
+        "timestamp": "2026-09-29T13:44:58.445844+00:00"
+      },
+      {
+        "file": "src/web/client.ts",
+        "type": "modified",
+        "summary": "",
+        "timestamp": "2026-09-29T13:46:58.612521+00:00"
+      },
+      {
+        "file": "src/web/client.ts",
+        "type": "modified",
+        "summary": "",
+        "timestamp": "2026-09-29T13:48:47.157374+00:00"
+      }
+    ]
+  }
+}

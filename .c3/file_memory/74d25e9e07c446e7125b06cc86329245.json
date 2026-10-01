@@ -1,10 +1,10 @@
 {
   "path": "src/ui.ts",
-  "content_hash": "d7a81035c92ab3bf8cfe6ef8620ee252",
-  "updated_at": "2026-09-28T19:36:41",
-  "lines": 279,
-  "size_bytes": 9768,
-  "mtime_ns": 1790620580142149500,
+  "content_hash": "1f6ae5b1946633030fcaab2a7bb7d7fa",
+  "updated_at": "2026-09-30T23:02:30",
+  "lines": 280,
+  "size_bytes": 9903,
+  "mtime_ns": 1790797608699575800,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -283,7 +283,7 @@
       "type": "function",
       "name": "summarizeArgs",
       "line_start": 241,
-      "line_end": 279,
+      "line_end": 280,
       "signature": "function summarizeArgs(name: string, args: Record<string, any>): string {"
     }
   ]

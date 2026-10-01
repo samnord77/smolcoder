@@ -36,7 +36,7 @@ function api(rec, method, p, body) {
           if (res.statusCode !== 200) return reject(new Error(`hub ${p}: ${res.statusCode} ${text.slice(0, 120)}`));
           try {
             resolve(text ? JSON.parse(text) : {});
-          } catch (e) {
+          } catch {
             reject(new Error(`hub ${p}: bad JSON`));
           }
         });
@@ -108,7 +108,7 @@ const openTerminal = (rec) => withLiveSid(rec, (sid) => api(rec, "POST", "/term/
 /** Ouvre un terminal et y tape une commande (ex: build). */
 const runInTerminal = (rec, text) => withLiveSid(rec, async (sid) => {
   const t = await api(rec, "POST", "/term/open", { sid });
-  await api(rec, "POST", "/term/input", { sid, tid: t.tid, text: text.endsWith("\n") ? text : text + "\n" });
+  await api(rec, "POST", "/term/input", { sid, tid: t.tid, text: text.endsWith("\n") ? text : `${text}\n` });
   return t;
 });
 const openTerminalSid = (rec, sid) => api(rec, "POST", "/term/open", { sid });
@@ -146,7 +146,7 @@ async function ensureHub({ projectDir, distIndex, expectedVersion, allowStale })
     if (expectedVersion && !allowStale) {
       try {
         const info = await api(rec, "GET", "/ping", null);
-        if (info && info.ok && info.version && info.version !== expectedVersion) {
+        if (info?.ok && info?.version && info.version !== expectedVersion) {
           const err = new Error(`OLD_HUB ${info.version}`);
           err.code = "OLD_HUB";
           err.hubVersion = info.version;
@@ -155,13 +155,13 @@ async function ensureHub({ projectDir, distIndex, expectedVersion, allowStale })
           throw err;
         }
       } catch (e) {
-        if (e && e.code === "OLD_HUB") throw e;
+        if (e?.code === "OLD_HUB") throw e;
       }
     }
     return { rec, url: hubUrl(rec) };
   }
   const env = { ...process.env };
-  if (process.versions && process.versions.electron) {
+  if (process.versions?.electron) {
     env.ELECTRON_RUN_AS_NODE = "1";
   }
   const child = spawn(process.execPath, [distIndex, "--web"], {

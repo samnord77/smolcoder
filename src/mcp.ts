@@ -93,7 +93,7 @@ export function setMcpEnabled(workspace: string, name: string, verb: "on" | "off
   const next = verb === "toggle" || verb === "enable" || verb === "disable" ? !was : verb === "on";
   hit.enabled = next;
   try {
-    fs.writeFileSync(file, JSON.stringify(raw, null, 2) + "\n", "utf8");
+    fs.writeFileSync(file, `${JSON.stringify(raw, null, 2)}\n`, "utf8");
   } catch (e: any) {
     return `Cannot write ${file}: ${String(e?.message ?? e)}`;
   }
@@ -320,8 +320,9 @@ export class McpClient {
       this.failAll(new Error(`MCP server "${this.cfg.name}" sent too much data`));
       return;
     }
-    let nl: number;
-    while ((nl = this.buf.indexOf("\n")) >= 0) {
+    while (true) {
+      const nl = this.buf.indexOf("\n");
+      if (nl < 0) break;
       const line = this.buf.slice(0, nl).trim();
       this.buf = this.buf.slice(nl + 1);
       if (!line) continue;
@@ -523,7 +524,9 @@ export interface McpBridge {
   /** Fast parallel health check for /mcp (green/red lights + tool counts). */
   status(timeoutMs?: number): Promise<McpStatusRow[]>;
   /** Short diagnostic (timeout 8000): outils listés ou erreur exacte. */
-  debugServer(name: string): Promise<string>;
+  debugServer(name: string, timeoutMs?: number): Promise<string>;
+  /** Forget cached health results (call after enabling/disabling a server). */
+  invalidate(name?: string): void;
   closeAll(): void;
 }
 
@@ -532,6 +535,9 @@ export interface McpStatusRow {
   ok: boolean;
   tools?: string[];
   error?: string;
+  /** second probe in flight (slow-but-alive server): the UI shows
+   *  "démarrage…" in amber instead of a definitive red "hors ligne". */
+  retrying?: boolean;
 }
 
 /** Status results are cached this long: a cold npx start is paid once and
@@ -554,6 +560,7 @@ export function createMcpBridge(workspace: string): McpBridge {
   };
   const statusCache = new Map<string, { at: number; row: McpStatusRow }>();
   const statusRetrying = new Set<string>();
+  const statusReleaseTimers = new Map<string, ReturnType<typeof setTimeout>>();
   /** Probe one server: list its tools under a deadline, or say why not.
    * Never throws; failures come back as coaching, not as exceptions. */
   const probeOne = async (cfg: McpServerConfig, timeoutMs: number): Promise<McpStatusRow> => {
@@ -652,6 +659,16 @@ export function createMcpBridge(workspace: string): McpBridge {
     closeAll(): void {
       for (const c of clients.values()) c.close();
       clients.clear();
+      for (const timer of statusReleaseTimers.values()) clearTimeout(timer);
+      statusReleaseTimers.clear();
+      statusRetrying.clear();
+    },
+    /** oublier le cache de statut : obligatoire après un on/off, sinon l'ancien
+     *  "hors ligne" reste affiché jusqu'à la fin du TTL alors que le serveur
+     *  est déjà relancé. */
+    invalidate(name?: string): void {
+      if (name) statusCache.delete(name);
+      else statusCache.clear();
     },
     async status(timeoutMs = 8000): Promise<McpStatusRow[]> {
       const cfgs = loadMcpConfig(workspace);
@@ -670,17 +687,34 @@ export function createMcpBridge(workspace: string): McpBridge {
           // spell out timeoutMs.
           if (!row.ok && row.error === "too slow to answer" && !statusRetrying.has(cfg.name)) {
             statusRetrying.add(cfg.name);
+            row.retrying = true;
             const ceiling = Number(process.env.SMOLCODER_MCP_STATUS_RETRY_MS) || STATUS_MAX_MS;
-            const budget = Math.min(Math.max(timeoutMs, cfg.timeoutMs ?? 0), ceiling);
+            // The retry has to outlast the quick pass, or it just repeats the
+            // same 8s wait and fails for the same reason. npx cold starts
+            // routinely need 20-40s, so default the retry to 4x the quick pass.
+            const budget = Math.min(Math.max(cfg.timeoutMs ?? 0, timeoutMs * 4), ceiling);
             void probeOne(cfg, budget)
-              .then((fresh) => statusCache.set(cfg.name, { at: Date.now(), row: fresh }))
-              .catch(() => undefined);
+              .then((fresh) => {
+                statusCache.set(cfg.name, { at: Date.now(), row: fresh });
+                if (fresh.ok) statusRetrying.delete(cfg.name);
+              })
+              .catch(() => undefined)
+              // Release the guard after a TTL so a later refresh can retry
+              // again: a single failure must not disable probing forever.
+              .finally(() => {
+                const release = setTimeout(() => {
+                  statusRetrying.delete(cfg.name);
+                  statusReleaseTimers.delete(cfg.name);
+                }, STATUS_TTL_MS);
+                release.unref?.();
+                statusReleaseTimers.set(cfg.name, release);
+              });
           }
           return row;
         })
       );
     },
-    async debugServer(name: string): Promise<string> {
+    async debugServer(name: string, timeoutMs?: number): Promise<string> {
       const needle = (name ?? "").trim().toLowerCase();
       if (!needle) {
         return `Error: usage /mcp debug <nom> — ex. /mcp debug files. Configured: ${
@@ -699,17 +733,24 @@ export function createMcpBridge(workspace: string): McpBridge {
       }
       const where = cfg.command ? `command "${cfg.command}${cfg.args?.length ? ` ${cfg.args.join(" ")}` : ""}"` : `url "${cfg.url ?? ""}"`;
       const disabledNote = cfg.enabled === false ? " (désactivé — test forcé malgré enabled: false)" : "";
-      const probe = new McpClient({ ...cfg, timeoutMs: 8000 }, workspace);
+      // A cold npx server needs far more than the 8s quick probe, so the
+      // explicit diagnostic gets a budget that can actually finish.
+      const budget = Math.max(5000, Math.min((timeoutMs ?? Number(process.env.SMOLCODER_MCP_DEBUG_MS)) || 30000, STATUS_MAX_MS));
+      const probe = new McpClient({ ...cfg, timeoutMs: budget }, workspace);
+      let deadline: ReturnType<typeof setTimeout> | undefined;
       try {
         const tools = await Promise.race([
           probe.listTools(),
-          new Promise<never>((_, reject) => setTimeout(() => reject(new Error("too slow to answer (timeout 8000ms)")), 8000)),
+          new Promise<never>((_, reject) => {
+            deadline = setTimeout(() => reject(new Error(`too slow to answer (timeout ${budget}ms)`)), budget);
+          }),
         ]);
         const detail = tools.length ? `${tools.length} tools: ${tools.map((t) => t.name).join(", ")}` : "0 tools";
         return `${cfg.name}${disabledNote}: OK via ${where} — ${detail}.`;
       } catch (err: any) {
         return `${cfg.name}${disabledNote}: ECHEC via ${where} — ${String(err?.message ?? err).slice(0, 400)}`;
       } finally {
+        if (deadline) clearTimeout(deadline);
         try {
           probe.close();
         } catch {

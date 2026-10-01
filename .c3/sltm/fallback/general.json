@@ -1,18 +1,5 @@
 [
   {
-    "id": "faca6eebe13b",
-    "text": "Session summary (20260924): Files (modified): src/skills.ts, src/builtin-skills.ts, test/skills.test.js, src/tools/web.ts, test/fetch.test.js, docs/plugins.md, src/mcp.ts, test/mcp.test.js, src/lsp.ts, docs/mcp-cli.md",
-    "metadata": {
-      "fact_id": "faca6eebe13b",
-      "source_session": "20260924_162416_494dc8bf028e",
-      "source": "memory_store",
-      "timestamp": "2026-09-24T23:01:36.051010+00:00",
-      "category": "general"
-    },
-    "timestamp": "2026-09-24T23:01:36.051010+00:00",
-    "category": "general"
-  },
-  {
     "id": "d43460e2e2f0",
     "text": "Session summary (20260925): Files (modified): src/web/client.ts, desktop/preload-git.js, desktop/git.html, desktop/main.js",
     "metadata": {
@@ -179,6 +166,32 @@
       "category": "general"
     },
     "timestamp": "2026-09-28T16:32:26.386461+00:00",
+    "category": "general"
+  },
+  {
+    "id": "ea96a9a74d7b",
+    "text": "Session summary (20260929): Files (modified): test/status.test.js",
+    "metadata": {
+      "fact_id": "ea96a9a74d7b",
+      "source_session": "20260929_070421_1d2f11c8f2d8",
+      "source": "memory_store",
+      "timestamp": "2026-09-29T10:57:06.831692+00:00",
+      "category": "general"
+    },
+    "timestamp": "2026-09-29T10:57:06.831692+00:00",
+    "category": "general"
+  },
+  {
+    "id": "e8b89578c48b",
+    "text": "Session summary (20260929): Files (modified): test/status.test.js, src/web/styles.ts, src/web/page.ts, src/web/client.ts, src/web/hub.ts, src/mcp.ts",
+    "metadata": {
+      "fact_id": "e8b89578c48b",
+      "source_session": "20260929_112542_1d82a6f869d9",
+      "source": "memory_store",
+      "timestamp": "2026-09-29T14:44:41.203664+00:00",
+      "category": "general"
+    },
+    "timestamp": "2026-09-29T14:44:41.203664+00:00",
     "category": "general"
   }
 ]

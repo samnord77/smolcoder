@@ -44,10 +44,11 @@ export async function* responseLines(res: Response, activity: () => void): Async
       activity();
       buffer += decoder.decode(value, { stream: true });
       if (buffer.length > 4_000_000) throw new Error("Backend stream frame exceeded 4 MB");
-      let nl: number;
-      while ((nl = buffer.indexOf("\n")) >= 0) {
+      let nl = buffer.indexOf("\n");
+      while (nl >= 0) {
         yield buffer.slice(0, nl).trim();
         buffer = buffer.slice(nl + 1);
+        nl = buffer.indexOf("\n");
       }
     }
     buffer += decoder.decode();

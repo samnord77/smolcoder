@@ -5,8 +5,15 @@ import { resolveInWorkspace } from "../sandbox";
 
 export type WorkStatus = "open" | "completed" | "archived";
 export type WorkPriority = "low" | "normal" | "high" | "urgent";
+export type ExecutionStatus = "idle" | "running" | "verified" | "failed";
 
-interface WorkItem {
+export interface WorkSnapshot {
+  file: string;
+  timestamp: string;
+  summary?: string;
+}
+
+export interface WorkItem {
   id: string;
   title: string;
   area: string;
@@ -16,12 +23,20 @@ interface WorkItem {
   status: WorkStatus;
   createdAt: string;
   updatedAt: string;
+  assignedRole?: string;
+  acceptanceCriteria?: string;
+  executionStatus?: ExecutionStatus;
+  lastReport?: string;
+  snapshots?: WorkSnapshot[];
 }
 
 const MAX_FILE_BYTES = 512 * 1024;
 const MAX_ITEMS = 1000;
+const LOCK_TIMEOUT_MS = 5000;
+const STALE_LOCK_AGE_MS = 60_000;
 const PRIORITIES: WorkPriority[] = ["low", "normal", "high", "urgent"];
 const STATUSES: WorkStatus[] = ["open", "completed", "archived"];
+const EXECUTION_STATUSES: ExecutionStatus[] = ["idle", "running", "verified", "failed"];
 
 function boundedText(value: unknown, max: number, required = false): string | null {
   if (value === undefined && !required) return "";
@@ -40,7 +55,7 @@ function validDate(value: unknown): value is string {
 function isItem(value: unknown): value is WorkItem {
   if (!value || typeof value !== "object") return false;
   const item = value as Partial<WorkItem>;
-  return (
+  const baseValid =
     typeof item.id === "string" &&
     /^w_[a-f0-9-]{36}$/.test(item.id) &&
     typeof item.title === "string" &&
@@ -52,38 +67,63 @@ function isItem(value: unknown): value is WorkItem {
     typeof item.createdAt === "string" &&
     Number.isFinite(Date.parse(item.createdAt)) &&
     typeof item.updatedAt === "string" &&
-    Number.isFinite(Date.parse(item.updatedAt))
-  );
+    Number.isFinite(Date.parse(item.updatedAt));
+  if (!baseValid) return false;
+  if (item.assignedRole !== undefined && typeof item.assignedRole !== "string") return false;
+  if (item.acceptanceCriteria !== undefined && typeof item.acceptanceCriteria !== "string") return false;
+  if (item.executionStatus !== undefined && !EXECUTION_STATUSES.includes(item.executionStatus as ExecutionStatus))
+    return false;
+  if (item.lastReport !== undefined && typeof item.lastReport !== "string") return false;
+  if (item.snapshots !== undefined && !Array.isArray(item.snapshots)) return false;
+  return true;
 }
 
 /** A small durable work/personal task board shared by CLI, web and desktop sessions. */
 export class CoworkBoard {
   private readonly file: string;
+  private readonly lockFile: string;
 
   constructor(readonly workspace: string) {
     this.file = resolveInWorkspace(workspace, ".smol/work-items.json");
+    this.lockFile = `${this.file}.lock`;
   }
 
-  run(args: Record<string, unknown>): string {
+  async run(args: Record<string, unknown>): Promise<string> {
     try {
-      const items = this.load();
-      switch (args.action) {
-        case "list":
-          return this.list(items, args);
-        case "create":
-          return this.create(items, args);
-        case "update":
-          return this.update(items, args);
-        case "complete":
-          return this.changeStatus(items, args, "completed");
-        case "archive":
-          return this.changeStatus(items, args, "archived");
-        default:
-          return 'Error: action must be "list", "create", "update", "complete" or "archive".';
+      if (args.action === "list") return this.list(this.load(), args);
+      if (["create", "update", "complete", "archive", "assign", "record_report"].includes(String(args.action))) {
+        return await this.withLock(() => {
+          const items = this.load();
+          switch (args.action) {
+            case "create":
+              return this.create(items, args);
+            case "update":
+              return this.update(items, args);
+            case "complete":
+              return this.changeStatus(items, args, "completed");
+            case "archive":
+              return this.changeStatus(items, args, "archived");
+            case "assign":
+              return this.assign(items, args);
+            case "record_report":
+              return this.recordReport(items, args);
+            default:
+              return 'Error: action must be "list", "create", "update", "complete", "archive", "assign" or "record_report".';
+          }
+        });
       }
+      return 'Error: action must be "list", "create", "update", "complete", "archive", "assign" or "record_report".';
     } catch (error: any) {
       return `Error: ${error?.message ?? String(error)}`;
     }
+  }
+
+  items(): WorkItem[] {
+    return this.load()
+      .slice()
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+      .slice(0, 100)
+      .map((item) => ({ ...item }));
   }
 
   private load(): WorkItem[] {
@@ -120,6 +160,73 @@ export class CoworkBoard {
     }
   }
 
+  private async withLock<T>(action: () => T): Promise<T> {
+    fs.mkdirSync(path.dirname(this.file), { recursive: true });
+    const token = randomUUID();
+    const startedAt = Date.now();
+    let lockFd: number | undefined;
+    while (lockFd === undefined) {
+      try {
+        lockFd = fs.openSync(this.lockFile, "wx");
+        fs.writeFileSync(lockFd, JSON.stringify({ pid: process.pid, token }), "utf8");
+      } catch (error: any) {
+        if (lockFd !== undefined) {
+          fs.closeSync(lockFd);
+          lockFd = undefined;
+          try {
+            fs.unlinkSync(this.lockFile);
+          } catch {
+            /* preserve the lock creation error */
+          }
+        }
+        if (error?.code !== "EEXIST") throw error;
+        this.removeStaleLock();
+        if (Date.now() - startedAt >= LOCK_TIMEOUT_MS) {
+          throw new Error("the work list is busy in another Smolcoder process; try again shortly.");
+        }
+        await new Promise<void>((resolve) => setTimeout(resolve, 25));
+      }
+    }
+    try {
+      return action();
+    } finally {
+      fs.closeSync(lockFd);
+      try {
+        const owner = JSON.parse(fs.readFileSync(this.lockFile, "utf8"));
+        if (owner.token === token) fs.unlinkSync(this.lockFile);
+      } catch {
+        /* do not replace the operation result with lock cleanup errors */
+      }
+    }
+  }
+
+  private removeStaleLock(): void {
+    try {
+      const stat = fs.statSync(this.lockFile);
+      let owner: { pid?: unknown } | undefined;
+      try {
+        owner = JSON.parse(fs.readFileSync(this.lockFile, "utf8"));
+      } catch {
+        if (Date.now() - stat.mtimeMs < STALE_LOCK_AGE_MS) return;
+      }
+      if (owner && typeof owner.pid === "number") {
+        try {
+          process.kill(owner.pid, 0);
+          return;
+        } catch (error: any) {
+          if (error?.code !== "ESRCH") return;
+        }
+      } else if (Date.now() - stat.mtimeMs < STALE_LOCK_AGE_MS) {
+        return;
+      }
+      const stalePath = `${this.lockFile}.${randomUUID()}.stale`;
+      fs.renameSync(this.lockFile, stalePath);
+      fs.unlinkSync(stalePath);
+    } catch (error: any) {
+      if (error?.code !== "ENOENT" && error?.code !== "EEXIST") throw error;
+    }
+  }
+
   private list(items: WorkItem[], args: Record<string, unknown>): string {
     const status = args.status;
     const area = typeof args.area === "string" ? args.area.trim().toLowerCase() : "";
@@ -134,7 +241,11 @@ export class CoworkBoard {
         const due = item.due
           ? ` · due ${item.due}${item.status === "open" && item.due < new Date().toISOString().slice(0, 10) ? " · overdue" : ""}`
           : "";
-        return `${item.id} [${item.status}] [${item.priority}] ${item.title} · ${item.area}${due}${item.notes ? `\n  ${item.notes}` : ""}`;
+        const role = item.assignedRole ? ` · @${item.assignedRole}` : "";
+        const exec = item.executionStatus && item.executionStatus !== "idle" ? ` [${item.executionStatus}]` : "";
+        const criteria = item.acceptanceCriteria ? `\n  Acceptance: ${item.acceptanceCriteria}` : "";
+        const report = item.lastReport ? `\n  Report: ${item.lastReport.slice(0, 160)}${item.lastReport.length > 160 ? "…" : ""}` : "";
+        return `${item.id} [${item.status}] [${item.priority}]${exec} ${item.title} · ${item.area}${role}${due}${item.notes ? `\n  ${item.notes}` : ""}${criteria}${report}`;
       })
       .join("\n");
   }
@@ -151,6 +262,8 @@ export class CoworkBoard {
     if (!PRIORITIES.includes(priority as WorkPriority)) return 'Error: priority must be "low", "normal", "high" or "urgent".';
     if (args.due !== undefined && args.due !== "" && !validDate(args.due))
       return "Error: due must be a real calendar date in YYYY-MM-DD format.";
+    const assignedRole = boundedText(args.role, 40) || undefined;
+    const acceptanceCriteria = boundedText(args.acceptance, 1000) || undefined;
     const now = new Date().toISOString();
     const item: WorkItem = {
       id: `w_${randomUUID()}`,
@@ -162,9 +275,14 @@ export class CoworkBoard {
       status: "open",
       createdAt: now,
       updatedAt: now,
+      ...(assignedRole ? { assignedRole } : {}),
+      ...(acceptanceCriteria ? { acceptanceCriteria } : {}),
+      executionStatus: "idle",
+      snapshots: [],
     };
     this.save([...items, item]);
-    return `Created work item ${item.id}: ${item.title} [${item.priority}] · ${item.area}${item.due ? ` · due ${item.due}` : ""}`;
+    const roleNotice = item.assignedRole ? ` · assigned to ${item.assignedRole}` : "";
+    return `Created work item ${item.id}: ${item.title} [${item.priority}] · ${item.area}${item.due ? ` · due ${item.due}` : ""}${roleNotice}`;
   }
 
   private update(items: WorkItem[], args: Record<string, unknown>): string {
@@ -196,6 +314,14 @@ export class CoworkBoard {
       if (!PRIORITIES.includes(args.priority as WorkPriority)) return 'Error: priority must be "low", "normal", "high" or "urgent".';
       item.priority = args.priority as WorkPriority;
     }
+    if (args.role !== undefined) {
+      const value = boundedText(args.role, 40);
+      item.assignedRole = value || undefined;
+    }
+    if (args.acceptance !== undefined) {
+      const value = boundedText(args.acceptance, 1000);
+      item.acceptanceCriteria = value || undefined;
+    }
     item.updatedAt = new Date().toISOString();
     items[index] = item;
     this.save(items);
@@ -210,5 +336,61 @@ export class CoworkBoard {
     item.updatedAt = new Date().toISOString();
     this.save(items);
     return `Work item ${item.id} ${status}: ${item.title}`;
+  }
+
+  private assign(items: WorkItem[], args: Record<string, unknown>): string {
+    const id = typeof args.task_id === "string" ? args.task_id.trim() : "";
+    const index = items.findIndex((item) => item.id === id && item.status === "open");
+    if (index < 0) return 'Error: open work item not found; use work {"action":"list"} to see available IDs.';
+    const item = { ...items[index] };
+    const role = boundedText(args.role, 40);
+    if (!role) return "Error: role is required and must be at most 40 characters.";
+    item.assignedRole = role;
+    if (args.acceptance !== undefined) {
+      const criteria = boundedText(args.acceptance, 1000);
+      item.acceptanceCriteria = criteria || undefined;
+    }
+    item.executionStatus = "idle";
+    item.updatedAt = new Date().toISOString();
+    items[index] = item;
+    this.save(items);
+    return `Assigned work item ${item.id} to role « ${item.assignedRole} »: ${item.title}`;
+  }
+
+  private recordReport(items: WorkItem[], args: Record<string, unknown>): string {
+    const id = typeof args.task_id === "string" ? args.task_id.trim() : "";
+    const index = items.findIndex((item) => item.id === id);
+    if (index < 0) return 'Error: work item not found; use work {"action":"list"} to see available IDs.';
+    const item = { ...items[index] };
+    if (args.report !== undefined) {
+      const report = boundedText(args.report, 8000);
+      if (report === null) return "Error: report must be at most 8,000 characters.";
+      item.lastReport = report;
+    }
+    if (args.execution_status !== undefined) {
+      if (!EXECUTION_STATUSES.includes(args.execution_status as ExecutionStatus)) {
+        return 'Error: execution_status must be "idle", "running", "verified" or "failed".';
+      }
+      item.executionStatus = args.execution_status as ExecutionStatus;
+    }
+    if (args.mark_completed === true && item.status === "open") {
+      item.status = "completed";
+    }
+    if (args.snapshot && typeof args.snapshot === "object") {
+      const s = args.snapshot as { file?: unknown; summary?: unknown };
+      if (typeof s.file === "string" && s.file.trim()) {
+        const list = Array.isArray(item.snapshots) ? [...item.snapshots] : [];
+        list.push({
+          file: s.file.trim(),
+          timestamp: new Date().toISOString(),
+          ...(typeof s.summary === "string" && s.summary ? { summary: s.summary.trim().slice(0, 200) } : {}),
+        });
+        item.snapshots = list.slice(-20);
+      }
+    }
+    item.updatedAt = new Date().toISOString();
+    items[index] = item;
+    this.save(items);
+    return `Recorded execution report for work item ${item.id}: status=${item.status}, execution=${item.executionStatus ?? "idle"}`;
   }
 }

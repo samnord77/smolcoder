@@ -3,14 +3,14 @@ const { spawnSync } = require('node:child_process');
 const fs = require('node:fs');
 
 const RUNS = Number(process.argv[2] || 6);
-let failures = [];
+const failures = [];
 for (let i = 1; i <= RUNS; i++) {
   const r = spawnSync(process.execPath, ['--test', 'test/verification.test.js'], {
     encoding: 'utf8',
     timeout: 300000,
     maxBuffer: 64 * 1024 * 1024,
   });
-  const out = (r.stdout || '') + '\n===STDERR===\n' + (r.stderr || '');
+  const out = `${r.stdout || ''}\n===STDERR===\n${r.stderr || ''}`;
   fs.writeFileSync(`.scratch/verify-run-${i}.log`, out);
   const mFail = [...out.matchAll(/^# fail (\d+)/gm)].map((m) => Number(m[1]));
   const ok = r.status === 0 && mFail[mFail.length - 1] === 0;

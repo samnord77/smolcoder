@@ -1,0 +1,9 @@
+{
+  "original_tokens": 3045,
+  "compressed_tokens": 179,
+  "saved_tokens": 2866,
+  "savings_pct": 94.1,
+  "compressed": "# subagents.ts (.ts) \u2014 253 lines\nimport * as fs from \"node:fs\";\nimport * as os from \"node:os\";\nimport * as path from \"node:path\";\n\nexport interface SubagentRole\nconst ROLE_NAME_RE = /^[A-Za-z0-9_-]{1,40}$/;\nconst MAX_ROLES = 30;\nexport const BUILTIN_ROLES: SubagentRole[] = [\nfunction rolesDir(workspace: string): string\nfunction machineDirs(): string[]\nfunction parseRole(raw: string, fallbackName: string, source: SubagentRole[\"source\"]): SubagentRole | null\nfunction readDirRoles(dir: string, source: SubagentRole[\"source\"]): SubagentRole[]\nexport function loadSubagentRoles(workspace: string): SubagentRole[]\nexport function delegatePrompt(role: SubagentRole, task: string): string",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\subagents.ts"
+}

@@ -8,6 +8,22 @@
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; background: #1e1e1e; color: #d4d4d4;
     font-family: Consolas, "Courier New", monospace; font-size: 14px; }
+  /* Global text size: the stylesheet is all px, so only Chromium's zoom
+     actually rescales the window. The value is kept in localStorage. */
+  body { zoom: var(--zoom, 1); }
+  #zoomctl { display: flex; align-items: center; gap: 6px; margin-left: auto; border: 0; padding: 0; }
+  #zoomctl .zl { color: #dcdcdc; font-size: 11px; }
+  #zoomctl .zbar { position: relative; width: 96px; height: 16px; display: flex; align-items: center; }
+  #zoomctl .zbar::before { content: ""; position: absolute; left: 0; right: 0; height: 4px; border-radius: 2px; background: #1b242a; }
+  #zoomctl .zfill { position: absolute; left: 0; height: 4px; border-radius: 2px; background: linear-gradient(90deg, #24727f, #43c6d6, #93f2ff); width: calc(var(--zpct, 0) * 1%); }
+  #zoomctl input[type="range"] { position: relative; z-index: 2; width: 100%; height: 16px; margin: 0; background: transparent; -webkit-appearance: none; appearance: none; cursor: pointer; }
+  #zoomctl input[type="range"]::-webkit-slider-runnable-track { height: 16px; background: transparent; }
+  #zoomctl input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 12px; height: 12px; margin-top: 2px; border-radius: 50%; background: #fff; border: 1px solid #007acc; }
+  #zoomctl input[type="range"]::-moz-range-track { height: 16px; background: transparent; }
+  #zoomctl input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: #fff; border: 1px solid #007acc; }
+  #zoomctl .zval { min-width: 38px; text-align: right; color: #fff; font-size: 11px; font-variant-numeric: tabular-nums; }
+  #zoomctl .zstep { width: 20px; height: 20px; padding: 0; display: inline-flex; align-items: center; justify-content: center; background: transparent; border: 1px solid rgba(255,255,255,.45); border-radius: 4px; color: #fff; cursor: pointer; line-height: 1; }
+  #zoomctl .zstep:hover { background: rgba(255,255,255,.18); }
   #bar { display: flex; gap: 10px; align-items: center; padding: 10px 12px; min-height: 52px;
     background: #252526; border-bottom: 1px solid #3c3c3c; flex-wrap: wrap; }
   #bar h1 { font-size: 14px; margin: 0; font-family: Segoe UI, sans-serif; font-weight: 600; }
@@ -24,8 +40,11 @@
     max-height: 90px; overflow: auto; }
   #stats:empty { display: none; }
   #main { display: flex; height: calc(100% - 210px); min-height: 200px; }
-  #files { width: 300px; min-width: 200px; overflow: auto; background: #252526;
+  #files { width: var(--files-w, 300px); min-width: 200px; overflow: auto; background: #252526;
     border-right: 1px solid #3c3c3c; padding: 8px 6px; line-height: 1.6; }
+  /* Drag handle: the file column used to be stuck at 300px. */
+  #filesgrip { flex: 0 0 7px; margin-left: -3px; margin-right: -3px; z-index: 9; cursor: col-resize; background: transparent; }
+  #filesgrip:hover, body.dragging #filesgrip { background: #007acc; }
   #files .row { display: flex; gap: 8px; align-items: center; padding: 6px 8px;
     border-radius: 4px; cursor: pointer; white-space: nowrap; overflow: hidden; }
   #files .row:hover { background: #2a2d2e; }
@@ -80,26 +99,74 @@
 <body>
 <div id="bar">
   <h1>🗂️ Panneau Git</h1>
-  <button id="bRefresh" aria-label="Actualiser le statut Git">↻ Actualiser</button>
+  <button id="bRefresh" type="button" aria-label="Actualiser le statut Git">↻ Actualiser</button>
   <input id="filter" type="search" placeholder="Filtrer les fichiers…" aria-label="Filtrer les fichiers">
   <span id="root">…</span>
 </div>
-<div id="stats" aria-label="Statistiques des modifications"></div>
+<div id="stats"></div>
 <div id="main">
   <div id="files" role="listbox" aria-label="Fichiers modifiés"></div>
+  <div id="filesgrip" title="Glisser pour redimensionner" aria-hidden="true"></div>
   <div id="view">
     <div id="fname">—</div>
-    <pre id="diff" aria-label="Diff du fichier"><span class="head">Choisissez un fichier à gauche pour voir ses modifications…</span></pre>
+    <pre id="diff"><span class="head">Choisissez un fichier à gauche pour voir ses modifications…</span></pre>
   </div>
 </div>
 <div id="err" role="alert"></div>
 <div id="commitbar">
   <textarea id="msg" rows="1" placeholder="Message de commit (ex : Corrige l’affichage du panneau)…" aria-label="Message de commit"></textarea>
-  <button id="bCommit">✓ Commit</button>
+  <button id="bCommit" type="button">✓ Commit</button>
 </div>
-<div id="status"><span id="sCount">—</span><span id="sMsg"></span></div>
+<div id="status"><span id="sCount">—</span><span id="sMsg"></span><fieldset id="zoomctl" aria-label="Taille du texte de l'interface"><span class="zl">Texte</span><button class="zstep" type="button" id="zoomOut" title="Réduire la taille du texte" aria-label="Réduire la taille du texte">-</button><span class="zbar"><span class="zfill" id="zfill"></span><input type="range" id="zoomRange" min="0" max="100" step="5" aria-label="Taille du texte en pourcentage"></span><button class="zstep" type="button" id="zoomIn" title="Agrandir la taille du texte" aria-label="Agrandir la taille du texte">+</button><span class="zval" id="zval">100%</span></fieldset></div>
 <script>
 const $ = (id) => document.getElementById(id);
+
+// Global text size, driven by Chromium's zoom because the stylesheet is all
+// px. Range is wider than the hub's: a diff view is mostly text, so being
+// able to shrink it hard matters as much as being able to grow it.
+const ZOOM_MIN = 0.5, ZOOM_MAX = 3, ZOOM_STEP = 0.05;
+const zfill = $("zfill"), zval = $("zval"), zrange = $("zoomRange");
+let zoomNow = 1;
+function applyZoom(z) {
+  zoomNow = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(z * 100) / 100));
+  document.body.style.setProperty("--zoom", String(zoomNow));
+  try { localStorage.setItem("smolGit.zoom", String(zoomNow)); } catch (e) {}
+  const p = Math.round(((zoomNow - ZOOM_MIN) / (ZOOM_MAX - ZOOM_MIN)) * 100);
+  zval.textContent = `${Math.round(zoomNow * 100)}%`;
+  zfill.style.setProperty("--zpct", String(p));
+  zrange.value = String(p);
+  return zoomNow;
+}
+zrange.addEventListener("input", () => { applyZoom(ZOOM_MIN + (Number(zrange.value) / 100) * (ZOOM_MAX - ZOOM_MIN)); });
+$("zoomOut").addEventListener("click", () => { applyZoom(zoomNow - ZOOM_STEP); });
+$("zoomIn").addEventListener("click", () => { applyZoom(zoomNow + ZOOM_STEP); });
+try { applyZoom(parseFloat(localStorage.getItem("smolGit.zoom")) || 1); } catch (e) { applyZoom(1); }
+
+// File column width, previously pinned at 300px with no handle.
+(() => {
+  const files = $("files"), grip = $("filesgrip");
+  try {
+    const saved = parseInt(localStorage.getItem("smolGit.filesW"), 10);
+    if (saved) files.style.setProperty("--files-w", `${Math.max(200, Math.min(720, saved))}px`);
+  } catch (e) {}
+  grip.addEventListener("mousedown", (ev) => {
+    ev.preventDefault();
+    document.body.classList.add("dragging");
+    const move = (e) => {
+      const w = Math.max(200, Math.min(720, e.clientX - files.getBoundingClientRect().left));
+      files.style.setProperty("--files-w", `${w}px`);
+    };
+    const up = () => {
+      document.body.classList.remove("dragging");
+      document.removeEventListener("mousemove", move);
+      document.removeEventListener("mouseup", up);
+      const w = parseInt(getComputedStyle(files).width, 10);
+      if (w) { try { localStorage.setItem("smolGit.filesW", String(w)); } catch (e) {} }
+    };
+    document.addEventListener("mousemove", move);
+    document.addEventListener("mouseup", up);
+  });
+})();
 const filesEl = $("files"), diffEl = $("diff"), errEl = $("err");
 const filterEl = $("filter"), msgEl = $("msg");
 let files = [], cur = null, root = "";
@@ -129,11 +196,11 @@ function renderFiles() {
   for (const f of shown) {
     const b = badgeOf(f);
     const row = document.createElement("div");
-    row.className = "row" + (f.path === cur ? " open" : "");
+    row.className = `row${f.path === cur ? " open" : ""}`;
     row.setAttribute("role", "option");
     row.tabIndex = 0;
     const bd = document.createElement("span");
-    bd.className = "badge b-" + b;
+    bd.className = `badge b-${b}`;
     bd.textContent = b;
     bd.title = badgeTitle(b);
     const p = document.createElement("span");
@@ -147,7 +214,7 @@ function renderFiles() {
     filesEl.appendChild(row);
   }
   $("sCount").textContent = files.length
-    ? files.length + " fichier(s) modifié(s)"
+    ? `${files.length} fichier(s) modifié(s)`
     : "aucune modification";
 }
 function paintDiff(text) {
@@ -169,14 +236,14 @@ function paintDiff(text) {
     else if (ln.startsWith("@@")) s.className = "hunk";
     else if (/^(diff --git|index |new file|deleted|rename|Binary|---|---|\+\+\+)/.test(ln)) s.className = "head";
     else s.className = "ctx";
-    s.textContent = ln + "\n";
+    s.textContent = `${ln}\n`;
     frag.appendChild(s);
   }
   diffEl.appendChild(frag);
   if (lines.length > 2000) {
     const s = document.createElement("span");
     s.className = "head";
-    s.textContent = "… diff tronqué à l’affichage (" + lines.length + " lignes).";
+    s.textContent = `… diff tronqué à l’affichage (${lines.length} lignes).`;
     diffEl.appendChild(s);
   }
 }
@@ -187,7 +254,7 @@ async function selectFile(p) {
   try {
     showErr("");
     const d = await window.smolGit.getDiff(p);
-    paintDiff(d && d.diff);
+    paintDiff(d?.diff);
   } catch (e) { showErr(e.message || String(e)); }
 }
 async function refresh() {
@@ -199,7 +266,7 @@ async function refresh() {
     files = Array.isArray(st.files) ? st.files : [];
     $("root").textContent = root || "dépôt Git";
     $("stats").textContent = (st.stat || "").slice(0, 2000);
-    $("sMsg").textContent = "à jour ✓ " + new Date().toLocaleTimeString();
+    $("sMsg").textContent = `à jour ✓ ${new Date().toLocaleTimeString()}`;
     if (cur && !files.some((f) => f.path === cur)) cur = null;
     if (!cur && files.length) {
       renderFiles();
@@ -220,7 +287,7 @@ async function commit() {
     if (!cur) throw new Error("Choose a file to commit first.");
     const r = await window.smolGit.commit(m, cur);
     msgEl.value = "";
-    $("sMsg").textContent = (r && r.summary ? r.summary : "commit créé ✓") + " " + new Date().toLocaleTimeString();
+    $("sMsg").textContent = `${r?.summary ? r.summary : "commit créé ✓"} ${new Date().toLocaleTimeString()}`;
     await refresh();
   } catch (e) { showErr(e.message || String(e)); $("sMsg").textContent = ""; }
   finally { $("bCommit").disabled = false; }

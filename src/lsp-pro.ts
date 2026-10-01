@@ -465,6 +465,10 @@ export class RpcClient {
     this.watched = watchUri;
   }
 
+  get watchedUri(): string {
+    return this.watched;
+  }
+
   watch(uri: string): void {
     this.watched = uri;
   }

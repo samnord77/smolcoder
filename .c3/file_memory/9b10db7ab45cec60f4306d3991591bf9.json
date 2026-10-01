@@ -1,0 +1,62 @@
+{
+  "path": "test/status.test.js",
+  "content_hash": "a65650e65b9bbb56a17b280876bd4d5c",
+  "updated_at": "2026-09-29T12:52:50",
+  "lines": 70,
+  "size_bytes": 2865,
+  "mtime_ns": 1790681520158871000,
+  "language": "javascript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "import",
+      "name": "import assert from \"node:assert/strict\";",
+      "line_start": 5,
+      "line_end": 5,
+      "signature": "import assert from \"node:assert/strict\";"
+    },
+    {
+      "type": "import",
+      "name": "import fs from \"node:fs\";",
+      "line_start": 6,
+      "line_end": 6,
+      "signature": "import fs from \"node:fs\";"
+    },
+    {
+      "type": "import",
+      "name": "import os from \"node:os\";",
+      "line_start": 7,
+      "line_end": 7,
+      "signature": "import os from \"node:os\";"
+    },
+    {
+      "type": "import",
+      "name": "import path from \"node:path\";",
+      "line_start": 8,
+      "line_end": 8,
+      "signature": "import path from \"node:path\";"
+    },
+    {
+      "type": "import",
+      "name": "import test from \"node:test\";",
+      "line_start": 9,
+      "line_end": 9,
+      "signature": "import test from \"node:test\";"
+    },
+    {
+      "type": "import",
+      "name": "import { buildStatusReport, renderStatusText } from \"../dist/status.js\";",
+      "line_start": 10,
+      "line_end": 10,
+      "signature": "import { buildStatusReport, renderStatusText } from \"../dist/status.js\";"
+    },
+    {
+      "type": "function",
+      "name": "tmpWorkspace",
+      "line_start": 12,
+      "line_end": 16,
+      "signature": "function tmpWorkspace() {"
+    }
+  ]
+}

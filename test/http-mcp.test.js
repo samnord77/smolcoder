@@ -6,7 +6,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const http = require("node:http");
-const { McpClient, createMcpBridge, expandEnvVars, loadMcpConfig } = require("../dist/mcp");
+const { McpClient, expandEnvVars, loadMcpConfig } = require("../dist/mcp");
 
 process.env.SMOLCODER_MCP_CONFIG = path.join(os.tmpdir(), "smol-mcp-no-global.json");
 
@@ -66,7 +66,7 @@ function stubServer(mode, { needKey = false } = {}) {
 test("remote list and call over plain JSON, session id reused", async (t) => {
   const { server, seen, url } = await stubServer("json");
   t.after(() => server.close());
-  const c = new (require("../dist/mcp").McpClient)({ name: "r", url, timeoutMs: 10000 });
+  const c = new McpClient({ name: "r", url, timeoutMs: 10000 });
   t.after(() => c.close());
   assert.deepEqual(
     (await c.listTools()).map((x) => x.name),
@@ -79,7 +79,7 @@ test("remote list and call over plain JSON, session id reused", async (t) => {
 test("remote list over SSE", async (t) => {
   const { server, url } = await stubServer("sse");
   t.after(() => server.close());
-  const c = new (require("../dist/mcp").McpClient)({ name: "r", url, timeoutMs: 10000 });
+  const c = new McpClient({ name: "r", url, timeoutMs: 10000 });
   t.after(() => c.close());
   assert.deepEqual(
     (await c.listTools()).map((x) => x.name),
@@ -90,7 +90,7 @@ test("remote list over SSE", async (t) => {
 test("wrong key is refused with a clear message", async (t) => {
   const { server, url } = await stubServer("json", { needKey: true });
   t.after(() => server.close());
-  const c = new (require("../dist/mcp").McpClient)({ name: "r", url, timeoutMs: 10000 });
+  const c = new McpClient({ name: "r", url, timeoutMs: 10000 });
   t.after(() => c.close());
   await assert.rejects(c.listTools(), /refused the key/);
 });
@@ -100,13 +100,15 @@ test("secrets expand from the environment, never from files", async (t) => {
   const { server, seen, url } = await stubServer("json", { needKey: true });
   t.after(() => server.close());
   delete process.env.SMOKE_MCP_KEY;
-  const c = new (require("../dist/mcp").McpClient)({
+  const c = new McpClient({
     name: "r",
     url,
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: motif de variable d'environnement pour le test
     headers: { Authorization: "Bearer ${SMOKE_MCP_KEY}" },
     timeoutMs: 10000,
   });
   t.after(() => c.close());
+  // biome-ignore lint/suspicious/noTemplateCurlyInString: motif de variable d'environnement pour le test
   assert.equal(expandEnvVars("Bearer ${SMOKE_MCP_KEY}"), "Bearer ");
   process.env.SMOKE_MCP_KEY = "secret";
   assert.deepEqual(

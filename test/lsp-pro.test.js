@@ -13,7 +13,6 @@ const {
   lspAvailability,
   splitCommand,
   LspManager,
-  managerFor,
   closeLspManagers,
   queryCode,
   queryDiagStructured,
@@ -128,7 +127,7 @@ test("availability tells the truth: ok only when the binary really exists", () =
   for (const a of avail) {
     const def = serverDefForLang(a.lang);
     const reallyThere = def.candidates.some((c) => !!findCommand(c[0]));
-    assert.equal(a.ok, reallyThere, a.lang + " availability must match the real filesystem");
+    assert.equal(a.ok, reallyThere, `${a.lang} availability must match the real filesystem`);
   }
   // A command that cannot exist anywhere must never be reported as installed.
   assert.equal(findCommand("definitely-not-a-real-lsp-binary-xyz"), null);

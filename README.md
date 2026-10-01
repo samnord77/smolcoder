@@ -140,6 +140,7 @@ smolcoder sends your code and prompts to the server you choose, and runs the too
 `smol --web` opens a browser UI and prints a private link. The server only listens on your machine, and the link carries a random key.
 
 - **Workspaces and sessions.** The sidebar lists your project folders, each with its own sessions. Run several at once and switch between them while they work.
+- **Cowork board.** The Control Centre's Cowork tab and the agent's `work` tool share project tasks in `.smol/work-items.json`; CLI, web and Electron sessions on that workspace see the same list. Changes are blocked in read-only mode.
 - **Sessions survive restarts.** Past sessions stay in the sidebar and resume with a click. Transcripts live under `~/.smolcoder/sessions/`.
 - **Paste screenshots and files.** Paste an image with `ctrl+v` or right-click and choose Paste, drop files onto the chat, or click the paperclip. Images go to the model when it can see them, and the chip warns you when it cannot. Text files are added to your message.
 - **Browser and terminal panels.** Preview the dev server the agent started, or open a shell in the workspace, next to the chat.

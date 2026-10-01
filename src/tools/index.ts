@@ -39,11 +39,13 @@ export const MODE_LABELS: Record<Mode, string> = {
 const TOOL_RESULT_CAP = 10000; // chars — final safety net over per-tool caps
 
 function workTool(canWrite: boolean): ToolSpec {
-  const actions = canWrite ? ["list", "create", "update", "complete", "archive"] : ["list"];
+  const actions = canWrite
+    ? ["list", "create", "update", "complete", "archive", "assign", "record_report"]
+    : ["list"];
   return {
     name: "work",
     description: canWrite
-      ? 'Keep durable personal and work tasks in this project. List: {"action":"list","status":"open"}. Create: {"action":"create","title":"Prepare report","area":"work","due":"2026-10-02","priority":"high","notes":"Use Excel figures"}. Update or complete by task_id from the list. Data stays in .smol/work-items.json.'
+      ? 'Keep durable personal and work tasks in this project. List: {"action":"list","status":"open"}. Create: {"action":"create","title":"Prepare report","area":"work","due":"2026-10-02","priority":"high","role":"architect","acceptance":"All tests pass"}. Assign role: {"action":"assign","task_id":"...","role":"implementer"}. Record execution report: {"action":"record_report","task_id":"...","report":"...","execution_status":"verified","mark_completed":true}. Data stays in .smol/work-items.json.'
       : 'Read the durable personal and work task list for this project. Example: {"action":"list","status":"open","area":"work"}.',
     parameters: {
       type: "object",
@@ -56,6 +58,11 @@ function workTool(canWrite: boolean): ToolSpec {
         priority: { type: "string", enum: ["low", "normal", "high", "urgent"] },
         notes: { type: "string", description: "Short task notes (up to 2,000 characters)" },
         status: { type: "string", enum: ["open", "completed", "archived"], description: "Optional list filter" },
+        role: { type: "string", description: "Assigned subagent specialist role (e.g. architect, implementer, quality_reviewer)" },
+        acceptance: { type: "string", description: "Acceptance criteria / test verification required to complete the task" },
+        report: { type: "string", description: "Execution report summary returned by the subagent" },
+        execution_status: { type: "string", enum: ["idle", "running", "verified", "failed"], description: "Execution status" },
+        mark_completed: { type: "boolean", description: "Whether to mark the work item as completed upon recording report" },
       },
       required: ["action"],
     },
@@ -521,7 +528,7 @@ export async function executeTool(name: string, args: Record<string, any>, ctx: 
         if (args.action !== "list" && ctx.canWrite === false) {
           return "Error: creating or changing work items is unavailable in read-only mode. Switch to edit mode to make changes.";
         }
-        result = new CoworkBoard(ctx.workspace).run(args);
+        result = await new CoworkBoard(ctx.workspace).run(args);
         if (!result.startsWith("Error") && args.action !== "list") ctx.filesTouched.add(".smol/work-items.json");
         break;
       }

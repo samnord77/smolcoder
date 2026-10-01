@@ -8,7 +8,7 @@
 
 import { loadConfig, type SavedHost, updateConfig } from "./config";
 import { identifyServer, probeHosts, type ServerInfo } from "./detect";
-import { addHost, hostLabel, isPrivateHost, parseAddress, removeHost, renameHost } from "./hosts";
+import { addHost, hostLabel, isPrivateHost, type ParsedAddress, parseAddress, removeHost, renameHost } from "./hosts";
 import { type FoundHost, localSubnets, type Subnet, scanSubnets } from "./netscan";
 import type { SelectOption } from "./ui";
 import { plural } from "./util";
@@ -60,7 +60,7 @@ async function confirmOutsideNetwork(ui: FlowUI, hostname: string, url: string):
 async function enterAddress(ui: FlowUI, replace?: SavedHost): Promise<boolean> {
   const typed = await ui.prompt("Address of the machine", "192.168.1.50, gpu-box.local or https://…");
   if (!typed) return false;
-  let parsed;
+  let parsed: ParsedAddress;
   try {
     parsed = parseAddress(typed);
   } catch (err: any) {

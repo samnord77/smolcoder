@@ -405,19 +405,21 @@ export async function detectAll(opts: DetectOptions = {}): Promise<DetectedModel
       .flatMap((models) => models ?? [])
       .filter((m) => {
         const key = `${m.baseUrl}|${m.id}`;
-        return seen.has(key) ? false : (seen.add(key), true);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
       });
   };
   return new Promise((resolve) => {
     let left = slots.length;
-    slots.forEach((slot, i) =>
-      slot
+    slots.forEach((slot, i) => {
+      void slot
         .catch(() => [] as DetectedModel[])
         .then((models) => {
           done[i] = models;
           if (--left === 0 || (opts.until && models.some(opts.until))) resolve(merged());
-        })
-    );
+        });
+    });
   });
 }
 

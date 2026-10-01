@@ -27,9 +27,9 @@ import type { Effort, Msg, Provider } from "./providers/types";
 import { RoutingProvider, routeProvider } from "./router";
 import { resolveInWorkspace } from "./sandbox";
 import { listSkills } from "./skills";
+import { buildStatusReport, renderStatusText } from "./status";
 import { readFile } from "./tools/fs-tools";
 import { MODE_LABELS, type Mode, type ToolContext } from "./tools/index";
-import { buildStatusReport, renderStatusText } from "./status";
 import { pickShell, runCommand } from "./tools/shell";
 import { TaskManager } from "./tools/tasks";
 import { renderPlan, type SelectOption, type SessionUI, type SlashCommand } from "./ui";
@@ -708,8 +708,10 @@ export class Session {
   /** Restore the last file write (prev null = the file was created → delete). */
   private undoEdit(): void {
     const ui = this.ui;
-    const stack = (this.toolCtx.undoStack ??= []);
-    const redo = (this.toolCtx.redoStack ??= []);
+    this.toolCtx.undoStack ??= [];
+    this.toolCtx.redoStack ??= [];
+    const stack = this.toolCtx.undoStack;
+    const redo = this.toolCtx.redoStack;
     const entry = stack.pop();
     if (!entry) {
       ui.status("· nothing to undo — no file written yet");
@@ -740,8 +742,10 @@ export class Session {
    * current content (writing the snippet alone would destroy the file). */
   private redoEdit(): void {
     const ui = this.ui;
-    const stack = (this.toolCtx.undoStack ??= []);
-    const redo = (this.toolCtx.redoStack ??= []);
+    this.toolCtx.undoStack ??= [];
+    this.toolCtx.redoStack ??= [];
+    const stack = this.toolCtx.undoStack;
+    const redo = this.toolCtx.redoStack;
     const entry = redo.pop();
     if (!entry) {
       ui.status("· nothing to redo — no undone write");
@@ -759,10 +763,14 @@ export class Session {
         try {
           cur = fs.readFileSync(entry.abs, "utf8");
         } catch {
-          return fail("file changed since undo (cannot replay the edit)");
+          fail("file changed since undo (cannot replay the edit)");
+          return;
         }
         const n = cur.split(entry.oldText).length - 1;
-        if (n !== 1) return fail(`anchor found ${n} times (need exactly 1) — file changed since undo`);
+        if (n !== 1) {
+          fail(`anchor found ${n} times (need exactly 1) — file changed since undo`);
+          return;
+        }
         fs.writeFileSync(entry.abs, cur.replace(entry.oldText, entry.next), "utf8");
       } else if (entry.kind === "delete") {
         // Undo restored the text; redo takes it back out again.
@@ -995,7 +1003,7 @@ export class Session {
             case "stop":
               ui.println(taskManager.stop(arg ?? ""));
               break;
-            case "mcp":
+            case "mcp": {
               if (!toolCtx.mcp) {
                 ui.warn("MCP bridge is not wired in this session.");
                 break;
@@ -1049,6 +1057,7 @@ export class Session {
                 ui.stopSpinner();
               }
               break;
+            }
             case "status":
               // One report for the terminal, the web hub and Electron: they
               // read the same function, so the three surfaces cannot disagree.

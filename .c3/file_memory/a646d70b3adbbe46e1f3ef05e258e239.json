@@ -1,10 +1,10 @@
 {
   "path": "src/web/client.ts",
-  "content_hash": "eb5466f38f5436000062187163e32f22",
-  "updated_at": "2026-09-28T21:41:41",
-  "lines": 3214,
-  "size_bytes": 161828,
-  "mtime_ns": 1790627965352556100,
+  "content_hash": "5d03e327b2d5b5573630f4891beca081",
+  "updated_at": "2026-09-30T22:59:35",
+  "lines": 3903,
+  "size_bytes": 197190,
+  "mtime_ns": 1790797868381698400,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -38,10 +38,17 @@
       "signature": "import { browserHighlighterSource } from \"../highlight\";"
     },
     {
+      "type": "import",
+      "name": "import { browserLineChangeSource } from \"./diff\";",
+      "line_start": 5,
+      "line_end": 5,
+      "signature": "import { browserLineChangeSource } from \"./diff\";"
+    },
+    {
       "type": "constant",
       "name": "CLIENT_JS",
-      "line_start": 14,
-      "line_end": 3214,
+      "line_start": 15,
+      "line_end": 3903,
       "signature": "const CLIENT_JS = String.raw`"
     }
   ]

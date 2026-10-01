@@ -1,10 +1,10 @@
 {
   "path": "src/subagents.ts",
-  "content_hash": "a6192ec40640b4025ea19bf8f488c71e",
-  "updated_at": "2026-09-28T19:36:38",
-  "lines": 197,
-  "size_bytes": 8997,
-  "mtime_ns": 1790620579683423700,
+  "content_hash": "9184209e768908b88bae01e5469fba21",
+  "updated_at": "2026-09-29T07:48:44",
+  "lines": 253,
+  "size_bytes": 12833,
+  "mtime_ns": 1790647804275291500,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -56,49 +56,49 @@
       "type": "constant",
       "name": "BUILTIN_ROLES",
       "line_start": 26,
-      "line_end": 121,
+      "line_end": 177,
       "signature": "const BUILTIN_ROLES: SubagentRole[] = ["
     },
     {
       "type": "function",
       "name": "rolesDir",
-      "line_start": 123,
-      "line_end": 125,
+      "line_start": 179,
+      "line_end": 181,
       "signature": "function rolesDir(workspace: string): string {"
     },
     {
       "type": "function",
       "name": "machineDirs",
-      "line_start": 127,
-      "line_end": 130,
+      "line_start": 183,
+      "line_end": 186,
       "signature": "function machineDirs(): string[] {"
     },
     {
       "type": "function",
       "name": "parseRole",
-      "line_start": 132,
-      "line_end": 151,
+      "line_start": 188,
+      "line_end": 207,
       "signature": "function parseRole(raw: string, fallbackName: string, source: SubagentRole[\"source\"]): SubagentRole | null {"
     },
     {
       "type": "function",
       "name": "readDirRoles",
-      "line_start": 153,
-      "line_end": 171,
+      "line_start": 209,
+      "line_end": 227,
       "signature": "function readDirRoles(dir: string, source: SubagentRole[\"source\"]): SubagentRole[] {"
     },
     {
       "type": "function",
       "name": "loadSubagentRoles",
-      "line_start": 175,
-      "line_end": 183,
+      "line_start": 231,
+      "line_end": 239,
       "signature": "function loadSubagentRoles(workspace: string): SubagentRole[] {"
     },
     {
       "type": "function",
       "name": "delegatePrompt",
-      "line_start": 187,
-      "line_end": 197,
+      "line_start": 243,
+      "line_end": 253,
       "signature": "function delegatePrompt(role: SubagentRole, task: string): string {"
     }
   ]

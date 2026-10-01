@@ -27,11 +27,15 @@ function makeEl(all) {
       return c;
     },
     append(...cs) {
-      cs.forEach((c) => (c.parent = el));
+      cs.forEach((c) => {
+        c.parent = el;
+      });
       el.children.push(...cs);
     },
     prepend(...cs) {
-      cs.forEach((c) => (c.parent = el));
+      cs.forEach((c) => {
+        c.parent = el;
+      });
       el.children.unshift(...cs);
     },
     insertBefore(c, ref) {
@@ -43,7 +47,9 @@ function makeEl(all) {
     },
     replaceChildren(...cs) {
       el.children.length = 0;
-      cs.forEach((c) => (c.parent = el));
+      cs.forEach((c) => {
+        c.parent = el;
+      });
       el.children.push(...cs);
     },
     remove() {
@@ -74,6 +80,14 @@ function makeEl(all) {
     scrollIntoView() {},
     classList: { add() {}, remove() {}, toggle() {}, contains: () => false },
   };
+  Object.defineProperty(el, "innerHTML", {
+    get() { return el._innerHTML || ""; },
+    set(value) {
+      el._innerHTML = String(value);
+      if (value === "") el.replaceChildren();
+    },
+  });
+  Object.defineProperty(el, "childNodes", { get() { return el.children; } });
   all.push(el);
   return new Proxy(el, {
     get(t, p) {
@@ -99,7 +113,10 @@ function boot(treeEntries, diffPayload, shellItems = []) {
       el.textContent = String(text);
       return el;
     },
-    getElementById: (id) => els[id] || (els[id] = makeEl(all)),
+    getElementById: (id) => {
+      if (!els[id]) els[id] = makeEl(all);
+      return els[id];
+    },
     querySelector: () => null,
     querySelectorAll: () => [],
     body: null,
@@ -188,6 +205,7 @@ function boot(treeEntries, diffPayload, shellItems = []) {
       } else if (u.includes("/workspace/tree")) body = { path: ".", entries: treeEntries, workspace: "/ws" };
       else if (u.includes("/workspace/file") && opts?.method !== "POST") body = { path: "a.ts", content: "const x = 1;\n", mtimeMs: 1 };
       else if (u.includes("/code/diff") && !u.includes("/hunk")) body = diffPayload;
+      else if (u.includes("/status")) body = { state: { mode: "edit" }, workItems: [{ id: "w_test", title: "Shared project task", area: "IDE", priority: "high", status: "open", notes: "", due: null }] };
       else if (u.includes("/plan")) body = { exists: false, steps: [], current: -1, done: 0, total: 0 };
       else if (u.includes("/code/")) body = { result: "", diagnostics: [] };
       return { ok: true, status: 200, json: async () => body };
@@ -204,6 +222,8 @@ function boot(treeEntries, diffPayload, shellItems = []) {
     document: doc,
     location: loc,
     addEventListener() {},
+    setTimeout: context.setTimeout,
+    clearTimeout: context.clearTimeout,
     innerWidth: 1400,
     innerHeight: 900,
     matchMedia: () => ({ matches: false }),
@@ -214,10 +234,11 @@ function boot(treeEntries, diffPayload, shellItems = []) {
   const classes = () => {
     const out = new Set();
     for (const e of all) {
-      if (e.className)
-        String(e.className)
-          .split(/\s+/)
-          .forEach((c) => c && out.add(c));
+      if (e.className) {
+        for (const c of String(e.className).split(/\s+/)) {
+          if (c) out.add(c);
+        }
+      }
     }
     return out;
   };
@@ -389,6 +410,23 @@ test("crumb shows the plan chip; review has filter and nav", async () => {
   assert.ok(titles.includes("Previous change") && titles.includes("Next change"), "hunk navigation present");
 });
 
+test("control centre exposes the shared Cowork board and project tasks", async () => {
+  const c = boot(TREE, DIFF);
+  emitHub(c);
+  await c.flush();
+  c.els.cc.hidden = true;
+  c.els.btnstatus.onclick();
+  await c.flush(150);
+  const tab = c.allElements().find((e) => e.className === "cc-tab on" && e.textContent === "Cowork")
+    || c.allElements().find((e) => e.className === "cc-tab" && e.textContent === "Cowork");
+  assert.ok(tab, "Cowork control-centre tab exists");
+  tab.onclick();
+  await c.flush(500);
+  assert.ok(c.classes().has("cc-workitem"), "shared work item renders in the board");
+  assert.ok(c.allElements().some((e) => e.textContent === "Shared project task"), "project task title is visible");
+  assert.ok(c.allElements().some((e) => e.placeholder === "Nouvelle tâche cowork…"), "new work item form is available");
+});
+
 test("agent file activity shows live and refreshes review", async () => {
   const c = boot(TREE, DIFF);
   emitHub(c);
@@ -426,7 +464,7 @@ test("side-by-side toggle renders paired columns", async () => {
   await c.flush();
   c.els.btnreview.onclick();
   await c.flush(200);
-  const toggle = c.allElements().find((e) => e.title && e.title.includes("side-by-side view"));
+  const toggle = c.allElements().find((e) => e.title?.includes("side-by-side view"));
   assert.ok(toggle, "sbs toggle present");
   toggle.onclick();
   await c.flush(200);
@@ -536,3 +574,13 @@ test("Extend timeout pushes the deadline and Don't auto-offload stands down", as
   await c.flush(120);
   assert.equal(cardsOf(c).filter((e) => e.parent).length, 0, "and it stays gone");
 });
+
+test("pro inline editor features include cursor-style ctrl+k, chips, and keyboard navigation", () => {
+  assert.ok(CLIENT_JS.includes("fileinlinechips"), "quick action chips container is present");
+  assert.ok(CLIENT_JS.includes("Refactoriser"), "refactor chip is present");
+  assert.ok(CLIENT_JS.includes("Corriger bugs"), "bugfix chip is present");
+  assert.ok(CLIENT_JS.includes("Accepter (Entrée)"), "accept button with enter shortcut is present");
+  assert.ok(CLIENT_JS.includes("Refuser (Échap)"), "reject button with escape shortcut is present");
+  assert.ok(CLIENT_JS.includes("inlineAccept.click()"), "keyboard shortcut triggers inlineAccept");
+});
+

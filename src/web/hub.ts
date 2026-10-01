@@ -23,14 +23,16 @@ import { ContextManager } from "../context";
 import { applyOp, type CrdOp, docFromText } from "../crdt";
 import { EventBus } from "../events";
 import { gitApplyHunk, gitCommit, gitDiffFiles, gitRevertFile, gitStage, gitStageLines, gitStatusMap, gitUnstage } from "../git";
-import { LSP_LANGS, lspAvailability, queryCode, queryDiagStructured, serverDefForLang } from "../lsp-pro";
-import { loadMcpConfig } from "../mcp";
 import { installLspServer } from "../lsp-install";
+import { LSP_LANGS, lspAvailability, queryCode, queryDiagStructured, serverDefForLang } from "../lsp-pro";
+import { loadMcpConfig, setMcpEnabled } from "../mcp";
 import { Plan } from "../plan";
 import { resolveInWorkspace, SandboxError } from "../sandbox";
 import { noBackendsMessage, prepareModel, Session, type SessionPrefs, type SessionSnapshot, setupWithoutLocalModels } from "../session";
 import { describeSkills, readDelegateStats } from "../skills";
+import { buildStatusReport, invalidateBuildCheck, runBuildCheck } from "../status";
 import { delegatePrompt, loadSubagentRoles, type SubagentRole } from "../subagents";
+import { CoworkBoard } from "../tools/cowork";
 import type { ToolContext } from "../tools/index";
 import { findLiveShell, liveShellList } from "../tools/shell";
 import type { AgentUI } from "../ui";
@@ -51,6 +53,29 @@ const SESSION_ID_RE = /^[a-z0-9_-]{1,64}$/i;
 const UPLOAD_ID_RE = /^[a-f0-9]{16}$/;
 const WEB_FILE_CAP = 512 * 1024;
 const WEB_TREE_CAP = 800;
+/** Budget d'une passe MCP rapide. Mesure locale : à 20 000 ms tout le monde
+ * sauf « browse » (cold start uvx) répond, donc 30 000 ms laisse la marge aux
+ * premiers lancements npx sans retarder l'affichage du Centre de Contrôle. */
+const MCP_PROBE_MS = 30_000;
+
+/** Durée de validité d'une réponse MCP servie depuis le cache. */
+const MCP_TTL_MS = 60_000;
+
+/** État transitoire des serveurs MCP : la configuration du dossier existe déjà,
+ * mais la session (donc son pont MCP) n'est pas encore née. Sans ce repli, le
+ * Centre de Contrôle affichait « 0/0 joignables · aucun serveur configuré »
+ * pendant tout le démarrage, ce qui est faux : chaque serveur configuré repart
+ * ici en « démarrage… » (ambre) et le vrai sondage reprend dès que la session
+ * a créé son pont. */
+type PendingMcpRow = { name: string; ok: boolean; tools?: unknown[]; error?: string; retrying?: boolean };
+
+function pendingMcpRows(workspace: string): PendingMcpRow[] {
+  return loadMcpConfig(workspace).map((cfg) =>
+    cfg.enabled === false
+      ? { name: cfg.name, ok: false, error: "désactivé (enabled: false)" }
+      : { name: cfg.name, ok: false, retrying: true }
+  );
+}
 
 export interface HubOptions {
   port: number;
@@ -257,8 +282,14 @@ export function browseDir(input: string | null | undefined): Record<string, any>
 function defaultFactory(help: string): SessionFactory {
   return async (ui, workspace, prefs, planKey) => {
     const cfg = loadConfig();
-    let chosen = await prepareModel(prefs, cfg, (label) => ui.startSpinner(label));
-    ui.stopSpinner();
+    let chosen: Awaited<ReturnType<typeof prepareModel>> = null;
+    try {
+      chosen = await prepareModel(prefs, cfg, (label) => ui.startSpinner(label));
+    } finally {
+      // A thrown config error must never leave the spinner frozen: the page
+      // would look hung while the real cause is only a missing model server.
+      ui.stopSpinner();
+    }
     // Nothing on this computer: the page offers to look on the network.
     if (!chosen) chosen = await setupWithoutLocalModels(ui, prefs);
     if (!chosen) throw new Error(noBackendsMessage());
@@ -269,8 +300,8 @@ function defaultFactory(help: string): SessionFactory {
 /** System prompt for the bounded inline-edit agent: read-only tools, one
  * fenced replacement block out, nothing written anywhere (the user applies
  * the preview explicitly). */
-const INLINE_SYSTEM = `You are a precise code-editing assistant. You receive one marked section of one file plus an instruction.
-Rules: read the file section first if you need context; reply with ONLY one fenced code block containing the COMPLETE replacement lines — no prose, no explanations, no second block.`;
+const INLINE_SYSTEM = `You are a precise, professional code-editing assistant (Cursor-style inline editor). You receive one marked section of one file plus an instruction.
+Rules: read the file section first if you need context; respect domain business logic and clean architecture; reply with ONLY one fenced code block containing the COMPLETE replacement lines — no prose, no explanations, no second block.`;
 
 /** Swallow every UI callback: inline edits must not pollute the transcript. */
 function silentUI(): AgentUI {
@@ -314,6 +345,14 @@ export class WebHub {
   /** Inline-edit jobs: op id -> status (polled, single consumer). */
   private inlineJobs = new Map<string, { at: number; status: string; result?: any; error?: string }>();
   private live = new Map<string, Live>();
+  /** Dernier état MCP connu, par dossier : le Centre de Contrôle lit ceci
+   * immédiatement pendant que le sondage (jusqu'à 30 s) tourne en tâche de
+   * fond. Sans ce cache, chaque /status attendait le sondage complet et toute
+   * l'interface se figeait (une seule ligne, interrupteurs inertes, outils
+   * jamais rafraîchis). */
+  private mcpSnap = new Map<string, { rows: PendingMcpRow[]; at: number }>();
+  /** Une seule passe de sondage MCP à la fois. */
+  private mcpBusy = new Set<string>();
   private metas = new Map<string, SessionMeta>();
   private store: SessionStore;
   private workspaces: WorkspaceStore;
@@ -962,15 +1001,12 @@ export class WebHub {
           try {
             // exts lets the page route any catalogue language to its server
             // instead of hardcoding a short list of extensions.
-            json(
-              200,
-              {
-                servers: lspAvailability().map((a) => ({
-                  ...a,
-                  exts: serverDefForLang(a.lang)?.exts ?? [],
-                })),
-              }
-            );
+            json(200, {
+              servers: lspAvailability().map((a) => ({
+                ...a,
+                exts: serverDefForLang(a.lang)?.exts ?? [],
+              })),
+            });
           } catch (err: any) {
             json(400, { error: String(err?.message ?? err).slice(0, 500) });
           }
@@ -1067,6 +1103,9 @@ export class WebHub {
         case "/workspace/file":
           this.workspaceFile(res, url);
           return;
+        case "/workspace/asset":
+          this.workspaceAsset(res, url);
+          return;
         case "/workspace/preview": {
           const sid = String(url.searchParams.get("sid") ?? "");
           const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
@@ -1115,7 +1154,7 @@ export class WebHub {
         body += d;
         if (body.length > 1_000_000) req.destroy();
       });
-      req.on("end", () => {
+      req.on("end", async () => {
         let data: any = {};
         try {
           data = body ? JSON.parse(body) : {};
@@ -1123,7 +1162,7 @@ export class WebHub {
           /* ignore */
         }
         try {
-          json(200, this.handlePost(url.pathname, data) ?? {});
+          json(200, (await this.handlePost(url.pathname, data)) ?? {});
         } catch (err: any) {
           json(400, { error: String(err?.message ?? err) });
         }
@@ -1331,7 +1370,7 @@ export class WebHub {
     return abs;
   }
 
-  private handlePost(p: string, d: any): any {
+  private async handlePost(p: string, d: any): Promise<any> {
     const sid = String(d.sid ?? "");
     const live = () => {
       const l = this.live.get(sid);
@@ -1365,6 +1404,38 @@ export class WebHub {
         l.channel.onModeCycle?.();
         l.channel.refresh();
         return {};
+      }
+      case "/check": {
+        // Runs the project's own check command for real, on demand. The status
+        // rail used to claim "validation en cours" forever; this gives the
+        // client something honest to display and a way to re-run it.
+        const l = live();
+        invalidateBuildCheck(l.workspace);
+        const check = runBuildCheck(l.workspace);
+        return { check };
+      }
+      case "/mcp/toggle": {
+        const l = live();
+        const name = String(d.name ?? "").trim();
+        if (!name) throw new Error("mcp: missing server name");
+        const verb = d.verb === "on" || d.verb === "off" ? d.verb : "toggle";
+        const message = setMcpEnabled(l.workspace, name, verb);
+        // The 60 s health cache would keep showing the old "hors ligne" state
+        // after an activation — drop it so the next status() probes fresh.
+        l.session?.toolCtx?.mcp?.invalidate?.(name);
+        this.mcpSnap.delete(l.workspace);
+        return { message };
+      }
+      case "/mcp/debug": {
+        const l = live();
+        const name = String(d.name ?? "").trim();
+        if (!name) throw new Error("mcp: missing server name");
+        const timeoutMs = Number(d.timeoutMs) > 0 ? Number(d.timeoutMs) : undefined;
+        // debugServer lives on the per-session bridge, not on the module, so
+        // probe the very same client the agent is using.
+        const bridge = l.session?.toolCtx?.mcp;
+        if (!bridge) throw new Error("mcp: no MCP bridge for this session");
+        return { message: await bridge.debugServer(name, timeoutMs) };
       }
       case "/cancel":
         live().channel.cancel();
@@ -1417,6 +1488,18 @@ export class WebHub {
       case "/agents/draft": {
         const l = live();
         return this.agentDraft(l.workspace, String(d.role ?? ""), String(d.task ?? ""));
+      }
+      case "/work/items": {
+        const l = live();
+        if (!l.session) throw new Error("session is not ready");
+        if (d.action !== "list" && l.session.agent.mode === "ro") {
+          throw new Error("creating or changing work items is unavailable in read-only mode");
+        }
+        const board = new CoworkBoard(l.workspace);
+        const result = await board.run(d);
+        if (result.startsWith("Error:")) throw new Error(result);
+        if (d.action !== "list") l.session.toolCtx.filesTouched.add(".smol/work-items.json");
+        return { result, items: board.items() };
       }
       case "/workspace/file":
         return this.saveWorkspaceFile(sid, d);
@@ -1480,7 +1563,9 @@ export class WebHub {
       // Turns the 37-language catalogue into something usable: the panel can
       // only be trusted when a missing server can be installed from it.
       case "/code/lsp/install": {
-        const want = String(d.lang ?? "").trim().toLowerCase();
+        const want = String(d.lang ?? "")
+          .trim()
+          .toLowerCase();
         if (!want) throw new Error("lang is required");
         if (!LSP_LANGS.includes(want)) {
           throw new Error(`unknown language "${want}" - GET /code/availability lists the supported ones`);
@@ -1635,6 +1720,32 @@ export class WebHub {
           mtimeMs: st.mtimeMs,
         })
       );
+    } catch (err: any) {
+      res.writeHead(400, { "content-type": "application/json" });
+      res.end(JSON.stringify({ error: err instanceof SandboxError ? err.message : String(err?.message ?? err) }));
+    }
+  }
+
+  /** Serve bounded project images for the file explorer preview. */
+  private workspaceAsset(res: http.ServerResponse, url: URL): void {
+    const sid = String(url.searchParams.get("sid") ?? "");
+    const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
+    if (!live) {
+      res.writeHead(404); res.end(); return;
+    }
+    try {
+      const abs = resolveInWorkspace(live.workspace, String(url.searchParams.get("path") ?? ""));
+      const st = fs.statSync(abs);
+      const ext = path.extname(abs).toLowerCase();
+      const allowed: Record<string, string> = {
+        ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+        ".gif": "image/gif", ".webp": "image/webp", ".svg": "image/svg+xml",
+        ".ico": "image/x-icon", ".bmp": "image/bmp",
+      };
+      const mime = allowed[ext];
+      if (!st.isFile() || !mime || st.size > 8 * 1024 * 1024) throw new Error("image must be a supported file under 8 MB");
+      res.writeHead(200, { "content-type": mime, "content-length": st.size, "cache-control": "no-store", "x-content-type-options": "nosniff" });
+      fs.createReadStream(abs).pipe(res);
     } catch (err: any) {
       res.writeHead(400, { "content-type": "application/json" });
       res.end(JSON.stringify({ error: err instanceof SandboxError ? err.message : String(err?.message ?? err) }));
@@ -1898,9 +2009,18 @@ export class WebHub {
       throw new Error("the model did not produce a replacement — try a shorter selection or simpler instruction");
     }
     const last = [...inline.messages].reverse().find((m) => m.role === "assistant" && (m.content ?? "").trim());
+    let newText = "";
     const m = /```(?:[\w.+#-]+)?\s*\n([\s\S]*?)```/.exec(last?.content ?? "");
-    if (!m) throw new Error("the model did not return a code block — rephrase the instruction");
-    const newText = m[1].replace(/\n$/, "");
+    if (m) {
+      newText = m[1].replace(/\n$/, "");
+    } else {
+      const raw = (last?.content ?? "").trim();
+      if (raw && !raw.startsWith("I ") && !raw.startsWith("Here")) {
+        newText = raw;
+      } else {
+        throw new Error("the model did not return a code block — rephrase the instruction");
+      }
+    }
     return { oldText: selection, newText, startLine: start, endLine: end, diff: renderEditDiff(selection, newText) };
   }
 
@@ -1927,39 +2047,57 @@ export class WebHub {
   }
   /** Everything the IDE control centre needs about one live session. Kept off
    * the hot SSE path: the page asks for it when the panel opens. */
+  /** Statut MCP instantané : sert le dernier état connu (ou les lignes
+   * « démarrage… » tant qu'aucun résultat n'existe) et lance le sondage réel
+   * en arrière-plan, une seule passe à la fois, résultat gardé 60 s. */
+  private mcpStatusFor(live: Live): () => Promise<PendingMcpRow[]> {
+    const ws = live.workspace;
+    const id = live.id;
+    const start = () => {
+      if (this.mcpBusy.has(ws)) return;
+      const bridge = this.live.get(id)?.session?.toolCtx?.mcp;
+      if (!bridge) return;
+      this.mcpBusy.add(ws);
+      bridge
+        .status(MCP_PROBE_MS)
+        .then((rows) => this.mcpSnap.set(ws, { rows: rows as PendingMcpRow[], at: Date.now() }))
+        .catch(() => undefined)
+        .finally(() => this.mcpBusy.delete(ws));
+    };
+    return () => {
+      const snap = this.mcpSnap.get(ws);
+      if (snap && Date.now() - snap.at < MCP_TTL_MS) return Promise.resolve(snap.rows);
+      start();
+      return Promise.resolve(snap?.rows ?? pendingMcpRows(ws));
+    };
+  }
+
   private async statusReport(url: URL): Promise<any> {
     const sid = String(url.searchParams.get("sid") ?? "");
     const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
     if (!live) return { error: "no such session" };
     const session = live.session;
+    // Same builder as the CLI /status: the terminal, the page and Electron
+    // read one function, so the three surfaces cannot drift apart.
+    const report = await buildStatusReport({
+      workspace: live.workspace,
+      modelId: session?.chosen?.id,
+      backend: session?.chosen?.backend,
+      host: session?.chosen?.host,
+      effort: session?.agent?.provider?.effortLabel?.() ?? undefined,
+      mode: session?.agent?.mode,
+      contextTokens: session?.agent?.contextTokens?.() ?? 0,
+      contextWindow: session?.chosen?.contextWindow,
+      mcpStatus: this.mcpStatusFor(live),
+    });
+    // Keep the established web contract alongside the shared status shape.
+    // Older Electron/web panels consume these fields directly while newer
+    // clients use the compact report above.
     let skills: any[] = [];
     try {
       skills = describeSkills(live.workspace);
     } catch {
       skills = [];
-    }
-    let mcp: any[] = [];
-    try {
-      const bridge = session?.toolCtx?.mcp;
-      if (bridge) {
-        // Cold starts for npx/uvx and office bridges routinely exceed six
-        // seconds. Keep the UI from marking a usable server offline.
-        const rows = await bridge.status(20000);
-        const off = new Set(
-          loadMcpConfig(session?.toolCtx?.workspace ?? "")
-            .filter((c) => c.enabled === false)
-            .map((c) => c.name.toLowerCase())
-        );
-        mcp = rows.map((r) => ({
-          name: r.name,
-          ok: !!r.ok,
-          tools: Array.isArray(r.tools) ? r.tools.length : 0,
-          error: r.error ? String(r.error).slice(0, 200) : null,
-          enabled: !off.has(r.name.toLowerCase()),
-        }));
-      }
-    } catch {
-      mcp = [];
     }
     const tools = (session?.agent?.tools ?? []).map((t: any) => ({
       name: String(t.name ?? ""),
@@ -1967,32 +2105,32 @@ export class WebHub {
         .split("\n")[0]
         .slice(0, 220),
     }));
+    let workItems: ReturnType<CoworkBoard["items"]> = [];
+    let workItemsError = "";
+    try {
+      workItems = new CoworkBoard(live.workspace).items();
+    } catch (error) {
+      workItemsError = String((error as Error)?.message ?? error).slice(0, 300);
+    }
     return {
+      ...report,
       t: "status",
       sid: live.id,
-      workspace: live.workspace,
       version: this.opts.version,
       state: session?.state() ?? {},
       tools,
+      workItems,
+      workItemsError,
       skills,
       skillsActive: live.channel.skillsActive,
       subagents: {
+        ...report.subagents,
         roles: loadSubagentRoles(live.workspace),
         running: live.channel.subagentActive,
         runs: live.channel.subagentRuns,
         stats: readDelegateStats(live.workspace),
       },
-      mcp,
-      runtime: {
-        node: process.version,
-        platform: process.platform,
-        arch: process.arch,
-        cpus: os.cpus().length,
-        memTotalMb: Math.round(os.totalmem() / 1048576),
-        memFreeMb: Math.round(os.freemem() / 1048576),
-        pid: process.pid,
-        uptimeSec: Math.round(process.uptime()),
-      },
+      runtime: report.system,
       c3: {
         enabled: fs.existsSync(path.join(live.workspace, ".c3")) || fs.existsSync(path.join(os.homedir(), ".c3")),
         workspace: fs.existsSync(path.join(live.workspace, ".c3")),

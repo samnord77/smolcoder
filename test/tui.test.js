@@ -8,7 +8,10 @@ const { Tui } = require("../dist/tui/tui");
 function capture(fn) {
   const real = process.stdout.write;
   let out = "";
-  process.stdout.write = (s) => ((out += s), true);
+  process.stdout.write = (s) => {
+    out += s;
+    return true;
+  };
   try {
     fn();
   } finally {

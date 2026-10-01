@@ -1,0 +1,41 @@
+{
+  "path": ".skywork-local/skills/smolcoder-ide-audit/SKILL.md",
+  "content_hash": "4203aa03d6f6171cdd81db0125220e6e",
+  "updated_at": "2026-09-30T10:11:37",
+  "lines": 41,
+  "size_bytes": 3393,
+  "mtime_ns": 1790757782280468800,
+  "language": "markdown",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "heading",
+      "name": "h1: Audit Smolcoder CLI/Web/Electron",
+      "line_start": 6,
+      "line_end": 41,
+      "signature": "# Audit Smolcoder CLI/Web/Electron"
+    },
+    {
+      "type": "heading",
+      "name": "h2: Objectif",
+      "line_start": 8,
+      "line_end": 11,
+      "signature": "## Objectif"
+    },
+    {
+      "type": "heading",
+      "name": "h2: Proc\u00e9dure",
+      "line_start": 12,
+      "line_end": 34,
+      "signature": "## Proc\u00e9dure"
+    },
+    {
+      "type": "heading",
+      "name": "h2: R\u00e8gles d\u2019optimisation",
+      "line_start": 35,
+      "line_end": 41,
+      "signature": "## R\u00e8gles d\u2019optimisation"
+    }
+  ]
+}

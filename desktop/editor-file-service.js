@@ -3,6 +3,17 @@ const path = require("path");
 const { resolveInWorkspace, SandboxError } = require("../dist/sandbox.js");
 
 const MAX_EDITOR_FILE_BYTES = 1024 * 1024;
+const MAX_EDITOR_IMAGE_BYTES = 8 * 1024 * 1024;
+const IMAGE_MIME_TYPES = {
+  ".bmp": "image/bmp",
+  ".gif": "image/gif",
+  ".ico": "image/x-icon",
+  ".jpeg": "image/jpeg",
+  ".jpg": "image/jpeg",
+  ".png": "image/png",
+  ".svg": "image/svg+xml",
+  ".webp": "image/webp",
+};
 
 function workspacePath(workspace, requested) {
   try { return resolveInWorkspace(workspace, requested); }
@@ -15,6 +26,21 @@ function readWorkspaceFile(workspace, requested) {
   if (stat.isDirectory()) throw new Error("C’est un dossier.");
   if (stat.size > MAX_EDITOR_FILE_BYTES) throw new Error("Fichier > 1 Mo : ouvrez-le dans un autre éditeur.");
   return { content: fs.readFileSync(absolute, "utf8"), mtimeMs: stat.mtimeMs };
+}
+
+function readWorkspaceImage(workspace, requested) {
+  const absolute = workspacePath(workspace, requested);
+  const mimeType = IMAGE_MIME_TYPES[path.extname(absolute).toLowerCase()];
+  if (!mimeType) throw new Error("Format d’image non pris en charge dans l’aperçu.");
+  const stat = fs.statSync(absolute);
+  if (!stat.isFile()) throw new Error("Ce n’est pas un fichier image.");
+  if (stat.size > MAX_EDITOR_IMAGE_BYTES) throw new Error("Image > 8 Mo : l’aperçu est désactivé.");
+  return {
+    base64: fs.readFileSync(absolute).toString("base64"),
+    mimeType,
+    mtimeMs: stat.mtimeMs,
+    size: stat.size,
+  };
 }
 
 function saveWorkspaceFile(workspace, requested, content, expectedMtimeMs) {
@@ -37,4 +63,4 @@ function saveWorkspaceFile(workspace, requested, content, expectedMtimeMs) {
   return { mtimeMs: fs.statSync(absolute).mtimeMs, size: bytes };
 }
 
-module.exports = { MAX_EDITOR_FILE_BYTES, readWorkspaceFile, saveWorkspaceFile };
+module.exports = { MAX_EDITOR_FILE_BYTES, MAX_EDITOR_IMAGE_BYTES, readWorkspaceFile, readWorkspaceImage, saveWorkspaceFile };

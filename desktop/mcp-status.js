@@ -7,8 +7,9 @@ const { createMcpBridge } = require("../dist/mcp.js");
   if (!rows.length) console.log("AUCUN MCP configure");
   for (const r of rows) {
     console.log(
-      (r.ok ? "●" : "○") + " " + r.name + " (" + ((r.tools ?? []).length) + " outils)" +
-      (r.ok ? "" : " — " + (r.error ?? "injoignable"))
+      `${r.ok ? "●" : "○"} ${r.name} (${(r.tools ?? []).length} outils)${
+        r.ok ? "" : ` — ${r.error ?? "injoignable"}`
+      }`
     );
   }
   bridge.closeAll();

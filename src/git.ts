@@ -372,7 +372,7 @@ export function gitDiffFiles(root: string, staged = false): DiffFilesResult {
           try {
             const content = fs.readFileSync(path.join(root, u), "utf8");
             const lines = content.split("\n").filter(l => l.length > 0);
-            const hunkLines = lines.map(l => "+" + l);
+            const hunkLines = lines.map((l) => `+${l}`);
             files.push({
               file: u,
               status: "A",
@@ -598,7 +598,7 @@ export function gitRevertFile(root: string, relPath: string): string {
   return `Reverted "${rel}" to HEAD.`;
 }
 
-/** Short status per direct child of one directory: name -> "M", "?", ...
+/** Short status per direct child of one directory: name -> "A", "U", "D", "M", ...
  * Powers file-tree badges. One bounded git call. Never throws. */
 export function gitStatusMap(root: string, dirAbs: string): Map<string, string> {
   const out = new Map<string, string>();
@@ -612,7 +612,10 @@ export function gitStatusMap(root: string, dirAbs: string): Map<string, string> 
       const m = /^(\?\?|[MADRCUT]{1,2})\s+(.+)$/.exec(line.trim());
       if (!m) continue;
       const first = m[2].split("/")[0].replace(/^"|"$/g, "");
-      if (first && !out.has(first)) out.set(first, m[1].includes("?") ? "?" : "M");
+      const raw = m[1];
+      const status = raw === "??" ? "U" : raw.includes("U") ? "U" : raw.includes("D") ? "D" : raw.includes("A") ? "A" : raw.includes("R") ? "R" : "M";
+      const rank: Record<string, number> = { M: 1, R: 2, A: 3, D: 4, U: 5 };
+      if (first && (!out.has(first) || rank[status] > rank[out.get(first)!])) out.set(first, status);
     }
   } catch {
     /* badges are best effort */

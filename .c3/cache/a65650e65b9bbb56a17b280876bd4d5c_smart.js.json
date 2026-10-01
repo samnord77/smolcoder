@@ -1,0 +1,9 @@
+{
+  "original_tokens": 758,
+  "compressed_tokens": 72,
+  "saved_tokens": 686,
+  "savings_pct": 90.5,
+  "compressed": "# status.test.js (.js) \u2014 70 lines\nimport assert from \"node:assert/strict\";\nimport fs from \"node:fs\";\nimport os from \"node:os\";\nimport path from \"node:path\";\nimport test from \"node:test\";\nimport { buildStatusReport, renderStatusText } from \"../dist/status.js\";\n\nfunction tmpWorkspace()",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\status.test.js"
+}

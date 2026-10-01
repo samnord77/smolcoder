@@ -36,12 +36,14 @@ test("detach keeps the process alive as a real background task", async () => {
   const exits = [];
   const tm = new TaskManager(process.cwd(), (t) => exits.push(`${t.id}:${t.exitCode}`));
   let ctl;
-  const cmd = "node -e \"console.log('debut'); setTimeout(()=>{console.log('fini')},1200)\"";
+  const cmd = "node -e \"console.log('debut'); setTimeout(()=>{console.log('fini')},4500)\"";
   const p = runCommand(cmd, process.cwd(), undefined, (c) => {
     c.adopt = (proc, cm, seed) => tm.adopt(proc, cm, seed);
     ctl = c;
   });
-  await sleep(500);
+  // On Windows the PowerShell startup can take longer than 500 ms; detach
+  // only after the child has had time to produce its first output.
+  await sleep(2000);
   const id = ctl.detach();
   assert.match(String(id), /^t\d+$/, "detach returns the background task id");
   const out = await p;
@@ -50,11 +52,12 @@ test("detach keeps the process alive as a real background task", async () => {
   assert.match(out, /debut/, "and it is the real output");
   assert.ok(!liveShellList().some((i) => i.command === cmd), "a detached run stops counting down");
   assert.match(tm.list(), new RegExp(`\\b${id}\\s+running`), "the manager now owns a running task");
-  await sleep(1500);
+  const finishDeadline = Date.now() + 10_000;
+  while (exits.length === 0 && Date.now() < finishDeadline) await sleep(100);
+  assert.deepEqual(exits, [`${id}:0`], "the adopted process exits successfully within the bounded wait");
   const log = tm.logs(id);
   assert.match(log, /fini/, "the command ran to completion AFTER the tool call returned");
   assert.match(log, /exited/, "the task reports its final state");
-  assert.deepEqual(exits, [`${id}:0`], "the offloaded exit is announced once, with its code");
   assert.equal(ctl.detach(), null, "detaching twice is refused");
 });
 

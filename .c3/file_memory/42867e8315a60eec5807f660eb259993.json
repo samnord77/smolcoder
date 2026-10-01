@@ -1,10 +1,10 @@
 {
   "path": "desktop/git.html",
-  "content_hash": "33b268fc8aa6de0dac902a94d555f487",
-  "updated_at": "2026-09-26T17:56:05",
-  "lines": 237,
-  "size_bytes": 10941,
-  "mtime_ns": 1790421168439448000,
+  "content_hash": "429c013ef0a3e448a41be6beb087f67d",
+  "updated_at": "2026-09-29T16:36:45",
+  "lines": 303,
+  "size_bytes": 16119,
+  "mtime_ns": 1790696198026838900,
   "language": "html",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -13,136 +13,144 @@
       "type": "section",
       "name": "#bar",
       "tag": "div",
-      "line_start": 81,
-      "line_end": 86,
+      "line_start": 100,
+      "line_end": 105,
       "signature": "<div id=\"bar\">"
     },
     {
       "type": "heading",
       "name": "h1: \ud83d\uddc2\ufe0f Panneau Git</h1>",
-      "line_start": 82,
-      "line_end": 82,
+      "line_start": 101,
+      "line_end": 101,
       "signature": "<h1>\ud83d\uddc2\ufe0f Panneau Git</h1>"
     },
     {
       "type": "section",
       "name": "#bRefresh",
       "tag": "button",
-      "line_start": 83,
-      "line_end": 83,
+      "line_start": 102,
+      "line_end": 102,
       "signature": "<button id=\"bRefresh\" aria-label=\"Actualiser le statut Git\">\u21bb Actualiser</button>"
     },
     {
       "type": "section",
       "name": "#filter",
       "tag": "input",
-      "line_start": 84,
-      "line_end": 85,
+      "line_start": 103,
+      "line_end": 104,
       "signature": "<input id=\"filter\" type=\"search\" placeholder=\"Filtrer les fichiers\u2026\" aria-label=\"Filtrer les fichiers\">"
     },
     {
       "type": "section",
       "name": "#root",
       "tag": "span",
-      "line_start": 85,
-      "line_end": 85,
+      "line_start": 104,
+      "line_end": 104,
       "signature": "<span id=\"root\">\u2026</span>"
     },
     {
       "type": "section",
       "name": "#stats",
       "tag": "div",
-      "line_start": 87,
-      "line_end": 87,
+      "line_start": 106,
+      "line_end": 106,
       "signature": "<div id=\"stats\" aria-label=\"Statistiques des modifications\"></div>"
     },
     {
       "type": "section",
       "name": "#main",
       "tag": "div",
-      "line_start": 88,
-      "line_end": 94,
+      "line_start": 107,
+      "line_end": 114,
       "signature": "<div id=\"main\">"
     },
     {
       "type": "section",
       "name": "#files",
       "tag": "div",
-      "line_start": 89,
-      "line_end": 89,
+      "line_start": 108,
+      "line_end": 108,
       "signature": "<div id=\"files\" role=\"listbox\" aria-label=\"Fichiers modifi\u00e9s\"></div>"
+    },
+    {
+      "type": "section",
+      "name": "#filesgrip",
+      "tag": "div",
+      "line_start": 109,
+      "line_end": 109,
+      "signature": "<div id=\"filesgrip\" title=\"Glisser pour redimensionner\" aria-hidden=\"true\"></div>"
     },
     {
       "type": "section",
       "name": "#view",
       "tag": "div",
-      "line_start": 90,
-      "line_end": 93,
+      "line_start": 110,
+      "line_end": 113,
       "signature": "<div id=\"view\">"
     },
     {
       "type": "section",
       "name": "#fname",
       "tag": "div",
-      "line_start": 91,
-      "line_end": 91,
+      "line_start": 111,
+      "line_end": 111,
       "signature": "<div id=\"fname\">\u2014</div>"
     },
     {
       "type": "section",
       "name": "#diff",
       "tag": "pre",
-      "line_start": 92,
-      "line_end": 92,
+      "line_start": 112,
+      "line_end": 112,
       "signature": "<pre id=\"diff\" aria-label=\"Diff du fichier\"><span class=\"head\">Choisissez un fichier \u00e0 gauche pour voir ses modifications\u2026</span></pre>"
     },
     {
       "type": "section",
       "name": "#err",
       "tag": "div",
-      "line_start": 95,
-      "line_end": 95,
+      "line_start": 115,
+      "line_end": 115,
       "signature": "<div id=\"err\" role=\"alert\"></div>"
     },
     {
       "type": "section",
       "name": "#commitbar",
       "tag": "div",
-      "line_start": 96,
-      "line_end": 99,
+      "line_start": 116,
+      "line_end": 119,
       "signature": "<div id=\"commitbar\">"
     },
     {
       "type": "section",
       "name": "#msg",
       "tag": "textarea",
-      "line_start": 97,
-      "line_end": 97,
+      "line_start": 117,
+      "line_end": 117,
       "signature": "<textarea id=\"msg\" rows=\"1\" placeholder=\"Message de commit (ex : Corrige l\u2019affichage du panneau)\u2026\" aria-label=\"Message de commit\"></textarea>"
     },
     {
       "type": "section",
       "name": "#bCommit",
       "tag": "button",
-      "line_start": 98,
-      "line_end": 98,
+      "line_start": 118,
+      "line_end": 118,
       "signature": "<button id=\"bCommit\">\u2713 Commit</button>"
     },
     {
       "type": "section",
       "name": "#status",
       "tag": "div",
-      "line_start": 100,
-      "line_end": 100,
-      "signature": "<div id=\"status\"><span id=\"sCount\">\u2014</span><span id=\"sMsg\"></span></div>"
+      "line_start": 120,
+      "line_end": 120,
+      "signature": "<div id=\"status\"><span id=\"sCount\">\u2014</span><span id=\"sMsg\"></span><span id=\"zoomctl\" role=\"group\" aria-label=\"Taille du texte de l'interface\"><span class=\"zl\">Texte</span><button class=\"zstep\" type=\"button\" id=\"zoomOut\" title=\"R\u00e9duire la taille du texte\" aria-label=\"R\u00e9duire la taille du texte\">-</button><span class=\"zbar\"><span class=\"zfill\" id=\"zfill\"></span><input type=\"range\" id=\"zoomRange\" min"
     },
     {
       "type": "section",
       "name": "#sCount",
       "tag": "span",
-      "line_start": 100,
-      "line_end": 100,
-      "signature": "<span id=\"sCount\">\u2014</span><span id=\"sMsg\"></span></div>"
+      "line_start": 120,
+      "line_end": 120,
+      "signature": "<span id=\"sCount\">\u2014</span><span id=\"sMsg\"></span><span id=\"zoomctl\" role=\"group\" aria-label=\"Taille du texte de l'interface\"><span class=\"zl\">Texte</span><button class=\"zstep\" type=\"button\" id=\"zoomOut\" title=\"R\u00e9duire la taille du texte\" aria-label=\"R\u00e9duire la taille du texte\">-</button><span class=\"zbar\"><span class=\"zfill\" id=\"zfill\"></span><input type=\"range\" id=\"zoomRange\" min=\"0\" max=\"100\" st"
     }
   ]
 }

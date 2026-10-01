@@ -56,18 +56,16 @@ export function buildAppArgs(url: string): string[] {
 /** Open the URL with the system browser (a tab, not an app window). */
 export function openUrl(url: string, platform: string = process.platform): boolean {
   try {
-    let child;
-    if (platform === "win32") {
-      child = spawn("cmd.exe", ["/d", "/s", "/c", "start", "", url], {
-        detached: true,
-        stdio: "ignore",
-        windowsHide: true,
-      });
-    } else if (platform === "darwin") {
-      child = spawn("open", [url], { detached: true, stdio: "ignore" });
-    } else {
-      child = spawn("xdg-open", [url], { detached: true, stdio: "ignore" });
-    }
+    const child =
+      platform === "win32"
+        ? spawn("cmd.exe", ["/d", "/s", "/c", "start", "", url], {
+            detached: true,
+            stdio: "ignore",
+            windowsHide: true,
+          })
+        : platform === "darwin"
+          ? spawn("open", [url], { detached: true, stdio: "ignore" })
+          : spawn("xdg-open", [url], { detached: true, stdio: "ignore" });
     child.unref();
     return true;
   } catch {

@@ -2,15 +2,16 @@
 const http = require("http");
 const token = process.argv[2];
 const req = http.get(
-  { host: "127.0.0.1", port: 7433, path: "/events?k=" + token, headers: { Accept: "text/event-stream" } },
+  { host: "127.0.0.1", port: 7433, path: `/events?k=${token}`, headers: { Accept: "text/event-stream" } },
   (res) => {
     let buf = "";
     let terms = 0;
     let states = 0;
     res.on("data", (d) => {
       buf += d.toString("utf8");
-      let idx;
-      while ((idx = buf.indexOf("\n\n")) >= 0) {
+      while (true) {
+        const idx = buf.indexOf("\n\n");
+        if (idx < 0) break;
         const chunk = buf.slice(0, idx);
         buf = buf.slice(idx + 2);
         if (chunk.includes('"t":"termopen"')) terms++;
@@ -18,7 +19,7 @@ const req = http.get(
       }
     });
     setTimeout(() => {
-      console.log("etats-session:" + states + " terminaux-ouverts:" + terms);
+      console.log(`etats-session:${states} terminaux-ouverts:${terms}`);
       console.log(terms > 0 && states > 0 ? "BRANCHE OK" : "PAS BRANCHE");
       process.exit(terms > 0 && states > 0 ? 0 : 1);
     }, 4000);

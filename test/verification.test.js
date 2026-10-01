@@ -165,21 +165,18 @@ test("private acceptance command stays in the host instead of becoming an inacce
 });
 
 test("recovery from failed edits uses known project failures without spending final acceptance attempts", async (t) => {
-  // This scenario drives the agent with a strict call-count script AND a real
-  // shell command. The harness can legitimately insert an extra verification
-  // round between turns, which shifts the script and makes the run
-  // order-dependent — it failed ~1 run in 3 on Windows. The behaviour it
-  // guards (progress checks reuse known failures, acceptance budget is not
-  // spent early) is covered by the neighbouring deterministic tests, so this
-  // one is skipped rather than left to flake.
-  t.skip("order-dependent scripted turns + real shell; covered by adjacent tests");
-  let calls = 0,
-    progressChecks = 0;
+  let stage = 0;
+  let progressChecks = 0;
+  const observedTools = [];
+  const checkResults = [];
   const { agent, workspace, bus } = setup(
     t,
-    async () => {
-      calls++;
-      if (calls === 1)
+    async (_messages, tools) => {
+      // Context compaction also calls the provider, but deliberately supplies
+      // no tools. Keep those narrative requests out of the scripted agent turn.
+      if (!tools?.length) return answer();
+      if (stage === 0) {
+        stage = 1;
         return {
           content: "",
           toolCalls: Array.from({ length: 24 }, (_, i) => ({
@@ -188,7 +185,9 @@ test("recovery from failed edits uses known project failures without spending fi
             args: { path: "app.txt", content: `revision ${i}` },
           })),
         };
-      if (calls === 2)
+      }
+      if (stage === 1 && progressChecks >= 1) {
+        stage = 2;
         return {
           content: "",
           toolCalls: Array.from({ length: 6 }, (_, i) => ({
@@ -197,16 +196,38 @@ test("recovery from failed edits uses known project failures without spending fi
             args: { path: "app.txt", old_text: "not in the file", new_text: "fixed" },
           })),
         };
-      if (calls === 3)
+      }
+      if (stage === 2 && progressChecks >= 2) {
+        stage = 3;
         return { content: "", toolCalls: [{ id: "fix", name: "write_file", args: { path: "ready.txt", content: "ready" } }] };
+      }
       return answer();
     },
     { command: "node verify.cjs", maxAttempts: 1 }
   );
   fs.writeFileSync(path.join(workspace, "verify.cjs"), `if(!require('fs').existsSync('ready.txt'))process.exit(42)`);
   fs.writeFileSync(path.join(workspace, "package.json"), JSON.stringify({ scripts: { test: "node verify.cjs" } }));
-  bus.on("post_progress_check", () => progressChecks++);
-  await agent.runTurn("Build");
+  bus.on("post_tool", (event) => observedTools.push({ name: event.name, args: event.args }));
+  bus.on("post_progress_check", (event) => {
+    progressChecks++;
+    checkResults.push({ kind: "progress", passed: event.passed, output: event.output });
+  });
+  bus.on("post_verify", (event) => checkResults.push({ kind: "acceptance", ...event }));
+  try {
+    await agent.runTurn("Build");
+  } catch (error) {
+    throw new Error(
+      `${error.message}\nrecovery debug: ${JSON.stringify({
+        stage,
+        progressChecks,
+        readyExists: fs.existsSync(path.join(workspace, "ready.txt")),
+        verification: agent.verification,
+        verificationResult: agent.verificationResult,
+        tools: observedTools.map((event) => event.name),
+        checkResults,
+      })}`
+    );
+  }
   assert.equal(agent.outcome, "completed");
   // Known project failures drive the recovery, and the number of progress
   // checks depends on how the agent sequences its calls (a failing edit is not
@@ -400,7 +421,10 @@ test("after acceptance fails, periodic checks use that oracle and a final summar
     progressChecks = 0;
   const { agent, workspace, bus } = setup(
     t,
-    async () => {
+    async (_messages, tools) => {
+      // Context compaction also calls the provider, but deliberately supplies
+      // no tools. Keep those narrative requests out of the scripted agent turn.
+      if (!tools?.length) return answer();
       calls++;
       if (calls === 1 || calls === 26) return answer();
       if (calls === 2)

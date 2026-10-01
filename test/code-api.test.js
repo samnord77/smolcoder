@@ -130,8 +130,9 @@ function followShare(hub, path) {
       let buf = "";
       res.on("data", (d) => {
         buf += d;
-        let i;
-        while ((i = buf.indexOf("\n\n")) >= 0) {
+        while (true) {
+          const i = buf.indexOf("\n\n");
+          if (i < 0) break;
           const chunk = buf.slice(0, i);
           buf = buf.slice(i + 2);
           if (chunk.startsWith("data: ")) {

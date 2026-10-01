@@ -52,7 +52,12 @@ export function htmlToText(html: string): { title: string; text: string } {
     .map((l) => l.replace(/[ \t\r\f]+/g, " ").trim())
     .filter(Boolean);
   const seen = new Set<string>();
-  const deduped = lines.filter((l) => (l.length < 40 || !seen.has(l) ? (seen.add(l), true) : false));
+  const deduped = lines.filter((l) => {
+    if (l.length < 40) return true;
+    if (seen.has(l)) return false;
+    seen.add(l);
+    return true;
+  });
   return { title, text: deduped.join("\n") };
 }
 

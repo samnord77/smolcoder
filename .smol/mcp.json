@@ -2,37 +2,56 @@
   {
     "name": "files",
     "command": "npx",
-    "args": ["-y", "@modelcontextprotocol/server-filesystem", "."],
+    "args": [
+      "-y",
+      "@modelcontextprotocol/server-filesystem",
+      "."
+    ],
     "timeoutMs": 120000
   },
   {
     "name": "fetch",
     "command": "uvx",
-    "args": ["mcp-server-fetch"],
+    "args": [
+      "mcp-server-fetch"
+    ],
     "timeoutMs": 120000
   },
   {
     "name": "thinking",
     "command": "npx",
-    "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"],
+    "args": [
+      "-y",
+      "@modelcontextprotocol/server-sequential-thinking"
+    ],
     "timeoutMs": 120000
   },
   {
     "name": "everything",
     "command": "npx",
-    "args": ["-y", "@modelcontextprotocol/server-everything"],
-    "timeoutMs": 120000
+    "args": [
+      "-y",
+      "@modelcontextprotocol/server-everything"
+    ],
+    "timeoutMs": 120000,
+    "enabled": true
   },
   {
     "name": "browser",
     "command": "npx",
-    "args": ["-y", "@playwright/mcp"],
+    "args": [
+      "-y",
+      "@playwright/mcp"
+    ],
     "timeoutMs": 120000
   },
   {
     "name": "browse",
     "command": "uvx",
-    "args": ["browser-use[cli]", "--mcp"],
+    "args": [
+      "browser-use[cli]",
+      "--mcp"
+    ],
     "timeoutMs": 120000
   },
   {

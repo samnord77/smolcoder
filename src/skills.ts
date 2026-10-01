@@ -220,27 +220,30 @@ export function describeSkills(root: string): SkillInfo[] {
   return out.slice(0, 200);
 }
 
-/** Skills whose vocabulary overlaps the request (score >= 2 shared keywords),
- * best match first. Shared by the text loader and the live status view. */
+/** Skills whose name or declared description overlaps the request, best match first.
+ * Shared by the text loader and the live status view. */
 function matchingSkills(root: string, request: string): { name: string; score: number; excerpt: string }[] {
   const req = keywords(String(request ?? ""));
   if (!req.size) return [];
   const hits: { name: string; score: number; excerpt: string }[] = [];
   for (const s of allSkillTexts(root)) {
-    const words = keywords(`${s.name.replace(/[-_]/g, " ")} ${s.text}`);
-    let score = 0;
-    for (const w of req) if (words.has(w)) score++;
     const nameWords = keywords(s.name.replace(/[-_]/g, " "));
-    const directName = [...req].some((w) => nameWords.has(w));
-    if (score >= 2 || directName)
-      hits.push({ name: s.name, score: directName ? Math.max(score, 3) : score, excerpt: s.text.slice(0, 600) });
+    const description = skillMeta(s.text).description;
+    const summary = description ?? s.text.replace(/^---[ \t]*\r?\n[\s\S]*?\r?\n---[ \t]*(?:\r?\n|$)/, "").slice(0, 500);
+    const summaryWords = keywords(summary);
+    const nameMatches = [...req].filter((word) => nameWords.has(word)).length;
+    const summaryMatches = [...req].filter((word) => summaryWords.has(word)).length;
+    const score = nameMatches * 2 + summaryMatches;
+    if (nameMatches > 0 || summaryMatches >= 2) {
+      hits.push({ name: s.name, score, excerpt: s.text.slice(0, 600) });
+    }
   }
   hits.sort((a, b) => b.score - a.score);
   return hits;
 }
 
-/** Skills whose vocabulary overlaps the request. Returns "" when none match
- * (score >= 2 shared keywords). Capped so small contexts stay safe. */
+/** Relevant skills are selected from their name/description, not generic
+ * vocabulary buried in the full instructions. Capped to protect small contexts. */
 export function relevantSkills(root: string, request: string, maxChars = 1200): string {
   try {
     let out = "";

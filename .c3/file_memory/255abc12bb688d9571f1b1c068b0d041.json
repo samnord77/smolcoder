@@ -1,10 +1,10 @@
 {
   "path": "desktop/main.js",
-  "content_hash": "61f3ded92865db6b9803738234661419",
-  "updated_at": "2026-09-28T11:23:59",
-  "lines": 728,
-  "size_bytes": 27444,
-  "mtime_ns": 1790590847130499800,
+  "content_hash": "c3b0e86fd79f5b8cb5f77498719f0f90",
+  "updated_at": "2026-09-30T22:58:50",
+  "lines": 735,
+  "size_bytes": 27913,
+  "mtime_ns": 1790786559407175100,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -32,185 +32,206 @@
     },
     {
       "type": "constant",
-      "name": "gitService",
-      "line_start": 9,
-      "line_end": 9,
-      "signature": "const gitService = require(\"./git-service\");"
-    },
-    {
-      "type": "constant",
-      "name": "editorFileService",
+      "name": "ROOT",
       "line_start": 10,
       "line_end": 10,
-      "signature": "const editorFileService = require(\"./editor-file-service\");"
-    },
-    {
-      "type": "constant",
-      "name": "ROOT",
-      "line_start": 12,
-      "line_end": 12,
       "signature": "const ROOT = path.join(__dirname, \"..\"); // smolcoder-source"
     },
     {
       "type": "constant",
       "name": "DIST_INDEX",
-      "line_start": 13,
-      "line_end": 13,
+      "line_start": 11,
+      "line_end": 11,
       "signature": "const DIST_INDEX = path.join(ROOT, \"dist\", \"index.js\");"
+    },
+    {
+      "type": "constant",
+      "name": "DIST_SANDBOX",
+      "line_start": 12,
+      "line_end": 12,
+      "signature": "const DIST_SANDBOX = path.join(ROOT, \"dist\", \"sandbox.js\");"
     },
     {
       "type": "variable",
       "name": "APP_VERSION",
+      "line_start": 13,
+      "line_end": 13,
+      "signature": "let APP_VERSION = \"0.0.0\";"
+    },
+    {
+      "type": "variable",
+      "name": "gitService",
       "line_start": 14,
       "line_end": 14,
-      "signature": "let APP_VERSION = \"0.0.0\";"
+      "signature": "let gitService;"
+    },
+    {
+      "type": "variable",
+      "name": "editorFileService",
+      "line_start": 15,
+      "line_end": 15,
+      "signature": "let editorFileService;"
+    },
+    {
+      "type": "variable",
+      "name": "resolveInWorkspace",
+      "line_start": 16,
+      "line_end": 16,
+      "signature": "let resolveInWorkspace;"
+    },
+    {
+      "type": "variable",
+      "name": "searchWorkspace",
+      "line_start": 17,
+      "line_end": 17,
+      "signature": "let searchWorkspace;"
     },
     {
       "type": "function",
       "name": "distState",
-      "line_start": 22,
-      "line_end": 33,
+      "line_start": 25,
+      "line_end": 37,
       "signature": "function distState() {",
       "doc": "dist/ state via the shared checker when built, else a local fallback."
     },
     {
       "type": "function",
       "name": "runBuild",
-      "line_start": 35,
-      "line_end": 66,
+      "line_start": 39,
+      "line_end": 70,
       "signature": "function runBuild() {"
     },
     {
       "type": "variable",
       "name": "hubRec",
-      "line_start": 70,
-      "line_end": 70,
+      "line_start": 72,
+      "line_end": 72,
       "signature": "let hubRec = null;"
     },
     {
       "type": "variable",
       "name": "hubBase",
-      "line_start": 71,
-      "line_end": 71,
+      "line_start": 73,
+      "line_end": 73,
       "signature": "let hubBase = \"\";"
     },
     {
       "type": "variable",
       "name": "activeSid",
-      "line_start": 72,
-      "line_end": 72,
+      "line_start": 74,
+      "line_end": 74,
       "signature": "let activeSid = null;"
     },
     {
       "type": "variable",
       "name": "mainWin",
-      "line_start": 73,
-      "line_end": 73,
+      "line_start": 75,
+      "line_end": 75,
       "signature": "let mainWin = null;"
     },
     {
       "type": "variable",
       "name": "editorWin",
-      "line_start": 74,
-      "line_end": 74,
+      "line_start": 76,
+      "line_end": 76,
       "signature": "let editorWin = null;"
     },
     {
       "type": "variable",
       "name": "editorRoot",
-      "line_start": 75,
-      "line_end": 75,
+      "line_start": 77,
+      "line_end": 77,
       "signature": "let editorRoot = null;"
     },
     {
       "type": "variable",
       "name": "currentProjectDir",
-      "line_start": 76,
-      "line_end": 76,
+      "line_start": 78,
+      "line_end": 78,
       "signature": "let currentProjectDir = ROOT;"
     },
     {
       "type": "variable",
       "name": "hubWatchTimer",
-      "line_start": 77,
-      "line_end": 77,
+      "line_start": 79,
+      "line_end": 79,
       "signature": "let hubWatchTimer = null;"
     },
     {
       "type": "function",
       "name": "hubMsg",
-      "line_start": 79,
-      "line_end": 81,
+      "line_start": 81,
+      "line_end": 83,
       "signature": "function hubMsg(text) {"
     },
     {
       "type": "function",
       "name": "errBox",
-      "line_start": 83,
-      "line_end": 85,
+      "line_start": 85,
+      "line_end": 87,
       "signature": "function errBox(msg) {"
     },
     {
       "type": "function",
       "name": "stopHubWatchdog",
-      "line_start": 87,
-      "line_end": 92,
+      "line_start": 89,
+      "line_end": 94,
       "signature": "function stopHubWatchdog() {"
     },
     {
       "type": "function",
       "name": "startHubWatchdog",
-      "line_start": 94,
-      "line_end": 121,
+      "line_start": 96,
+      "line_end": 123,
       "signature": "function startHubWatchdog(win) {"
     },
     {
       "type": "function",
       "name": "openMainWindow",
-      "line_start": 123,
-      "line_end": 157,
+      "line_start": 125,
+      "line_end": 159,
       "signature": "function openMainWindow() {"
     },
     {
       "type": "function",
       "name": "openEditor",
-      "line_start": 159,
-      "line_end": 175,
+      "line_start": 161,
+      "line_end": 177,
       "signature": "function openEditor() {"
     },
     {
       "type": "variable",
       "name": "panelWin",
-      "line_start": 177,
-      "line_end": 177,
+      "line_start": 179,
+      "line_end": 179,
       "signature": "let panelWin = null;"
     },
     {
       "type": "variable",
       "name": "gitWin",
-      "line_start": 178,
-      "line_end": 178,
+      "line_start": 180,
+      "line_end": 180,
       "signature": "let gitWin = null;"
     },
     {
       "type": "function",
       "name": "openGit",
-      "line_start": 180,
-      "line_end": 189,
+      "line_start": 182,
+      "line_end": 191,
       "signature": "function openGit() {"
     },
     {
       "type": "function",
       "name": "openPanel",
-      "line_start": 191,
-      "line_end": 207,
+      "line_start": 193,
+      "line_end": 209,
       "signature": "function openPanel() {"
     },
     {
       "type": "function",
       "name": "openShare",
-      "line_start": 210,
-      "line_end": 227,
+      "line_start": 212,
+      "line_end": 229,
       "signature": "async function openShare() {",
       "async": true,
       "doc": "Read-only live-follow link for the current session (copied to clipboard)."
@@ -218,29 +239,29 @@
     {
       "type": "function",
       "name": "buildMenu",
-      "line_start": 229,
-      "line_end": 323,
+      "line_start": 231,
+      "line_end": 325,
       "signature": "function buildMenu() {"
     },
     {
       "type": "function",
       "name": "assertRoot",
-      "line_start": 326,
-      "line_end": 329,
+      "line_start": 328,
+      "line_end": 331,
       "signature": "function assertRoot() {"
     },
     {
       "type": "constant",
       "name": "SKIP_DIRS",
-      "line_start": 331,
-      "line_end": 331,
+      "line_start": 333,
+      "line_end": 333,
       "signature": "const SKIP_DIRS = new Set([\"node_modules\", \".git\", \"dist\", \".smolcoder\"]);"
     },
     {
       "type": "function",
       "name": "activeWorkspace",
-      "line_start": 490,
-      "line_end": 500,
+      "line_start": 493,
+      "line_end": 503,
       "signature": "async function activeWorkspace() {",
       "async": true
     }

@@ -51,6 +51,7 @@ export const PAGE_HTML = `<!doctype html>
     <span class="grow"></span>
     <button type="button" class="iconbtn" id="keys" title="Raccourcis clavier" aria-label="Raccourcis clavier">?</button>
   </div>
+  <div id="sidegrip" title="Glisser pour redimensionner" aria-hidden="true"></div>
 </aside>
 <div id="main" role="main">
   <div id="top" role="toolbar" aria-label="Barre d'outils IDE">
@@ -63,6 +64,7 @@ export const PAGE_HTML = `<!doctype html>
     <button type="button" class="iconbtn" id="btnreview" title="Revue des modifications (diff par hunk)">Δ</button>
     <button type="button" class="iconbtn" id="btnstatus" title="Centre de Contrôle Pro">${ICON_GAUGE}</button>
   </div>
+  <div id="plantop" aria-live="polite" hidden></div>
   <div id="logwrap" tabindex="0" role="region" aria-label="Historique des échanges">
     <div id="welcome" hidden>
       <div id="logo" role="img" aria-label="smolcoder">${LOGO_TEXT}   <span class="coder">coder — web</span></div>

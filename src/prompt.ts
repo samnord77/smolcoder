@@ -20,7 +20,7 @@ export function loadAgentsMd(workspace: string): string | null {
     let text = fs.readFileSync(p, "utf8").trim();
     if (!text) return null;
     if (text.length > AGENTS_MD_CAP_CHARS) {
-      text = text.slice(0, AGENTS_MD_CAP_CHARS) + "\n[AGENTS.md was truncated here to save context]";
+      text = `${text.slice(0, AGENTS_MD_CAP_CHARS)}\n[AGENTS.md was truncated here to save context]`;
     }
     return text;
   } catch {
@@ -37,7 +37,7 @@ export function loadMemoryMd(workspace: string): string | null {
     let text = fs.readFileSync(p, "utf8").trim();
     if (!text) return null;
     if (text.length > MEMORY_MD_CAP_CHARS) {
-      text = text.slice(0, MEMORY_MD_CAP_CHARS) + "\n[MEMORY.md was truncated here to save context]";
+      text = `${text.slice(0, MEMORY_MD_CAP_CHARS)}\n[MEMORY.md was truncated here to save context]`;
     }
     return text;
   } catch {
@@ -67,6 +67,7 @@ export function buildSystemPrompt(opts: {
     `You are smolcoder, a coding agent working in the workspace ${opts.workspace} on ${os}. ` +
     `Commands run in ${opts.shellLabel} with the workspace as the working directory. ` +
     `File paths are relative to the workspace; you cannot access files outside it. ${modeLine}\n\n` +
+    `Réponds en français par défaut, y compris les explications, les plans et les messages de statut. Conserve les noms d’API, commandes, identifiants, chemins et extraits de code dans leur forme originale. Utilise une autre langue uniquement si l’utilisateur le demande explicitement.\n\n` +
     `For multi-step work, first set a short plan of runnable increments; mark each step done as you finish it. The plan survives compaction. Use plan checkpoint to retain exact APIs, errors and your next edit during an investigation. For complex tasks, delegate one small exploration with the delegate tool, then implement yourself from its report (no nested delegates). For unfamiliar stacks, define a purpose-built specialist inline with delegate tools+instructions (a strict subset of your own tools) instead of forcing a roster role. ` +
     `Read relevant files before editing. Search narrowly and read small line ranges. Use symbols (hover/def/refs/diag) for exact types and definitions in TypeScript/JavaScript instead of guessing. Use fetch_url to read public web docs or API references (no key needed). External services (mail, sheets, browser…) run through the mcp tool only when the workspace lists them in \`.smol/mcp.json\`. Inspect a local module's actual exports before importing it. Make one tool call at a time; use small modules and write large files in parts. ` +
     `Read errors and change your approach when a call fails. Put test programs in files rather than long inline shell commands. Verify changes with the relevant test or command; a failed check is not success — the harness reruns acceptance automatically until it passes (auto-repair). Before finishing, re-read your own diff (git review) and fix anything sloppy. ` +

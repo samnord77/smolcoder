@@ -257,7 +257,7 @@ export function runCommand(command: string, cwd: string, signal?: AbortSignal, o
       stopWaiting();
       release();
       destroy();
-      resolve((output.trim() ? `${truncateMiddle(output, OUTPUT_CAP)}\n` : "") + "[command cancelled by the user before it finished]");
+      resolve(`${output.trim() ? `${truncateMiddle(output, OUTPUT_CAP)}\n` : ""}[command cancelled by the user before it finished]`);
     };
     signal?.addEventListener("abort", onAbort, { once: true });
     const cleanup = () => signal?.removeEventListener("abort", onAbort);
@@ -268,9 +268,7 @@ export function runCommand(command: string, cwd: string, signal?: AbortSignal, o
       release();
       destroy();
       resolve(
-        "Error: " +
-          truncateMiddle(output, OUTPUT_CAP) +
-          `\n[command timed out after ${Math.round(timeoutMs / 1000)}s and was killed. For tests/builds, isolate the stuck test or phase and inspect its loop or initialization before rerunning. For a persistent dev server, use task {"action": "start"}.]`
+        `Error: ${truncateMiddle(output, OUTPUT_CAP)}\n[command timed out after ${Math.round(timeoutMs / 1000)}s and was killed. For tests/builds, isolate the stuck test or phase and inspect its loop or initialization before rerunning. For a persistent dev server, use task {"action": "start"}.]`
       );
     };
     let timer = setTimeout(killTimeout, timeoutMs);
@@ -308,7 +306,7 @@ export function runCommand(command: string, cwd: string, signal?: AbortSignal, o
         stopWaiting();
         release();
         destroy();
-        resolve((output.trim() ? `${truncateMiddle(output, OUTPUT_CAP)}\n` : "") + "[command cancelled by the user]");
+        resolve(`${output.trim() ? `${truncateMiddle(output, OUTPUT_CAP)}\n` : ""}[command cancelled by the user]`);
       },
     };
     liveShells.add(ctl);

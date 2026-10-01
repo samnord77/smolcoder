@@ -8,6 +8,60 @@ export interface DiffLine {
   text: string;
 }
 
+/** Per-current-line markers for the editor gutter. A removed line is attached
+ * to the nearest surviving line so both deletion and insertion stay visible. */
+export function lineChangeFlags(oldText: string, newText: string): Array<{ added: boolean; removed: boolean }> {
+  const oldLines = String(oldText ?? "").split("\n");
+  const newLines = String(newText ?? "").split("\n");
+  const flags = newLines.map(() => ({ added: false, removed: false }));
+  if (oldLines.length > 1500 || newLines.length > 1500) {
+    for (let i = 0; i < newLines.length; i++) {
+      if (oldLines[i] !== newLines[i]) flags[i] = { added: true, removed: oldLines[i] !== undefined };
+    }
+    return flags;
+  }
+
+  const width = newLines.length + 1;
+  const lcs = new Uint16Array((oldLines.length + 1) * width);
+  for (let i = oldLines.length - 1; i >= 0; i--) {
+    for (let j = newLines.length - 1; j >= 0; j--) {
+      lcs[i * width + j] =
+        oldLines[i] === newLines[j]
+          ? lcs[(i + 1) * width + j + 1] + 1
+          : Math.max(lcs[(i + 1) * width + j], lcs[i * width + j + 1]);
+    }
+  }
+
+  let i = 0;
+  let j = 0;
+  const markRemoved = (at: number) => {
+    if (flags.length) flags[Math.min(at, flags.length - 1)].removed = true;
+  };
+  while (i < oldLines.length && j < newLines.length) {
+    if (oldLines[i] === newLines[j]) {
+      i++;
+      j++;
+    } else if (lcs[(i + 1) * width + j] >= lcs[i * width + j + 1]) {
+      markRemoved(j);
+      i++;
+    } else {
+      flags[j].added = true;
+      j++;
+    }
+  }
+  while (i < oldLines.length) {
+    markRemoved(j);
+    i++;
+  }
+  while (j < newLines.length) {
+    flags[j].added = true;
+    j++;
+  }
+  return flags;
+}
+
+export const browserLineChangeSource = `const lineChangeFlags = (${lineChangeFlags.toString()});`;
+
 const MAX_INPUT_LINES = 200;
 const MAX_OUT_LINES = 80;
 const COLLAPSE_AFTER = 3;

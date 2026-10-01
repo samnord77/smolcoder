@@ -68,7 +68,7 @@ export function truncateMiddle(s: string, maxChars: number): string {
   const head = Math.floor(maxChars * 0.6);
   const tail = maxChars - head;
   const omitted = s.length - maxChars;
-  return s.slice(0, head) + `\n... [${omitted} characters omitted to save context] ...\n` + s.slice(s.length - tail);
+  return `${s.slice(0, head)}\n... [${omitted} characters omitted to save context] ...\n${s.slice(s.length - tail)}`;
 }
 
 export function truncateEnd(s: string, maxChars: number, note?: string): string {

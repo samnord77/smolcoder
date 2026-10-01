@@ -1,0 +1,19 @@
+{
+  "job_id": "244ffd8c1b02",
+  "kind": "session_digest",
+  "session_id": "20260929_185128_e6b086474362",
+  "created_at": "2026-09-29T18:51:34.830880+00:00",
+  "updated_at": "2026-09-29T18:57:18.133388+00:00",
+  "attempts": 2,
+  "status": "done_degraded",
+  "last_error": "no LLM tier available",
+  "tier_used": "mechanical",
+  "payload": {
+    "session_file": "C:\\Users\\DELL\\smolcoder-source\\.c3\\sessions\\session_20260929_185128_e6b086474362.json",
+    "started_at": "2026-09-29T18:51:28.689611+00:00",
+    "ended_at": "2026-09-29T18:51:34.826166+00:00",
+    "description": "MCP server session",
+    "decisions": [],
+    "files_touched": []
+  }
+}

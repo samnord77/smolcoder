@@ -1,10 +1,10 @@
 {
   "path": "desktop/editor-file-service.js",
-  "content_hash": "b78320549172e91eb77228d4d7ff72e2",
-  "updated_at": "2026-09-26T17:56:05",
-  "lines": 40,
-  "size_bytes": 2033,
-  "mtime_ns": 1790423194839130400,
+  "content_hash": "10fae33eefef42e506c7deba83284a48",
+  "updated_at": "2026-09-30T22:56:44",
+  "lines": 66,
+  "size_bytes": 2983,
+  "mtime_ns": 1790786613338528900,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -31,24 +31,45 @@
       "signature": "const MAX_EDITOR_FILE_BYTES = 1024 * 1024;"
     },
     {
+      "type": "constant",
+      "name": "MAX_EDITOR_IMAGE_BYTES",
+      "line_start": 6,
+      "line_end": 6,
+      "signature": "const MAX_EDITOR_IMAGE_BYTES = 8 * 1024 * 1024;"
+    },
+    {
+      "type": "constant",
+      "name": "IMAGE_MIME_TYPES",
+      "line_start": 7,
+      "line_end": 16,
+      "signature": "const IMAGE_MIME_TYPES = {"
+    },
+    {
       "type": "function",
       "name": "workspacePath",
-      "line_start": 7,
-      "line_end": 10,
+      "line_start": 18,
+      "line_end": 21,
       "signature": "function workspacePath(workspace, requested) {"
     },
     {
       "type": "function",
       "name": "readWorkspaceFile",
-      "line_start": 12,
-      "line_end": 18,
+      "line_start": 23,
+      "line_end": 29,
       "signature": "function readWorkspaceFile(workspace, requested) {"
     },
     {
       "type": "function",
+      "name": "readWorkspaceImage",
+      "line_start": 31,
+      "line_end": 44,
+      "signature": "function readWorkspaceImage(workspace, requested) {"
+    },
+    {
+      "type": "function",
       "name": "saveWorkspaceFile",
-      "line_start": 20,
-      "line_end": 38,
+      "line_start": 46,
+      "line_end": 64,
       "signature": "function saveWorkspaceFile(workspace, requested, content, expectedMtimeMs) {"
     }
   ]

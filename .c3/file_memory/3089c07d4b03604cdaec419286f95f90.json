@@ -1,0 +1,127 @@
+{
+  "path": "src/status.ts",
+  "content_hash": "cb8980116aa0fc54c9e53dd0d7d6a5a4",
+  "updated_at": "2026-09-30T10:11:36",
+  "lines": 181,
+  "size_bytes": 7898,
+  "mtime_ns": 1790757891678049000,
+  "language": "typescript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "import",
+      "name": "import { spawnSync } from \"node:child_process\";",
+      "line_start": 4,
+      "line_end": 4,
+      "signature": "import { spawnSync } from \"node:child_process\";"
+    },
+    {
+      "type": "import",
+      "name": "import * as fs from \"node:fs\";",
+      "line_start": 5,
+      "line_end": 5,
+      "signature": "import * as fs from \"node:fs\";"
+    },
+    {
+      "type": "import",
+      "name": "import * as os from \"node:os\";",
+      "line_start": 6,
+      "line_end": 6,
+      "signature": "import * as os from \"node:os\";"
+    },
+    {
+      "type": "import",
+      "name": "import * as path from \"node:path\";",
+      "line_start": 7,
+      "line_end": 7,
+      "signature": "import * as path from \"node:path\";"
+    },
+    {
+      "type": "import",
+      "name": "import { lspAvailability } from \"./lsp-pro\";",
+      "line_start": 8,
+      "line_end": 8,
+      "signature": "import { lspAvailability } from \"./lsp-pro\";"
+    },
+    {
+      "type": "import",
+      "name": "import { loadMcpConfig } from \"./mcp\";",
+      "line_start": 9,
+      "line_end": 9,
+      "signature": "import { loadMcpConfig } from \"./mcp\";"
+    },
+    {
+      "type": "import",
+      "name": "import { loadSubagentRoles } from \"./subagents\";",
+      "line_start": 10,
+      "line_end": 10,
+      "signature": "import { loadSubagentRoles } from \"./subagents\";"
+    },
+    {
+      "type": "import",
+      "name": "import { projectVerification } from \"./verification\";",
+      "line_start": 11,
+      "line_end": 11,
+      "signature": "import { projectVerification } from \"./verification\";"
+    },
+    {
+      "type": "constant",
+      "name": "BUILD_STATUS_TTL_MS",
+      "line_start": 13,
+      "line_end": 13,
+      "signature": "const BUILD_STATUS_TTL_MS = Math.max(5_000, Number(process.env.SMOLCODER_STATUS_BUILD_TTL_MS) || 30_000);"
+    },
+    {
+      "type": "constant",
+      "name": "buildStatusCache",
+      "line_start": 14,
+      "line_end": 14,
+      "signature": "const buildStatusCache = new Map<string, { at: number; command: string; result: { command: string; state: string } }>();"
+    },
+    {
+      "type": "interface",
+      "name": "StatusReport",
+      "line_start": 16,
+      "line_end": 29,
+      "signature": "interface StatusReport {",
+      "children": []
+    },
+    {
+      "type": "function",
+      "name": "isLocalModel",
+      "line_start": 31,
+      "line_end": 34,
+      "signature": "function isLocalModel(host: string, id: string): boolean {"
+    },
+    {
+      "type": "function",
+      "name": "runBuildCheck",
+      "line_start": 38,
+      "line_end": 60,
+      "signature": "function runBuildCheck(workspace: string): { command: string; state: string } {"
+    },
+    {
+      "type": "function",
+      "name": "invalidateBuildCheck",
+      "line_start": 63,
+      "line_end": 66,
+      "signature": "function invalidateBuildCheck(workspace: string): void {"
+    },
+    {
+      "type": "function",
+      "name": "buildStatusReport",
+      "line_start": 68,
+      "line_end": 152,
+      "signature": "async function buildStatusReport(opts: {",
+      "async": true
+    },
+    {
+      "type": "function",
+      "name": "renderStatusText",
+      "line_start": 156,
+      "line_end": 181,
+      "signature": "function renderStatusText(r: StatusReport): string {"
+    }
+  ]
+}

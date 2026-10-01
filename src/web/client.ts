@@ -2,6 +2,7 @@ import { browserCrdtSource } from "../crdt";
 import { editorTabStoreBrowserSource } from "../editor-tabs";
 import { editorToolsBrowserSource } from "../editor-tools";
 import { browserHighlighterSource } from "../highlight";
+import { browserLineChangeSource } from "./diff";
 // The browser-side script for the web page. Plain JS in a raw template string
 // (no build step, no dependencies). Rules: no template literals in here, and
 // a literal backtick is written as \` — String.raw hands it through as-is.
@@ -14,6 +15,7 @@ import { browserHighlighterSource } from "../highlight";
 export const CLIENT_JS = String.raw`
 "use strict";
 ${browserHighlighterSource}
+${browserLineChangeSource}
 ${browserCrdtSource}
 const makeEditorTabStore = ${editorTabStoreBrowserSource};
 const editorTools = ${editorToolsBrowserSource};
@@ -39,7 +41,7 @@ const ls = {
   get(key) { try { return localStorage.getItem(key); } catch (e) { return null; } },
   set(key, v) { try { localStorage.setItem(key, v); } catch (e) {} },
 };
-const logwrap = $("logwrap"), logsEl = $("logs"), busyEl = $("busy"), actionBtn = $("actionbtn");
+const logwrap = $("logwrap"), logsEl = $("logs"), busyEl = $("busy"), actionBtn = $("actionbtn"), planTop = $("plantop");
 const jumpBottom = $("jumpbottom");
 const input = $("input"), menu = $("menu"), sideEl = $("side"), panelEl = $("panel"), tabsEl = $("paneltabs");
 const filesBtn = $("btnfiles");
@@ -157,10 +159,13 @@ function renderMarkdown(src) {
 }
 
 // ---- ANSI (terminal output) -----------------------------------------------
-function ansiToFrag(text) {
+function ansiToFrag(text, state) {
   const frag = document.createDocumentFragment();
+  state = state || { classes: [], pending: "" };
+  text = state.pending + String(text || "");
+  state.pending = "";
   const re = /\x1b\[([\d;]*)m/g;
-  let last = 0, m, cls = [];
+  let last = 0, m, cls = state.classes;
   const push = (s) => {
     if (!s) return;
     if (cls.length) frag.appendChild(el("span", cls.join(" "), s)); else frag.appendChild(document.createTextNode(s));
@@ -175,12 +180,18 @@ function ansiToFrag(text) {
       else if (c === 1) cls.push("ab");
       else if (c === 2) cls.push("ad");
       else if (c === 22) cls = cls.filter((x) => x !== "ab" && x !== "ad");
-      else if ((c >= 30 && c <= 37) || (c >= 90 && c <= 97)) { cls = cls.filter((x) => !/^a[39]\d$/.test(x)); cls.push("a" + c); }
-      else if (c === 39) cls = cls.filter((x) => !/^a[39]\d$/.test(x));
+      else if ((c >= 30 && c <= 37) || (c >= 90 && c <= 97)) { cls = cls.filter((x) => !/^a(?:3|9)\d$/.test(x)); cls.push("a" + c); }
+      else if (c === 39) cls = cls.filter((x) => !/^a(?:3|9)\d$/.test(x));
       else if (c === 38 || c === 48) break; // 256/truecolor: not rendered
     }
   }
-  push(text.slice(last));
+  const tail = text.slice(last);
+  const esc = tail.lastIndexOf("\x1b");
+  if (esc >= 0 && (tail.slice(esc).startsWith("\x1b[") || tail.slice(esc) === "\x1b")) {
+    push(tail.slice(0, esc));
+    state.pending = tail.slice(esc);
+  } else push(tail);
+  state.classes = cls;
   return frag;
 }
 
@@ -407,6 +418,164 @@ function renderBusy() {
 }
 
 
+/* Context gauge state. The chip is built once and re-appended on every render:
+   recreating it each time restarted its CSS transition, which is why the bar
+   never appeared to animate. */
+let ctxChip = null, ctxFill = null, ctxNum = null, ctxTrack = null, ctxLastPct = -1;
+
+/** Last project-check verdict per workspace, so the status rail can show a
+ *  real result instead of a permanent "validation en cours". */
+function readCheck(k) {
+  try {
+    const raw = localStorage.getItem(k);
+    if (!raw) return null;
+    const c = JSON.parse(raw);
+    return c && typeof c.state === "string" ? c : null;
+  } catch (e) { return null; }
+}
+function writeCheck(k, c) {
+  try { localStorage.setItem(k, JSON.stringify({ command: c.command, state: c.state, at: Date.now() })); } catch (e) { /* quota: the rail just stays on the last server value */ }
+}
+
+/* ---- Dropdown menus for the status bar -------------------------------
+   The context gauge and the agent-mode chip used to fire a slash command
+   straight into the conversation, so the chat filled with /context, /mcp
+   and /mode lines the user never typed. They now open a real menu. Only one
+   menu is open at a time, and it closes on outside click or Escape. */
+let openMenu = null;
+let openMenuAnchor = null;
+
+function closeStatusMenu() {
+  if (openMenu && openMenu.parentNode) openMenu.parentNode.removeChild(openMenu);
+  openMenu = null;
+  openMenuAnchor = null;
+  document.removeEventListener("mousedown", onStatusMenuDown, true);
+  document.removeEventListener("keydown", onStatusMenuKey, true);
+}
+function onStatusMenuDown(e) {
+  if (openMenu && !openMenu.contains(e.target) && e.target !== openMenuAnchor) closeStatusMenu();
+}
+function onStatusMenuKey(e) {
+  if (e.key === "Escape") { e.stopPropagation(); closeStatusMenu(); }
+}
+/** items: null draws a separator, a string draws a heading, an object with a
+ *  note draws an informative line, anything else draws a clickable row. */
+function statusMenu(anchor, items) {
+  if (openMenu && openMenuAnchor === anchor) { closeStatusMenu(); return; }
+  closeStatusMenu();
+  const m = el("div", "statusmenu");
+  m.setAttribute("role", "menu");
+  for (const it of items) {
+    if (!it) { m.appendChild(el("div", "statusmenu-sep")); continue; }
+    if (typeof it === "string") { m.appendChild(el("div", "statusmenu-head", it)); continue; }
+    if (it.note) { m.appendChild(el("div", "statusmenu-note", it.note)); continue; }
+    const b = el("button", "statusmenu-item" + (it.on ? " on" : ""));
+    b.type = "button";
+    b.setAttribute("role", "menuitem");
+    if (typeof it.on === "boolean") b.setAttribute("aria-checked", it.on ? "true" : "false");
+    b.appendChild(el("span", "mi-label", it.label));
+    if (it.hint) b.appendChild(el("span", "mi-hint", it.hint));
+    if (it.on) b.appendChild(el("span", "mi-tick", "✓"));
+    b.onclick = () => { closeStatusMenu(); if (it.run) it.run(); };
+    m.appendChild(b);
+  }
+  document.body.appendChild(m);
+  const r = anchor.getBoundingClientRect();
+  const mm = m.getBoundingClientRect();
+  const left = Math.max(6, Math.min(r.left, window.innerWidth - mm.width - 6));
+  const below = r.bottom + 4;
+  const top = below + mm.height > window.innerHeight - 6 ? Math.max(6, r.top - mm.height - 4) : below;
+  m.style.left = left + "px";
+  m.style.top = top + "px";
+  openMenu = m;
+  openMenuAnchor = anchor;
+  document.addEventListener("mousedown", onStatusMenuDown, true);
+  document.addEventListener("keydown", onStatusMenuKey, true);
+}
+/** Menu of the context gauge: real actions, not slash commands typed for the
+ *  user, with a plain-language recap of the token budget on top. */
+function contextMenuItems(s, command) {
+  const b = s.context;
+  const out = ["Contexte"];
+  if (b) {
+    out.push({ note: b.prompt.toLocaleString() + " / " + b.window.toLocaleString() + " tokens utilises\n" + b.reserve.toLocaleString() + " reserves pour la reponse · " + b.source });
+  }
+  out.push({ label: "Detail du contexte", hint: "/context", run: () => command("context") });
+  out.push({ label: "Compacter la conversation", hint: "/compact", run: () => command("compact") });
+  out.push(null);
+  out.push({ label: "Effacer la conversation", hint: "/clear", run: () => command("clear") });
+  out.push({ label: "Annuler", hint: "/undo", run: () => command("undo") });
+  out.push({ label: "Rétablir", hint: "/redo", run: () => command("redo") });
+  return out;
+}
+/** Menu of the agent-mode chip. setMode already accepts ro / edit / bypass, so
+ *  picking a row applies that mode directly instead of asking the agent. */
+function modeMenuItems(s, command) {
+  return [
+    "Mode de l’agent",
+    { label: "Lecture seule", hint: "lecture", on: s.mode === "ro", run: () => command("mode ro") },
+    { label: "Edition", hint: "modifie les fichiers", on: s.mode === "edit", run: () => command("mode edit") },
+    { label: "Acces complet (YOLO)", hint: "aucune confirmation", on: s.mode === "bypass", run: () => command("mode bypass") },
+    null,
+    { label: "Cycle de mode", hint: "/mode", run: () => command("mode") },
+  ];
+}
+
+/** Global text-size control. Every size in the stylesheet is in px, so scaling
+ *  the root font would change nothing: Chromium's zoom is what actually
+ *  rescales the whole tree, and the value is kept in localStorage. */
+const ZOOM_MIN = 0.7, ZOOM_MAX = 2;
+let zoomCtl = null, zoomFill = null, zoomRange = null, zoomVal = null, zoomNow = 1;
+function applyZoom(z) {
+  zoomNow = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(z * 100) / 100));
+  // The lightweight client smoke DOM does not implement CSSStyleDeclaration;
+  // zoom is a progressive enhancement and must never prevent the page boot.
+  if (document.body && document.body.style && typeof document.body.style.setProperty === "function") {
+    document.body.style.setProperty("--zoom", String(zoomNow));
+  }
+  try { localStorage.setItem("smol.zoom", String(zoomNow)); } catch (e) { /* quota */ }
+  const p = Math.round(((zoomNow - ZOOM_MIN) / (ZOOM_MAX - ZOOM_MIN)) * 100);
+  if (zoomVal) zoomVal.textContent = Math.round(zoomNow * 100) + "%";
+  if (zoomFill) zoomFill.style.setProperty("--zpct", String(p));
+  if (zoomRange) zoomRange.value = String(p);
+  return zoomNow;
+}
+function ensureZoomCtl() {
+  if (zoomCtl) return zoomCtl;
+  zoomCtl = el("div", "zoomctl");
+  zoomCtl.setAttribute("role", "group");
+  zoomCtl.setAttribute("aria-label", "Taille du texte de l'interface");
+  zoomCtl.appendChild(el("span", "zl", "Texte"));
+  const step = (label, title, dir) => {
+    const b = el("button", "zstep", label);
+    b.type = "button";
+    b.title = title;
+    b.setAttribute("aria-label", title);
+    b.onclick = () => applyZoom(zoomNow + dir);
+    return b;
+  };
+  zoomCtl.appendChild(step("-", "Reduire la taille du texte", -0.05));
+  const bar = el("div", "zbar");
+  zoomFill = el("div", "zfill");
+  zoomRange = document.createElement("input");
+  zoomRange.type = "range";
+  zoomRange.min = "0"; zoomRange.max = "100"; zoomRange.step = "5";
+  zoomRange.setAttribute("aria-label", "Taille du texte en pourcentage");
+  zoomRange.oninput = () => applyZoom(ZOOM_MIN + (+zoomRange.value / 100) * (ZOOM_MAX - ZOOM_MIN));
+  bar.appendChild(zoomFill);
+  bar.appendChild(zoomRange);
+  zoomCtl.appendChild(bar);
+  zoomCtl.appendChild(step("+", "Agrandir la taille du texte", 0.05));
+  zoomVal = el("span", "zval", "100%");
+  zoomCtl.appendChild(zoomVal);
+  applyZoom(zoomNow);
+  return zoomCtl;
+}
+(function restoreZoom() {
+  let z = 1;
+  try { z = parseFloat(localStorage.getItem("smol.zoom")) || 1; } catch (e) { z = 1; }
+  applyZoom(z);
+})();
 function renderState(v) {
   for (const t of v.tabs) if (t.kind === "browser") fillUrls(t, v.state.urls || []);
   for (const t of v.tabs) if (t.kind === "files" && t.refreshMode) t.refreshMode(v.state.mode !== "ro");
@@ -418,7 +587,7 @@ function renderState(v) {
   const command = (name) => post("/msg", { sid: v.sid, text: "/" + name });
   const modeLabel = s.modeLabel || (s.mode === "ro" ? "Read-only" : s.mode === "bypass" ? "YOLO bypass" : "Edit");
   const mode = el("button", "statusbtn mode " + s.mode, modeLabel);
-  mode.title = s.yolo ? "YOLO ACTIF — aucune demande avant d'agir" : "Permission mode"; mode.onclick = () => command("mode");
+  mode.title = s.yolo ? "YOLO ACTIF — aucune demande avant d'agir" : "Mode de l’agent — cliquer pour choisir"; mode.onclick = () => statusMenu(mode, modeMenuItems(s, command));
   st.appendChild(mode);
   const model = el("button", "statusbtn modelpick", s.model + (s.host ? " @ " + s.host : "") + " ▾"); model.title = s.backend + (s.host ? " on " + s.host : "") + " · Switch model or find models on another machine"; model.onclick = () => command("models"); st.appendChild(model);
   const effort = el("button", "statusbtn eff", s.effort || "Auto"); effort.title = "Reasoning effort"; effort.onclick = () => command("effort"); st.appendChild(effort);
@@ -432,11 +601,38 @@ function renderState(v) {
   };
   st.appendChild(bell);
   st.appendChild(el("span", "grow"));
-  const ctx = el("button", "statusbtn context-chip" + (s.ctxPct >= 75 ? " pressure" : ""));
-  const meter = document.createElement("meter"); meter.min = 0; meter.max = 100; meter.value = s.ctxPct || 0; meter.setAttribute("aria-label", "Context used");
-  ctx.appendChild(meter); ctx.appendChild(document.createTextNode((s.ctxPct || 0) + "%"));
-  const b = s.context; ctx.title = b ? b.prompt.toLocaleString() + " / " + b.window.toLocaleString() + " tokens · " + b.reserve.toLocaleString() + " reserved for reply · " + b.source : "Context usage";
-  ctx.onclick = () => command("context"); st.appendChild(ctx);
+  const pct = Math.max(0, Math.min(100, Math.round(s.ctxPct || 0)));
+  if (!ctxChip) {
+    ctxChip = el("button", "statusbtn context-chip");
+    ctxTrack = el("span", "ctx-track");
+    ctxFill = el("span", "ctx-fill");
+    ctxNum = el("span", "ctx-num", "0%");
+    ctxTrack.setAttribute("role", "meter");
+    ctxTrack.setAttribute("aria-valuemin", "0");
+    ctxTrack.setAttribute("aria-valuemax", "100");
+    ctxTrack.setAttribute("aria-label", "Context used");
+    ctxTrack.appendChild(ctxFill);
+    ctxChip.appendChild(ctxTrack);
+    ctxChip.appendChild(ctxNum);
+    ctxChip.title = "Contexte utilisé — cliquer pour le détail";
+    ctxChip.onclick = () => statusMenu(ctxChip, contextMenuItems(s, command));
+  }
+  const zone = pct >= 75 ? "hot" : pct >= 50 ? "warm" : "cool";
+  ctxChip.classList.toggle("pressure", pct >= 75);
+  if (ctxChip.dataset.zone !== zone) ctxChip.dataset.zone = zone;
+  ctxNum.textContent = pct + "%";
+  ctxTrack.setAttribute("aria-valuenow", String(pct));
+  if (ctxLastPct !== pct) {
+    ctxLastPct = pct;
+    // Deferred by one frame: the chip has just been re-inserted, so the browser
+    // needs to paint the previous value once before the tween can start.
+    requestAnimationFrame(() => { if (ctxFill) ctxFill.style.setProperty("--pct", String(pct)); });
+    ctxNum.classList.remove("bump");
+    void ctxNum.offsetWidth;
+    ctxNum.classList.add("bump");
+  }
+  const b = s.context; ctxChip.title = b ? b.prompt.toLocaleString() + " / " + b.window.toLocaleString() + " tokens · " + b.reserve.toLocaleString() + " reserved for reply · " + b.source : "Context usage";
+  st.appendChild(ctxChip);
   if (s.plan) {
     const done = s.plan.steps.filter((x) => x.done).length;
     st.appendChild(el("span", "plan-chip" + (s.plan.current < 0 ? " done" : ""), "plan " + done + "/" + s.plan.steps.length));
@@ -457,11 +653,39 @@ function renderState(v) {
     vchip.title = "Contrôles automatiques en cours";
     st.appendChild(vchip);
   }
-  const validation = el("span", "validation-rail " + (s.verification?.passed ? "ok" : s.outcome === "error" ? "bad" : "pending"));
-  validation.title = s.verification?.passed ? "Validation du code passée" : s.outcome === "error" ? (s.lastError || "Validation en erreur") : "Validation en attente";
-  validation.appendChild(el("span", "validation-dot"));
-  validation.appendChild(document.createTextNode(s.verification?.passed ? "code validé" : s.outcome === "error" ? "problèmes détectés" : "validation en cours"));
-  st.appendChild(validation);
+    const agVerify = s.verification || null;
+    const agBusy = agVerify && (s.outcome === "running" || s.outcome === "idle");
+    const checkLS = "smol.check." + (v.workspace || v.sid);
+    const check = agVerify ? null : readCheck(checkLS);
+    const verdict = agVerify ? (agVerify.passed ? "pass" : "fail") : check ? (check.state === "passing" ? "pass" : check.state.indexOf("FAILING") >= 0 ? "fail" : check.state === "none" ? "none" : "idle") : "idle";
+    const validation = el("button", "validation-rail " + (agBusy ? "pending" : verdict));
+    validation.type = "button";
+    if (agVerify) {
+      validation.title = agVerify.passed ? "Validation du code passée par la commande du projet" : agBusy ? "L'agent vérifie le code qu'il vient d'écrire" : "Le code ne passe pas encore la vérification du projet";
+    } else if (check) {
+      validation.title = check.command + " → " + check.state + " (" + new Date(check.at).toLocaleTimeString() + ")\nCliquer pour relancer la vérification";
+    } else {
+      validation.title = "Aucun contrôle du projet pour l'instant — cliquer pour lancer " + "la commande de vérification";
+    }
+    const vdot = el("span", "validation-dot");
+    validation.appendChild(vdot);
+    const vlabel = el("span", "validation-label", agBusy ? "validation en cours" : verdict === "pass" ? "code validé" : verdict === "fail" ? "problèmes détectés" : verdict === "none" ? "aucun contrôle" : "vérifier le code");
+    validation.appendChild(vlabel);
+    if (!agBusy) {
+      validation.onclick = () => {
+        if (validation.disabled) return;
+        validation.disabled = true;
+        vlabel.textContent = "vérification...";
+        validation.className = "validation-rail pending";
+        post("/check", { sid: v.sid }).then((r) => {
+          const c = r && r.check ? r.check : null;
+          if (c) writeCheck(checkLS, c);
+          else vlabel.textContent = "vérification impossible";
+        }).catch(() => { vlabel.textContent = "vérification impossible"; }).finally(() => { validation.disabled = false; });
+      };
+    }
+    st.appendChild(validation);
+  st.appendChild(ensureZoomCtl());
   if (s.subagent) {
     const chip = el("span", "task-chip sub-chip live");
     chip.appendChild(el("span", "dot"));
@@ -512,8 +736,13 @@ function renderPlan(v, p) {
     const mark = s.done ? "☑ " : i === p.current ? "◉ " : "☐ ";
     box.appendChild(el("div", state + " " + extra, mark + s.text));
   });
-  if (v.planEl && v.planEl.isConnected) v.planEl.replaceWith(box); else add(v, box);
+  // Keep the active plan fixed above the transcript. It must remain visible
+  // while tool output grows, instead of being buried in the chat history.
+  if (v.planEl && v.planEl.isConnected) v.planEl.replaceWith(box);
+  else if (planTop) planTop.appendChild(box);
+  else add(v, box);
   v.planEl = box;
+  if (planTop) planTop.hidden = false;
 }
 
 // ---- event handling -------------------------------------------------------
@@ -680,6 +909,10 @@ function handle(m) {
       const d = el("details", "tool");
       const summary = el("summary"); summary.appendChild(el("span", "name", m.name.replace(/_/g, " "))); summary.appendChild(el("span", "tool-args", m.summary || ""));
       d.appendChild(summary); v.curTool = d;
+      if (m.name === "run_command" && typeof m.command === "string") {
+        const command = el("pre", "tool-command", m.command);
+        d.appendChild(command);
+      }
       v.lastTool = m;
       if (typeof m.diff === "string" && m.diff) {
         const pre = document.createElement("pre");
@@ -704,6 +937,7 @@ function handle(m) {
       const body = el("pre", "result" + (m.err ? " err" : ""), m.body || m.line);
       if (v.curTool) { v.curTool.classList.add(m.err ? "failed" : "finished"); v.curTool.appendChild(body); if (m.err) v.curTool.open = true; v.curTool = null; }
       else add(v, body);
+      if (m.sid === active?.sid && ccOpenNow() && v.lastTool?.name === "work") loadCC();
       notifyAgentFileActivity(v, v.lastTool);
       break;
     }
@@ -1135,6 +1369,7 @@ function renderPanel() {
 function closeTab(v, t) {
   const i = v.tabs.indexOf(t);
   if (t.kind === "term") { post("/term/close", { sid: v.sid, tid: t.tid }); removeTermTab(v, t.tid); return; }
+  if (t.agentPollTimer) clearInterval(t.agentPollTimer);
   if (i >= 0) v.tabs.splice(i, 1);
   if (t.el) t.el.remove();
   if (v.activeTab === t.id) v.activeTab = (v.tabs[i] || v.tabs[i - 1] || {}).id || null;
@@ -1276,7 +1511,7 @@ function buildFilesTab(v, t) {
   pathInput.placeholder = "workspace path"; pathInput.spellcheck = false;
   const refresh = el("button", "iconbtn", "↻"); refresh.title = "refresh files";
   const save = el("button", "iconbtn", "save"); save.title = "save file";
-  const diagnosticsButton = el("button", "iconbtn", "✓ problèmes"); diagnosticsButton.title = "Analyser le fichier avec le serveur de langage";
+  const diagnosticsButton = el("button", "iconbtn", "✓ problèmes"); diagnosticsButton.title = "Analyser le fichier ouvert avec le serveur de langage";
   const previewButton = el("button", "iconbtn", "▣"); previewButton.title = "Aperçu local HTML";
   const findInput = document.createElement("input");
   findInput.placeholder = "Rechercher dans le projet…"; findInput.setAttribute("aria-label", "Rechercher dans les fichiers du projet");
@@ -1289,28 +1524,82 @@ function buildFilesTab(v, t) {
   bar.appendChild(newFile); bar.appendChild(newFolder); bar.appendChild(renameBtn); bar.appendChild(deleteBtn);
   const inlineBtn = el("button", "iconbtn", "✨"); inlineBtn.title = "Edit selection with AI (Ctrl+K)";
   bar.appendChild(inlineBtn);
+  // A single "+" that opens a real menu: add the open file to what the agent
+  // knows about it, or ask for a comment on it. Both used to be unreachable.
+  const addBtn = el("button", "iconbtn", "+"); addBtn.type = "button";
+  addBtn.title = "Ajouter un contexte ou un commentaire";
+  addBtn.setAttribute("aria-haspopup", "menu");
+  addBtn.onclick = () => {
+    const rel = t.filePath || "";
+    statusMenu(addBtn, [
+      "Contexte du fichier",
+      { note: rel ? rel : "Aucun fichier ouvert — ouvrez un fichier d'abord." },
+      {
+        label: "Ajouter comme contexte", hint: "explique ce fichier a l agent", on: false,
+        run: () => {
+          if (!rel) { showError("Ouvrez d'abord un fichier."); return; }
+          post("/msg", { sid: active.sid, text: "Voici un fichier de mon projet : " + rel + ". Lis-le et garde-le en contexte pour la suite." });
+        }
+      },
+      {
+        label: "Commenter ce fichier", hint: "revue par l agent", on: false,
+        run: () => {
+          if (!rel) { showError("Ouvrez d'abord un fichier."); return; }
+          post("/msg", { sid: active.sid, text: "Commente le fichier " + rel + " : ce qu il fait, les points fragiles et les ameliorations possibles." });
+        }
+      },
+      null,
+      { label: "Revue complete du projet", hint: "tous les fichiers", on: false, run: () => post("/msg", { sid: active.sid, text: "Fais une revue complete du projet : architecture, fichiers cles, et ce qui meritereait d etre ameliore." }) }
+    ]);
+  };
+  bar.appendChild(addBtn);
   const inlineBar = el("div", "fileinlinebar"); inlineBar.hidden = true;
+  const inlineRowTop = el("div", "fileinline-row");
   const inlineInput = document.createElement("input");
-  inlineInput.placeholder = "Instruction: e.g. add error handling…";
+  inlineInput.placeholder = "Instruction : ex. refactoriser, typer, ajouter gestion d'erreurs…";
   inlineInput.setAttribute("aria-label", "AI edit instruction");
-  const inlineGo = el("button", "iconbtn", "Generate"); inlineGo.type = "button";
-  const inlineCancel = el("button", "iconbtn", "×"); inlineCancel.type = "button"; inlineCancel.title = "Close";
-  inlineBar.append(inlineInput, inlineGo, inlineCancel);
+  const inlineGo = el("button", "iconbtn", "Générer"); inlineGo.type = "button";
+  const inlineCancel = el("button", "iconbtn", "×"); inlineCancel.type = "button"; inlineCancel.title = "Fermer (Échap)";
+  inlineRowTop.append(inlineInput, inlineGo, inlineCancel);
+  const inlineChips = el("div", "fileinlinechips");
+  const inlinePresets = [
+    { label: "⚡ Refactoriser", text: "Refactorise ce code pour le rendre plus propre, lisible et robuste." },
+    { label: "🐛 Corriger bugs", text: "Trouve et corrige les éventuels bugs, états nuls et erreurs de syntaxe." },
+    { label: "📝 Typage & Docs", text: "Ajoute le typage TypeScript précis et documente clairement ce bloc." },
+    { label: "🧪 Ajouter tests", text: "Génère les tests unitaires pour couvrir cette logique." },
+    { label: "🚀 Optimiser", text: "Optimise la performance et la consommation mémoire de ce bloc." },
+  ];
+  for (const preset of inlinePresets) {
+    const chip = el("button", "fileinlinechip", preset.label);
+    chip.type = "button";
+    chip.onclick = () => {
+      inlineInput.value = preset.text;
+      runInline();
+    };
+    inlineChips.appendChild(chip);
+  }
+  inlineBar.append(inlineRowTop, inlineChips);
   const inlinePreview = el("div", "fileinlinepreview"); inlinePreview.hidden = true;
   const inlineDiff = el("pre", "reviewpatch");
   const inlineRow = el("div", "reviewactions");
   const inlineStatus = el("span", "filemeta", "");
   inlineStatus.style.flex = "1";
-  const inlineAccept = el("button", "iconbtn", "Accept"); inlineAccept.type = "button";
-  const inlineReject = el("button", "iconbtn", "Reject"); inlineReject.type = "button";
+  const inlineAccept = el("button", "iconbtn", "Accepter (Entrée)"); inlineAccept.type = "button";
+  const inlineReject = el("button", "iconbtn", "Refuser (Échap)"); inlineReject.type = "button";
   inlineRow.append(inlineStatus, inlineAccept, inlineReject);
   inlinePreview.append(inlineDiff, inlineRow);
   // NOTE: inserted into body below, next to the other appends — the
   // results element does not exist yet at this point (TDZ).
   let inlineRange = null;
   const openInlineBar = () => {
-    if (!t.filePath) { showError("Open a file first."); return; }
-    if (editor.selectionStart === editor.selectionEnd) { showError("Select the code to replace."); return; }
+    if (!t.filePath) { showError("Ouvrez d’abord un fichier."); return; }
+    if (editor.selectionStart === editor.selectionEnd) {
+      const pos = editor.selectionStart;
+      const startOfLine = editor.value.lastIndexOf("\n", pos - 1) + 1;
+      let endOfLine = editor.value.indexOf("\n", pos);
+      if (endOfLine === -1) endOfLine = editor.value.length;
+      editor.setSelectionRange(startOfLine, endOfLine);
+    }
     inlineBar.hidden = false;
     inlinePreview.hidden = true;
     inlineInput.value = "";
@@ -1319,23 +1608,29 @@ function buildFilesTab(v, t) {
   const closeInlineBar = () => { inlineBar.hidden = true; inlinePreview.hidden = true; inlineRange = null; editor.focus(); };
   const paintInlineDiff = (text) => {
     inlineDiff.replaceChildren();
+    let adds = 0, dels = 0;
     for (const ln of String(text || "").split("\n")) {
       const s = document.createElement("span");
-      s.className = ln.startsWith("+ ") ? "add" : ln.startsWith("- ") ? "del" : ln.startsWith("@@") ? "hunk" : "same";
+      if (ln.startsWith("+ ")) { adds++; s.className = "add"; }
+      else if (ln.startsWith("- ")) { dels++; s.className = "del"; }
+      else if (ln.startsWith("@@")) { s.className = "hunk"; }
+      else { s.className = "same"; }
       s.textContent = ln + "\n";
       inlineDiff.appendChild(s);
     }
+    return { adds, dels };
   };
   const pollInline = (op, left = 120) => {
-    if (left <= 0) { inlineStatus.textContent = "Timed out — try again."; inlineRange = null; return; }
+    if (left <= 0) { inlineStatus.textContent = "Délai dépassé — réessayez."; inlineRange = null; return; }
     fetch("/code/inline/result?k=" + k + "&id=" + encodeURIComponent(op))
       .then((r) => r.json()).then((d) => {
         if (d.status === "done") {
           inlineRange.newText = d.newText;
-          paintInlineDiff(d.diff || "");
-          inlineStatus.textContent = "Review, then Accept.";
+          const stats = paintInlineDiff(d.diff || "");
+          inlineStatus.textContent = "+" + stats.adds + " / -" + stats.dels + " lignes · [Entrée] Accepter · [Échap] Refuser";
+          inlineAccept.focus();
         } else if (d.status === "error") {
-          inlineStatus.textContent = d.error || "Generation failed.";
+          inlineStatus.textContent = d.error || "Échec de génération.";
           inlineRange = null;
         } else {
           setTimeout(() => pollInline(op, left - 1), 1500);
@@ -1344,19 +1639,25 @@ function buildFilesTab(v, t) {
   };
   const runInline = () => {
     const instruction = inlineInput.value.trim();
-    if (!instruction) { inlineStatus.textContent = "Describe the change."; return; }
-    if (editor.selectionStart === editor.selectionEnd) { inlineStatus.textContent = "Selection is empty."; return; }
+    if (!instruction) { inlineStatus.textContent = "Décrivez la modification."; return; }
+    if (editor.selectionStart === editor.selectionEnd) {
+      const pos = editor.selectionStart;
+      const startOfLine = editor.value.lastIndexOf("\n", pos - 1) + 1;
+      let endOfLine = editor.value.indexOf("\n", pos);
+      if (endOfLine === -1) endOfLine = editor.value.length;
+      editor.setSelectionRange(startOfLine, endOfLine);
+    }
     const selStart = editor.selectionStart, selEnd = editor.selectionEnd;
     const before = editor.value.slice(0, selStart).split("\n").length;
     const selection = editor.value.slice(selStart, selEnd);
     const after = before + selection.split("\n").length - 1;
     inlineRange = { start: selStart, end: selEnd, newText: null };
-    inlineStatus.textContent = "Generating…";
+    inlineStatus.textContent = "Génération IA en cours…";
     inlinePreview.hidden = false;
     inlineDiff.replaceChildren();
     post("/code/inline/start", { sid: v.sid, path: t.filePath, selection, start: before, end: after, instruction })
       .then((r) => {
-        if (!r || r.error || !r.op) { inlineStatus.textContent = (r && r.error) || "Inline edit did not start."; inlineRange = null; return; }
+        if (!r || r.error || !r.op) { inlineStatus.textContent = (r && r.error) || "L'édition inline n'a pas pu démarrer."; inlineRange = null; return; }
         pollInline(r.op);
       }).catch((e) => { inlineStatus.textContent = String((e && e.message) || e); inlineRange = null; });
   };
@@ -1372,6 +1673,17 @@ function buildFilesTab(v, t) {
     closeInlineBar();
   };
   inlineReject.onclick = closeInlineBar;
+  window.addEventListener("keydown", (e) => {
+    if (!inlinePreview.hidden && inlineRange && typeof inlineRange.newText === "string") {
+      if (e.key === "Enter" || (e.ctrlKey && e.key.toLowerCase() === "y") || e.key === "Tab") {
+        e.preventDefault();
+        inlineAccept.click();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        closeInlineBar();
+      }
+    }
+  });
   const fileOp = (endpoint, body, after) => {
     fetch("/workspace/file/" + endpoint + "?k=" + k + "&sid=" + encodeURIComponent(v.sid), {
       method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body || {}),
@@ -1419,11 +1731,15 @@ function buildFilesTab(v, t) {
   const split = el("div", "filesplit");
   const tree = el("div", "filetree");
   const editorWrap = el("div", "fileeditor-wrap");
+  const imagePreview = el("div", "image-preview"); imagePreview.hidden = true;
+  const imageEl = document.createElement("img"); imageEl.alt = "Aperçu de l'image du projet"; imageEl.loading = "lazy";
+  imagePreview.appendChild(imageEl);
   const tabsBar = el("div", "filetabs");
   const code = document.createElement("pre"); code.className = "filecode"; code.setAttribute("aria-hidden", "true");
   const editor = document.createElement("textarea");
   editor.className = "fileeditor"; editor.spellcheck = false; editor.placeholder = "Select a file…";
   const gutter = document.createElement("div"); gutter.className = "filegutter"; gutter.setAttribute("aria-hidden", "true");
+  t.agentDiffBases = new Map();
   const minimap = document.createElement("div"); minimap.className = "fileminimap"; minimap.title = "Minimap — cliquer pour naviguer";
   minimap.setAttribute("role", "scrollbar"); minimap.setAttribute("aria-label", "Minimap du fichier");
   const mmBars = document.createElement("div"); mmBars.className = "minimap-bars";
@@ -1433,10 +1749,10 @@ function buildFilesTab(v, t) {
   /** Line numbers, kept in step with the editor's line count and scroll.
    * Called from paint() and displayTab(), so it tracks every edit. */
   const updateGutter = () => {
-    const total = editor.value.split("\n").length;
-    let html = "";
-    for (let i = 1; i <= total; i++) html += "<div>" + i + "</div>";
-    gutter.innerHTML = html;
+    const flags = lineChangeFlags(editor.dataset.diffBase || editor.dataset.original || "", editor.value);
+    gutter.innerHTML = flags
+      .map((f, i) => '<div class="gutter-line' + (f.added ? " added" : "") + (f.removed ? " removed" : "") + '"><span>' + (i + 1) + "</span></div>")
+      .join("");
     gutter.scrollTop = editor.scrollTop;
   };
   const meta = el("div", "filemeta", "workspace files");
@@ -1451,7 +1767,8 @@ function buildFilesTab(v, t) {
   const currentReplaceAll = el("button", "iconbtn", "Tout remplacer"); currentReplaceAll.type = "button"; currentReplaceAll.hidden = true;
   const currentFindClose = el("button", "iconbtn", "×"); currentFindClose.type = "button"; currentFindClose.title = "Fermer la recherche";
   fileFindBar.append(currentFindInput, currentFindPrev, currentFindNext, currentFindCount, currentReplaceInput, currentReplaceOne, currentReplaceAll, currentFindClose);
-  editorWrap.appendChild(tabsBar); editorWrap.appendChild(gutter); editorWrap.appendChild(code); editorWrap.appendChild(editor); editorWrap.appendChild(minimap);
+  editorWrap.appendChild(tabsBar); editorWrap.appendChild(imagePreview); editorWrap.appendChild(gutter); editorWrap.appendChild(code); editorWrap.appendChild(editor); editorWrap.appendChild(minimap);
+  t.editorWrap = editorWrap;
   const completePop = el("div", "completepop"); completePop.hidden = true;
   completePop.setAttribute("role", "listbox");
   editorWrap.appendChild(completePop);
@@ -1498,7 +1815,32 @@ function buildFilesTab(v, t) {
         completePop.hidden = false;
       }).catch(() => {});
   };
-  split.appendChild(tree); split.appendChild(editorWrap);
+  const treeGrip = el("div", "ftreegrip");
+  treeGrip.title = "Glisser pour redimensionner";
+  treeGrip.setAttribute("aria-hidden", "true");
+  {
+    const savedTreeW = Number(ls.get("smol.ftree.w"));
+    if (savedTreeW) tree.style.setProperty("--ftree-w", Math.max(150, Math.round(savedTreeW)) + "px");
+    treeGrip.onmousedown = (e) => {
+      e.preventDefault();
+      document.body.classList.add("dragging");
+      const rect = split.getBoundingClientRect();
+      const move = (ev) => {
+        const w = Math.max(150, Math.min(rect.width - 150, ev.clientX - rect.left));
+        tree.style.setProperty("--ftree-w", Math.round(w) + "px");
+      };
+      const up = () => {
+        document.body.classList.remove("dragging");
+        document.removeEventListener("mousemove", move);
+        document.removeEventListener("mouseup", up);
+        const w = parseFloat(tree.style.getPropertyValue("--ftree-w"));
+        if (w) ls.set("smol.ftree.w", String(Math.round(w)));
+      };
+      document.addEventListener("mousemove", move);
+      document.addEventListener("mouseup", up);
+    };
+  }
+  split.appendChild(tree); split.appendChild(treeGrip); split.appendChild(editorWrap);
   body.appendChild(bar); body.appendChild(results); body.appendChild(fileFindBar); body.appendChild(split); body.appendChild(diagnosticsPanel); body.appendChild(meta);
   body.insertBefore(inlinePreview, results);
   body.insertBefore(inlineBar, inlinePreview);
@@ -1685,11 +2027,13 @@ function buildFilesTab(v, t) {
   t.treeCache = new Map();
   t.expanded = new Set(["."]);
   const treeKey = (p) => (p && p !== "." ? p : ".");
-  const ensureKids = (rel) => {
+  const ensureKids = (rel, force) => {
     const key = treeKey(rel);
-    if (t.treeCache.has(key)) return Promise.resolve();
-    t.treeCache.set(key, null);
-    renderNestedTree();
+    if (!force && t.treeCache.has(key)) return Promise.resolve();
+    // Stale-while-revalidate: a folder that already has children keeps them on
+    // screen while the new listing arrives. Blanking the cache first is what
+    // made the whole panel flash to "Loading…" and back on every refresh.
+    if (!t.treeCache.has(key)) { t.treeCache.set(key, null); renderNestedTree(); }
     return fetch("/workspace/tree?k=" + k + "&sid=" + encodeURIComponent(v.sid) + "&path=" + encodeURIComponent(rel))
       .then((r) => r.json()).then((d) => {
         if (d.error) throw new Error(d.error);
@@ -1698,7 +2042,10 @@ function buildFilesTab(v, t) {
       .finally(() => renderNestedTree());
   };
   const renderNestedTree = () => {
-    tree.innerHTML = "";
+    // Build the markup off-screen first and swap it in only when it really
+    // changed. Wiping the live tree on every probe made folders and files blink
+    // out and back even when the listing was byte-for-byte identical.
+    const buf = document.createElement("div");
     const paint = (container, rel, depth) => {
       const kids = t.treeCache.get(treeKey(rel));
       if (kids === undefined || kids === null) {
@@ -1724,7 +2071,7 @@ function buildFilesTab(v, t) {
           b.innerHTML = getFileItemHtml(item.name, true);
           b.onclick = () => toggleFolder(item.path);
           row.appendChild(tg);
-          if (item.status) row.appendChild(el("span", "fileitem-badge", item.status));
+          if (item.status) row.appendChild(el("span", "fileitem-badge status-" + item.status.toLowerCase(), item.status));
           row.appendChild(b);
           container.appendChild(row);
           if (open) {
@@ -1738,13 +2085,19 @@ function buildFilesTab(v, t) {
           b.title = item.path;
           b.innerHTML = getFileItemHtml(item.name, false);
           b.onclick = () => t.loadFile(item.path);
-          if (item.status) row.appendChild(el("span", "fileitem-badge", item.status));
+          if (item.status) row.appendChild(el("span", "fileitem-badge status-" + item.status.toLowerCase(), item.status));
           row.appendChild(b);
           container.appendChild(row);
         }
       }
     };
-    paint(tree, ".", 0);
+    paint(buf, ".", 0);
+    if (buf.innerHTML === tree.innerHTML) return;
+    // Keep the reading position: rebuilding the markup reset scrollTop to 0 on
+    // every repaint, which made the panel jump to the top each time it flashed.
+    const keepScroll = tree.scrollTop;
+    tree.replaceChildren(...buf.childNodes);
+    tree.scrollTop = keepScroll;
   };
   const toggleFolder = (rel) => {
     if (t.expanded.has(rel)) {
@@ -1770,11 +2123,10 @@ function buildFilesTab(v, t) {
     t.rel = rel;
     pathInput.value = rel;
     renderNestedTree();
-    let seq = Promise.resolve();
-    for (const c of chain) {
-      if (!t.treeCache.has(treeKey(c))) seq = seq.then(() => ensureKids(c));
-    }
-    seq.catch((e) => showError(e.message));
+    // Fetch the missing levels in parallel: the sequential chain repainted once
+    // per level, so the tree visibly rebuilt itself several times in a row.
+    Promise.all(chain.filter((c) => !t.treeCache.has(treeKey(c))).map((c) => ensureKids(c)))
+      .catch((e) => showError(e.message));
   };
   const renderTabs = () => {
     tabsBar.replaceChildren();
@@ -1791,8 +2143,15 @@ function buildFilesTab(v, t) {
   };
   const displayTab = (tab) => {
     t.filePath = tab ? tab.path : ""; t.mtimeMs = tab ? tab.mtimeMs : 0;
+    imagePreview.hidden = true;
+    imageEl.removeAttribute("src");
+    editor.hidden = false; code.hidden = false; gutter.hidden = false; minimap.hidden = false;
     t.diags = [];
-    editor.value = tab ? tab.content : ""; editor.dataset.original = tab ? tab.savedContent : ""; paint();
+    editor.value = tab ? tab.content : "";
+    editor.dataset.original = tab ? tab.savedContent : "";
+    if (tab && !t.agentDiffBases.has(tab.path)) t.agentDiffBases.set(tab.path, tab.savedContent);
+    editor.dataset.diffBase = tab ? (t.agentDiffBases.get(tab.path) ?? tab.savedContent) : "";
+    paint();
     updateGutter();
     editor.dataset.dirty = tab && tab.dirty ? "1" : "0";
     save.disabled = v.state.mode === "ro" || !tab;
@@ -1865,20 +2224,37 @@ function buildFilesTab(v, t) {
       }).catch(() => hideAgentBar());
   };
   let metaCheckAt = 0;
+  let checkingDisk = false;
+  let reloadingDisk = false;
   const checkAgentChange = () => {
-    if (!t.filePath || !t.mtimeMs) return;
+    if (!t.filePath || !t.mtimeMs || checkingDisk || reloadingDisk) return;
     const now = Date.now();
     if (now - metaCheckAt < 5000) return;
     metaCheckAt = now;
+    checkingDisk = true;
     fetch("/workspace/file?k=" + k + "&sid=" + encodeURIComponent(v.sid) + "&path=" + encodeURIComponent(t.filePath) + "&meta=1")
       .then((r) => r.json()).then((d) => {
         if (!d || d.error || !Number.isFinite(d.mtimeMs)) return;
         if (Math.abs(d.mtimeMs - t.mtimeMs) > 1 && t.filePath) {
-          agentText.textContent = "L’agent (ou un autre outil) a modifié ce fichier sur le disque.";
-          agentBar.hidden = false;
+          const changedPath = t.filePath;
+          const tab = t.tabStore.active();
+          if (tab && !tab.dirty) {
+            t.agentDiffBases.set(changedPath, tab.savedContent);
+            reloadingDisk = true;
+            agentBar.hidden = true;
+            t.tabStore.close(changedPath, true);
+            t.collab = null;
+            void t.loadFile(changedPath).finally(() => { reloadingDisk = false; });
+          } else {
+            agentText.textContent = "L’agent a modifié ce fichier. Le buffer local contient des changements : recharge après les avoir sauvegardés ou copiés.";
+            agentBar.hidden = false;
+          }
         }
-      }).catch(() => {});
+      }).catch(() => {}).finally(() => { checkingDisk = false; });
   };
+  t.agentPollTimer = setInterval(() => {
+    if (active === v && v.panelOpen && curTab(v) && curTab(v).id === t.id) checkAgentChange();
+  }, 2000);
   editor.addEventListener("focus", () => {
     if (v.activeTab !== t.id) { v.activeTab = t.id; savePanel(v); renderPanel(); }
     try { checkAgentChange(); } catch (e) {}
@@ -1966,7 +2342,12 @@ function buildFilesTab(v, t) {
     diagnosticsPanel.appendChild(row);
   };
   const analyzeFile = async (filePath = t.filePath) => {
-    if (!filePath) { diagnosticRequest++; diagnosticsPanel.replaceChildren(); return; }
+    if (!filePath) {
+      diagnosticRequest++;
+      diagnosticsPanel.replaceChildren(el("div", "filediagnostic-note", "Ouvrez un fichier de code pour lancer l’analyse."));
+      diagnosticsPanel.scrollIntoView?.({ block: "nearest" });
+      return;
+    }
     // TypeScript/JavaScript go through the workspace diagnostics; every other
     // language goes through the pro language server for that extension.
     const exts = await proLangFor();
@@ -2033,6 +2414,10 @@ function buildFilesTab(v, t) {
         row.appendChild(go); row.appendChild(fix);
         diagnosticsPanel.appendChild(row);
       }
+      if (!(result.diagnostics || []).length && !result.message && !result.text) {
+        diagnosticsPanel.appendChild(el("div", "filediagnostic-note ok", "Aucun problème détecté."));
+      }
+      diagnosticsPanel.scrollIntoView?.({ block: "nearest" });
     } catch (error) {
       if (request !== diagnosticRequest || filePath !== t.filePath) return;
       diagnosticsPanel.replaceChildren(el("div", "filediagnostic-note error", String(error.message || error)));
@@ -2097,6 +2482,16 @@ function buildFilesTab(v, t) {
     if (t.filePath) t.tabStore.update(t.filePath, editor.value);
     const existing = t.tabStore.activate(rel);
     if (existing) { displayTab(existing); return true; }
+    if (/\.(?:png|jpe?g|gif|webp|svg|ico|bmp)$/i.test(String(rel))) {
+      t.filePath = rel;
+      imageEl.src = "/workspace/asset?k=" + encodeURIComponent(k) + "&sid=" + encodeURIComponent(v.sid) + "&path=" + encodeURIComponent(rel);
+      imagePreview.hidden = false;
+      editor.hidden = true; code.hidden = true; gutter.hidden = true; minimap.hidden = true;
+      save.disabled = true; diagnosticsPanel.replaceChildren(el("div", "filediagnostic-note", "Aperçu image — fichier en lecture seule."));
+      meta.textContent = rel + " · aperçu image";
+      pathInput.value = rel;
+      return true;
+    }
     try {
       const response = await fetch("/workspace/file?k=" + k + "&sid=" + encodeURIComponent(v.sid) + "&path=" + encodeURIComponent(rel));
       const d = await response.json();
@@ -2155,11 +2550,10 @@ function buildFilesTab(v, t) {
     const wanted = [];
     t.treeCache.forEach((_, kk) => { if (kk === "." || t.expanded.has(kk)) wanted.push(kk); });
     if (!wanted.includes(".")) wanted.unshift(".");
-    t.treeCache.clear();
-    renderNestedTree();
-    let seq = Promise.resolve();
-    for (const c of wanted) seq = seq.then(() => ensureKids(c));
-    seq.catch((e) => showError(e.message));
+    // Reload in place with the force flag instead of emptying the cache: the
+    // previous tree stays on screen until each new listing lands, instead of
+    // the panel going blank and repopulating level by level.
+    Promise.all(wanted.map((c) => ensureKids(c, true))).catch((e) => showError(e.message));
   };
   t.refreshFiles = () => { try { refresh.onclick(); } catch (e) {} };
   const agentLine = el("div", "filemeta", "");
@@ -2208,7 +2602,8 @@ function buildFilesTab(v, t) {
       if (d.error) throw new Error(d.error);
       const tab = t.tabStore.saved(filePath, d.mtimeMs, content);
       if (t.filePath === filePath && tab) {
-        t.mtimeMs = tab.mtimeMs; editor.dataset.original = content; editor.dataset.dirty = tab.dirty ? "1" : "0";
+        t.mtimeMs = tab.mtimeMs; editor.dataset.original = content; editor.dataset.diffBase = content; t.agentDiffBases.set(filePath, content); editor.dataset.dirty = tab.dirty ? "1" : "0";
+        paint();
         meta.textContent = d.path + (tab.dirty ? " · enregistré ; nouvelles modifications non enregistrées" : " · enregistré");
         meta.classList.remove("error");
       }
@@ -2271,7 +2666,13 @@ function buildReviewTab(v, t) {
   const body = el("div", "tabbody review"); body.hidden = true;
   const bar = el("div", "bar");
   const refresh = el("button", "iconbtn", "↻"); refresh.title = "refresh review";
-  const staged = el("button", "iconbtn", "staged"); staged.title = "show staged changes instead of unstaged";
+  const staged = document.createElement("select");
+  staged.className = "reviewmode";
+  staged.setAttribute("aria-label", "Review view");
+  staged.title = "show staged changes instead of unstaged";
+  const unstagedOpt = document.createElement("option"); unstagedOpt.value = "unstaged"; unstagedOpt.textContent = "Working tree";
+  const stagedOpt = document.createElement("option"); stagedOpt.value = "staged"; stagedOpt.textContent = "Staged";
+  staged.appendChild(unstagedOpt); staged.appendChild(stagedOpt);
   bar.appendChild(refresh); bar.appendChild(staged);
   const sbsBtn = el("button", "iconbtn", "⇄"); sbsBtn.type = "button"; sbsBtn.title = "side-by-side view";
   bar.appendChild(sbsBtn);
@@ -2318,6 +2719,9 @@ function buildReviewTab(v, t) {
     const q = reviewFilter.value.trim().toLowerCase();
     for (const row of list.querySelectorAll("[data-reviewfile]")) {
       row.hidden = !(!q || (row.textContent || "").toLowerCase().includes(q));
+    }
+    for (const h of diffBody.querySelectorAll(".reviewhunk")) {
+      h.hidden = !!q && !(h.textContent || "").toLowerCase().includes(q);
     }
   };
   reviewFilter.oninput = applyReviewFilter;
@@ -2556,7 +2960,15 @@ function buildReviewTab(v, t) {
       }).catch((e) => { list.replaceChildren(el("div", "filediagnostic-note error", String((e && e.message) || e))); });
   };
   refresh.onclick = load;
-  staged.onclick = () => { showStaged = !showStaged; staged.textContent = showStaged ? "unstaged" : "staged"; load(); };
+  const setReviewMode = () => { showStaged = staged.value === "staged"; load(); };
+  staged.onchange = setReviewMode;
+  // Keep a click affordance for keyboard-light clients and the legacy smoke
+  // harness: clicking the selector cycles the two review scopes.
+  staged.onclick = (e) => {
+    if (e) return;
+    staged.value = staged.value === "staged" ? "unstaged" : "staged";
+    setReviewMode();
+  };
   t.reload = load;
   load();
 }
@@ -2626,7 +3038,7 @@ function buildPlanTab(v, t) {
 function ensureTermTab(v, tid, cwd) {
   let t = v.terms.get(tid);
   if (t) { if (cwd) setPrompt(t, cwd); return t; }
-  t = { kind: "term", tid, id: "t:" + tid, cwd: cwd || "", history: [], hi: 0, lines: 0, cur: null };
+  t = { kind: "term", tid, id: "t:" + tid, cwd: cwd || "", history: [], hi: 0, lines: 0, cur: null, ansi: { classes: [], pending: "" } };
   const body = el("div", "tabbody term"); body.hidden = true;
   const out = el("pre", "out");
   const row = el("div", "trow");
@@ -2669,7 +3081,7 @@ function termWrite(v, tid, text) {
     if (!t.cur) { t.cur = el("div", "l"); out.appendChild(t.cur); t.lines++; }
     const cr = seg.lastIndexOf("\r");
     if (cr >= 0) { t.cur.innerHTML = ""; seg = seg.slice(cr + 1); }
-    if (seg) t.cur.appendChild(ansiToFrag(seg));
+    if (seg) t.cur.appendChild(ansiToFrag(seg, t.ansi));
   }
   while (t.lines > 4000 && out.firstChild) { out.removeChild(out.firstChild); t.lines--; }
   if (nearBottom) out.scrollTop = out.scrollHeight;
@@ -2717,6 +3129,23 @@ $("panelgrip").onmousedown = (e) => {
   document.addEventListener("mouseup", up);
 };
 
+// Panneau des dossiers : poignée de redimensionnement (persistée).
+let sideWidth = Math.min(640, Math.max(176, Number(ls.get("smol.side.w")) || 272));
+function applySideWidth() {
+  if (sideEl && sideEl.style && typeof sideEl.style.setProperty === "function") {
+    sideEl.style.setProperty("--side-w", sideWidth + "px");
+  }
+}
+applySideWidth();
+$("sidegrip").onmousedown = (e) => {
+  e.preventDefault();
+  document.body.classList.add("dragging");
+  const move = (ev) => { sideWidth = Math.min(640, Math.max(176, ev.clientX)); applySideWidth(); };
+  const up = () => { document.body.classList.remove("dragging"); document.removeEventListener("mousemove", move); document.removeEventListener("mouseup", up); ls.set("smol.side.w", String(Math.round(sideWidth))); };
+  document.addEventListener("mousemove", move);
+  document.addEventListener("mouseup", up);
+};
+
 // ---- sidebar collapse -----------------------------------------------------
 function setSide(collapsed) {
   sideEl.classList.toggle("collapsed", collapsed);
@@ -2748,13 +3177,15 @@ function renderMenu() {
   });
 }
 function submit() {
-  if (!active) return;
+  if (!active) { showError("Aucune session ouverte. Choisissez une session dans la barre laterale."); return; }
   let v = input.value;
   const items = menuItems();
   if (items.length) v = "/" + items[menuIdx].name;
   v = v.trim();
   const pending = pendingOf(active);
-  if (pending.some((a) => a.uploading)) return; // let the upload finish first
+  // A stuck upload used to swallow every message with no feedback at all,
+  // which reads as "I cannot type to the agent any more". Say it out loud.
+  if (pending.some((a) => a.uploading)) { showError("Envoi d'une piece jointe en cours. Attendez, ou retirez-la avec la croix."); return; }
   const files = pending.filter((a) => a.id).map((a) => a.id);
   if (!v && !files.length) return;
   input.value = ""; active.draft = ""; active.pending = []; renderMenu(); autoGrow(); renderAttachments();
@@ -2907,6 +3338,7 @@ document.addEventListener("keydown", (e) => {
 // Même rapport que le TUI et l'IDE Electron : GET /status le sert.
 const CC_TABS = [
   { id: "overview", label: "Vue d'ensemble" },
+  { id: "work", label: "Cowork" },
   { id: "agents", label: "Sous-agents" },
   { id: "skills", label: "Skills" },
   { id: "tools", label: "Outils" },
@@ -2924,7 +3356,17 @@ function openCC(tab) {
   renderCC();
   loadCC();
 }
-function closeCC() { $("cc").hidden = true; }
+function closeCC() { $("cc").hidden = true; window.clearTimeout(ccFastTimer); }
+// While a server probe is still in flight the light says "demarrage..." and we
+// refresh every 4 s instead of waiting for the 20 s tick, so the state settles fast.
+let ccFastTimer = 0;
+function ccFastPoll(data) {
+  const rows = (data && data.mcp) || [];
+  let pending = false;
+  for (let i = 0; i < rows.length; i++) if (rows[i] && rows[i].retrying === true && !rows[i].ok) pending = true;
+  window.clearTimeout(ccFastTimer);
+  if (pending) ccFastTimer = window.setTimeout(() => { if (ccOpenNow() && !cc.loading) loadCC(); }, 4000);
+}
 function loadCC() {
   if (!active) { cc.error = "ouvrez une session pour voir son statut"; cc.data = null; cc.loading = false; renderCC(); return; }
   cc.loading = true; cc.error = "";
@@ -2936,6 +3378,7 @@ function loadCC() {
       cc.data = d && !d.error ? d : null;
       cc.error = d && d.error ? d.error : "";
       cc.at = Date.now();
+      ccFastPoll(d);
       renderCC();
     })
     .catch((e) => { cc.loading = false; cc.error = (e && e.message) || "statut indisponible"; renderCC(); });
@@ -2998,11 +3441,22 @@ function ccSkeleton() {
 function ccLights(list) {
   const box = el("div", "cc-lights");
   for (const m of list) {
-    const c = el("span", "cc-light " + (m.ok ? "ok" : "bad"));
+    // A server the user switched off is not broken, so it must not be painted
+    // with the red "hors ligne" light. It gets its own muted state instead.
+    const off2 = m.enabled === false;
+    // A second probe in flight means "not answered yet", not "broken": amber
+    // "demarrage…" beats a red light that turns green seconds later.
+    const waiting = m.retrying === true && !m.ok;
+    // 401/403 means the server answered but refused the key: it is configured,
+    // not dead. Amber "cle manquante" + the exact reason beats a red light.
+    const needsKey = !m.ok && /\b(401|403)\b|cl[ée] API/i.test(String(m.error || ""));
+    const c = el("span", "cc-light " + (off2 ? "muted" : waiting || needsKey ? "warn" : m.ok ? "ok" : "bad"));
     c.appendChild(el("span", "dot"));
     c.appendChild(el("span", "", m.name));
-    c.appendChild(el("span", "cc-tag", m.ok ? m.tools + " outils" : "hors ligne"));
-    if (!m.ok && m.error) c.title = m.error;
+    c.appendChild(
+      el("span", "cc-tag", off2 ? "desactive" : waiting ? "demarrage..." : needsKey ? "cle manquante" : m.ok ? m.tools + " outils" : "hors ligne"),
+    );
+    if (!off2 && !waiting && !m.ok && m.error) c.title = m.error;
     box.appendChild(c);
   }
   if (!list.length) box.appendChild(el("div", "cc-empty", "Aucun serveur MCP configuré (.smol/mcp.json)."));
@@ -3021,6 +3475,118 @@ function ccCard(title, text, actionLabel, onClick) {
   return c;
 }
 function ccGoTab(id) { cc.tab = id; renderCCTabs(); renderCC(); }
+function ccWork(d) {
+  const wrap = el("div", "cc-anim");
+  const state = d.state || {};
+  const writable = state.mode !== "ro";
+  const form = el("div", "cc-workform");
+  const title = document.createElement("input");
+  title.type = "text"; title.maxLength = 200; title.placeholder = "Nouvelle tâche cowork…"; title.setAttribute("aria-label", "Titre de la tâche");
+  const area = document.createElement("input");
+  area.type = "text"; area.maxLength = 60; area.placeholder = "Espace (ex. produit)"; area.value = "work"; area.setAttribute("aria-label", "Espace cowork");
+  const priority = document.createElement("select");
+  priority.setAttribute("aria-label", "Priorité");
+  [["normal", "Normale"], ["low", "Basse"], ["high", "Haute"], ["urgent", "Urgente"]].forEach(([value, label]) => {
+    const option = document.createElement("option"); option.value = value; option.textContent = label; priority.appendChild(option);
+  });
+  const due = document.createElement("input");
+  due.type = "date"; due.setAttribute("aria-label", "Échéance");
+  const roleSelect = document.createElement("select");
+  roleSelect.setAttribute("aria-label", "Rôle assigné");
+  [
+    ["", "Rôle : auto (expert)"],
+    ["architect", "Architecte"],
+    ["implementer", "Implémenteur"],
+    ["quality_reviewer", "Réviseur Qualité"],
+    ["spec_reviewer", "Réviseur Spéc."],
+    ["researcher", "Chercheur"],
+    ["expert", "Expert Polyvalent"],
+  ].forEach(([value, label]) => {
+    const option = document.createElement("option"); option.value = value; option.textContent = label; roleSelect.appendChild(option);
+  });
+  const acceptance = document.createElement("input");
+  acceptance.type = "text"; acceptance.maxLength = 1000; acceptance.placeholder = "Critères d'acceptation (ex. tests verts)…"; acceptance.setAttribute("aria-label", "Critères d'acceptation");
+  const add = el("button", "cc-act primary", "Ajouter");
+  add.type = "button";
+  add.disabled = !writable;
+  const refresh = () => loadCC();
+  const submit = () => {
+    if (!title.value.trim()) { title.setCustomValidity("Saisissez un titre."); title.reportValidity(); return; }
+    title.setCustomValidity(""); add.disabled = true;
+    post("/work/items", {
+      sid: active.sid,
+      action: "create",
+      title: title.value,
+      area: area.value || "work",
+      priority: priority.value,
+      ...(due.value ? { due: due.value } : {}),
+      ...(roleSelect.value ? { role: roleSelect.value } : {}),
+      ...(acceptance.value.trim() ? { acceptance: acceptance.value.trim() } : {}),
+    })
+      .then((result) => {
+        if (result && result.error) throw new Error(result.error);
+        if (cc.data) cc.data.workItems = result.items || [];
+        title.value = ""; due.value = ""; acceptance.value = ""; renderCC();
+      }).catch((error) => showToast(error.message || "Échec de création", "error"))
+      .finally(() => { add.disabled = !writable; });
+  };
+  add.onclick = submit;
+  title.onkeydown = (event) => { if (event.key === "Enter") { event.preventDefault(); submit(); } };
+  form.append(title, area, priority, roleSelect, acceptance, due, add);
+  if (!writable) form.title = "Passez en mode édition pour modifier les tâches.";
+  wrap.appendChild(ccSection("Ajouter au tableau partagé", form));
+  if (d.workItemsError) wrap.appendChild(el("div", "cc-empty", "Tableau cowork indisponible : " + d.workItemsError));
+  const list = el("div", "cc-list");
+  const items = Array.isArray(d.workItems) ? d.workItems : [];
+  for (const item of items) {
+    const row = el("div", "cc-workitem");
+    const details = el("div", "cc-workdetails");
+    details.appendChild(el("strong", "", item.title));
+    details.appendChild(el("span", "cc-tag", item.area + " · " + item.priority + (item.due ? " · " + item.due : "")));
+    if (item.assignedRole) details.appendChild(el("span", "cc-tag ok", "rôle : " + item.assignedRole));
+    if (item.executionStatus && item.executionStatus !== "idle") {
+      details.appendChild(el("span", "cc-tag " + (item.executionStatus === "verified" ? "ok" : "warn"), item.executionStatus));
+    }
+    if (item.acceptanceCriteria) details.appendChild(el("span", "hint", "Critères : " + item.acceptanceCriteria));
+    if (item.notes) details.appendChild(el("span", "cc-worknotes", item.notes));
+    if (item.lastReport) details.appendChild(el("span", "cc-worknotes", "Rapport : " + item.lastReport.slice(0, 160) + (item.lastReport.length > 160 ? "…" : "")));
+    row.appendChild(details);
+    row.appendChild(el("span", "cc-tag", item.status));
+    if (item.status === "open") {
+      const delegateBtn = el("button", "cc-act primary", "Déléguer");
+      delegateBtn.type = "button";
+      delegateBtn.title = "Déléguer cette tâche au sous-agent";
+      delegateBtn.onclick = () => {
+        const targetRole = item.assignedRole || "expert";
+        const promptText = "Délègue cette tâche cowork au sous-agent « " + targetRole + " » : " + item.title + (item.acceptanceCriteria ? " [Critères d'acceptation : " + item.acceptanceCriteria + "]" : "") + " (ID: " + item.id + ")";
+        ccFill(promptText);
+        closeCC();
+      };
+      row.appendChild(delegateBtn);
+
+      for (const [action, label] of [["complete", "Terminer"], ["archive", "Archiver"]]) {
+        const button = el("button", "cc-act", label); button.type = "button"; button.disabled = !writable;
+        button.onclick = () => {
+          button.disabled = true;
+          post("/work/items", { sid: active.sid, action, task_id: item.id })
+            .then((result) => {
+              if (result && result.error) throw new Error(result.error);
+              if (cc.data) cc.data.workItems = result.items || [];
+              renderCC();
+            }).catch((error) => showToast(error.message || "Échec de mise à jour", "error"))
+            .finally(() => { button.disabled = !writable; });
+        };
+        row.appendChild(button);
+      }
+    }
+    list.appendChild(row);
+  }
+  if (!items.length && !d.workItemsError) list.appendChild(el("div", "cc-empty", "Aucune tâche cowork dans ce projet."));
+  wrap.appendChild(ccSection("Tâches du projet (" + items.length + ")", list));
+  const refreshButton = el("button", "cc-act", "Actualiser"); refreshButton.type = "button"; refreshButton.onclick = refresh;
+  wrap.appendChild(refreshButton);
+  return wrap;
+}
 function ccOverview(d) {
   const wrap = el("div", "cc-anim");
   const s = d.state || {};
@@ -3066,6 +3632,7 @@ function ccOverview(d) {
   const grid = el("div", "cc-grid");
   const runs = d.subagents && d.subagents.stats ? d.subagents.stats.runs : 0;
   grid.appendChild(ccCard("Sous-agents", runs ? runs + " délégations cumulées dans cet espace." : "Aucune délégation encore : chaque rôle est prêt.", "Voir les rôles", () => ccGoTab("agents")));
+  grid.appendChild(ccCard("Cowork", (d.workItems || []).filter((item) => item.status === "open").length + " tâches ouvertes partagées avec l’agent.", "Ouvrir le tableau", () => ccGoTab("work")));
   grid.appendChild(ccCard("Skills", (d.skills || []).length + " skills utilisables (projet + intégrées).", "Parcourir", () => ccGoTab("skills")));
   grid.appendChild(ccCard("Outils", (d.tools || []).length + " outils disponibles dans ce mode.", "Lister", () => ccGoTab("tools")));
   grid.appendChild(ccCard("Serveurs MCP", (d.mcp || []).filter((x) => x.ok).length + "/" + (d.mcp || []).length + " joignables.", "Diagnostiquer", () => ccGoTab("mcp")));
@@ -3186,48 +3753,79 @@ function ccTools(d) {
 
 function ccMcp(d) {
   const wrap = el("div", "cc-anim");
-  wrap.appendChild(ccSection("�tat des serveurs", ccLights(d.mcp || [])));
-  const bad = (d.mcp || []).filter((m) => !m.ok);
-  if (bad.length) {
-    const list = el("div", "cc-list");
-    for (const m of bad) {
-      const it = el("div", "cc-item");
-      it.appendChild(el("span", "nm", m.name));
-      it.appendChild(el("span", "ds", m.error || "injoignable"));
-      const b = el("button", "cc-act", "Diagnostiquer");
-      b.type = "button";
-      b.onclick = () => { ccSend("/mcp debug " + m.name); closeCC(); };
-      it.appendChild(b);
-      const off = el("button", "cc-act", "Désactiver");
-      off.type = "button";
-      off.title = "Arrête de démarrer ce serveur et l'enregistre dans .smol/mcp.json";
-      off.onclick = () => { ccSend("/mcp off " + m.name); closeCC(); };
-      it.appendChild(off);
-      list.appendChild(it);
-    }
-    wrap.appendChild(ccSection("Serveurs hors ligne", list));
+  const servers = d.mcp || [];
+  wrap.appendChild(ccSection("Etat des serveurs", ccLights(servers)));
+  if (!servers.length) {
+    wrap.appendChild(el("div", "cc-empty", "Aucun serveur MCP configure (.smol/mcp.json)."));
+    return wrap;
   }
-  // Every server gets a switch: a server you never use should not be probed
-  // on every /status refresh.
-  const all = el("div", "cc-list");
-  for (const m of d.mcp || []) {
+  // One single list: every server appears once, with a real switch and a real
+  // diagnose button. Both act on the server through /mcp/toggle and /mcp/debug,
+  // so no command is ever echoed back into the conversation.
+  const list = el("div", "cc-list");
+  const note = el("div", "cc-note", "");
+  for (const m of servers) {
     const it = el("div", "cc-item");
-    it.appendChild(el("span", "nm", m.name));
     const disabled = m.enabled === false;
-    it.appendChild(el("span", "ds", disabled ? "désactivé" : m.ok ? (m.tools + " outils") : "injoignable"));
-    const t = el("button", "cc-act", disabled ? "Activer" : "Désactiver");
-    t.type = "button";
-    t.onclick = () => { ccSend("/mcp " + (disabled ? "on " : "off ") + m.name); closeCC(); };
-    it.appendChild(t);
-    if (disabled) {
-      const back = el("button", "cc-act", "Diagnostiquer");
-      back.type = "button";
-      back.onclick = () => { ccSend("/mcp debug " + m.name); closeCC(); };
-      it.appendChild(back);
-    }
-    all.appendChild(it);
+    const waiting = m.retrying === true && !m.ok;
+    // Same amber rule as the dashboard lights: a refused key is a missing key,
+    // not an unreachable server.
+    const needsKey = !waiting && !m.ok && /\b(401|403)\b|cl[ée] API/i.test(String(m.error || ""));
+    it.appendChild(el("span", "nm", m.name));
+    const detail = disabled
+      ? "desactive"
+      : waiting
+        ? "demarrage..."
+        : m.ok
+          ? m.tools + (m.tools === 1 ? " outil" : " outils")
+          : m.error || "injoignable";
+    const ds = el("span", "ds" + (m.ok && !disabled ? " ok" : disabled ? " muted" : waiting || needsKey ? " warn" : " bad"), detail);
+    if (waiting) ds.title = "Reponse lente : une seconde tentative de connexion est en cours.";
+    else if (needsKey) ds.title = "Serveur actif, mais la cle API est absente ou refusee : renseignez la cle de ce serveur.";
+    it.appendChild(ds);
+    const row = el("div", "cc-row");
+    const sw = el("button", "cc-switch" + (disabled ? "" : " on"));
+    sw.type = "button";
+    sw.setAttribute("role", "switch");
+    sw.setAttribute("aria-checked", disabled ? "false" : "true");
+    sw.setAttribute("aria-label", (disabled ? "Activer " : "Desactiver ") + m.name);
+    sw.title = disabled
+      ? "Demarre ce serveur et l'enregistre dans .smol/mcp.json"
+      : "Arrete de demarrer ce serveur et l'enregistre dans .smol/mcp.json";
+    sw.onclick = () => {
+      sw.disabled = true;
+      post("/mcp/toggle", { sid: active.sid, name: m.name, verb: disabled ? "on" : "off" })
+        .then((r) => {
+          showToast(r && r.message ? r.message : "MCP : " + (disabled ? "active" : "desactive"), "info");
+          return loadCC();
+        })
+        .catch(() => showToast("MCP : impossible de joindre le serveur", "err"))
+        .finally(() => { sw.disabled = false; });
+    };
+    row.appendChild(sw);
+    const dbg = el("button", "cc-act", "Diagnostiquer");
+    dbg.type = "button";
+    dbg.title = "Relance ce serveur avec un delai long et affiche le detail de l'echec";
+    dbg.onclick = () => {
+      dbg.disabled = true;
+      const restore = dbg.textContent;
+      dbg.textContent = "Diagnostic...";
+      post("/mcp/debug", { sid: active.sid, name: m.name, timeoutMs: 30000 })
+        .then((r) => {
+          note.textContent = (r && r.error ? "Erreur : " + r.error : (r && r.message) || "Aucune reponse du serveur.");
+          note.hidden = false;
+          return loadCC();
+        })
+        .catch(() => { note.textContent = "Erreur : impossible de joindre le serveur."; note.hidden = false; })
+        .finally(() => { dbg.disabled = false; dbg.textContent = restore; });
+    };
+    row.appendChild(dbg);
+    it.appendChild(row);
+    list.appendChild(it);
   }
-  if ((d.mcp || []).length) wrap.appendChild(ccSection("Interrupteurs (" + (d.mcp || []).length + ")", all));
+  wrap.appendChild(ccSection("Serveurs MCP (" + servers.length + ")", list));
+  note.hidden = true;
+  wrap.appendChild(note);
   return wrap;
 }
 function ccC3(d) {
@@ -3254,14 +3852,14 @@ function ccOptions(d) {
   grid.appendChild(ccCard("Mode de permission", "Lecture seule, édition, puis YOLO (aucune confirmation avant d'agir).", "Changer : " + (s.modeLabel || "—"), () => { ccSend("/mode"); closeCC(); }));
   grid.appendChild(ccCard("Modèle", "Choisir un modèle local ou en découvrir un sur une autre machine.", "Choisir (/models)", () => { ccSend("/models"); closeCC(); }));
   grid.appendChild(ccCard("Raisonnement", "Régler l'effort de réflexion envoyé au modèle.", "Régler (/effort)", () => { ccSend("/effort"); closeCC(); }));
-  grid.appendChild(ccCard("Contexte", "Voir le budget de contexte et compacter la conversation si besoin.", "Voir (/context)", () => { ccSend("/context"); closeCC(); }));
+  grid.appendChild(ccCard("Contexte", "Voir le budget de contexte et compacter la conversation si besoin.", "Ouvrir le menu du jauge", () => { openCC("options"); closeCC(); }));
   grid.appendChild(ccCard("Notifications", bellOn() ? "Actives : fin de tour, erreurs, approbations." : "Inactives.", bellOn() ? "Désactiver" : "Activer", () => {
     ls.set("smol-notify", bellOn() ? "0" : "1");
     if (active) renderState(active);
     renderCC();
   }));
   grid.appendChild(ccCard("Barre latérale", "Afficher ou masquer la liste des espaces et sessions.", "Basculer", () => setSide(sideEl.classList.contains("collapsed"))));
-  grid.appendChild(ccCard("Serveurs MCP", "Liste, nombre d'outils et interrupteur par serveur.", "Panneau MCP (/mcp)", () => { ccSend("/mcp"); closeCC(); }));
+  grid.appendChild(ccCard("Serveurs MCP", "Liste, nombre d'outils et interrupteur par serveur.", "Ouvrir le panneau MCP", () => { openCC("mcp"); }));
   grid.appendChild(ccCard("Skills", "Lister, lire ou enregistrer une skill (/skill save).", "Lister (/skills)", () => { ccSend("/skills"); closeCC(); }));
   wrap.appendChild(ccSection("Options de session", grid));
   return wrap;
@@ -3276,7 +3874,8 @@ function renderCC() {
   if (cc.error) { body.appendChild(el("div", "cc-empty", cc.error)); return; }
   if (!cc.data) { body.appendChild(el("div", "cc-empty", "Aucune donnée de statut.")); return; }
   const d = cc.data;
-  if (cc.tab === "agents") body.appendChild(ccAgents(d));
+  if (cc.tab === "work") body.appendChild(ccWork(d));
+  else if (cc.tab === "agents") body.appendChild(ccAgents(d));
   else if (cc.tab === "skills") body.appendChild(ccSkills(d));
   else if (cc.tab === "tools") body.appendChild(ccTools(d));
   else if (cc.tab === "mcp") body.appendChild(ccMcp(d));

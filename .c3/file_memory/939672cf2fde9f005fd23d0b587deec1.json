@@ -1,10 +1,10 @@
 {
   "path": "desktop/package.json",
-  "content_hash": "4744eaf1821a333acbf9a84a632400d6",
-  "updated_at": "2026-09-25T14:53:38",
-  "lines": 17,
-  "size_bytes": 366,
-  "mtime_ns": 1790344308891921200,
+  "content_hash": "0b893758a491c9424885a2208dd7a338",
+  "updated_at": "2026-09-30T23:00:51",
+  "lines": 7,
+  "size_bytes": 187,
+  "mtime_ns": 1790786487342503400,
   "language": "json",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -43,27 +43,6 @@
       "line_start": 6,
       "line_end": 6,
       "signature": "main"
-    },
-    {
-      "type": "property",
-      "name": "scripts",
-      "line_start": 7,
-      "line_end": 10,
-      "signature": "scripts"
-    },
-    {
-      "type": "property",
-      "name": "devDependencies",
-      "line_start": 11,
-      "line_end": 13,
-      "signature": "devDependencies"
-    },
-    {
-      "type": "property",
-      "name": "allowScripts",
-      "line_start": 14,
-      "line_end": 16,
-      "signature": "allowScripts"
     }
   ]
 }

@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { readWorkspaceFile, saveWorkspaceFile, MAX_EDITOR_FILE_BYTES } = require("../desktop/editor-file-service");
+const { readWorkspaceFile, readWorkspaceImage, saveWorkspaceFile, MAX_EDITOR_FILE_BYTES, MAX_EDITOR_IMAGE_BYTES } = require("../desktop/editor-file-service");
 
 test("editor reads metadata and refuses to overwrite a file changed outside the editor", (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "smol-editor-files-"));
@@ -24,4 +24,21 @@ test("editor save remains workspace-confined and enforces its byte limit", (t) =
   const saved = saveWorkspaceFile(root, "src/new.js", "const ok = true;", null);
   assert.equal(fs.readFileSync(path.join(root, "src", "new.js"), "utf8"), "const ok = true;");
   assert.ok(saved.mtimeMs > 0);
+});
+
+test("editor previews bounded raster images without leaving the workspace", (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "smol-editor-images-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const bytes = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
+  fs.writeFileSync(path.join(root, "preview.png"), bytes);
+  const image = readWorkspaceImage(root, "preview.png");
+  assert.equal(image.mimeType, "image/png");
+  assert.equal(Buffer.from(image.base64, "base64").toString("hex"), bytes.toString("hex"));
+  assert.equal(image.size, bytes.length);
+  assert.throws(() => readWorkspaceImage(root, "../outside.png"), /outside the workspace/i);
+  fs.writeFileSync(path.join(root, "preview.svg"), "<svg/>");
+  assert.equal(readWorkspaceImage(root, "preview.svg").mimeType, "image/svg+xml");
+  fs.writeFileSync(path.join(root, "large.jpg"), Buffer.alloc(0));
+  fs.truncateSync(path.join(root, "large.jpg"), MAX_EDITOR_IMAGE_BYTES + 1);
+  assert.throws(() => readWorkspaceImage(root, "large.jpg"), /8 Mo/i);
 });

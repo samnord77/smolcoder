@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld("smolEd", {
   suggestRoot: () => ipcRenderer.invoke("ed:askModel"),
   list: (rel) => ipcRenderer.invoke("ed:list", rel),
   read: (rel) => ipcRenderer.invoke("ed:read", rel),
+  readImage: (rel) => ipcRenderer.invoke("ed:image", rel),
   search: (query) => ipcRenderer.invoke("ed:search", query),
   diagnostics: (rel) => ipcRenderer.invoke("ed:diagnostics", rel),
   save: (rel, content, expectedMtimeMs) => ipcRenderer.invoke("ed:save", rel, content, expectedMtimeMs),

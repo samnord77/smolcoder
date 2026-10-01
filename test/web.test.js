@@ -363,8 +363,9 @@ function readEvents(hub, stopWhen) {
       const timer = setTimeout(finish, 3000);
       res.on("data", (d) => {
         buf += d;
-        let i;
-        while ((i = buf.indexOf("\n\n")) >= 0) {
+        while (true) {
+          const i = buf.indexOf("\n\n");
+          if (i < 0) break;
           const chunk = buf.slice(0, i);
           buf = buf.slice(i + 2);
           if (chunk.startsWith("data: ")) events.push(JSON.parse(chunk.slice(6)));
@@ -441,6 +442,24 @@ test("hub: sessions start, echo, save, close, resume, delete; workspaces add and
     assert.equal(calls[0].prefs.effort, "off");
     assert.equal(calls[0].planKey, id, "each web conversation gets an isolated durable plan key");
     await until(() => hub.snapshot().workspaces[0].sessions[0].status === "idle", 2000, "idle session");
+    const workCreated = JSON.parse((await request(hub, "POST", `/work/items${k}`, {
+      sid: id, action: "create", title: "Review cowork integration", area: "IDE", priority: "high",
+    })).body);
+    assert.match(workCreated.result, /Created work item/);
+    assert.equal(workCreated.items.length, 1);
+    assert.equal(workCreated.items[0].title, "Review cowork integration");
+    const workCompleted = await request(hub, "POST", `/work/items${k}`, {
+      sid: id, action: "complete", task_id: workCreated.items[0].id,
+    });
+    assert.equal(JSON.parse(workCompleted.body).items[0].status, "completed");
+    const workStatus = JSON.parse((await request(hub, "GET", `/status?k=${hub.authToken}&sid=${encodeURIComponent(id)}`)).body);
+    assert.equal(workStatus.workItems[0].title, "Review cowork integration");
+    hub.live.get(id).session.agent.mode = "ro";
+    const readOnlyWrite = JSON.parse((await request(hub, "POST", `/work/items${k}`, {
+      sid: id, action: "create", title: "Must be blocked",
+    })).body);
+    assert.match(readOnlyWrite.error, /read-only mode/i);
+    hub.live.get(id).session.agent.mode = "edit";
     await request(hub, "POST", `/msg${k}`, { sid: id, text: "hello there" });
     await until(() => hub.snapshot().workspaces[0].sessions[0].title === "hello there", 2000, "verbatim title");
     await until(() => hub.snapshot().workspaces[0].sessions[0].title === "Hello Session", 2000, "model-written title");

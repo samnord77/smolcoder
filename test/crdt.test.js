@@ -44,8 +44,8 @@ test("concurrent inserts at the same spot converge both ways", () => {
     const ob = localInsert(B, 1, "Y");
     const first = order[0] === 0 ? [B, oa] : [A, ob];
     const second = order[0] === 0 ? [A, ob] : [B, oa];
-    first[1].forEach((op) => applyOp(first[0], op));
-    second[1].forEach((op) => applyOp(second[0], op));
+    for (const op of first[1]) applyOp(first[0], op);
+    for (const op of second[1]) applyOp(second[0], op);
     assert.equal(docText(A), docText(B));
     assert.equal(docText(A).length, 7);
     assert.match(docText(A), /X/);
@@ -60,10 +60,10 @@ test("deletes converge and ops are idempotent", () => {
   B.site = "b";
   const del = localDelete(A, 1, 2);
   assert.equal(docText(A), "adef");
-  del.forEach((op) => applyOp(B, op));
+  for (const op of del) applyOp(B, op);
   assert.equal(docText(B), "adef");
   const before = docText(B);
-  del.forEach((op) => applyOp(B, op));
+  for (const op of del) applyOp(B, op);
   assert.equal(docText(B), before);
   assert.equal(applyOp(B, { op: "ins", id: "x", pos: [], site: "", ch: "z" }), false);
   assert.equal(applyOp(B, null), false);
@@ -85,7 +85,7 @@ test("the shipped browser bundle runs standalone", () => {
   assert.equal(api.docText(doc), "hXi");
   const other = api.docFromText("hi");
   other.site = "s2";
-  ops.forEach((op) => api.applyOp(other, op));
+  for (const op of ops) api.applyOp(other, op);
   assert.equal(api.docText(other), "hXi");
   assert.deepEqual(JSON.parse(JSON.stringify(api.diffForSync("ab", "aXb"))), { at: 1, del: 0, ins: "X" });
 });

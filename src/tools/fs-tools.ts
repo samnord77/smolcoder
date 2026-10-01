@@ -157,14 +157,11 @@ export function readFile(root: string, args: any, maxChars = READ_CHAR_LIMIT): s
       // advance to, so a line-based "continue" would loop forever. Serve the
       // head and say so, without a continuation offset.
       body = body.slice(0, charLimit);
-      return body + `\n\n[line ${offset} of ${total} is very long; showing its first ${charLimit} characters only.]`;
+      return `${body}\n\n[line ${offset} of ${total} is very long; showing its first ${charLimit} characters only.]`;
     }
   }
   if (offset === 1 && end >= total && !charCut) return body;
-  return (
-    body +
-    `\n\n[showing lines ${offset}-${end} of ${total}. Call read_file with {"path": "${args.path}", "offset": ${end + 1}} to continue.]`
-  );
+  return `${body}\n\n[showing lines ${offset}-${end} of ${total}. Call read_file with {"path": "${args.path}", "offset": ${end + 1}} to continue.]`;
 }
 
 export function writeFile(root: string, args: any): string {

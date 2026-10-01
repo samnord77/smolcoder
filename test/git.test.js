@@ -250,6 +250,10 @@ test("git: turn summary counts +/-, newcomers, and status badges", () => {
   assert.match(summary, /new: fresh\.txt/);
   const map = gitStatusMap(repo, repo);
   assert.equal(map.get("app.txt"), "M");
-  assert.equal(map.get("fresh.txt"), "?");
+  assert.equal(map.get("fresh.txt"), "U");
+  spawnSync("git", ["add", "fresh.txt"], { cwd: repo, windowsHide: true });
+  assert.equal(gitStatusMap(repo, repo).get("fresh.txt"), "A");
+  fs.unlinkSync(path.join(repo, "app.txt"));
+  assert.equal(gitStatusMap(repo, repo).get("app.txt"), "D");
   assert.equal(gitStatusMap(path.join(repo, "missing-dir"), repo).size, 0);
 });

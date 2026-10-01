@@ -1,17 +1,20 @@
 // Smolcoder Desktop (Electron) — main process.
 // Shell natif autour du hub web existant : fenetre principale (hub complet),
 // editeur de fichiers integre, menus natifs pour /models /mode /effort /tasks.
-const { app, BrowserWindow, Menu, clipboard, dialog, ipcMain, shell } = require("electron");
+const { app, BrowserWindow, Menu, clipboard, dialog, ipcMain } = require("electron");
 const { spawnSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 const hub = require("./hub-client");
-const gitService = require("./git-service");
-const editorFileService = require("./editor-file-service");
 
 const ROOT = path.join(__dirname, ".."); // smolcoder-source
 const DIST_INDEX = path.join(ROOT, "dist", "index.js");
+const DIST_SANDBOX = path.join(ROOT, "dist", "sandbox.js");
 let APP_VERSION = "0.0.0";
+let gitService;
+let editorFileService;
+let resolveInWorkspace;
+let searchWorkspace;
 try {
   APP_VERSION = require(path.join(ROOT, "package.json")).version || APP_VERSION;
 } catch {
@@ -20,6 +23,7 @@ try {
 
 /** dist/ state via the shared checker when built, else a local fallback. */
 function distState() {
+  if (!fs.existsSync(DIST_INDEX) || !fs.existsSync(DIST_SANDBOX)) return "missing";
   try {
     return require(path.join(ROOT, "dist", "build-check.js")).distState(ROOT);
   } catch {
@@ -35,7 +39,7 @@ function distState() {
 function runBuild() {
   try {
     const checker = require(path.join(ROOT, "dist", "build-check.js"));
-    return checker.runBuild(ROOT, () => {});
+    if (checker.runBuild(ROOT, () => {}) && fs.existsSync(DIST_INDEX) && fs.existsSync(DIST_SANDBOX)) return true;
   } catch {
     /* fall through to the local npm hunt below */
   }
@@ -57,15 +61,13 @@ function runBuild() {
         encoding: "utf8",
         maxBuffer: 4 * 1024 * 1024,
       });
-      if (!r.error && r.status === 0 && fs.existsSync(DIST_INDEX)) return true;
+      if (!r.error && r.status === 0 && fs.existsSync(DIST_INDEX) && fs.existsSync(DIST_SANDBOX)) return true;
     } catch {
       /* commande suivante */
     }
   }
   return false;
 }
-const { resolveInWorkspace } = require(path.join(ROOT, "dist", "sandbox.js"));
-const { searchWorkspace } = require(path.join(ROOT, "dist", "workspace-search.js"));
 
 let hubRec = null;
 let hubBase = "";
@@ -140,15 +142,15 @@ function openMainWindow() {
         const r = await hub.ensureHub({ projectDir: currentProjectDir || ROOT, distIndex: DIST_INDEX });
         hubRec = r.rec;
         hubBase = r.url;
-        if (!win.isDestroyed()) await   win.webContents.session.clearCache().catch(() => {});
-  win.loadURL(activeSid ? hubBase + "#" + activeSid : hubBase);
+        if (!win.isDestroyed()) await win.webContents.session.clearCache().catch(() => {});
+        win.loadURL(activeSid ? `${hubBase}#${activeSid}` : hubBase);
         return;
       } catch { /* tombe sur l'errBox ci-dessous */ }
     }
     errBox(`Impossible de joindre le serveur Smolcoder.\nCopiez cette URL dans un navigateur quand il tourne :\n${hubBase || "(serveur arrêté)"}`);
   });
-    win.webContents.session.clearCache().catch(() => {});
-  win.loadURL(activeSid ? hubBase + "#" + activeSid : hubBase);
+  win.webContents.session.clearCache().catch(() => {});
+  win.loadURL(activeSid ? `${hubBase}#${activeSid}` : hubBase);
   startHubWatchdog(win);
   win.on("closed", () => {
     if (mainWin === win) mainWin = null;
@@ -210,7 +212,7 @@ function openPanel() {
 async function openShare() {
   try {
     const { token } = await hub.withLiveSid(hubRec, (sid) => hub.api(hubRec, "POST", "/sessions/share", { sid }));
-    const url = String(hubBase).split("?")[0] + "?share=" + token;
+    const url = `${String(hubBase).split("?")[0]}?share=${token}`;
     const { response } = await dialog.showMessageBox({
       type: "info",
       title: "Smolcoder — partage",
@@ -241,7 +243,7 @@ function buildMenu() {
               const res = await hub.api(hubRec, "POST", "/workspaces/add", { path: r.filePaths[0], start: true });
               if (res?.id && mainWin) {
                 activeSid = res.id;
-                await mainWin.loadURL(hubBase + "#" + res.id);
+                await mainWin.loadURL(`${hubBase}#${res.id}`);
                 mainWin.focus();
               }
             } catch (e) {
@@ -344,7 +346,7 @@ ipcMain.handle("ed:setRoot", async (_e, dir) => {
 
 ipcMain.handle("ed:list", async (_e, rel) => {
   const root = assertRoot();
-  const abs = resolveInWorkspace(root, rel && rel.trim() ? rel : ".");
+  const abs = resolveInWorkspace(root, rel?.trim() ? rel : ".");
   const st = fs.statSync(abs);
   if (!st.isDirectory()) throw new Error("Pas un dossier.");
   const names = fs.readdirSync(abs, { withFileTypes: true });
@@ -374,6 +376,7 @@ ipcMain.handle("ed:read", async (_e, rel) => {
   if (st.size > 1024 * 1024) throw new Error("Fichier > 1 Mo : ouvrez-le dans un autre \u00e9diteur.");
   return editorFileService.readWorkspaceFile(root, rel);
 });
+ipcMain.handle("ed:image", async (_e, rel) => editorFileService.readWorkspaceImage(assertRoot(), rel));
 
 ipcMain.handle("ed:search", async (_e, query) => searchWorkspace(assertRoot(), query, { maxMatches: 200 }));
 ipcMain.handle("ed:diagnostics", async (_e, rel) => {
@@ -382,7 +385,7 @@ ipcMain.handle("ed:diagnostics", async (_e, rel) => {
     const { queryDiagStructured } = require(path.join(ROOT, "dist", "lsp-pro.js"));
     const r = await queryDiagStructured(root, rel);
     return { message: r.text, diagnostics: r.diagnostics };
-  } catch (e) {
+  } catch {
     const { workspaceDiagnostics } = require(path.join(ROOT, "dist", "workspace-diagnostics.js"));
     return workspaceDiagnostics(root, rel);
   }
@@ -453,7 +456,7 @@ ipcMain.handle("ed:completion", async (_e, rel, line, col) => {
     .map((l) => {
       const body = l.slice(2);
       const m = /^(.+?)(?: \(([^)]*)\))?(?: — (.*))?$/.exec(body);
-      return { label: (m ? m[1] : body).trim(), kind: (m && m[2]) || "", detail: (m && m[3]) || "" };
+      return { label: (m ? m[1] : body).trim(), kind: m?.[2] || "", detail: m?.[3] || "" };
     });
   return { items };
 });
@@ -521,7 +524,7 @@ ipcMain.handle("panel:setEnabled", async (_event, name, enabled) => {
     if (!entry) continue;
     entry.enabled = enabled;
     fs.mkdirSync(path.dirname(file), { recursive: true });
-    fs.writeFileSync(file, JSON.stringify(raw, null, 2) + "\n", "utf8");
+    fs.writeFileSync(file, `${JSON.stringify(raw, null, 2)}\n`, "utf8");
     return { enabled };
   }
   throw new Error("MCP configuration file was not found.");
@@ -658,11 +661,15 @@ app.whenReady().then(async () => {
       return;
     }
   }
-  if (!fs.existsSync(DIST_INDEX)) {
-    dialog.showErrorBox("Smolcoder Desktop", `dist/index.js introuvable.\nLancez d\u2019abord : npm run build\n(dans ${ROOT})`);
+  if (!fs.existsSync(DIST_INDEX) || !fs.existsSync(DIST_SANDBOX)) {
+    dialog.showErrorBox("Smolcoder Desktop", `Fichiers core dist/index.js ou dist/sandbox.js introuvables.\nLancez d\u2019abord : npm run build\n(dans ${ROOT})`);
     app.quit();
     return;
   }
+  ({ resolveInWorkspace } = require(DIST_SANDBOX));
+  ({ searchWorkspace } = require(path.join(ROOT, "dist", "workspace-search.js")));
+  gitService = require("./git-service");
+  editorFileService = require("./editor-file-service");
   let projectDir = ROOT;
   try {
     projectDir = process.argv[2] && !process.argv[2].startsWith("-") ? process.argv[2] : ROOT;

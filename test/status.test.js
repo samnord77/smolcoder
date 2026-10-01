@@ -28,7 +28,7 @@ test("/status reports model, language servers, sub-agents and system", async () 
     contextTokens: 1024,
     contextWindow: 4096,
   });
-  assert.equal(r.ok, true, "no errors expected: " + r.errors.join("; "));
+  assert.equal(r.ok, true, `no errors expected: ${r.errors.join("; ")}`);
   assert.equal(r.model.local, true, "a loopback ollama host is offline-capable");
   assert.equal(r.context.percent, 25);
   assert.ok(r.lsp.length > 0, "the language-server catalogue is not empty");
@@ -64,7 +64,7 @@ test("/status never claims a check passed when it was stopped", async () => {
   const state = r.build.state;
   assert.ok(
     state === "passing" || /FAILING|still running|killed|could not run|not judged/.test(state),
-    "the check state is honest, got: " + state
+    `the check state is honest, got: ${state}`
   );
   if (state.startsWith("FAILING")) assert.match(state, /exit \d+/, "a failure names its exit code");
 });

@@ -260,6 +260,7 @@ export class SessionChannel implements SessionUI {
 
   toolCall(name: string, args: Record<string, any>): void {
     const ev: Record<string, any> = { t: "tool", name, summary: summarizeArgs(name, args) };
+    if (name === "run_command" && typeof args?.command === "string") ev.command = args.command.slice(0, 20_000);
     if (name === "edit_file" && typeof args?.old_text === "string" && typeof args?.new_text === "string") {
       try {
         ev.diff = renderEditDiff(args.old_text, args.new_text);

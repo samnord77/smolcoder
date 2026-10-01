@@ -98,8 +98,6 @@ export class Tui implements SessionUI {
     resolve: (s: string | null) => void;
   } | null = null;
   private started = false;
-  private lastKind: string | null = null;
-  private thinkStart = 0;
   private confirmState: {
     command: string;
     reason?: string;
@@ -301,7 +299,6 @@ export class Tui implements SessionUI {
       .join("\n");
     process.stdout.write(`\n${block}\n\n`);
     this.atLineStart = true;
-    this.lastKind = null;
     const resolve = this.submitResolve;
     this.submitResolve = null;
     resolve?.(text);
@@ -623,7 +620,6 @@ export class Tui implements SessionUI {
 
   token(text: string): void {
     this.stopSpinner();
-    this.lastKind = "content";
     this.codeColorizer.push(text);
     this.atLineStart = text.endsWith("\n");
   }
@@ -637,7 +633,6 @@ export class Tui implements SessionUI {
     if (!this.tickerOn) {
       if (!this.atLineStart) this.out("\n");
       this.tickerOn = true;
-      this.thinkStart = Date.now();
       this.thinkBuf = "";
     }
     this.thinkBuf += text;
@@ -660,7 +655,6 @@ export class Tui implements SessionUI {
   toolCall(name: string, args: Record<string, any>): void {
     this.stopSpinner();
     this.ensureLine();
-    this.lastKind = null;
     this.out(`${c.cyan("→")} ${c.bold(name)} ${c.dim(summarizeArgs(name, args))}\n`);
   }
 
@@ -700,7 +694,6 @@ export class Tui implements SessionUI {
   println(s = ""): void {
     this.stopSpinner();
     this.ensureLine();
-    this.lastKind = null;
     this.out(`${s}\n`);
     this.atLineStart = true;
   }
@@ -712,7 +705,6 @@ export class Tui implements SessionUI {
   turnEnd(label: string): void {
     this.codeColorizer.flush();
     this.ensureLine();
-    this.lastKind = null;
     const n = new Date();
     const hh = [n.getHours(), n.getMinutes(), n.getSeconds()].map((x) => String(x).padStart(2, "0")).join(":");
     this.out(`${c.dim(`■ ${label} · ${hh}`)}\n\n`);
@@ -723,7 +715,6 @@ export class Tui implements SessionUI {
   planUpdated(plan: Plan): void {
     this.stopSpinner();
     this.ensureLine();
-    this.lastKind = null;
     // The full checklist, like headless mode — one line hides the work.
     try {
       this.out(`${renderPlan(plan, "  ")}\n`);

@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smolcoder — Éditeur</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #1e1e1e; color: #d4d4d4;
+    font-family: Consolas, "Courier New", monospace; font-size: 14px; }
+  body { position: relative; zoom: var(--zoom, 1); }
+  #bar { display: flex; gap: 10px; align-items: center; padding: 10px 12px; min-height: 52px;
+    background: #252526; border-bottom: 1px solid #3c3c3c; }
+  #bar button { background: #0e639c; color: #fff; border: 0; border-radius: 6px;
+    padding: 8px 14px; cursor: pointer; font-size: 13px; min-height: 36px; line-height: 1.2; }
+  #bar button:hover { background: #1177bb; }
+  #bar button:focus-visible { outline: 2px solid #9cdcfe; outline-offset: 2px; }
+  #root { color: #9cdcfe; font-size: 12.5px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.5; }
+  #main { display: flex; height: calc(100% - 96px); min-height: 0; }
+  #tree { width: 260px; min-width: 180px; overflow: auto; background: #252526;
+    border-right: 1px solid #3c3c3c; padding: 8px 6px; line-height: 1.6; }
+  #side { display: flex; flex-direction: column; width: var(--side-w, 260px); min-width: 180px; min-height: 0; background: #252526; border-right: 1px solid #3c3c3c; }
+  /* Drag handle on the sidebar edge. The panel width used to be hard-coded at
+     260px with no way to change it, which is what made the file list eat
+     space the code needed. */
+  #sidegrip { position: relative; flex: 0 0 7px; margin-left: -3px; margin-right: -3px; z-index: 9; cursor: col-resize; background: transparent; }
+  #sidegrip:hover, body.dragging #sidegrip { background: #007acc; }
+  /* Text-size control. The stylesheet is all px, so scaling the root font
+     would change nothing; Chromium's zoom is what rescales everything. */
+  #zoomctl { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+  #zoomctl .zl { color: #dcdcdc; font-size: 11px; }
+  #zoomctl .zbar { position: relative; width: 96px; height: 16px; display: flex; align-items: center; }
+  #zoomctl .zbar::before { content: ""; position: absolute; left: 0; right: 0; height: 4px; border-radius: 2px; background: #1b242a; }
+  #zoomctl .zfill { position: absolute; left: 0; height: 4px; border-radius: 2px; background: linear-gradient(90deg, #24727f, #43c6d6, #93f2ff); width: calc(var(--zpct, 0) * 1%); }
+  #zoomctl input[type="range"] { position: relative; z-index: 2; width: 100%; height: 16px; margin: 0; background: transparent; -webkit-appearance: none; appearance: none; cursor: pointer; }
+  #zoomctl input[type="range"]::-webkit-slider-runnable-track { height: 16px; background: transparent; }
+  #zoomctl input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 12px; height: 12px; margin-top: 2px; border-radius: 50%; background: #fff; border: 1px solid #007acc; }
+  #zoomctl input[type="range"]::-moz-range-track { height: 16px; background: transparent; }
+  #zoomctl input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: #fff; border: 1px solid #007acc; }
+  #zoomctl input[type="range"]:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+  #zoomctl .zval { min-width: 38px; text-align: right; color: #fff; font-size: 11px; font-variant-numeric: tabular-nums; }
+  #zoomctl .zstep { width: 20px; height: 20px; padding: 0; display: inline-flex; align-items: center; justify-content: center; background: transparent; border: 1px solid rgba(255,255,255,.45); border-radius: 4px; color: #fff; cursor: pointer; line-height: 1; }
+  #zoomctl .zstep:hover { background: rgba(255,255,255,.18); }
+  #searchBox { display: flex; gap: 4px; padding: 7px; border-bottom: 1px solid #3c3c3c; }
+  #searchInput { min-width: 0; flex: 1; background: #1e1e1e; color: #d4d4d4; border: 1px solid #555; padding: 6px; }
+  #searchButton { background: #3c3c3c !important; padding: 6px 9px !important; }
+  #results { max-height: 32%; overflow: auto; border-bottom: 1px solid #3c3c3c; }
+  .result { display: block; width: 100%; text-align: left; color: #d4d4d4; background: transparent; border: 0; padding: 5px 7px; cursor: pointer; font: 12px Consolas, monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .result:hover { background: #37373d; }
+  #tree .d { color: #4ec9b0; cursor: pointer; padding: 4px 6px; border-radius: 4px; display: flex; align-items: center; }
+    #tree .f { color: #d4d4d4; cursor: pointer; padding: 4px 6px; white-space: nowrap; border-radius: 4px; display: flex; align-items: center; }
+    .fileitem-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 16px; padding: 0 3px; font-size: 9.5px; font-weight: 700; font-family: Consolas, monospace; border-radius: 3px; margin-right: 6px; flex-shrink: 0; line-height: 1; }
+    .fileitem-icon { display: inline-flex; align-items: center; justify-content: center; width: 20px; font-size: 13px; margin-right: 6px; flex-shrink: 0; }
+    .fileitem-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; text-align: left; }
+  #tree .f { color: #d4d4d4; cursor: pointer; padding: 6px 8px; white-space: nowrap; border-radius: 4px; }
+  #tree .f:hover, #tree .d:hover { background: #2a2d2e; }
+  #tree .open { background: #37373d; box-shadow: inset 2px 0 0 #007acc; }
+  #editorPane { display: flex; flex: 1; flex-direction: column; min-width: 0; min-height: 0; }
+  #tabs { display: flex; gap: 1px; min-height: 35px; overflow-x: auto; background: #252526; border-bottom: 1px solid #3c3c3c; }
+  #findBar { display: none; gap: 5px; align-items: center; flex-wrap: wrap; padding: 6px; background: #252526; border-bottom: 1px solid #3c3c3c; font: 12px Segoe UI, sans-serif; }
+  #findBar.open { display: flex; }
+  #findBar input { min-width: 80px; width: 22%; padding: 5px 7px; color: #d4d4d4; background: #1e1e1e; border: 1px solid #555; }
+  #findBar button { min-height: 28px; padding: 4px 8px; }
+  #replaceWrap { display: none; gap: 5px; align-items: center; flex: 1; flex-wrap: wrap; }
+  #replaceWrap.open { display: flex; }
+  #findCount { color: #aaa; min-width: 90px; }
+  .tab { display: flex; align-items: center; flex: none; max-width: 220px; background: #2d2d2d; border-right: 1px solid #1e1e1e; }
+  .tab.active { background: #1e1e1e; border-top: 1px solid #007acc; }
+  .tab-label, .tab-close { color: #d4d4d4; border: 0; background: transparent !important; border-radius: 0 !important; min-height: 32px !important; padding: 4px 8px !important; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 12px Consolas, monospace !important; }
+  .tab-label { text-align: left; max-width: 175px; }
+  .tab-close { padding: 4px 7px !important; color: #aaa !important; }
+  .tab-close:hover { background: #3c3c3c !important; }
+  #tree:empty::after { content: "Aucun dossier ouvert — cliquez « Dossier » pour commencer."; display: block; margin: 8px; padding: 20px 12px; color: #858585; font-size: 12.5px; line-height: 1.6; text-align: center; border: 1px dashed #3c3c3c; border-radius: 8px; font-family: Segoe UI, sans-serif; }
+  #editorWrap { position: relative; flex: 1; min-width: 0; min-height: 0; overflow: hidden; background: #1e1e1e; }
+  #imagePreview { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 16px; background: #1e1e1e; font: 12px Segoe UI, sans-serif; color: #aaa; }
+  #imagePreview[hidden] { display: none; }
+  #imagePreview img { display: block; max-width: 100%; max-height: calc(100% - 32px); object-fit: contain; }
+  #bar button:disabled { opacity: .55; cursor: not-allowed; }
+  #codeLayer, #ed { position: absolute; inset: 0; margin: 0; padding: 12px 14px; font: inherit; line-height: 1.6; tab-size: 2; white-space: pre-wrap; overflow: auto; word-wrap: break-word; }
+  #codeLayer { pointer-events: none; color: #d4d4d4; }
+  #ed { background: transparent; color: transparent; caret-color: #fff; border: 0; outline: none; resize: none; }
+  #ed::placeholder { color: #858585; opacity: 1; }
+  #ed:focus-visible { outline: 2px solid #007acc; outline-offset: -2px; }
+  .tok-key { color: #c586c0; } .tok-str { color: #ce9178; } .tok-num { color: #b5cea8; } .tok-t { color: #4ec9b0; } .tok-d { color: #e5c07b; }
+  .sq-err { text-decoration: underline wavy #f14c4c 1px; text-decoration-skip-ink: none; }
+  .sq-warn { text-decoration: underline wavy #cca700 1px; text-decoration-skip-ink: none; }
+  .diffPreview { max-height: 220px; overflow: auto; background: #101416; border: 1px solid #3c3c3c; font: 12px Consolas, monospace; white-space: pre-wrap; word-break: break-word; padding: 6px 8px; }
+  .diffPreview .add { display: block; color: #7ee787; background: rgba(63,185,80,.13); }
+  .diffPreview .del { display: block; color: #ffa198; background: rgba(248,81,73,.13); }
+  .diffPreview .same { display: block; color: #858585; }
+  .diffPreview .hunk { display: block; color: #79c0ff; }
+  #inlineBar { display: none; gap: 6px; align-items: center; padding: 6px 12px; background: #252526; border-bottom: 1px solid #3c3c3c; }
+  #inlineBar.open { display: flex; }
+  #inlineBar input { flex: 1; min-width: 0; background: #1e1e1e; color: #d4d4d4; border: 1px solid #555; padding: 6px 8px; }
+  #inlineBar button { background: #0e639c; color: #fff; border: 0; border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+  #inlinePreview { display: none; border-bottom: 1px solid #3c3c3c; padding: 6px 12px; background: #252526; }
+  #inlinePreview.open { display: block; }
+  #inlinePreview .row { display: flex; gap: 6px; margin-top: 6px; }
+  #inlinePreview .row button { background: #0e639c; color: #fff; border: 0; border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+  #inlinePreview .row button.reject { background: #5a5a5a; }
+  #completePop { display: none; position: absolute; z-index: 6; left: 12px; top: 44px; min-width: 260px; max-width: 70%; max-height: 220px; overflow: auto; background: #252526; border: 1px solid #007acc; box-shadow: 0 8px 24px #0008; }
+  #completePop.open { display: block; }
+  .completeItem { display: block; width: 100%; text-align: left; background: transparent; border: 0; border-bottom: 1px solid #2d2d2d; color: #d4d4d4; padding: 5px 10px; cursor: pointer; font: 12.5px Consolas, monospace; }
+  .completeItem:hover, .completeItem.sel { background: #094771; }
+  .completeItem .kind { color: #858585; margin-left: 8px; }
+  .tok-com, .tok-c { color: #6a9955; } .tok-lit, .tok-k { color: #c586c0; } .tok-f { color: #dcdcaa; } .tok-o { color: #d4d4d4; } .tok-tag { color: #4ec9b0; } .tok-s { color: #ce9178; } .tok-n { color: #b5cea8; }
+  #status { display: flex; gap: 8px 16px; flex-wrap: wrap; align-items: center; padding: 8px 12px; min-height: 28px; background: #007acc; color: #fff;
+    font-size: 12.5px; font-family: Segoe UI, sans-serif; }
+  #err { color: #f48771; padding: 4px 12px; font-size: 12.5px; line-height: 1.5; min-height: 22px; }
+  #diagPanel { display: none; position: absolute; z-index: 5; left: 260px; right: 0; bottom: 58px; max-height: 150px; overflow: auto; background: #181818; border: 1px solid #3c3c3c; box-shadow: 0 8px 24px #0008; font: 12px Segoe UI, sans-serif; }
+  #diagPanel.open { display: block; }
+  .diagItem { display: block; width: 100%; text-align: left; border: 0; border-bottom: 1px solid #292929; padding: 6px 12px; color: #d4d4d4; background: transparent; cursor: pointer; }
+  .diagItem:hover { background: #2a2d2e; }
+  .diagItem.error { box-shadow: inset 3px 0 #f14c4c; } .diagItem.warning { box-shadow: inset 3px 0 #cca700; }
+  :focus-visible { outline: 2px solid #9cdcfe; outline-offset: 2px; }
+  @media (max-width: 700px) {
+    body { display: flex; flex-direction: column; }
+    #bar { flex-wrap: wrap; }
+    #main { flex-direction: column; height: auto; flex: 1; }
+    #side { width: 100%; min-width: 0; flex: 1; }
+    #tree { width: 100%; min-width: 0; max-height: 32vh; border-right: 0; border-bottom: 1px solid #3c3c3c; }
+    #ed { min-height: 40vh; }
+    #diagPanel { left: 8px; }
+  }
+</style>
+</head>
+<body>
+<div id="bar">
+  <button id="bFolder">📁 Dossier</button>
+  <button id="bSave">💾 Enregistrer (Ctrl+S)</button>
+  <button id="bDiag" title="Analyser le fichier avec le serveur de langage">✓ Problèmes</button>
+  <button id="bInline" title="Modifier la sélection avec l'IA (Ctrl+K)">✨ Inline</button>
+  <button id="bNewFile" title="Nouveau fichier">+F</button>
+  <button id="bNewFolder" title="Nouveau dossier">+D</button>
+  <button id="bRename" title="Renommer le fichier ouvert">✎</button>
+  <button id="bDelete" title="Supprimer le fichier ouvert">🗑</button>
+  <span id="root">aucun dossier — cliquez « Dossier »</span>
+</div>
+<div id="inlineBar" role="search"><div style="display:flex;gap:6px;align-items:center;width:100%;"><input id="inlineInput" placeholder="Instruction : ex. refactoriser, typer, ajouter gestion d'erreurs…" aria-label="Instruction d'édition IA"><button id="inlineGo" type="button">Générer</button><button id="inlineCancel" type="button">Fermer</button></div><div id="inlineChips" style="display:flex;gap:6px;overflow-x:auto;padding-top:4px;"></div></div>
+<div id="inlinePreview" role="region" aria-label="Aperçu de modification IA"><div class="diffPreview" id="inlineDiff"></div><div class="row"><span id="inlineStatus" style="flex:1;color:#9cdcfe;font:12px Segoe UI,sans-serif;"></span><button id="inlineAccept" type="button">Accepter</button><button id="inlineReject" type="button" class="reject">Rejeter</button></div></div>
+<div id="main">
+  <div id="side"><div id="searchBox"><input id="searchInput" placeholder="Rechercher dans le projet…" aria-label="Rechercher dans le projet"><button id="searchButton" title="Rechercher">⌕</button></div><div id="results" hidden></div><div id="tree"></div></div>
+        <div id="sidegrip" title="Glisser pour redimensionner" aria-hidden="true"></div>
+      <div id="editorPane"><div id="tabs" role="tablist" aria-label="Fichiers ouverts"></div><div id="findBar" role="search"><input id="findInput" aria-label="Rechercher dans le fichier" placeholder="Rechercher dans le fichier"><button id="findPrev" type="button" title="Occurrence précédente (Maj+F3)">↑</button><button id="findNext" type="button" title="Occurrence suivante (F3)">↓</button><span id="findCount" aria-live="polite"></span><div id="replaceWrap"><input id="replaceInput" aria-label="Remplacer par" placeholder="Remplacer par"><button id="replaceOne" type="button">Remplacer</button><button id="replaceAll" type="button">Tout remplacer</button></div><button id="findClose" type="button" aria-label="Fermer la recherche">×</button></div><div id="editorWrap"><pre id="codeLayer" aria-hidden="true"></pre><textarea id="ed" spellcheck="false" placeholder="Choisissez un dossier, puis un fichier…"></textarea><div id="imagePreview" hidden><img id="previewImg" alt="Aperçu du fichier image"><span id="imageMeta"></span></div><div id="completePop" role="listbox" aria-label="Complétions"></div></div></div>
+</div>
+<div id="err"></div>
+<div id="diagPanel" role="region" aria-label="Problèmes du fichier"></div>
+<div id="status"><span id="sFile">—</span><span id="sPosition">Ln 1, Col 1</span><span id="sDirty"></span><span id="sMsg"></span><span id="zoomctl" role="group" aria-label="Taille du texte de l'interface"><span class="zl">Texte</span><button class="zstep" type="button" id="zoomOut" title="Réduire la taille du texte" aria-label="Réduire la taille du texte">-</button><span class="zbar"><span class="zfill" id="zfill"></span><input type="range" id="zoomRange" min="0" max="100" step="5" aria-label="Taille du texte en pourcentage"></span><button class="zstep" type="button" id="zoomIn" title="Agrandir la taille du texte" aria-label="Agrandir la taille du texte">+</button><span class="zval" id="zval">100%</span></span></div>
+<script>
+const $ = (id) => document.getElementById(id);
+const tree = $("tree"), ed = $("ed"), err = $("err");
+const results = $("results"), searchInput = $("searchInput");
+const tabBar = $("tabs"), tabs = window.smolEd.tabs;
+const codeLayer = $("codeLayer");
+let root = null, cur = null, dirty = false, folders = { ".": true };
+let diagnosticRequest = 0;
+let imagePreviewRequest = 0;
+let curDiags = [];
+const IMAGE_FILE_RE = /\.(?:png|jpe?g|gif|webp|bmp|ico|svg)$/i;
+
+// Global text size. Every size in this stylesheet is in px, so scaling the
+// root font would change nothing; Chromium's zoom is what rescales the tree.
+// Kept in localStorage so the setting survives a window reopen.
+var ZOOM_MIN = 0.5, ZOOM_MAX = 3, ZOOM_STEP = 0.05;
+var zfill = $("zfill"), zval = $("zval"), zrange = $("zoomRange"), zoomNow = 1;
+function applyZoom(z) {
+  zoomNow = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(z * 100) / 100));
+  document.body.style.setProperty("--zoom", String(zoomNow));
+  try { localStorage.setItem("smolEditor.zoom", String(zoomNow)); } catch (e) {}
+  var p = Math.round(((zoomNow - ZOOM_MIN) / (ZOOM_MAX - ZOOM_MIN)) * 100);
+  zval.textContent = Math.round(zoomNow * 100) + "%";
+  zfill.style.setProperty("--zpct", String(p));
+  zrange.value = String(p);
+  return zoomNow;
+}
+zrange.addEventListener("input", function () { applyZoom(ZOOM_MIN + (Number(zrange.value) / 100) * (ZOOM_MAX - ZOOM_MIN)); });
+$("zoomOut").addEventListener("click", function () { applyZoom(zoomNow - ZOOM_STEP); });
+$("zoomIn").addEventListener("click", function () { applyZoom(zoomNow + ZOOM_STEP); });
+try { applyZoom(parseFloat(localStorage.getItem("smolEditor.zoom")) || 1); } catch (e) { applyZoom(1); }
+
+// Sidebar width. It used to be pinned at 260px with no handle at all, so the
+// file list always took space away from the code.
+(function () {
+  var side = $("side"), grip = $("sidegrip");
+  try {
+    var saved = parseInt(localStorage.getItem("smolEditor.sideW"), 10);
+    if (saved) side.style.setProperty("--side-w", Math.max(180, Math.min(720, saved)) + "px");
+  } catch (e) {}
+  grip.addEventListener("mousedown", function (ev) {
+    ev.preventDefault();
+    document.body.classList.add("dragging");
+    var move = function (e) {
+      var w = Math.max(180, Math.min(720, e.clientX - side.getBoundingClientRect().left));
+      side.style.setProperty("--side-w", w + "px");
+    };
+    var up = function () {
+      document.body.classList.remove("dragging");
+      document.removeEventListener("mousemove", move);
+      document.removeEventListener("mouseup", up);
+      var w = parseInt(getComputedStyle(side).width, 10);
+      if (w) { try { localStorage.setItem("smolEditor.sideW", String(w)); } catch (e) {} }
+    };
+    document.addEventListener("mousemove", move);
+    document.addEventListener("mouseup", up);
+  });
+})();
+
+function showErr(m) { err.textContent = m || ""; }
+function setDirty(d) { dirty = d; $("sDirty").textContent = d ? "● modifié" : ""; }
+function join(a, b) { return a === "." ? b : a + "/" + b; }
+function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+function languageFor(file) { return file ? file.split(".").pop().toLowerCase() : ""; }
+var SQ_ERR_OPEN = String.fromCharCode(1), SQ_ERR_CLOSE = String.fromCharCode(2);
+var SQ_WARN_OPEN = String.fromCharCode(3), SQ_WARN_CLOSE = String.fromCharCode(4);
+function markSquiggles(source) {
+  if (!cur || !curDiags.length) return source;
+  var lines = String(source).split("\n");
+  for (var k = 0; k < curDiags.length; k++) {
+    var d = curDiags[k] || {};
+    var li = (Number(d.line) || 1) - 1;
+    if (li < 0 || li >= lines.length) continue;
+    var line = lines[li];
+    var col = Math.max(0, Math.min((Number(d.col) || 1) - 1, line.length));
+    var end = col;
+    while (end < line.length && /[\w$]/.test(line[end])) end++;
+    if (end <= col) end = Math.min(line.length, col + 1);
+    if (end <= col) continue;
+    var isWarn = d.severity === "warning";
+    lines[li] = line.slice(0, col) + (isWarn ? SQ_WARN_OPEN : SQ_ERR_OPEN) + line.slice(col, end) + (isWarn ? SQ_WARN_CLOSE : SQ_ERR_CLOSE) + line.slice(end);
+  }
+  return lines.join("\n");
+}
+function paint() {
+  var html = window.smolEd.highlightCode(markSquiggles(ed.value), languageFor(cur));
+  html = html.split(SQ_ERR_OPEN).join('<span class="sq-err">').split(SQ_ERR_CLOSE).join("</span>");
+  html = html.split(SQ_WARN_OPEN).join('<span class="sq-warn">').split(SQ_WARN_CLOSE).join("</span>");
+  codeLayer.innerHTML = html; codeLayer.scrollTop = ed.scrollTop; codeLayer.scrollLeft = ed.scrollLeft;
+}
+function updateCursor() { const p = window.smolEd.editorTools.cursorPosition(ed.value, ed.selectionStart); $("sPosition").textContent = "Ln " + p.line + ", Col " + p.column; }
+function stashCurrent() { if (cur) tabs.update(cur, ed.value); }
+function renderTabs() {
+  tabBar.replaceChildren();
+  for (const tab of tabs.list()) {
+    const item = document.createElement("div"); item.className = "tab" + (tab.path === cur ? " active" : "");
+    const label = document.createElement("button"); label.className = "tab-label"; label.type = "button"; label.setAttribute("role", "tab"); label.setAttribute("aria-selected", String(tab.path === cur));
+    label.textContent = (tab.dirty ? "● " : "") + tab.path.split("/").pop(); label.title = tab.path; label.onclick = () => activateTab(tab.path);
+    const close = document.createElement("button"); close.className = "tab-close"; close.type = "button"; close.textContent = "×"; close.title = "Fermer " + tab.path; close.setAttribute("aria-label", "Fermer " + tab.path); close.onclick = () => closeTab(tab.path);
+    item.append(label, close); tabBar.appendChild(item);
+  }
+}
+function showTab(tab, loadedImage) {
+  cur = tab ? tab.path : null;
+  curDiags = [];
+  const image = !!(tab && IMAGE_FILE_RE.test(tab.path));
+  const preview = $("imagePreview"), previewImg = $("previewImg");
+  const request = ++imagePreviewRequest;
+  preview.hidden = !image;
+  previewImg.removeAttribute("src");
+  ed.hidden = image; codeLayer.hidden = image;
+  $("bSave").disabled = image; $("bDiag").disabled = image; $("bInline").disabled = image;
+  ed.value = image ? "" : tab ? tab.content : ""; paint(); setDirty(!!(tab && tab.dirty));
+  updateCursor();
+  $("sFile").textContent = tab ? tab.path : "—"; $("sMsg").textContent = "";
+  $("imageMeta").textContent = "";
+  if (image) {
+    $("sMsg").textContent = "Image · lecture seule";
+    (loadedImage ? Promise.resolve(loadedImage) : window.smolEd.readImage(tab.path)).then((file) => {
+      if (request !== imagePreviewRequest || cur !== tab.path) return;
+      previewImg.src = "data:" + file.mimeType + ";base64," + file.base64;
+      $("imageMeta").textContent = (file.size / 1024).toFixed(1) + " Ko · aperçu en lecture seule";
+    }).catch((e) => {
+      if (request === imagePreviewRequest && cur === tab.path) showErr(e.message);
+    });
+  }
+  renderTabs(); refreshTree();
+  if (tab && !image && /\.(?:[cm]?js|jsx|tsx?)$/i.test(tab.path)) void analyzeCurrent();
+  else { diagnosticRequest++; $("diagPanel").classList.remove("open"); $("diagPanel").replaceChildren(); }
+}
+function activateTab(filePath) { stashCurrent(); const tab = tabs.activate(filePath); if (tab) showTab(tab); }
+function closeTab(filePath) {
+  stashCurrent();
+  const tab = tabs.list().find((item) => item.path === filePath);
+  if (!tab || (tab.dirty && !confirm("Fermer " + filePath + " sans enregistrer ses modifications ?"))) return;
+  const result = tabs.close(filePath, tab.dirty);
+  if (result.closed) showTab(result.active);
+}
+
+function getFileItemHtml(name, isDir, depth, status) {
+  var safeName = String(name || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  var indent = (depth && depth > 0) ? '<span style="display:inline-block;width:' + (depth * 14) + 'px;flex-shrink:0;"></span>' : "";
+  var badge = status ? '<span class="fileitem-badge" style="color:' + (status === "?" ? "#9cdcfe" : "#f08080") + ';border:1px solid #555;">' + String(status).replace(/&/g, "&amp;").replace(/</g, "&lt;") + '</span>' : "";
+  if (isDir) {
+    var folderSvg = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;margin-right:6px;"><path d="M1.5 3A1.5 1.5 0 0 1 3 1.5h3.1a1.5 1.5 0 0 1 1.06.44L8.5 3.25H13A1.5 1.5 0 0 1 14.5 4.75v8a1.5 1.5 0 0 1-1.5 1.5H3A1.5 1.5 0 0 1 1.5 12.75V3z" fill="#E8B839"/><path d="M1.5 5.5h13v7.25a1.25 1.25 0 0 1-1.25 1.25H2.75A1.25 1.25 0 0 1 1.5 12.75V5.5z" fill="#F4CF65"/></svg>';
+    return indent + badge + folderSvg + '<span class="fileitem-name" style="color:#fde047;font-weight:500;">' + safeName + '</span>';
+  }
+  var lower = String(name || "").toLowerCase();
+  var ext = lower.indexOf(".") !== -1 ? lower.split(".").pop() : "";
+  var iconSvg = '';
+  var nameColor = '#e2e8f0';
+
+  if (lower.indexOf(".env") === 0 || lower.indexOf(".git") === 0 || lower === "dockerfile" || ext === "yml" || ext === "yaml" || ext === "toml") {
+    if (lower.indexOf(".git") === 0) {
+      iconSvg = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;margin-right:6px;"><rect width="16" height="16" rx="2" fill="#2b1b1a"/><path d="M13.2 7.1L8.9 2.8a1 1 0 0 0-1.4 0L6.1 4.2l1.8 1.8a1.2 1.2 0 0 1 1.5 1.5l1.7 1.7a1.2 1.2 0 1 1-.7.7l-1.6-1.6v3.2a1.2 1.2 0 1 1-1 0v-4.5a1.2 1.2 0 0 1-.6-1.5L5.4 3.5 2.8 6.1a1 1 0 0 0 0 1.4l4.3 4.3a1 1 0 0 0 1.4 0l4.7-4.7z" fill="#F05032"/></svg>';
+      nameColor = '#f87171';
+    } else {
+      iconSvg = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;margin-right:6px;"><rect width="16" height="16" rx="2" fill="#23272e"/><circle cx="8" cy="8" r="2.5" stroke="#94A3B8" stroke-width="1.2"/><path d="M8 2.5v1.2M8 12.3v1.2M2.5 8h1.2M12.3 8h1.2M4.1 4.1l.9.9M11 11l.9.9M4.1 11.9l.9-.9M11 5l.9-.9" stroke="#94A3B8" stroke-width="1.2" stroke-linecap="round"/></svg>';
+      nameColor = '#cbd5e1';
+    }
+  } else {
+    switch (ext) {
+      case "js":
+      case "mjs":
+      case "cjs":
+        iconSvg = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;margin-right:6px;"><rect width="16" height="16" rx="2" fill="#F7DF1E"/><text x="3.5" y="12.5" font-size="9" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-weight="900" fill="#000000">JS</text></svg>';
+        nameColor = "#fef08a";
+        break;
+      case "ts":
+      case "mts":
+      case "cts":
+        iconSvg = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;margin-right:6px;"><rect width="16" height="16" rx="2" fill="#3178C6"/><text x="3" y="12.5" font-size="9" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-weight="900" fill="#FFFFFF">TS</text></svg>';
+        nameColor = "#bae6fd";
+        break;
+      case "jsx":
+      case "tsx":
+        iconSvg = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;margin-right:6px;"><circle cx="8" cy="8" r="1.6" fill="#61DAFB"/><ellipse cx="8" cy="8" rx="6.5" ry="2.5" stroke="#61DAFB" stroke-width="1.1" transform="rotate(30 8 8)"/><ellipse cx="8" cy="8" rx="6.5" ry="2.5" stroke="#61DAFB" stroke-width="1.1" transform="rotate(90 8 8)"/><ellipse cx="8" cy="8" rx="6.5" ry="2.5" stroke="#61DAFB" stroke-width="1.1" transform="rotate(150 8 8)"/></svg>';
+        nameColor = "#a5f3fc";
+        break;
+      case "py":
+      case "pyw":
+        iconSvg = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;margin-right:6px;"><path d="M7.9 1.5c-3.1 0-2.9 1.3-2.9 1.3v1.4h3v.4H3.8s-1.8.2-1.8 2.7 1.6 2.6 1.6 2.6h.9V8.6s-.1-1.6 1.6-1.6h2.7s1.5 0 1.5-1.5V3s.2-1.5-2.2-1.5zm-1.6.9c.3 0 .5.2.5.5s-.2.5-.5.5-.5-.2-.5-.5.2-.5.5-.5z" fill="#3776AB"/><path d="M8.1 14.5c3.1 0 2.9-1.3 2.9-1.3v-1.4h-3v-.4h4.2s1.8-.2 1.8-2.7-1.6-2.6-1.6-2.6h-.9v1.3s.1 1.6-1.6 1.6H7.2s-1.5 0-1.5 1.5V13s-.2 1.5 2.4 1.5zm1.6-.9c-.3 0-.5-.2-.5-.5s.2-.5.5-.5.5.2.5.5-.2.5-.5.5z" fill="#FFD43B"/></svg>';
+        nameColor = "#bfdbfe";
+        break;
+      case "html":
+      case "htm":
+        iconSvg = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;margin-right:6px;"><path d="M2.5 1.5l1.1 12.3 4.4 1.2 4.4-1.2 1.1-12.3H2.5z" fill="#E34F26"/><path d="M8 2.5v11.3l3.4-.9.9-9.5L8 2.5z" fill="#EF652A"/><path d="M5.3 4.7h5.4l-.2 1.7H5.5l.2 1.8h4.8l-.4 4-2.1.6-2.1-.6-.1-1.5H4.2l.3 2.6 3.5 1 3.5-1 .8-8.6H5.1l.2 1z" fill="#FFFFFF"/></svg>';
+        nameColor = "#fed7aa";
+        break;
+      case "css":
+      case "scss":
+      case "less":
+        iconSvg = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;margin-right:6px;"><path d="M2.5 1.5l1.1 12.3 4.4 1.2 4.4-1.2 1.1-12.3H2.5z" fill="#1572B6"/><path d="M8 2.5v11.3l3.4-.9.9-9.5L8 2.5z" fill="#33A9DC"/><path d="M5.3 4.7h5.4l-.2 1.7H5.5l.2 1.8h4.8l-.4 4-2.1.6-2.1-.6-.1-1.5H4.2l.3 2.6 3.5 1 3.5-1 .8-8.6H5.1l.2 1z" fill="#FFFFFF"/></svg>';
+        nameColor = "#e9d5ff";
+        break;
+      case "json":
+        iconSvg = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;margin-right:6px;"><rect width="16" height="16" rx="2" fill="#20252b"/><text x="2" y="12" font-size="11" font-family="Consolas,monospace" font-weight="900" fill="#CBCB41">{ }</text></svg>';
+        nameColor = "#d9f99d";
+        break;
+      case "md":
+      case "markdown":
+        iconSvg = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;margin-right:6px;"><rect width="16" height="12" x="0" y="2" rx="1.5" fill="#388E3C" stroke="#2E7D32" stroke-width="0.5"/><path d="M2.5 9V5.5l2 2.2 2-2.2V9M10 5.5v3.5m0 0l-1.5-1.5m1.5 1.5l1.5-1.5" stroke="#FFFFFF" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        nameColor = "#cbd5e1";
+        break;
+      case "sh":
+      case "bash":
+      case "bat":
+      case "cmd":
+      case "ps1":
+        iconSvg = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;margin-right:6px;"><rect width="16" height="16" rx="2" fill="#18251e"/><path d="M3.5 4.5l3.5 3.5-3.5 3.5M8.5 11.5h4" stroke="#4ADE80" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        nameColor = "#bbf7d0";
+        break;
+      case "png":
+      case "jpg":
+      case "jpeg":
+      case "gif":
+      case "svg":
+      case "ico":
+      case "webp":
+        iconSvg = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;margin-right:6px;"><rect width="16" height="16" rx="2" fill="#2b1a20"/><rect x="2.5" y="2.5" width="11" height="11" rx="1" stroke="#F43F5E" stroke-width="1"/><circle cx="5.5" cy="5.5" r="1.2" fill="#F43F5E"/><path d="M3.5 12l3-3.5 2.5 2.5 2-2 1.5 3H3.5z" fill="#F43F5E"/></svg>';
+        nameColor = "#fecdd3";
+        break;
+      default:
+        iconSvg = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;margin-right:6px;"><path d="M3.5 1.5h6l3.5 3.5v9.5H3.5V1.5z" fill="#2d333b" stroke="#768390" stroke-width="0.8"/><path d="M9.5 1.5v3.5h3.5" fill="#373e47"/><path d="M5.5 7h5M5.5 9.5h5M5.5 12h3" stroke="#768390" stroke-width="0.8" stroke-linecap="round"/></svg>';
+        nameColor = "#d4d4d4";
+        break;
+    }
+  }
+  return indent + badge + iconSvg + '<span class="fileitem-name" style="color:' + nameColor + ';">' + safeName + '</span>';
+}
+async function refreshTree() {
+  tree.innerHTML = "";
+  async function walk(rel, depth) {
+    let items;
+    try { items = await window.smolEd.list(rel); }
+    catch (e) { if (rel === ".") showErr(e.message); return; }
+    for (const it of items) {
+      const p = join(rel, it.name);
+      const div = document.createElement("div");
+      div.className = it.dir ? "d" : "f";
+      div.innerHTML = getFileItemHtml(it.name, it.dir, depth, it.status);
+      if (p === cur) div.classList.add("open");
+      div.onclick = () => { it.dir ? toggle(p) : openFile(p); };
+      tree.appendChild(div);
+      if (it.dir && folders[p]) await walk(p, depth + 1);
+    }
+  }
+  await walk(".", 0);
+}
+function toggle(p) { folders[p] ? delete folders[p] : folders[p] = true; refreshTree(); }
+
+async function openFile(p) {
+  stashCurrent();
+  const existing = tabs.activate(p);
+  if (existing) { showTab(existing); showErr(""); return; }
+  try {
+    if (IMAGE_FILE_RE.test(p)) {
+      const file = await window.smolEd.readImage(p);
+      showTab(tabs.open(p, "", file.mtimeMs), file); showErr("");
+    } else {
+      const file = await window.smolEd.read(p);
+      showTab(tabs.open(p, file.content, file.mtimeMs)); showErr("");
+    }
+  } catch (e) { showErr(e.message); }
+}
+
+async function save() {
+  if (!cur) { showErr("Aucun fichier ouvert."); return; }
+  if (IMAGE_FILE_RE.test(cur)) { showErr("Les images sont en lecture seule."); return; }
+  const filePath = cur, content = ed.value, tab = tabs.active();
+  try {
+    const result = await window.smolEd.save(filePath, content, tab ? tab.mtimeMs : undefined);
+    const saved = tabs.saved(filePath, result.mtimeMs, content);
+    if (cur === filePath) setDirty(!!(saved && saved.dirty));
+    showErr("");
+    renderTabs();
+    $("sMsg").textContent = (saved && saved.dirty ? "enregistré · nouvelles modifications à enregistrer " : "enregistré ✓ ") + new Date().toLocaleTimeString();
+    if (saved && !saved.dirty) void analyzeCurrent();
+  } catch (e) { showErr(e.message); }
+}
+
+async function analyzeCurrent() {
+  if (!cur) { showErr("Ouvrez d’abord un fichier."); return; }
+  if (!/\.(?:[cm]?js|jsx|tsx?|py|rs|go)$/i.test(cur)) { showErr("L’analyse en direct prend en charge TypeScript, JavaScript, Python, Rust et Go."); return; }
+  const filePath = cur, request = ++diagnosticRequest;
+  const panel = $("diagPanel"); panel.classList.add("open"); panel.replaceChildren(); panel.textContent = "Analyse du fichier…";
+  const tab = tabs.active();
+  if (tab && tab.dirty) { panel.textContent = "Enregistrez les modifications pour analyser la version actuelle."; return; }
+  try {
+    const result = await window.smolEd.diagnostics(filePath);
+    if (request !== diagnosticRequest || cur !== filePath) return;
+    curDiags = (result.diagnostics || []).filter((d) => d && d.path === filePath);
+    paint();
+    panel.replaceChildren();
+    if (result.message) { const note = document.createElement("div"); note.className = "diagItem"; note.textContent = result.message; panel.appendChild(note); }
+    for (const diagnostic of result.diagnostics || []) {
+      const row = document.createElement("button"); row.type = "button"; row.className = "diagItem " + diagnostic.severity;
+      const label = document.createElement("span");
+      label.textContent = `${diagnostic.severity.toUpperCase()}  ${diagnostic.path}:${diagnostic.line}  ${diagnostic.message}`;
+      label.style.flex = "1";
+      row.appendChild(label);
+      const fix = document.createElement("button"); fix.type = "button"; fix.title = "Corriger avec l’IA";
+      fix.textContent = "🤖";
+      fix.style.cssText = "background:#0e639c;color:#fff;border:0;border-radius:6px;padding:4px 10px;cursor:pointer;flex:none;";
+      fix.onclick = async (ev) => {
+        ev.stopPropagation();
+        if (diagnostic.path !== cur) await openFile(diagnostic.path);
+        if (cur !== diagnostic.path) return;
+        const start = window.smolEd.editorTools.offsetForPosition(ed.value, diagnostic.line);
+        const rest = ed.value.slice(start).split("\n")[0] || "";
+        const m = /^[^\w$]*([\w$]+)/.exec(rest);
+        const wordEnd = start + (m ? m[0].length : Math.min(rest.length, 20));
+        ed.focus(); ed.setSelectionRange(start, wordEnd); updateCursor();
+        openInlineBar();
+      };
+      row.appendChild(fix);
+      row.onclick = async () => {
+        if (diagnostic.path !== cur) await openFile(diagnostic.path);
+        const offset = window.smolEd.editorTools.offsetForPosition(ed.value, diagnostic.line);
+        ed.focus(); ed.setSelectionRange(offset, offset); updateCursor();
+      };
+      panel.appendChild(row);
+    }
+  } catch (e) {
+    if (request !== diagnosticRequest || cur !== filePath) return;
+    curDiags = [];
+    panel.replaceChildren(); panel.textContent = String(e.message || e);
+  }
+}
+
+async function searchProject() {
+  const query = searchInput.value.trim();
+  if (!query) { results.hidden = true; results.replaceChildren(); return; }
+  if (!root) { showErr("Choisissez d’abord un dossier."); return; }
+  results.hidden = false; results.textContent = "Recherche…";
+  try {
+    const data = await window.smolEd.search(query);
+    results.replaceChildren();
+    for (const match of data.matches || []) {
+      const button = document.createElement("button");
+      button.className = "result"; button.type = "button";
+      button.textContent = `${match.path}:${match.line}:${match.column}  ${match.text}`;
+      button.title = `${match.path}, ligne ${match.line}`;
+      button.onclick = async () => {
+        await openFile(match.path);
+        if (cur !== match.path) return;
+        const start = ed.value.split("\n").slice(0, Math.max(0, match.line - 1)).join("\n").length + (match.line > 1 ? 1 : 0) + match.column - 1;
+        ed.focus(); ed.setSelectionRange(start, start + query.length);
+      };
+      results.appendChild(button);
+    }
+    if (!data.matches?.length) results.textContent = "Aucun résultat.";
+    if (data.truncated) { const note = document.createElement("div"); note.className = "result"; note.textContent = "Résultats limités ; précisez la recherche."; results.appendChild(note); }
+  } catch (e) { results.textContent = e.message; }
+}
+
+function updateFindCount() {
+  const query = $("findInput").value;
+  const result = window.smolEd.editorTools.findMatches(ed.value, query, { limit: 1000 });
+  $("findCount").textContent = !query ? "" : (result.matches.length + (result.truncated ? "+" : "") + " occurrence(s)");
+}
+function openFind(replaceMode = false) {
+  $("findBar").classList.add("open");
+  $("replaceWrap").classList.toggle("open", replaceMode);
+  if (ed.selectionStart !== ed.selectionEnd) $("findInput").value = ed.value.slice(ed.selectionStart, ed.selectionEnd);
+  updateFindCount(); $("findInput").focus(); $("findInput").select();
+}
+function moveFind(backwards = false) {
+  const query = $("findInput").value;
+  const match = window.smolEd.editorTools.findNextMatch(ed.value, query, backwards ? ed.selectionStart : ed.selectionEnd, backwards);
+  if (!match) { $("findCount").textContent = query ? "Aucun résultat" : ""; return; }
+  ed.focus(); ed.setSelectionRange(match.start, match.end); updateCursor();
+}
+function replaceOne() {
+  const query = $("findInput").value;
+  if (!query) { $("findCount").textContent = "Saisissez un texte à rechercher."; return; }
+  const match = window.smolEd.editorTools.findNextMatch(ed.value, query, ed.selectionStart);
+  if (!match) { updateFindCount(); return; }
+  ed.setRangeText($("replaceInput").value, match.start, match.end, "end");
+  ed.dispatchEvent(new Event("input", { bubbles: true })); moveFind(false);
+}
+function replaceAll() {
+  const result = window.smolEd.editorTools.replaceAllLiteral(ed.value, $("findInput").value, $("replaceInput").value);
+  if (result.error) { $("findCount").textContent = result.error; return; }
+  if (!result.count) { $("findCount").textContent = "Aucun résultat"; return; }
+  ed.value = result.text; ed.setSelectionRange(0, 0); ed.dispatchEvent(new Event("input", { bubbles: true }));
+  $("findCount").textContent = result.count + " remplacement(s)";
+}
+
+async function setRoot(r) {
+  if (tabs.list().some((tab) => tab.dirty) && !confirm("Changer de dossier et fermer les onglets modifiés ?")) return false;
+  imagePreviewRequest++;
+  tabs.clear(); root = r; cur = null; folders = { ".": true };
+  $("imagePreview").hidden = true; $("previewImg").removeAttribute("src"); ed.hidden = false; codeLayer.hidden = false;
+  $("bSave").disabled = false; $("bDiag").disabled = false; $("bInline").disabled = false;
+  ed.value = ""; setDirty(false); paint(); renderTabs();
+  $("root").textContent = r || "aucun dossier";
+  $("sFile").textContent = "—"; $("sMsg").textContent = "";
+  if (r) refreshTree(); else tree.innerHTML = "";
+  return true;
+}
+
+$("bFolder").onclick = async () => {
+  try {
+    const r = await window.smolEd.pickFolder();
+    if (r) setRoot(r);
+  } catch (e) { showErr(e.message); }
+};
+function curDir() {
+  if (cur && cur.indexOf("/") !== -1) return cur.split("/").slice(0, -1).join("/") || ".";
+  return ".";
+}
+$("bNewFile").onclick = async () => {
+  if (!root) { showErr("Choisissez d’abord un dossier."); return; }
+  const name = prompt("Nouveau fichier : ", "");
+  if (!name || !name.trim()) return;
+  try {
+    const prefix = curDir();
+    const p = (prefix === "." ? "" : prefix + "/") + name.trim();
+    const r = await window.smolEd.createEntry(p, false);
+    await refreshTree();
+    await openFile(r.path);
+  } catch (e) { showErr(e.message); }
+};
+$("bNewFolder").onclick = async () => {
+  if (!root) { showErr("Choisissez d’abord un dossier."); return; }
+  const name = prompt("Nouveau dossier : ", "");
+  if (!name || !name.trim()) return;
+  try {
+    const prefix = curDir();
+    await window.smolEd.createEntry((prefix === "." ? "" : prefix + "/") + name.trim(), true);
+    await refreshTree();
+  } catch (e) { showErr(e.message); }
+};
+$("bRename").onclick = async () => {
+  if (!cur) { showErr("Ouvrez d’abord un fichier."); return; }
+  const tab = tabs.active();
+  if (tab && tab.path === cur && tab.dirty) { showErr("Enregistrez avant de renommer."); return; }
+  const to = prompt("Renommer en : ", cur);
+  if (!to || !to.trim() || to.trim() === cur) return;
+  try {
+    const from = cur;
+    const r = await window.smolEd.renameEntry(from, to.trim());
+    tabs.close(from, true);
+    await refreshTree();
+    await openFile(r.path);
+  } catch (e) { showErr(e.message); }
+};
+$("bDelete").onclick = async () => {
+  if (!cur) { showErr("Ouvrez d’abord un fichier."); return; }
+  const p = cur;
+  if (!confirm("Supprimer " + p + " ?")) return;
+  try {
+    await window.smolEd.deleteEntry(p);
+    tabs.close(p, true);
+    showTab(tabs.active());
+    await refreshTree();
+  } catch (e) { showErr(e.message); }
+};
+$("bSave").onclick = save;
+$("bDiag").onclick = analyzeCurrent;
+
+// ---- Cmd+K : modifier la sélection avec l'IA, aperçu avant/après ----
+let inlineRange = null;
+function openInlineBar() {
+  if (!cur) { showErr("Ouvrez d’abord un fichier."); return; }
+  if (ed.selectionStart === ed.selectionEnd) {
+    const pos = ed.selectionStart;
+    const startOfLine = ed.value.lastIndexOf("\n", pos - 1) + 1;
+    let endOfLine = ed.value.indexOf("\n", pos);
+    if (endOfLine === -1) endOfLine = ed.value.length;
+    ed.setSelectionRange(startOfLine, endOfLine);
+  }
+  $("inlineBar").classList.add("open");
+  $("inlinePreview").classList.remove("open");
+  $("inlineInput").value = "";
+  $("inlineInput").focus();
+}
+function closeInlineBar() {
+  $("inlineBar").classList.remove("open");
+  $("inlinePreview").classList.remove("open");
+  inlineRange = null;
+  ed.focus();
+}
+function paintDiffLines(el, text) {
+  el.replaceChildren();
+  let adds = 0, dels = 0;
+  for (const ln of String(text || "").split("\n")) {
+    const s = document.createElement("span");
+    if (ln.startsWith("+ ")) { adds++; s.className = "add"; }
+    else if (ln.startsWith("- ")) { dels++; s.className = "del"; }
+    else if (ln.startsWith("@@")) { s.className = "hunk"; }
+    else { s.className = "same"; }
+    s.textContent = ln + "\n";
+    el.appendChild(s);
+  }
+  return { adds, dels };
+}
+async function pollInline(op, tries) {
+  for (let i = 0; i < (tries || 120); i++) {
+    let r;
+    try {
+      r = await window.smolEd.inlineResult(op);
+    } catch (e) {
+      return { error: String(e.message || e) };
+    }
+    if (r && r.status === "done") return r;
+    if (r && r.status === "error") return { error: r.error || "Échec de génération." };
+    await new Promise((res) => setTimeout(res, 1500));
+  }
+  return { error: "Délai dépassé — réessayez." };
+}
+async function runInline() {
+  const instruction = $("inlineInput").value.trim();
+  if (!instruction) { $("inlineStatus").textContent = "Décrivez la modification."; return; }
+  if (ed.selectionStart === ed.selectionEnd) {
+    const pos = ed.selectionStart;
+    const startOfLine = ed.value.lastIndexOf("\n", pos - 1) + 1;
+    let endOfLine = ed.value.indexOf("\n", pos);
+    if (endOfLine === -1) endOfLine = ed.value.length;
+    ed.setSelectionRange(startOfLine, endOfLine);
+  }
+  const selStart = ed.selectionStart, selEnd = ed.selectionEnd;
+  const before = ed.value.slice(0, selStart).split("\n").length;
+  const selection = ed.value.slice(selStart, selEnd);
+  const after = before + selection.split("\n").length - 1;
+  inlineRange = { start: selStart, end: selEnd };
+  $("inlineStatus").textContent = "Génération IA en cours…";
+  $("inlinePreview").classList.add("open");
+  $("inlineDiff").replaceChildren();
+  let started;
+  try {
+    started = await window.smolEd.inlineStart({ path: cur, selection, start: before, end: after, instruction });
+  } catch (e) {
+    $("inlineStatus").textContent = String(e.message || e);
+    return;
+  }
+  const r = await pollInline(started.op);
+  if (r.error) {
+    $("inlineStatus").textContent = r.error;
+    inlineRange = null;
+    return;
+  }
+  inlineRange.newText = r.newText;
+  const stats = paintDiffLines($("inlineDiff"), r.diff || "");
+  $("inlineStatus").textContent = `+${stats.adds} / -${stats.dels} lignes · [Entrée] Accepter · [Échap] Refuser`;
+  $("inlineAccept").focus();
+}
+const inlinePresets = [
+  { label: "⚡ Refactoriser", text: "Refactorise ce code pour le rendre plus propre, lisible et robuste." },
+  { label: "🐛 Corriger bugs", text: "Trouve et corrige les éventuels bugs, états nuls et erreurs de syntaxe." },
+  { label: "📝 Typage & Docs", text: "Ajoute le typage TypeScript précis et documente clairement ce bloc." },
+  { label: "🧪 Ajouter tests", text: "Génère les tests unitaires pour couvrir cette logique." },
+  { label: "🚀 Optimiser", text: "Optimise la performance et la consommation mémoire de ce bloc." },
+];
+const chipsWrap = $("inlineChips");
+if (chipsWrap) {
+  chipsWrap.replaceChildren();
+  for (const preset of inlinePresets) {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.style.cssText = "border:1px solid #3c3c3c;background:#2d2d2d;color:#ccc;border-radius:12px;font:11px Segoe UI,sans-serif;padding:2px 8px;cursor:pointer;white-space:nowrap;";
+    chip.textContent = preset.label;
+    chip.onclick = () => {
+      $("inlineInput").value = preset.text;
+      void runInline();
+    };
+    chipsWrap.appendChild(chip);
+  }
+}
+$("bInline").onclick = openInlineBar;
+$("inlineCancel").onclick = closeInlineBar;
+$("inlineGo").onclick = runInline;
+$("inlineInput").onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); runInline(); } if (e.key === "Escape") closeInlineBar(); };
+$("inlineAccept").onclick = () => {
+  if (!inlineRange || typeof inlineRange.newText !== "string") return;
+  ed.focus();
+  ed.setRangeText(inlineRange.newText, inlineRange.start, inlineRange.end, "end");
+  ed.dispatchEvent(new Event("input", { bubbles: true }));
+  closeInlineBar();
+};
+$("inlineReject").onclick = closeInlineBar;
+window.addEventListener("keydown", (e) => {
+  if ($("inlinePreview").classList.contains("open") && inlineRange && typeof inlineRange.newText === "string") {
+    if (e.key === "Enter" || (e.ctrlKey && e.key.toLowerCase() === "y") || e.key === "Tab") {
+      e.preventDefault();
+      $("inlineAccept").click();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      closeInlineBar();
+    }
+  }
+});
+
+// ---- Complétion Tab : Tab complète quand un préfixe existe, indente sinon ----
+const completePop = $("completePop");
+let completeItems = [], completePrefix = "", completeAnchor = 0;
+function hideComplete() { completePop.classList.remove("open"); completePop.replaceChildren(); completeItems = []; }
+function cursorLineCol() {
+  const pos = ed.selectionStart;
+  const lineStart = ed.value.lastIndexOf("\n", pos - 1) + 1;
+  const line = ed.value.slice(0, pos).split("\n").length;
+  return { line, col: pos - lineStart + 1, prefix: ed.value.slice(lineStart, pos) };
+}
+async function triggerComplete() {
+  hideComplete();
+  if (!cur) return;
+  const lc = cursorLineCol();
+  const m = /[\w$]+$/.exec(lc.prefix);
+  if (!m) return;
+  completePrefix = m[0];
+  completeAnchor = ed.selectionStart - completePrefix.length;
+  let items = [];
+  try {
+    const r = await window.smolEd.completion(cur, lc.line, lc.col);
+    items = (r && r.items) || [];
+  } catch (e) {
+    showErr(String(e.message || e));
+    return;
+  }
+  if (!items.length) return;
+  completeItems = items.slice(0, 8);
+  completeItems.forEach((it, i) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "completeItem" + (i === 0 ? " sel" : "");
+    b.setAttribute("role", "option");
+    const name = document.createElement("span"); name.textContent = it.label;
+    const kind = document.createElement("span"); kind.className = "kind"; kind.textContent = (it.kind ? it.kind + " " : "") + (it.detail || "");
+    b.append(name, kind);
+    b.onclick = () => acceptComplete(i);
+    completePop.appendChild(b);
+  });
+  completePop.classList.add("open");
+}
+function acceptComplete(i) {
+  const it = completeItems[i || 0];
+  hideComplete();
+  if (!it) return;
+  ed.focus();
+  ed.setRangeText(it.label, completeAnchor, ed.selectionStart, "end");
+  ed.dispatchEvent(new Event("input", { bubbles: true }));
+}
+$("findInput").oninput = updateFindCount;
+$("findInput").onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); moveFind(e.shiftKey); } };
+$("findPrev").onclick = () => moveFind(true);
+$("findNext").onclick = () => moveFind(false);
+$("replaceOne").onclick = replaceOne;
+$("replaceAll").onclick = replaceAll;
+$("findClose").onclick = () => { $("findBar").classList.remove("open"); ed.focus(); };
+$("searchButton").onclick = searchProject;
+searchInput.onkeydown = (e) => { if (e.key === "Enter") searchProject(); };
+ed.oninput = () => { stashCurrent(); const tab = tabs.active(); setDirty(!!(tab && tab.dirty)); paint(); renderTabs(); updateCursor(); updateFindCount(); };
+ed.onscroll = () => { codeLayer.scrollTop = ed.scrollTop; codeLayer.scrollLeft = ed.scrollLeft; };
+ed.onkeyup = ed.onclick = ed.onselect = updateCursor;
+ed.onkeydown = (e) => {
+  if (ed.readOnly) return;
+  if (completePop.classList.contains("open")) {
+    if (e.key === "Escape") { e.preventDefault(); hideComplete(); ed.focus(); return; }
+    if (e.key === "Tab" || e.key === "Enter") { e.preventDefault(); acceptComplete(0); return; }
+  }
+  if (e.key === "Tab" && !e.shiftKey && ed.selectionStart === ed.selectionEnd) {
+    const pos = ed.selectionStart;
+    const lineStart = ed.value.lastIndexOf("\n", pos - 1) + 1;
+    if (/[\w$]+$/.test(ed.value.slice(lineStart, pos))) {
+      e.preventDefault();
+      triggerComplete();
+      return;
+    }
+  }
+  if (e.key === "Tab") {
+    e.preventDefault();
+    const edit = window.smolEd.editorTools.changeIndent(ed.value, ed.selectionStart, ed.selectionEnd, e.shiftKey ? -1 : 1);
+    ed.value = edit.text; ed.setSelectionRange(edit.start, edit.end); ed.dispatchEvent(new Event("input", { bubbles: true }));
+  } else if (e.key === "Enter") {
+    e.preventDefault();
+    const edit = window.smolEd.editorTools.insertNewlineWithIndent(ed.value, ed.selectionStart, ed.selectionEnd);
+    ed.value = edit.text; ed.setSelectionRange(edit.start, edit.end); ed.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+};
+document.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "f") { e.preventDefault(); openFind(false); }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "h") { e.preventDefault(); openFind(true); }
+  if (e.key === "F3" && $("findBar").classList.contains("open")) { e.preventDefault(); moveFind(e.shiftKey); }
+  if (e.key === "Escape" && $("findBar").classList.contains("open")) { $("findBar").classList.remove("open"); ed.focus(); }
+  if ((e.ctrlKey || e.metaKey) && e.key === "s") { e.preventDefault(); save(); }
+  if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "f") { e.preventDefault(); searchInput.focus(); searchInput.select(); }
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "g") {
+    e.preventDefault(); const line = Number(prompt("Aller à la ligne :", String(window.smolEd.editorTools.cursorPosition(ed.value, ed.selectionStart).line)));
+    if (Number.isFinite(line) && line > 0) { const pos = window.smolEd.editorTools.offsetForPosition(ed.value, line); ed.focus(); ed.setSelectionRange(pos, pos); updateCursor(); }
+  }
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "k") { e.preventDefault(); openInlineBar(); }
+  if (e.key === "Escape" && $("inlineBar").classList.contains("open")) closeInlineBar();
+});
+
+(async () => {
+  try {
+    const sug = await window.smolEd.suggestRoot();
+    if (sug) setRoot(sug);
+  } catch (e) { /* l'utilisateur choisira */ }
+})();
+</script>
+</body>
+</html>

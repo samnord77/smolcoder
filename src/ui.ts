@@ -256,7 +256,8 @@ export function summarizeArgs(name: string, args: Record<string, any>): string {
       case "search":
         return `"${args.pattern}"${args.path ? ` in ${args.path}` : ""}`;
       case "run_command":
-        return String(args.command ?? "");
+        return String(args.command ?? "").replace(/\s+/g, " ").trim().slice(0, 72) +
+          (String(args.command ?? "").replace(/\s+/g, " ").trim().length > 72 ? "…" : "");
       case "task":
         return [args.action, args.command ?? args.task_id ?? ""].filter(Boolean).join(" ");
       case "plan": {

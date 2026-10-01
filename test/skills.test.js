@@ -52,6 +52,18 @@ test("relevant skills auto-match design work, ignore backend work", () => {
   assert.equal(skills.relevantSkills(ws, "rename variable in parser"), "");
 });
 
+test("auto-matching uses skill descriptions and avoids incidental words in instructions", () => {
+  const ws = scratch();
+  skills.saveSkill(
+    ws,
+    "database-migration",
+    "---\nname: database-migration\ndescription: Plan safe database schema migrations\n---\n# Database migration\nUse project files and tools to check the plan."
+  );
+
+  assert.match(skills.relevantSkills(ws, "préparer une migration database"), /database-migration/);
+  assert.deepEqual(skills.relevantSkillNames(ws, "editor files image todo agents tools skills"), []);
+});
+
 test("auto repair lessons are kept only for hard repairs and capped", () => {
   const ws = scratch();
   assert.equal(skills.saveAutoRepairLesson(ws, { command: "npm test", attempts: 1, failure: "x", files: [], commands: [] }), null);

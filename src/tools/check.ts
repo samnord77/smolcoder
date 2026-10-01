@@ -82,9 +82,8 @@ function checkJs(source: string, forceModule = false): JsError | null {
 
 function checkHtml(source: string): string | null {
   // Inline scripts only (no src=), skipping non-JS types (importmap, JSON, templates).
-  const re = /<script\b([^>]*)>([\s\S]*?)<\/script>/gi;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(source))) {
+  const matches = source.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi);
+  for (const m of matches) {
     const attrs = m[1] ?? "";
     if (/\bsrc\s*=/i.test(attrs)) continue;
     const type = /\btype\s*=\s*["']?([^"'\s>]+)/i.exec(attrs)?.[1]?.toLowerCase();
@@ -93,7 +92,7 @@ function checkHtml(source: string): string | null {
     if (!body.trim()) continue;
     const err = checkJs(body, type === "module");
     if (err) {
-      const startLine = source.slice(0, m.index + m[0].indexOf(body)).split("\n").length;
+      const startLine = source.slice(0, (m.index ?? 0) + m[0].indexOf(body)).split("\n").length;
       const at = err.line ? ` at line ${startLine + err.line - 1}` : "";
       return `an inline <script> has a JavaScript syntax error${at}: ${err.message}`;
     }

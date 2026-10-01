@@ -1,10 +1,10 @@
 {
   "path": "src/web/channel.ts",
-  "content_hash": "1fd0b37f1d4292befa13f362ddb50b15",
-  "updated_at": "2026-09-28T19:36:41",
-  "lines": 349,
-  "size_bytes": 11480,
-  "mtime_ns": 1790620580234531600,
+  "content_hash": "c16705055285c1110d4afdce8e6f93e2",
+  "updated_at": "2026-09-30T23:02:30",
+  "lines": 350,
+  "size_bytes": 11593,
+  "mtime_ns": 1790797612425074200,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -72,7 +72,7 @@
       "type": "class",
       "name": "SessionChannel",
       "line_start": 27,
-      "line_end": 339,
+      "line_end": 340,
       "signature": "class SessionChannel implements SessionUI {",
       "children": [
         {
@@ -397,85 +397,85 @@
           "type": "method",
           "name": "toolCall",
           "line_start": 261,
-          "line_end": 271,
+          "line_end": 272,
           "signature": "toolCall(name: string, args: Record<string, any>): void {"
         },
         {
           "type": "method",
           "name": "toolResult",
-          "line_start": 273,
-          "line_end": 283,
+          "line_start": 274,
+          "line_end": 284,
           "signature": "toolResult(result: string): void {"
         },
         {
           "type": "method",
           "name": "planUpdated",
-          "line_start": 285,
-          "line_end": 288,
+          "line_start": 286,
+          "line_end": 289,
           "signature": "planUpdated(plan: Plan): void {"
         },
         {
           "type": "method",
           "name": "subagent",
-          "line_start": 290,
-          "line_end": 300,
+          "line_start": 291,
+          "line_end": 301,
           "signature": "subagent(phase: \"start\" | \"done\", label: string): void {"
         },
         {
           "type": "method",
           "name": "skills",
-          "line_start": 303,
-          "line_end": 307,
+          "line_start": 304,
+          "line_end": 308,
           "signature": "skills(names: string[]): void {",
           "doc": "Skills that just auto-loaded: the status view lists them live."
         },
         {
           "type": "method",
           "name": "println",
-          "line_start": 309,
-          "line_end": 311,
+          "line_start": 310,
+          "line_end": 312,
           "signature": "println(s = \"\"): void {"
         },
         {
           "type": "method",
           "name": "status",
-          "line_start": 313,
-          "line_end": 315,
+          "line_start": 314,
+          "line_end": 316,
           "signature": "status(s: string): void {"
         },
         {
           "type": "method",
           "name": "warn",
-          "line_start": 317,
-          "line_end": 319,
+          "line_start": 318,
+          "line_end": 320,
           "signature": "warn(s: string): void {"
         },
         {
           "type": "method",
           "name": "error",
-          "line_start": 321,
-          "line_end": 323,
+          "line_start": 322,
+          "line_end": 324,
           "signature": "error(s: string): void {"
         },
         {
           "type": "method",
           "name": "turnEnd",
-          "line_start": 325,
-          "line_end": 328,
+          "line_start": 326,
+          "line_end": 329,
           "signature": "turnEnd(label: string): void {"
         },
         {
           "type": "method",
           "name": "startSpinner",
-          "line_start": 330,
-          "line_end": 333,
+          "line_start": 331,
+          "line_end": 334,
           "signature": "startSpinner(label: string): void {"
         },
         {
           "type": "method",
           "name": "stopSpinner",
-          "line_start": 335,
-          "line_end": 338,
+          "line_start": 336,
+          "line_end": 339,
           "signature": "stopSpinner(): void {"
         }
       ]
@@ -483,15 +483,15 @@
     {
       "type": "function",
       "name": "uploadUrl",
-      "line_start": 342,
-      "line_end": 344,
+      "line_start": 343,
+      "line_end": 345,
       "signature": "function uploadUrl(sid: string, id: string): string {"
     },
     {
       "type": "function",
       "name": "stripAnsi",
-      "line_start": 346,
-      "line_end": 349,
+      "line_start": 347,
+      "line_end": 350,
       "signature": "function stripAnsi(s: string): string {"
     }
   ]

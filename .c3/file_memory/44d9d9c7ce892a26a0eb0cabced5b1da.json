@@ -1,10 +1,10 @@
 {
   "path": "src/git.ts",
-  "content_hash": "8c6c1fe83cff06ae4e791ae2399a1579",
-  "updated_at": "2026-09-28T19:45:40",
-  "lines": 778,
-  "size_bytes": 31641,
-  "mtime_ns": 1790621103103292700,
+  "content_hash": "122f80685ab694cb81a854bb88504c5d",
+  "updated_at": "2026-09-30T23:00:51",
+  "lines": 781,
+  "size_bytes": 31921,
+  "mtime_ns": 1790797604833904100,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -271,50 +271,50 @@
       "type": "function",
       "name": "gitStatusMap",
       "line_start": 603,
-      "line_end": 621,
+      "line_end": 624,
       "signature": "function gitStatusMap(root: string, dirAbs: string): Map<string, string> {"
     },
     {
       "type": "function",
       "name": "gitTurnSummary",
-      "line_start": 626,
-      "line_end": 663,
+      "line_start": 629,
+      "line_end": 666,
       "signature": "function gitTurnSummary(root: string, files: Set<string> | string[]): string | null {"
     },
     {
       "type": "interface",
       "name": "GitQuery",
-      "line_start": 665,
-      "line_end": 675,
+      "line_start": 668,
+      "line_end": 678,
       "signature": "interface GitQuery {",
       "children": []
     },
     {
       "type": "constant",
       "name": "READ_ACTIONS",
-      "line_start": 677,
-      "line_end": 677,
+      "line_start": 680,
+      "line_end": 680,
       "signature": "const READ_ACTIONS = new Set([\"status\", \"diff\", \"log\", \"blame\", \"branch\", \"review\"]);"
     },
     {
       "type": "constant",
       "name": "GIT_ACTIONS",
-      "line_start": 679,
-      "line_end": 693,
+      "line_start": 682,
+      "line_end": 696,
       "signature": "const GIT_ACTIONS = ["
     },
     {
       "type": "function",
       "name": "formatReview",
-      "line_start": 696,
-      "line_end": 710,
+      "line_start": 699,
+      "line_end": 713,
       "signature": "function formatReview(root: string, staged = false): string {"
     },
     {
       "type": "function",
       "name": "queryGit",
-      "line_start": 714,
-      "line_end": 778,
+      "line_start": 717,
+      "line_end": 781,
       "signature": "function queryGit(root: string, args: GitQuery, opts?: { canWrite?: boolean }): string {"
     }
   ]

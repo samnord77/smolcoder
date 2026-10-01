@@ -10,10 +10,10 @@ import type { EventBus } from "./events";
 import { gitTurnSummary } from "./git";
 import { Plan } from "./plan";
 import { abortableDelay } from "./providers/transport";
-import type { ChatResult, Msg, Provider, ToolSpec } from "./providers/types";
+import { type ChatResult, type Msg, nextCallId, type Provider, type ToolSpec } from "./providers/types";
 import { commandEscapesWorkspace } from "./sandbox";
 import { recordDelegateStats, relevantSkillNames, relevantSkills, saveAutoRepairLesson } from "./skills";
-import { loadSubagentRoles } from "./subagents";
+import { loadSubagentRoles, type SubagentRole } from "./subagents";
 import { buildToolSpecs, commandOf, executeTool, MODE_LABELS, type Mode, type ToolContext } from "./tools/index";
 import { runCommand } from "./tools/shell";
 import type { AgentUI } from "./ui";
@@ -29,6 +29,25 @@ export interface Verification {
 
 const TRANSIENT_ERROR = /fetch failed|econn|socket|network|timed?.?out|429|50[0-4]|stream ended|malformed JSON|stream error/i;
 const CONTEXT_ERROR = /context.{0,50}(exceed|overflow|full|length)|too (many|long).{0,30}tokens|prompt.{0,30}(too long|exceed)/i;
+function needsTaskOrchestration(request: string): boolean {
+  const normalized = request
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  if (
+    /\b(explain|describe|summari[sz]e|tell me|what|why|how|recommend|advise|advice|suggestions|should i|should we|is it worth|expliquer|explique|decrire|decris|resumer|resume|pourquoi|comment|qu'est-ce|devrais-je|devrions-nous|conseil|conseiller)\b/.test(
+      normalized
+    )
+  )
+    return false;
+  return (
+    normalized.length >= 120 &&
+    /\b(fix|repair|correct|improv|enhanc|implement|build|create|refactor|corrig|repar|amelior|enrich|optimis|optimis|develop)\w*/.test(normalized) &&
+    /\b(all|every|entire|whole|deep|thorough|comprehensive|multiple|several|many|tous|toutes|tout|ensemble|global|plusieurs|beaucoup|approfond|pro|and|also|plus|et|puis)\w*/.test(
+      normalized
+    )
+  );
+}
 
 /** Shell metacharacters that let one "allowed program" smuggle in others.
  * Auto-approval via always-allow only applies to commands without them. */
@@ -163,7 +182,7 @@ export class Agent {
     ): Promise<string> => {
       const customToolsRaw = typeof custom?.tools === "string" ? custom.tools : "";
       const customInstructions = typeof custom?.instructions === "string" ? custom.instructions.trim().slice(0, 1000) : "";
-      let role;
+      let role: SubagentRole;
       if (customToolsRaw.trim() || customInstructions) {
         // Purpose-built specialist: the parent defines tools + brief inline,
         // no role file needed. The allowlist can only shrink, never grow.
@@ -258,6 +277,59 @@ export class Agent {
   private toolsFor(mode: Mode): ToolSpec[] {
     const available = buildToolSpecs(mode, { allowDelegate: (this.toolCtx.depth ?? 0) < 1 });
     return this.toolCtx.allowedTools ? available.filter((tool) => this.toolCtx.allowedTools!.has(tool.name)) : available;
+  }
+
+  private async orchestrateBroadTask(request: string, signal: AbortSignal): Promise<number> {
+    if (
+      !needsTaskOrchestration(request) ||
+      this.mode === "ro" ||
+      !this.toolCtx.delegate ||
+      (this.toolCtx.depth ?? 0) > 0
+    ) {
+      return 0;
+    }
+
+    let toolCalls = 0;
+    if (!this.toolCtx.plan.exists) {
+      const result = this.toolCtx.plan.set(
+        "Inspecter le parcours et localiser les causes\nCorriger le flux principal dans le projet\nVérifier le comportement et les régressions"
+      );
+      if (result.startsWith("Error:")) throw new Error(result);
+      this.ui.planUpdated(this.toolCtx.plan);
+      this.messages.push({
+        role: "user",
+        historyNote: true,
+        content: `[Plan de travail créé automatiquement pour cette demande multi-parties :\n${this.toolCtx.plan.modelView()}]`,
+      });
+    }
+
+    const readTools = ["read_file", "list_files", "search", "symbols"].filter((name) => this.tools.some((tool) => tool.name === name));
+    const args = {
+      task: `Inspecter le workspace pour préparer cette demande sans modifier les fichiers. Identifier les fichiers et parcours concrets, les causes probables, et le petit plan d'implémentation à transmettre à l'agent principal:\n${request.slice(0, 1400)}`,
+      tools: readTools.join(","),
+      instructions: "Exploration en lecture seule. Utilise les outils autorisés, rapporte les chemins exacts et les preuves; ne modifie aucun fichier. L'agent principal fera les changements.",
+    };
+    const id = nextCallId();
+    this.ui.status("· sous-agent d’exploration lancé avant l’implémentation");
+    this.ui.toolCall("delegate", args);
+    this.messages.push({
+      role: "assistant",
+      content: "",
+      toolCalls: [{ id, name: "delegate", args }],
+    });
+    let report: string;
+    try {
+      report = await this.toolCtx.delegate(args.task, signal, undefined, { tools: args.tools, instructions: args.instructions });
+    } catch (error: any) {
+      if (signal.aborted) throw signal.reason;
+      report = `Error: sub-agent exploration failed: ${String(error?.message ?? error).slice(0, 500)}`;
+    }
+    this.ui.toolResult(report);
+    this.messages.push({ role: "tool", content: report, toolCallId: id, toolName: "delegate" });
+    await this.bus.emit("post_tool", { name: "delegate", args });
+    await this.bus.emit("context_update");
+    toolCalls++;
+    return toolCalls;
   }
 
   setMode(mode: Mode, systemPrompt: string): void {
@@ -563,6 +635,8 @@ export class Agent {
     };
     this.lastTurnStats = stats;
     try {
+      toolCallsThisTurn = await this.orchestrateBroadTask(requestNote, signal);
+      stats.toolCalls = toolCallsThisTurn;
       await this.refreshLoadedWindow();
       agentLoop: while (steps++ < this.maxSteps) {
         if (process.env.SMOL_DEBUG_VERIFY)

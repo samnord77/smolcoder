@@ -1,10 +1,10 @@
 {
   "path": "README.md",
-  "content_hash": "bac60af4209860d8fd105481f0311a68",
-  "updated_at": "2026-09-26T17:53:04",
-  "lines": 180,
-  "size_bytes": 12638,
-  "mtime_ns": 1790424178017755500,
+  "content_hash": "ecff46980db1e2f72ee3cb309addef1a",
+  "updated_at": "2026-09-30T22:56:44",
+  "lines": 181,
+  "size_bytes": 12878,
+  "mtime_ns": 1790791744804183500,
   "language": "markdown",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -13,7 +13,7 @@
       "type": "heading",
       "name": "h1: smolcoder",
       "line_start": 1,
-      "line_end": 180,
+      "line_end": 181,
       "signature": "# smolcoder"
     },
     {
@@ -97,35 +97,35 @@
       "type": "heading",
       "name": "h2: The web UI",
       "line_start": 138,
-      "line_end": 151,
+      "line_end": 152,
       "signature": "## The web UI"
     },
     {
       "type": "heading",
       "name": "h2: Why it works well with local models",
-      "line_start": 152,
-      "line_end": 164,
+      "line_start": 153,
+      "line_end": 165,
       "signature": "## Why it works well with local models"
     },
     {
       "type": "heading",
       "name": "h2: Tips",
-      "line_start": 165,
-      "line_end": 173,
+      "line_start": 166,
+      "line_end": 174,
       "signature": "## Tips"
     },
     {
       "type": "heading",
       "name": "h2: Contributing",
-      "line_start": 174,
-      "line_end": 177,
+      "line_start": 175,
+      "line_end": 178,
       "signature": "## Contributing"
     },
     {
       "type": "heading",
       "name": "h2: License",
-      "line_start": 178,
-      "line_end": 180,
+      "line_start": 179,
+      "line_end": 181,
       "signature": "## License"
     }
   ]
