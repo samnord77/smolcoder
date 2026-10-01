@@ -6,8 +6,10 @@
 import { createHash } from "node:crypto";
 import { type Attachment, renderAttachmentsForModel } from "./attachments";
 import { ContextManager } from "./context";
+import { validateChange } from "./continuous-validation";
 import type { EventBus } from "./events";
 import { gitTurnSummary } from "./git";
+import { classifyTask, formatOrchestratorSummary, type TaskClassification } from "./orchestrator";
 import { Plan } from "./plan";
 import { abortableDelay } from "./providers/transport";
 import { type ChatResult, type Msg, nextCallId, type Provider, type ToolSpec } from "./providers/types";
@@ -133,6 +135,7 @@ export class Agent {
   outcome: "idle" | "running" | "completed" | "cancelled" | "error" = "idle";
   lastError: string | null = null;
   verificationResult: { attempts: number; passed: boolean; output: string } | null = null;
+  lastClassification: TaskClassification | null = null;
   private verification?: Verification;
   private progressFailure = "";
   private sameVerificationFailures = 0;
@@ -280,6 +283,9 @@ export class Agent {
   }
 
   private async orchestrateBroadTask(request: string, signal: AbortSignal): Promise<number> {
+    const classification = classifyTask(request);
+    this.lastClassification = classification;
+
     if (
       !needsTaskOrchestration(request) ||
       this.mode === "ro" ||
@@ -291,26 +297,26 @@ export class Agent {
 
     let toolCalls = 0;
     if (!this.toolCtx.plan.exists) {
-      const result = this.toolCtx.plan.set(
-        "Inspecter le parcours et localiser les causes\nCorriger le flux principal dans le projet\nVérifier le comportement et les régressions"
-      );
+      const planContent = classification.planSteps.join("\n");
+      const result = this.toolCtx.plan.set(planContent);
       if (result.startsWith("Error:")) throw new Error(result);
       this.ui.planUpdated(this.toolCtx.plan);
       this.messages.push({
         role: "user",
         historyNote: true,
-        content: `[Plan de travail créé automatiquement pour cette demande multi-parties :\n${this.toolCtx.plan.modelView()}]`,
+        content: `[Plan de travail automatique (${classification.category} / ${classification.complexity}) :\n${this.toolCtx.plan.modelView()}]`,
       });
     }
 
     const readTools = ["read_file", "list_files", "search", "symbols"].filter((name) => this.tools.some((tool) => tool.name === name));
+    const targetRole = classification.recommendedRole || "expert";
     const args = {
-      task: `Inspecter le workspace pour préparer cette demande sans modifier les fichiers. Identifier les fichiers et parcours concrets, les causes probables, et le petit plan d'implémentation à transmettre à l'agent principal:\n${request.slice(0, 1400)}`,
+      task: `[Orchestrateur / ${classification.category}] Inspecter le workspace pour préparer cette demande sans modifier les fichiers. Identifier les fichiers et parcours concrets, les causes probables, et le plan d'implémentation à transmettre à l'agent principal:\n${request.slice(0, 1400)}`,
       tools: readTools.join(","),
       instructions: "Exploration en lecture seule. Utilise les outils autorisés, rapporte les chemins exacts et les preuves; ne modifie aucun fichier. L'agent principal fera les changements.",
     };
     const id = nextCallId();
-    this.ui.status("· sous-agent d’exploration lancé avant l’implémentation");
+    this.ui.status(`· sous-agent d’exploration (${targetRole}) lancé avant l’implémentation`);
     this.ui.toolCall("delegate", args);
     this.messages.push({
       role: "assistant",
@@ -330,6 +336,21 @@ export class Agent {
     await this.bus.emit("context_update");
     toolCalls++;
     return toolCalls;
+  }
+
+  getOrchestrationSummary(): string | null {
+    if (!this.lastClassification) return null;
+    return formatOrchestratorSummary({
+      originalRequest: this.originalRequest,
+      classification: this.lastClassification,
+      filesTouched: this.toolCtx.filesTouched,
+      commandsRun: this.toolCtx.commandsRun,
+      verificationResult: this.verificationResult,
+      durationMs: this.lastTurnStats?.durationMs,
+      stepsCompleted: this.toolCtx.plan.exists
+        ? { total: this.toolCtx.plan.steps.length, done: this.toolCtx.plan.doneCount }
+        : undefined,
+    });
   }
 
   setMode(mode: Mode, systemPrompt: string): void {
@@ -360,6 +381,7 @@ export class Agent {
     this.verification = this.callerVerification;
     this.progressFailure = "";
     this.sameVerificationFailures = 0;
+    this.lastClassification = null;
     // Session facts feed the compaction state note — stale ones from a
     // cleared conversation would assert work the new task never did.
     this.toolCtx.filesTouched.clear();
@@ -830,6 +852,18 @@ export class Agent {
               this.ctxMgr.evictStaleReads(this.messages, call.args.path);
               repeatedReads.clear();
               readsSinceAction = 0;
+              try {
+                const valResult = await validateChange(call.args.path, this.toolCtx.workspace, { runTargetedTests: true });
+                if (valResult.visualRail) {
+                  this.ui.status?.(valResult.visualRail);
+                  await this.bus.emit("validation", valResult);
+                }
+                if (!valResult.syntaxOk && valResult.syntaxError) {
+                  output += `\n[Validation continue : ⚠️ ${valResult.syntaxError}. Corrige cette syntaxe avant de continuer.]`;
+                }
+              } catch {
+                /* la validation continue ne doit jamais casser le flux principal */
+              }
             }
             // Keep the plan honest: small models forget to mark steps done
             // mid-flow, leaving the checklist stale for minutes. A periodic

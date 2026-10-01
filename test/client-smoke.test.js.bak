@@ -27,11 +27,15 @@ function makeEl(all) {
       return c;
     },
     append(...cs) {
-      cs.forEach((c) => (c.parent = el));
+      cs.forEach((c) => {
+        c.parent = el;
+      });
       el.children.push(...cs);
     },
     prepend(...cs) {
-      cs.forEach((c) => (c.parent = el));
+      cs.forEach((c) => {
+        c.parent = el;
+      });
       el.children.unshift(...cs);
     },
     insertBefore(c, ref) {
@@ -43,7 +47,9 @@ function makeEl(all) {
     },
     replaceChildren(...cs) {
       el.children.length = 0;
-      cs.forEach((c) => (c.parent = el));
+      cs.forEach((c) => {
+        c.parent = el;
+      });
       el.children.push(...cs);
     },
     remove() {
@@ -107,7 +113,10 @@ function boot(treeEntries, diffPayload, shellItems = []) {
       el.textContent = String(text);
       return el;
     },
-    getElementById: (id) => els[id] || (els[id] = makeEl(all)),
+    getElementById: (id) => {
+      if (!els[id]) els[id] = makeEl(all);
+      return els[id];
+    },
     querySelector: () => null,
     querySelectorAll: () => [],
     body: null,
@@ -225,10 +234,11 @@ function boot(treeEntries, diffPayload, shellItems = []) {
   const classes = () => {
     const out = new Set();
     for (const e of all) {
-      if (e.className)
-        String(e.className)
-          .split(/\s+/)
-          .forEach((c) => c && out.add(c));
+      if (e.className) {
+        for (const c of String(e.className).split(/\s+/)) {
+          if (c) out.add(c);
+        }
+      }
     }
     return out;
   };
@@ -454,7 +464,7 @@ test("side-by-side toggle renders paired columns", async () => {
   await c.flush();
   c.els.btnreview.onclick();
   await c.flush(200);
-  const toggle = c.allElements().find((e) => e.title && e.title.includes("side-by-side view"));
+  const toggle = c.allElements().find((e) => e.title?.includes("side-by-side view"));
   assert.ok(toggle, "sbs toggle present");
   toggle.onclick();
   await c.flush(200);

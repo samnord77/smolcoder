@@ -60,9 +60,28 @@ export const PAGE_HTML = `<!doctype html>
     <button type="button" class="ide-badge" id="btnmodels" title="Changer de modèle (/models)"><span class="led blue"></span><span id="topmodelname">Modèle</span></button>
     <button type="button" class="iconbtn" id="btnfiles" title="Fichiers du projet et éditeur">${ICON_FILES}</button>
     <button type="button" class="iconbtn" id="btnbrowser" title="Navigateur intégré : aperçu live">${ICON_BROWSER}</button>
-    <button type="button" class="iconbtn" id="btnterm" title="Terminal intégré (Ctrl+\`)">${ICON_TERMINAL}</button>
+    <button type="button" class="iconbtn" id="btnproblems" title="Problèmes du workspace (Problems)">⚠</button>
+    <button type="button" class="iconbtn" id="btnterm" title="Terminal & Dock Pro (Ctrl+\`)">${ICON_TERMINAL}</button>
     <button type="button" class="iconbtn" id="btnreview" title="Revue des modifications (diff par hunk)">Δ</button>
     <button type="button" class="iconbtn" id="btnstatus" title="Centre de Contrôle Pro">${ICON_GAUGE}</button>
+  </div>
+  <div id="activitybar" class="activity-bar" aria-live="polite">
+    <div class="activity-summary" id="actsummary">
+      <span class="act-pulse idle" id="actpulse" aria-hidden="true"></span>
+      <span class="act-agent badge" id="actagent" hidden></span>
+      <span class="act-skill badge" id="actskill" hidden></span>
+      <span class="act-tool badge" id="acttool" hidden></span>
+      <span class="act-mcp badge" id="actmcp" hidden></span>
+      <span class="act-file badge" id="actfile" hidden></span>
+      <span class="act-check badge" id="actcheck" hidden></span>
+      <span class="act-status" id="actstatus">En attente</span>
+      <span class="act-time" id="acttime" hidden></span>
+      <span class="grow"></span>
+      <button type="button" class="act-toggle" id="acttoggle" title="Afficher la chronologie des actions (timeline)">⚡ Timeline <span id="actcount">(0)</span></button>
+    </div>
+    <div class="activity-timeline" id="acttimeline" hidden>
+      <div class="act-list" id="actlist"></div>
+    </div>
   </div>
   <div id="plantop" aria-live="polite" hidden></div>
   <div id="logwrap" tabindex="0" role="region" aria-label="Historique des échanges">

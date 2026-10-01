@@ -42,6 +42,12 @@ const ls = {
   set(key, v) { try { localStorage.setItem(key, v); } catch (e) {} },
 };
 const logwrap = $("logwrap"), logsEl = $("logs"), busyEl = $("busy"), actionBtn = $("actionbtn"), planTop = $("plantop");
+const actBar = $("activitybar"), actPulse = $("actpulse"), actAgent = $("actagent"), actSkill = $("actskill"), actTool = $("acttool"), actMcp = $("actmcp"), actFile = $("actfile"), actCheck = $("actcheck"), actStatus = $("actstatus"), actTime = $("acttime"), actToggle = $("acttoggle"), actCount = $("actcount"), actTimeline = $("acttimeline"), actList = $("actlist");
+if (actToggle && actTimeline) {
+  actToggle.onclick = () => {
+    actTimeline.hidden = !actTimeline.hidden;
+  };
+}
 const jumpBottom = $("jumpbottom");
 const input = $("input"), menu = $("menu"), sideEl = $("side"), panelEl = $("panel"), tabsEl = $("paneltabs");
 const filesBtn = $("btnfiles");
@@ -677,11 +683,28 @@ function renderState(v) {
         validation.disabled = true;
         vlabel.textContent = "vérification...";
         validation.className = "validation-rail pending";
+        v.validationActive = true;
+        renderActivity(v);
         post("/check", { sid: v.sid }).then((r) => {
           const c = r && r.check ? r.check : null;
-          if (c) writeCheck(checkLS, c);
-          else vlabel.textContent = "vérification impossible";
-        }).catch(() => { vlabel.textContent = "vérification impossible"; }).finally(() => { validation.disabled = false; });
+          v.validationActive = false;
+          if (c) {
+            writeCheck(checkLS, c);
+            const isOk = c.state === "passing";
+            v.lastCheckResult = { ok: isOk, label: c.command };
+            recordActivity(v, "check", "validation", c.command + " (" + c.state + ")", "", false);
+            completeActivity(v, "check", isOk);
+          } else {
+            vlabel.textContent = "vérification impossible";
+            v.lastCheckResult = { ok: false, label: "impossible" };
+          }
+          renderActivity(v);
+        }).catch(() => {
+          v.validationActive = false;
+          vlabel.textContent = "vérification impossible";
+          v.lastCheckResult = { ok: false, label: "erreur" };
+          renderActivity(v);
+        }).finally(() => { validation.disabled = false; });
       };
     }
     st.appendChild(validation);
@@ -778,6 +801,181 @@ function notifyAgentFileActivity(v, m) {
     }
     if (DISK_TOOLS.indexOf(m.name) >= 0) scheduleWorkspaceRefresh(v);
   } catch (e) {}
+}
+
+// ---- centre d'activite unifie & timeline ----
+function recordActivity(v, type, name, desc, targetFile, isMcp) {
+  if (!v) return null;
+  if (!v.activities) v.activities = [];
+  const item = {
+    id: "act_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+    type: type || "tool",
+    name: name || "",
+    desc: desc || "",
+    file: targetFile || "",
+    isMcp: !!isMcp,
+    startTime: Date.now(),
+    durationMs: 0,
+    status: "cur",
+  };
+  v.activities.unshift(item);
+  if (v.activities.length > 40) v.activities.pop();
+  v.currentActivity = item;
+  renderActivity(v);
+  return item;
+}
+
+function completeActivity(v, itemOrType, ok, errMsg) {
+  if (!v || !v.activities) return;
+  let item = null;
+  if (typeof itemOrType === "object" && itemOrType) item = itemOrType;
+  else if (typeof itemOrType === "string") item = v.activities.find((a) => a.type === itemOrType && a.status === "cur");
+  else item = v.currentActivity;
+
+  if (item) {
+    item.durationMs = Math.max(10, Date.now() - item.startTime);
+    item.status = ok ? "ok" : "err";
+    if (errMsg) item.desc = (item.desc ? item.desc + " — " : "") + errMsg;
+  }
+  if (v.currentActivity === item) v.currentActivity = null;
+  renderActivity(v);
+}
+
+function renderActivity(v) {
+  if (!actBar) return;
+  if (!v || v !== active) {
+    actBar.hidden = true;
+    return;
+  }
+  actBar.hidden = false;
+  if (!v.activities) v.activities = [];
+
+  const cur = v.currentActivity;
+  const isBusy = !!v.busyLabel || cur?.status === "cur";
+
+  if (actPulse) {
+    actPulse.className = "act-pulse " + (cur?.status === "err" ? "error" : isBusy ? "live" : "idle");
+  }
+
+  if (actAgent) {
+    const sub = v.activeSubagent || (cur?.type === "sub" ? cur.desc : null);
+    if (sub) {
+      actAgent.textContent = "⇄ " + sub;
+      actAgent.hidden = false;
+      actAgent.title = "Sous-agent actif : " + sub;
+      actAgent.onclick = () => openCC("agents");
+    } else {
+      actAgent.hidden = true;
+    }
+  }
+
+  if (actSkill) {
+    const sk = (v.state && v.state.skills && v.state.skills.length) ? v.state.skills : v.activeSkills;
+    if (sk && sk.length) {
+      actSkill.textContent = "⚡ " + (sk.length === 1 ? sk[0] : sk.length + " skills");
+      actSkill.hidden = false;
+      actSkill.title = "Skills chargées : " + sk.join(", ");
+      actSkill.onclick = () => openCC("skills");
+    } else {
+      actSkill.hidden = true;
+    }
+  }
+
+  if (actTool) {
+    if (cur && cur.type === "tool" && !cur.isMcp) {
+      actTool.textContent = "🛠 " + cur.name.replace(/_/g, " ");
+      actTool.hidden = false;
+    } else {
+      actTool.hidden = true;
+    }
+  }
+
+  if (actMcp) {
+    if (cur && (cur.isMcp || cur.type === "mcp")) {
+      actMcp.textContent = "🔌 " + cur.name.replace(/^mcp_/, "");
+      actMcp.hidden = false;
+    } else {
+      actMcp.hidden = true;
+    }
+  }
+
+  if (actFile) {
+    const f = cur?.file || v.lastTouchedFile;
+    if (f) {
+      const shortF = f.split(/[\\/]/).slice(-2).join("/");
+      actFile.textContent = "📝 " + shortF;
+      actFile.hidden = false;
+      actFile.title = "Fichier : " + f;
+    } else {
+      actFile.hidden = true;
+    }
+  }
+
+  if (actCheck) {
+    if (v.validationActive) {
+      actCheck.textContent = "⧖ validation...";
+      actCheck.className = "act-check badge";
+      actCheck.hidden = false;
+    } else if (v.lastCheckResult) {
+      actCheck.textContent = v.lastCheckResult.ok ? "✓ validé" : "✕ échec";
+      actCheck.className = "act-check badge " + (v.lastCheckResult.ok ? "ok" : "err");
+      actCheck.hidden = false;
+    } else {
+      actCheck.hidden = true;
+    }
+  }
+
+  if (actStatus) {
+    actStatus.textContent = cur ? (cur.desc || cur.name) : (v.busyLabel || "Prêt");
+  }
+  if (actTime) {
+    if (cur && cur.status === "cur") {
+      const sec = ((Date.now() - cur.startTime) / 1000).toFixed(1);
+      actTime.textContent = sec + "s";
+      actTime.hidden = false;
+    } else if (v.activities.length && v.activities[0].durationMs) {
+      const ms = v.activities[0].durationMs;
+      actTime.textContent = ms > 1000 ? (ms / 1000).toFixed(1) + "s" : ms + "ms";
+      actTime.hidden = false;
+    } else {
+      actTime.hidden = true;
+    }
+  }
+
+  if (actCount) actCount.textContent = "(" + v.activities.length + ")";
+  if (actList) {
+    actList.innerHTML = "";
+    v.activities.slice(0, 15).forEach((a) => {
+      const item = el("div", "act-item " + a.status);
+      const icon = el("span", "icon", a.type === "sub" ? "⇄" : a.isMcp ? "🔌" : a.type === "check" ? "✓" : "🛠");
+      const desc = el("span", "desc", (a.name ? a.name + " : " : "") + (a.desc || a.file || ""));
+      const dur = a.durationMs ? (a.durationMs > 1000 ? (a.durationMs / 1000).toFixed(1) + "s" : a.durationMs + "ms") : "…";
+      const meta = el("span", "meta", dur);
+      item.appendChild(icon); item.appendChild(desc); item.appendChild(meta);
+      actList.appendChild(item);
+    });
+  }
+}
+
+function startToolActivity(v, m) {
+  if (!m || !v) return;
+  const isMcp = String(m.name || "").startsWith("mcp_") || String(m.name || "").includes("__");
+  let targetFile = "";
+  if (m.path) targetFile = m.path;
+  else if (m.file) targetFile = m.file;
+  else if (m.summary && /(?:\.[a-zA-Z0-9]+|\/|\\)/.test(m.summary)) {
+    const matched = /([a-zA-Z0-9_\-./\\]+\.[a-zA-Z0-9]+)/.exec(m.summary);
+    if (matched) targetFile = matched[1];
+  }
+  if (targetFile) v.lastTouchedFile = targetFile;
+  const act = recordActivity(v, isMcp ? "mcp" : "tool", m.name, m.summary || "", targetFile, isMcp);
+  v.currentToolAct = act;
+}
+
+function finishToolActivity(v, m) {
+  if (!v) return;
+  completeActivity(v, v.currentToolAct || "tool", !m.err, m.err ? (m.body || m.line || "erreur") : "");
+  v.currentToolAct = null;
 }
 
 // ---- offload card ----------------------------------------------------------
@@ -927,6 +1125,7 @@ function handle(m) {
       }
       subAdd(v, d);
       notifyAgentFileActivity(v, m);
+      startToolActivity(v, m);
       if (m.name === "run_command") armOffload(v, d, m.summary || "");
       else clearOffload(v);
       break;
@@ -934,11 +1133,63 @@ function handle(m) {
     case "result": {
       clearOffload(v);
       endThought(v); v.curText = null;
-      const body = el("pre", "result" + (m.err ? " err" : ""), m.body || m.line);
-      if (v.curTool) { v.curTool.classList.add(m.err ? "failed" : "finished"); v.curTool.appendChild(body); if (m.err) v.curTool.open = true; v.curTool = null; }
+      const rawText = m.body || m.line || "";
+      const isCmd = v.lastTool?.name === "run_command";
+      const body = el("pre", "result" + (m.err ? " err" : ""));
+      if (isCmd) {
+        body.appendChild(ansiToFrag(rawText));
+      } else {
+        body.textContent = rawText;
+      }
+      if (v.curTool) {
+        v.curTool.classList.add(m.err ? "failed" : "finished");
+        if (isCmd) {
+          const exitMatch = rawText.match(/\[exit code (-?\d+) in ([^\]]+)\]/i);
+          if (exitMatch) {
+            const codeNum = Number.parseInt(exitMatch[1], 10);
+            const dur = exitMatch[2];
+            const badge = el("span", "cmd-badge " + (codeNum === 0 ? "ok" : "err"), (codeNum === 0 ? "✓ 0" : "✕ " + codeNum) + " (" + dur + ")");
+            v.curTool.querySelector("summary")?.appendChild(badge);
+          }
+          const actions = el("div", "cmd-actions");
+          const cmdText = v.lastTool.command || v.lastTool.summary || "";
+          const btnCopy = el("button", "cmd-action-btn", "📋 Copier");
+          btnCopy.type = "button";
+          btnCopy.title = "Copier la commande";
+          btnCopy.onclick = (e) => {
+            e.stopPropagation();
+            if (navigator.clipboard) {
+              navigator.clipboard.writeText(cmdText);
+              btnCopy.textContent = "✓ Copié";
+              setTimeout(() => { btnCopy.textContent = "📋 Copier"; }, 1500);
+            }
+          };
+          const btnRerun = el("button", "cmd-action-btn primary", "↺ Relancer");
+          btnRerun.type = "button";
+          btnRerun.title = "Relancer la commande dans le terminal";
+          btnRerun.onclick = (e) => {
+            e.stopPropagation();
+            openTerminalTab(v);
+            setTimeout(() => {
+              const activeTerm = [...v.terms.values()].pop();
+              if (activeTerm) {
+                activeTerm.inp.value = cmdText;
+                activeTerm.inp.focus();
+              }
+            }, 100);
+          };
+          actions.appendChild(btnCopy);
+          actions.appendChild(btnRerun);
+          body.appendChild(actions);
+        }
+        v.curTool.appendChild(body);
+        if (m.err) v.curTool.open = true;
+        v.curTool = null;
+      }
       else add(v, body);
       if (m.sid === active?.sid && ccOpenNow() && v.lastTool?.name === "work") loadCC();
       notifyAgentFileActivity(v, v.lastTool);
+      finishToolActivity(v, m);
       break;
     }
       case "plan": endThought(v); v.curText = null; renderPlan(v, m); v.planCache = m; { const pt = v.tabs.find((t) => t.kind === "plan"); if (pt && pt.renderSteps) { try { pt.renderSteps(m); } catch (e) {} } } break;
@@ -967,14 +1218,19 @@ function handle(m) {
       }
       case "sub": endThought(v); v.curText = null;
         if (m.phase === "start") {
+          v.activeSubagent = m.label || "";
+          recordActivity(v, "sub", "sous-agent", m.label || "", "", false);
           const d = el("details", "subagent"); d.open = true;
           const summary = el("summary"); summary.appendChild(document.createTextNode("⇄ sous-agent : " + (m.label || ""))); summary.appendChild(el("span", "sub-dot", " ●"));
           d.appendChild(summary); d._summary = summary; d._dot = summary.querySelector(".sub-dot");
           v.curSub = d; add(v, d);
         } else {
+          completeActivity(v, "sub", !m.err, m.err ? "erreur" : "");
+          v.activeSubagent = null;
           if (v.curSub) { if (v.curSub._dot) v.curSub._dot.textContent = " ✓"; v.curSub._summary.appendChild(document.createTextNode(" · done")); v.curSub = null; }
           else add(v, el("div", "line-status", "✓ sous-agent : " + (m.label || "")));
         }
+        renderActivity(v);
         break;
     case "line": endThought(v); v.curText = null; subAdd(v, el("div", "line-" + m.kind, m.s));
       if (m.kind === "error") ping("smolcoder — attention needed", m.s);
@@ -983,12 +1239,14 @@ function handle(m) {
       endThought(v); v.curText = null; v.curSub = null; add(v, el("div", "turnend", "■ " + m.label));
       ping("smolcoder — turn finished", m.label);
       if (v !== active) { v.unread = true; renderSidebar(); }
+      renderActivity(v);
       break;
-    case "busy": setBusy(v, m.label); break;
+    case "busy": setBusy(v, m.label); renderActivity(v); break;
     case "skills":
       v.state.skills = m.names || [];
+      v.activeSkills = m.names || [];
       if (ccOpenNow()) renderCC();
-      if (v === active) renderState(v);
+      if (v === active) { renderState(v); renderActivity(v); }
       break;
     case "confirm": {
       endThought(v); v.curText = null;
@@ -1103,6 +1361,7 @@ function show(sid) {
     active.logEl.hidden = false; active.unread = false;
     input.value = active.draft || ""; autoGrow(); menuIdx = 0; renderMenu();
     renderState(active);
+    renderActivity(active);
     logwrap.scrollTop = active.followBottom ? logwrap.scrollHeight : active.scrollTop || 0;
     active.scrollTop = logwrap.scrollTop;
     renderBusy();
@@ -1115,7 +1374,7 @@ function show(sid) {
     if (location.hash) history.replaceState(null, "", location.pathname + location.search);
     $("status").textContent = "";
   }
-  renderPanel(); renderSidebar(); renderCrumb(); renderTitle(); renderWelcome(); renderAttachments();
+  renderPanel(); renderSidebar(); renderCrumb(); renderTitle(); renderWelcome(); renderAttachments(); renderActivity(active);
   stick();
 }
 function newSession(path) {
@@ -1511,7 +1770,7 @@ function buildFilesTab(v, t) {
   pathInput.placeholder = "workspace path"; pathInput.spellcheck = false;
   const refresh = el("button", "iconbtn", "↻"); refresh.title = "refresh files";
   const save = el("button", "iconbtn", "save"); save.title = "save file";
-  const diagnosticsButton = el("button", "iconbtn", "✓ problèmes"); diagnosticsButton.title = "Analyser le fichier avec le serveur de langage";
+  const diagnosticsButton = el("button", "iconbtn", "✓ problèmes"); diagnosticsButton.title = "Analyser le fichier ouvert avec le serveur de langage";
   const previewButton = el("button", "iconbtn", "▣"); previewButton.title = "Aperçu local HTML";
   const findInput = document.createElement("input");
   findInput.placeholder = "Rechercher dans le projet…"; findInput.setAttribute("aria-label", "Rechercher dans les fichiers du projet");
@@ -1554,27 +1813,52 @@ function buildFilesTab(v, t) {
   };
   bar.appendChild(addBtn);
   const inlineBar = el("div", "fileinlinebar"); inlineBar.hidden = true;
+  const inlineRowTop = el("div", "fileinline-row");
   const inlineInput = document.createElement("input");
-  inlineInput.placeholder = "Instruction: e.g. add error handling…";
+  inlineInput.placeholder = "Instruction : ex. refactoriser, typer, ajouter gestion d'erreurs…";
   inlineInput.setAttribute("aria-label", "AI edit instruction");
-  const inlineGo = el("button", "iconbtn", "Generate"); inlineGo.type = "button";
-  const inlineCancel = el("button", "iconbtn", "×"); inlineCancel.type = "button"; inlineCancel.title = "Close";
-  inlineBar.append(inlineInput, inlineGo, inlineCancel);
+  const inlineGo = el("button", "iconbtn", "Générer"); inlineGo.type = "button";
+  const inlineCancel = el("button", "iconbtn", "×"); inlineCancel.type = "button"; inlineCancel.title = "Fermer (Échap)";
+  inlineRowTop.append(inlineInput, inlineGo, inlineCancel);
+  const inlineChips = el("div", "fileinlinechips");
+  const inlinePresets = [
+    { label: "⚡ Refactoriser", text: "Refactorise ce code pour le rendre plus propre, lisible et robuste." },
+    { label: "🐛 Corriger bugs", text: "Trouve et corrige les éventuels bugs, états nuls et erreurs de syntaxe." },
+    { label: "📝 Typage & Docs", text: "Ajoute le typage TypeScript précis et documente clairement ce bloc." },
+    { label: "🧪 Ajouter tests", text: "Génère les tests unitaires pour couvrir cette logique." },
+    { label: "🚀 Optimiser", text: "Optimise la performance et la consommation mémoire de ce bloc." },
+  ];
+  for (const preset of inlinePresets) {
+    const chip = el("button", "fileinlinechip", preset.label);
+    chip.type = "button";
+    chip.onclick = () => {
+      inlineInput.value = preset.text;
+      runInline();
+    };
+    inlineChips.appendChild(chip);
+  }
+  inlineBar.append(inlineRowTop, inlineChips);
   const inlinePreview = el("div", "fileinlinepreview"); inlinePreview.hidden = true;
   const inlineDiff = el("pre", "reviewpatch");
   const inlineRow = el("div", "reviewactions");
   const inlineStatus = el("span", "filemeta", "");
   inlineStatus.style.flex = "1";
-  const inlineAccept = el("button", "iconbtn", "Accept"); inlineAccept.type = "button";
-  const inlineReject = el("button", "iconbtn", "Reject"); inlineReject.type = "button";
+  const inlineAccept = el("button", "iconbtn", "Accepter (Entrée)"); inlineAccept.type = "button";
+  const inlineReject = el("button", "iconbtn", "Refuser (Échap)"); inlineReject.type = "button";
   inlineRow.append(inlineStatus, inlineAccept, inlineReject);
   inlinePreview.append(inlineDiff, inlineRow);
   // NOTE: inserted into body below, next to the other appends — the
   // results element does not exist yet at this point (TDZ).
   let inlineRange = null;
   const openInlineBar = () => {
-    if (!t.filePath) { showError("Open a file first."); return; }
-    if (editor.selectionStart === editor.selectionEnd) { showError("Select the code to replace."); return; }
+    if (!t.filePath) { showError("Ouvrez d’abord un fichier."); return; }
+    if (editor.selectionStart === editor.selectionEnd) {
+      const pos = editor.selectionStart;
+      const startOfLine = editor.value.lastIndexOf("\n", pos - 1) + 1;
+      let endOfLine = editor.value.indexOf("\n", pos);
+      if (endOfLine === -1) endOfLine = editor.value.length;
+      editor.setSelectionRange(startOfLine, endOfLine);
+    }
     inlineBar.hidden = false;
     inlinePreview.hidden = true;
     inlineInput.value = "";
@@ -1583,23 +1867,29 @@ function buildFilesTab(v, t) {
   const closeInlineBar = () => { inlineBar.hidden = true; inlinePreview.hidden = true; inlineRange = null; editor.focus(); };
   const paintInlineDiff = (text) => {
     inlineDiff.replaceChildren();
+    let adds = 0, dels = 0;
     for (const ln of String(text || "").split("\n")) {
       const s = document.createElement("span");
-      s.className = ln.startsWith("+ ") ? "add" : ln.startsWith("- ") ? "del" : ln.startsWith("@@") ? "hunk" : "same";
+      if (ln.startsWith("+ ")) { adds++; s.className = "add"; }
+      else if (ln.startsWith("- ")) { dels++; s.className = "del"; }
+      else if (ln.startsWith("@@")) { s.className = "hunk"; }
+      else { s.className = "same"; }
       s.textContent = ln + "\n";
       inlineDiff.appendChild(s);
     }
+    return { adds, dels };
   };
   const pollInline = (op, left = 120) => {
-    if (left <= 0) { inlineStatus.textContent = "Timed out — try again."; inlineRange = null; return; }
+    if (left <= 0) { inlineStatus.textContent = "Délai dépassé — réessayez."; inlineRange = null; return; }
     fetch("/code/inline/result?k=" + k + "&id=" + encodeURIComponent(op))
       .then((r) => r.json()).then((d) => {
         if (d.status === "done") {
           inlineRange.newText = d.newText;
-          paintInlineDiff(d.diff || "");
-          inlineStatus.textContent = "Review, then Accept.";
+          const stats = paintInlineDiff(d.diff || "");
+          inlineStatus.textContent = "+" + stats.adds + " / -" + stats.dels + " lignes · [Entrée] Accepter · [Échap] Refuser";
+          inlineAccept.focus();
         } else if (d.status === "error") {
-          inlineStatus.textContent = d.error || "Generation failed.";
+          inlineStatus.textContent = d.error || "Échec de génération.";
           inlineRange = null;
         } else {
           setTimeout(() => pollInline(op, left - 1), 1500);
@@ -1608,19 +1898,25 @@ function buildFilesTab(v, t) {
   };
   const runInline = () => {
     const instruction = inlineInput.value.trim();
-    if (!instruction) { inlineStatus.textContent = "Describe the change."; return; }
-    if (editor.selectionStart === editor.selectionEnd) { inlineStatus.textContent = "Selection is empty."; return; }
+    if (!instruction) { inlineStatus.textContent = "Décrivez la modification."; return; }
+    if (editor.selectionStart === editor.selectionEnd) {
+      const pos = editor.selectionStart;
+      const startOfLine = editor.value.lastIndexOf("\n", pos - 1) + 1;
+      let endOfLine = editor.value.indexOf("\n", pos);
+      if (endOfLine === -1) endOfLine = editor.value.length;
+      editor.setSelectionRange(startOfLine, endOfLine);
+    }
     const selStart = editor.selectionStart, selEnd = editor.selectionEnd;
     const before = editor.value.slice(0, selStart).split("\n").length;
     const selection = editor.value.slice(selStart, selEnd);
     const after = before + selection.split("\n").length - 1;
     inlineRange = { start: selStart, end: selEnd, newText: null };
-    inlineStatus.textContent = "Generating…";
+    inlineStatus.textContent = "Génération IA en cours…";
     inlinePreview.hidden = false;
     inlineDiff.replaceChildren();
     post("/code/inline/start", { sid: v.sid, path: t.filePath, selection, start: before, end: after, instruction })
       .then((r) => {
-        if (!r || r.error || !r.op) { inlineStatus.textContent = (r && r.error) || "Inline edit did not start."; inlineRange = null; return; }
+        if (!r || r.error || !r.op) { inlineStatus.textContent = (r && r.error) || "L'édition inline n'a pas pu démarrer."; inlineRange = null; return; }
         pollInline(r.op);
       }).catch((e) => { inlineStatus.textContent = String((e && e.message) || e); inlineRange = null; });
   };
@@ -1636,6 +1932,17 @@ function buildFilesTab(v, t) {
     closeInlineBar();
   };
   inlineReject.onclick = closeInlineBar;
+  window.addEventListener("keydown", (e) => {
+    if (!inlinePreview.hidden && inlineRange && typeof inlineRange.newText === "string") {
+      if (e.key === "Enter" || (e.ctrlKey && e.key.toLowerCase() === "y") || e.key === "Tab") {
+        e.preventDefault();
+        inlineAccept.click();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        closeInlineBar();
+      }
+    }
+  });
   const fileOp = (endpoint, body, after) => {
     fetch("/workspace/file/" + endpoint + "?k=" + k + "&sid=" + encodeURIComponent(v.sid), {
       method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body || {}),
@@ -2294,7 +2601,12 @@ function buildFilesTab(v, t) {
     diagnosticsPanel.appendChild(row);
   };
   const analyzeFile = async (filePath = t.filePath) => {
-    if (!filePath) { diagnosticRequest++; diagnosticsPanel.replaceChildren(); return; }
+    if (!filePath) {
+      diagnosticRequest++;
+      diagnosticsPanel.replaceChildren(el("div", "filediagnostic-note", "Ouvrez un fichier de code pour lancer l’analyse."));
+      diagnosticsPanel.scrollIntoView?.({ block: "nearest" });
+      return;
+    }
     // TypeScript/JavaScript go through the workspace diagnostics; every other
     // language goes through the pro language server for that extension.
     const exts = await proLangFor();
@@ -2361,6 +2673,10 @@ function buildFilesTab(v, t) {
         row.appendChild(go); row.appendChild(fix);
         diagnosticsPanel.appendChild(row);
       }
+      if (!(result.diagnostics || []).length && !result.message && !result.text) {
+        diagnosticsPanel.appendChild(el("div", "filediagnostic-note ok", "Aucun problème détecté."));
+      }
+      diagnosticsPanel.scrollIntoView?.({ block: "nearest" });
     } catch (error) {
       if (request !== diagnosticRequest || filePath !== t.filePath) return;
       diagnosticsPanel.replaceChildren(el("div", "filediagnostic-note error", String(error.message || error)));
@@ -2983,6 +3299,20 @@ function ensureTermTab(v, tid, cwd) {
   if (t) { if (cwd) setPrompt(t, cwd); return t; }
   t = { kind: "term", tid, id: "t:" + tid, cwd: cwd || "", history: [], hi: 0, lines: 0, cur: null, ansi: { classes: [], pending: "" } };
   const body = el("div", "tabbody term"); body.hidden = true;
+  const toolbar = el("div", "term-toolbar");
+  const toolLeft = el("div", "term-tool-left");
+  const termBadge = el("span", "term-badge", "TERMINAL");
+  const termCwd = el("span", "term-cwd", shortPath(cwd || "") || "workspace");
+  toolLeft.appendChild(termBadge); toolLeft.appendChild(termCwd);
+  const toolRight = el("div", "term-tool-right");
+  const btnInterrupt = el("button", "term-btn warn", "⏹ Interrompre (Ctrl+C)");
+  btnInterrupt.type = "button"; btnInterrupt.title = "Interrompre la commande en cours";
+  btnInterrupt.onclick = () => { post("/term/interrupt", { sid: v.sid, tid }); };
+  const btnClear = el("button", "term-btn", "🧹 Effacer (Ctrl+L)");
+  btnClear.type = "button"; btnClear.title = "Effacer l'affichage du terminal";
+  btnClear.onclick = () => { out.innerHTML = ""; t.cur = null; t.lines = 0; };
+  toolRight.appendChild(btnInterrupt); toolRight.appendChild(btnClear);
+  toolbar.appendChild(toolLeft); toolbar.appendChild(toolRight);
   const out = el("pre", "out");
   const row = el("div", "trow");
   const prompt = el("span", "prompt");
@@ -3003,7 +3333,7 @@ function ensureTermTab(v, tid, cwd) {
   };
   out.onclick = () => { if (!String(window.getSelection())) inp.focus(); };
   row.appendChild(prompt); row.appendChild(inp);
-  body.appendChild(out); body.appendChild(row);
+  body.appendChild(toolbar); body.appendChild(out); body.appendChild(row);
   v.panelEl.appendChild(body);
   t.el = body; t.out = out; t.inp = inp; t.promptEl = prompt;
   setPrompt(t, cwd || "");

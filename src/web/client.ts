@@ -42,6 +42,12 @@ const ls = {
   set(key, v) { try { localStorage.setItem(key, v); } catch (e) {} },
 };
 const logwrap = $("logwrap"), logsEl = $("logs"), busyEl = $("busy"), actionBtn = $("actionbtn"), planTop = $("plantop");
+const actBar = $("activitybar"), actPulse = $("actpulse"), actAgent = $("actagent"), actSkill = $("actskill"), actTool = $("acttool"), actMcp = $("actmcp"), actFile = $("actfile"), actCheck = $("actcheck"), actStatus = $("actstatus"), actTime = $("acttime"), actToggle = $("acttoggle"), actCount = $("actcount"), actTimeline = $("acttimeline"), actList = $("actlist");
+if (actToggle && actTimeline) {
+  actToggle.onclick = () => {
+    actTimeline.hidden = !actTimeline.hidden;
+  };
+}
 const jumpBottom = $("jumpbottom");
 const input = $("input"), menu = $("menu"), sideEl = $("side"), panelEl = $("panel"), tabsEl = $("paneltabs");
 const filesBtn = $("btnfiles");
@@ -160,7 +166,7 @@ function renderMarkdown(src) {
 
 // ---- ANSI (terminal output) -----------------------------------------------
 function ansiToFrag(text, state) {
-  const frag = document.createDocumentFragment();
+  const frag = typeof document.createDocumentFragment === "function" ? document.createDocumentFragment() : document.createElement("span");
   state = state || { classes: [], pending: "" };
   text = state.pending + String(text || "");
   state.pending = "";
@@ -677,11 +683,28 @@ function renderState(v) {
         validation.disabled = true;
         vlabel.textContent = "vérification...";
         validation.className = "validation-rail pending";
+        v.validationActive = true;
+        renderActivity(v);
         post("/check", { sid: v.sid }).then((r) => {
           const c = r && r.check ? r.check : null;
-          if (c) writeCheck(checkLS, c);
-          else vlabel.textContent = "vérification impossible";
-        }).catch(() => { vlabel.textContent = "vérification impossible"; }).finally(() => { validation.disabled = false; });
+          v.validationActive = false;
+          if (c) {
+            writeCheck(checkLS, c);
+            const isOk = c.state === "passing";
+            v.lastCheckResult = { ok: isOk, label: c.command };
+            recordActivity(v, "check", "validation", c.command + " (" + c.state + ")", "", false);
+            completeActivity(v, "check", isOk);
+          } else {
+            vlabel.textContent = "vérification impossible";
+            v.lastCheckResult = { ok: false, label: "impossible" };
+          }
+          renderActivity(v);
+        }).catch(() => {
+          v.validationActive = false;
+          vlabel.textContent = "vérification impossible";
+          v.lastCheckResult = { ok: false, label: "erreur" };
+          renderActivity(v);
+        }).finally(() => { validation.disabled = false; });
       };
     }
     st.appendChild(validation);
@@ -778,6 +801,181 @@ function notifyAgentFileActivity(v, m) {
     }
     if (DISK_TOOLS.indexOf(m.name) >= 0) scheduleWorkspaceRefresh(v);
   } catch (e) {}
+}
+
+// ---- centre d'activite unifie & timeline ----
+function recordActivity(v, type, name, desc, targetFile, isMcp) {
+  if (!v) return null;
+  if (!v.activities) v.activities = [];
+  const item = {
+    id: "act_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+    type: type || "tool",
+    name: name || "",
+    desc: desc || "",
+    file: targetFile || "",
+    isMcp: !!isMcp,
+    startTime: Date.now(),
+    durationMs: 0,
+    status: "cur",
+  };
+  v.activities.unshift(item);
+  if (v.activities.length > 40) v.activities.pop();
+  v.currentActivity = item;
+  renderActivity(v);
+  return item;
+}
+
+function completeActivity(v, itemOrType, ok, errMsg) {
+  if (!v || !v.activities) return;
+  let item = null;
+  if (typeof itemOrType === "object" && itemOrType) item = itemOrType;
+  else if (typeof itemOrType === "string") item = v.activities.find((a) => a.type === itemOrType && a.status === "cur");
+  else item = v.currentActivity;
+
+  if (item) {
+    item.durationMs = Math.max(10, Date.now() - item.startTime);
+    item.status = ok ? "ok" : "err";
+    if (errMsg) item.desc = (item.desc ? item.desc + " — " : "") + errMsg;
+  }
+  if (v.currentActivity === item) v.currentActivity = null;
+  renderActivity(v);
+}
+
+function renderActivity(v) {
+  if (!actBar) return;
+  if (!v || v !== active) {
+    actBar.hidden = true;
+    return;
+  }
+  actBar.hidden = false;
+  if (!v.activities) v.activities = [];
+
+  const cur = v.currentActivity;
+  const isBusy = !!v.busyLabel || cur?.status === "cur";
+
+  if (actPulse) {
+    actPulse.className = "act-pulse " + (cur?.status === "err" ? "error" : isBusy ? "live" : "idle");
+  }
+
+  if (actAgent) {
+    const sub = v.activeSubagent || (cur?.type === "sub" ? cur.desc : null);
+    if (sub) {
+      actAgent.textContent = "⇄ " + sub;
+      actAgent.hidden = false;
+      actAgent.title = "Sous-agent actif : " + sub;
+      actAgent.onclick = () => openCC("agents");
+    } else {
+      actAgent.hidden = true;
+    }
+  }
+
+  if (actSkill) {
+    const sk = (v.state && v.state.skills && v.state.skills.length) ? v.state.skills : v.activeSkills;
+    if (sk && sk.length) {
+      actSkill.textContent = "⚡ " + (sk.length === 1 ? sk[0] : sk.length + " skills");
+      actSkill.hidden = false;
+      actSkill.title = "Skills chargées : " + sk.join(", ");
+      actSkill.onclick = () => openCC("skills");
+    } else {
+      actSkill.hidden = true;
+    }
+  }
+
+  if (actTool) {
+    if (cur && cur.type === "tool" && !cur.isMcp) {
+      actTool.textContent = "🛠 " + cur.name.replace(/_/g, " ");
+      actTool.hidden = false;
+    } else {
+      actTool.hidden = true;
+    }
+  }
+
+  if (actMcp) {
+    if (cur && (cur.isMcp || cur.type === "mcp")) {
+      actMcp.textContent = "🔌 " + cur.name.replace(/^mcp_/, "");
+      actMcp.hidden = false;
+    } else {
+      actMcp.hidden = true;
+    }
+  }
+
+  if (actFile) {
+    const f = cur?.file || v.lastTouchedFile;
+    if (f) {
+      const shortF = f.split(/[\\/]/).slice(-2).join("/");
+      actFile.textContent = "📝 " + shortF;
+      actFile.hidden = false;
+      actFile.title = "Fichier : " + f;
+    } else {
+      actFile.hidden = true;
+    }
+  }
+
+  if (actCheck) {
+    if (v.validationActive) {
+      actCheck.textContent = "⧖ validation...";
+      actCheck.className = "act-check badge";
+      actCheck.hidden = false;
+    } else if (v.lastCheckResult) {
+      actCheck.textContent = v.lastCheckResult.ok ? "✓ validé" : "✕ échec";
+      actCheck.className = "act-check badge " + (v.lastCheckResult.ok ? "ok" : "err");
+      actCheck.hidden = false;
+    } else {
+      actCheck.hidden = true;
+    }
+  }
+
+  if (actStatus) {
+    actStatus.textContent = cur ? (cur.desc || cur.name) : (v.busyLabel || "Prêt");
+  }
+  if (actTime) {
+    if (cur && cur.status === "cur") {
+      const sec = ((Date.now() - cur.startTime) / 1000).toFixed(1);
+      actTime.textContent = sec + "s";
+      actTime.hidden = false;
+    } else if (v.activities.length && v.activities[0].durationMs) {
+      const ms = v.activities[0].durationMs;
+      actTime.textContent = ms > 1000 ? (ms / 1000).toFixed(1) + "s" : ms + "ms";
+      actTime.hidden = false;
+    } else {
+      actTime.hidden = true;
+    }
+  }
+
+  if (actCount) actCount.textContent = "(" + v.activities.length + ")";
+  if (actList) {
+    actList.innerHTML = "";
+    v.activities.slice(0, 15).forEach((a) => {
+      const item = el("div", "act-item " + a.status);
+      const icon = el("span", "icon", a.type === "sub" ? "⇄" : a.isMcp ? "🔌" : a.type === "check" ? "✓" : "🛠");
+      const desc = el("span", "desc", (a.name ? a.name + " : " : "") + (a.desc || a.file || ""));
+      const dur = a.durationMs ? (a.durationMs > 1000 ? (a.durationMs / 1000).toFixed(1) + "s" : a.durationMs + "ms") : "…";
+      const meta = el("span", "meta", dur);
+      item.appendChild(icon); item.appendChild(desc); item.appendChild(meta);
+      actList.appendChild(item);
+    });
+  }
+}
+
+function startToolActivity(v, m) {
+  if (!m || !v) return;
+  const isMcp = String(m.name || "").startsWith("mcp_") || String(m.name || "").includes("__");
+  let targetFile = "";
+  if (m.path) targetFile = m.path;
+  else if (m.file) targetFile = m.file;
+  else if (m.summary && /(?:\.[a-zA-Z0-9]+|\/|\\)/.test(m.summary)) {
+    const matched = /([a-zA-Z0-9_\-./\\]+\.[a-zA-Z0-9]+)/.exec(m.summary);
+    if (matched) targetFile = matched[1];
+  }
+  if (targetFile) v.lastTouchedFile = targetFile;
+  const act = recordActivity(v, isMcp ? "mcp" : "tool", m.name, m.summary || "", targetFile, isMcp);
+  v.currentToolAct = act;
+}
+
+function finishToolActivity(v, m) {
+  if (!v) return;
+  completeActivity(v, v.currentToolAct || "tool", !m.err, m.err ? (m.body || m.line || "erreur") : "");
+  v.currentToolAct = null;
 }
 
 // ---- offload card ----------------------------------------------------------
@@ -927,6 +1125,7 @@ function handle(m) {
       }
       subAdd(v, d);
       notifyAgentFileActivity(v, m);
+      startToolActivity(v, m);
       if (m.name === "run_command") armOffload(v, d, m.summary || "");
       else clearOffload(v);
       break;
@@ -934,11 +1133,63 @@ function handle(m) {
     case "result": {
       clearOffload(v);
       endThought(v); v.curText = null;
-      const body = el("pre", "result" + (m.err ? " err" : ""), m.body || m.line);
-      if (v.curTool) { v.curTool.classList.add(m.err ? "failed" : "finished"); v.curTool.appendChild(body); if (m.err) v.curTool.open = true; v.curTool = null; }
+      const rawText = m.body || m.line || "";
+      const isCmd = v.lastTool?.name === "run_command";
+      const body = el("pre", "result" + (m.err ? " err" : ""));
+      if (isCmd) {
+        body.appendChild(ansiToFrag(rawText));
+      } else {
+        body.textContent = rawText;
+      }
+      if (v.curTool) {
+        v.curTool.classList.add(m.err ? "failed" : "finished");
+        if (isCmd) {
+          const exitMatch = rawText.match(/\[exit code (-?\d+) in ([^\]]+)\]/i);
+          if (exitMatch) {
+            const codeNum = Number.parseInt(exitMatch[1], 10);
+            const dur = exitMatch[2];
+            const badge = el("span", "cmd-badge " + (codeNum === 0 ? "ok" : "err"), (codeNum === 0 ? "✓ 0" : "✕ " + codeNum) + " (" + dur + ")");
+            v.curTool.querySelector("summary")?.appendChild(badge);
+          }
+          const actions = el("div", "cmd-actions");
+          const cmdText = v.lastTool.command || v.lastTool.summary || "";
+          const btnCopy = el("button", "cmd-action-btn", "📋 Copier");
+          btnCopy.type = "button";
+          btnCopy.title = "Copier la commande";
+          btnCopy.onclick = (e) => {
+            e.stopPropagation();
+            if (navigator.clipboard) {
+              navigator.clipboard.writeText(cmdText);
+              btnCopy.textContent = "✓ Copié";
+              setTimeout(() => { btnCopy.textContent = "📋 Copier"; }, 1500);
+            }
+          };
+          const btnRerun = el("button", "cmd-action-btn primary", "↺ Relancer");
+          btnRerun.type = "button";
+          btnRerun.title = "Relancer la commande dans le terminal";
+          btnRerun.onclick = (e) => {
+            e.stopPropagation();
+            openTerminalTab(v);
+            setTimeout(() => {
+              const activeTerm = [...v.terms.values()].pop();
+              if (activeTerm) {
+                activeTerm.inp.value = cmdText;
+                activeTerm.inp.focus();
+              }
+            }, 100);
+          };
+          actions.appendChild(btnCopy);
+          actions.appendChild(btnRerun);
+          body.appendChild(actions);
+        }
+        v.curTool.appendChild(body);
+        if (m.err) v.curTool.open = true;
+        v.curTool = null;
+      }
       else add(v, body);
       if (m.sid === active?.sid && ccOpenNow() && v.lastTool?.name === "work") loadCC();
       notifyAgentFileActivity(v, v.lastTool);
+      finishToolActivity(v, m);
       break;
     }
       case "plan": endThought(v); v.curText = null; renderPlan(v, m); v.planCache = m; { const pt = v.tabs.find((t) => t.kind === "plan"); if (pt && pt.renderSteps) { try { pt.renderSteps(m); } catch (e) {} } } break;
@@ -967,14 +1218,19 @@ function handle(m) {
       }
       case "sub": endThought(v); v.curText = null;
         if (m.phase === "start") {
+          v.activeSubagent = m.label || "";
+          recordActivity(v, "sub", "sous-agent", m.label || "", "", false);
           const d = el("details", "subagent"); d.open = true;
           const summary = el("summary"); summary.appendChild(document.createTextNode("⇄ sous-agent : " + (m.label || ""))); summary.appendChild(el("span", "sub-dot", " ●"));
           d.appendChild(summary); d._summary = summary; d._dot = summary.querySelector(".sub-dot");
           v.curSub = d; add(v, d);
         } else {
+          completeActivity(v, "sub", !m.err, m.err ? "erreur" : "");
+          v.activeSubagent = null;
           if (v.curSub) { if (v.curSub._dot) v.curSub._dot.textContent = " ✓"; v.curSub._summary.appendChild(document.createTextNode(" · done")); v.curSub = null; }
           else add(v, el("div", "line-status", "✓ sous-agent : " + (m.label || "")));
         }
+        renderActivity(v);
         break;
     case "line": endThought(v); v.curText = null; subAdd(v, el("div", "line-" + m.kind, m.s));
       if (m.kind === "error") ping("smolcoder — attention needed", m.s);
@@ -983,12 +1239,14 @@ function handle(m) {
       endThought(v); v.curText = null; v.curSub = null; add(v, el("div", "turnend", "■ " + m.label));
       ping("smolcoder — turn finished", m.label);
       if (v !== active) { v.unread = true; renderSidebar(); }
+      renderActivity(v);
       break;
-    case "busy": setBusy(v, m.label); break;
+    case "busy": setBusy(v, m.label); renderActivity(v); break;
     case "skills":
       v.state.skills = m.names || [];
+      v.activeSkills = m.names || [];
       if (ccOpenNow()) renderCC();
-      if (v === active) renderState(v);
+      if (v === active) { renderState(v); renderActivity(v); }
       break;
     case "confirm": {
       endThought(v); v.curText = null;
@@ -1103,6 +1361,7 @@ function show(sid) {
     active.logEl.hidden = false; active.unread = false;
     input.value = active.draft || ""; autoGrow(); menuIdx = 0; renderMenu();
     renderState(active);
+    renderActivity(active);
     logwrap.scrollTop = active.followBottom ? logwrap.scrollHeight : active.scrollTop || 0;
     active.scrollTop = logwrap.scrollTop;
     renderBusy();
@@ -1115,7 +1374,7 @@ function show(sid) {
     if (location.hash) history.replaceState(null, "", location.pathname + location.search);
     $("status").textContent = "";
   }
-  renderPanel(); renderSidebar(); renderCrumb(); renderTitle(); renderWelcome(); renderAttachments();
+  renderPanel(); renderSidebar(); renderCrumb(); renderTitle(); renderWelcome(); renderAttachments(); renderActivity(active);
   stick();
 }
 function newSession(path) {
@@ -1324,31 +1583,382 @@ function loadPanelState(v) {
   } catch (e) {}
 }
 function curTab(v) { return v.tabs.find((t) => t.id === v.activeTab) || v.tabs[0] || null; }
+// ---- VS Code Pro Dock State & Tabs ----------------------------------------
+let workspaceDiagnostics = [];
+let outputChannels = {
+  "Continuous Validation": [],
+  "TypeScript": [],
+  "Biome": [],
+  "Hub Tasks": [],
+  "Console": []
+};
+let activeOutputChannel = "Continuous Validation";
+let debugLogs = [
+  { type: "info", text: "Smolcoder Debug Console [Version 0.7.1]" },
+  { type: "info", text: "Tapez une expression JavaScript pour l'évaluer ou inspecter l'environnement." }
+];
+let debugHistory = [];
+let debugHistIdx = 0;
+let termSidebarMode = false;
+let detectedPorts = [
+  { port: 7433, protocol: "HTTP", service: "Smolcoder Web Hub", status: "En écoute", openUrl: "http://127.0.0.1:7433" },
+  { port: 11434, protocol: "HTTP", service: "Ollama LLM Engine", status: "Détecté", openUrl: "http://127.0.0.1:11434" },
+  { port: 1234, protocol: "HTTP", service: "LM Studio API", status: "Prêt", openUrl: "http://127.0.0.1:1234" }
+];
+
+function scanWorkspaceProblems(v) {
+  if (!v) return;
+  fetch("/cv/status?k=" + k + "&sid=" + encodeURIComponent(v.sid))
+    .then((r) => r.json())
+    .then((d) => {
+      workspaceDiagnostics = [];
+      if (d && Array.isArray(d.errors)) {
+        for (const e of d.errors) {
+          workspaceDiagnostics.push({
+            path: e.file || e.path || "workspace",
+            line: e.line || 1,
+            col: e.column || e.col || 1,
+            message: e.message || String(e),
+            severity: "error"
+          });
+        }
+      }
+      if (d && Array.isArray(d.warnings)) {
+        for (const w of d.warnings) {
+          workspaceDiagnostics.push({
+            path: w.file || w.path || "workspace",
+            line: w.line || 1,
+            col: w.column || w.col || 1,
+            message: w.message || String(w),
+            severity: "warning"
+          });
+        }
+      }
+      const pt = v.tabs.find((x) => x.kind === "problems");
+      if (pt && pt.render) pt.render();
+      renderPanel();
+    })
+    .catch(() => {});
+}
+
+function ensureProblemsTab(v) {
+  let t = v.tabs.find((x) => x.kind === "problems");
+  if (t) return t;
+  t = { kind: "problems", id: "p:problems", filter: "" };
+  const body = el("div", "tabbody vsc-problems"); body.hidden = true;
+  const content = el("div", "problems-content");
+  body.appendChild(content);
+  v.panelEl.appendChild(body);
+  t.el = body; t.content = content;
+  t.render = () => renderProblemsView(v, t);
+  v.tabs.push(t);
+  t.render();
+  return t;
+}
+
+function renderProblemsView(v, t) {
+  const content = t.content;
+  content.innerHTML = "";
+  const filter = (t.filter || "").toLowerCase().trim();
+  const diags = workspaceDiagnostics.filter((d) => {
+    if (!filter) return true;
+    return (d.path && d.path.toLowerCase().includes(filter)) || (d.message && d.message.toLowerCase().includes(filter));
+  });
+  if (!diags.length) {
+    const empty = el("div", "problems-empty", "No problems have been detected in the workspace.");
+    content.appendChild(empty);
+    return;
+  }
+  const headBar = el("div", "prob-action-bar");
+  const sendAllBtn = el("button", "prob-btn primary", "⚡ Send to Agent");
+  sendAllBtn.title = "Envoyer tous les problèmes détectés à l'agent pour correction automatique";
+  sendAllBtn.onclick = () => {
+    const summary = diags.map((d) => "- " + d.path + ":" + (d.line || 1) + " [" + (d.severity || "error") + "] " + d.message).join("\n");
+    post("/msg", { sid: v.sid, text: "Corrige les problèmes détectés dans le workspace :\n" + summary });
+    showToast("Diagnostics envoyés à l'agent !", "info");
+  };
+  const refreshBtn = el("button", "prob-btn ghost", "↻ Re-scan");
+  refreshBtn.title = "Rafraîchir les diagnostics du workspace";
+  refreshBtn.onclick = () => { scanWorkspaceProblems(v); };
+  const countBadge = el("span", "prob-total-badge", diags.length + " problem" + (diags.length > 1 ? "s" : ""));
+  headBar.append(sendAllBtn, refreshBtn, countBadge);
+  content.appendChild(headBar);
+
+  const byFile = new Map();
+  for (const d of diags) {
+    const arr = byFile.get(d.path) || [];
+    arr.push(d);
+    byFile.set(d.path, arr);
+  }
+  const tree = el("div", "prob-tree");
+  for (const [filePath, items] of byFile) {
+    const fGroup = el("div", "prob-file-group");
+    const fHeader = el("div", "prob-file-header");
+    const chevron = el("span", "prob-chevron", "⌵");
+    const fIcon = el("span", "prob-file-icon", "📄");
+    const fName = el("span", "prob-file-name", filePath);
+    const fBadge = el("span", "prob-file-badge", String(items.length));
+    fHeader.append(chevron, fIcon, fName, fBadge);
+    const itemsList = el("div", "prob-items-list");
+    fHeader.onclick = () => {
+      itemsList.hidden = !itemsList.hidden;
+      chevron.textContent = itemsList.hidden ? "›" : "⌵";
+    };
+    for (const item of items) {
+      const row = el("div", "prob-item-row " + (item.severity || "error"));
+      const sIcon = el("span", "prob-severity-icon", item.severity === "warning" ? "⚠" : item.severity === "info" ? "ℹ" : "⊗");
+      const msg = el("span", "prob-message", item.message);
+      const loc = el("span", "prob-loc", "[" + (item.line || 1) + ", " + (item.col || 1) + "]");
+      loc.title = "Cliquer pour ouvrir dans l'éditeur";
+      loc.onclick = (e) => {
+        e.stopPropagation();
+        openFilesTab(v);
+        const fTab = v.tabs.find((x) => x.kind === "files");
+        if (fTab && fTab.loadFile) {
+          fTab.loadFile(filePath).then(() => {
+            if (fTab.goToLine) fTab.goToLine(item.line || 1);
+          });
+        }
+      };
+      const fixBtn = el("button", "prob-fix-btn", "⚡ Fix");
+      fixBtn.title = "Envoyer ce problème précis à l'agent";
+      fixBtn.onclick = (e) => {
+        e.stopPropagation();
+        post("/msg", { sid: v.sid, text: "Corrige le problème suivant dans " + filePath + " ligne " + (item.line || 1) + " : " + item.message });
+        showToast("Problème envoyé à l'agent !", "info");
+      };
+      row.append(sIcon, msg, loc, fixBtn);
+      itemsList.appendChild(row);
+    }
+    fGroup.append(fHeader, itemsList);
+    tree.appendChild(fGroup);
+  }
+  content.appendChild(tree);
+}
+
+function ensureOutputTab(v) {
+  let t = v.tabs.find((x) => x.kind === "output");
+  if (t) return t;
+  t = { kind: "output", id: "p:output" };
+  const body = el("div", "tabbody vsc-output"); body.hidden = true;
+  const bar = el("div", "vsc-sub-bar");
+  const sel = document.createElement("select");
+  sel.className = "vsc-channel-select";
+  for (const ch of Object.keys(outputChannels)) {
+    const opt = document.createElement("option"); opt.value = ch; opt.textContent = ch; sel.appendChild(opt);
+  }
+  sel.value = activeOutputChannel;
+  sel.onchange = () => { activeOutputChannel = sel.value; t.render(); };
+  const clearBtn = el("button", "iconbtn", "🧹"); clearBtn.title = "Effacer la sortie";
+  clearBtn.onclick = () => { outputChannels[activeOutputChannel] = []; t.render(); };
+  const copyBtn = el("button", "iconbtn", "📋"); copyBtn.title = "Copier la sortie";
+  copyBtn.onclick = () => {
+    navigator.clipboard.writeText((outputChannels[activeOutputChannel] || []).join("\n"));
+    showToast("Sortie copiée dans le presse-papiers", "info");
+  };
+  bar.append(sel, el("span", "grow"), clearBtn, copyBtn);
+  const logPre = el("pre", "vsc-output-log");
+  body.append(bar, logPre);
+  v.panelEl.appendChild(body);
+  t.el = body; t.logPre = logPre;
+  t.render = () => {
+    const lines = outputChannels[activeOutputChannel] || [];
+    logPre.textContent = lines.join("\n") || "Sortie vide.";
+    logPre.scrollTop = logPre.scrollHeight;
+  };
+  v.tabs.push(t);
+  t.render();
+  return t;
+}
+
+function appendOutputLog(channel, text) {
+  if (!outputChannels[channel]) outputChannels[channel] = [];
+  outputChannels[channel].push(text);
+  if (outputChannels[channel].length > 1000) outputChannels[channel].shift();
+  if (active) {
+    const t = active.tabs.find((x) => x.kind === "output");
+    if (t && t.render && activeOutputChannel === channel) t.render();
+  }
+}
+
+function ensureDebugConsoleTab(v) {
+  let t = v.tabs.find((x) => x.kind === "debug");
+  if (t) return t;
+  t = { kind: "debug", id: "p:debug" };
+  const body = el("div", "tabbody vsc-debug"); body.hidden = true;
+  const logBox = el("div", "vsc-debug-logs");
+  const promptRow = el("div", "vsc-debug-inputrow");
+  const promptSign = el("span", "vsc-debug-prompt", "❯ ");
+  const inp = document.createElement("input");
+  inp.className = "vsc-debug-input";
+  inp.placeholder = "Évaluer une expression JavaScript (ex: location.href, hub.version)...";
+  inp.spellcheck = false;
+  inp.onkeydown = (e) => {
+    if (e.key === "Enter") {
+      const code = inp.value.trim();
+      if (!code) return;
+      inp.value = "";
+      debugHistory.push(code);
+      debugHistIdx = debugHistory.length;
+      debugLogs.push({ type: "input", text: "❯ " + code });
+      try {
+        const res = eval(code);
+        debugLogs.push({ type: "result", text: typeof res === "object" ? JSON.stringify(res, null, 2) : String(res) });
+      } catch (err) {
+        debugLogs.push({ type: "error", text: String(err && err.message ? err.message : err) });
+      }
+      t.render();
+    } else if (e.key === "ArrowUp") {
+      if (debugHistIdx > 0) { debugHistIdx--; inp.value = debugHistory[debugHistIdx] || ""; }
+      e.preventDefault();
+    } else if (e.key === "ArrowDown") {
+      if (debugHistIdx < debugHistory.length - 1) { debugHistIdx++; inp.value = debugHistory[debugHistIdx] || ""; }
+      else { debugHistIdx = debugHistory.length; inp.value = ""; }
+      e.preventDefault();
+    }
+  };
+  promptRow.append(promptSign, inp);
+  body.append(logBox, promptRow);
+  v.panelEl.appendChild(body);
+  t.el = body; t.logBox = logBox; t.inp = inp;
+  t.render = () => {
+    logBox.innerHTML = "";
+    for (const l of debugLogs) {
+      const row = el("div", "vsc-debug-row " + l.type, l.text);
+      logBox.appendChild(row);
+    }
+    logBox.scrollTop = logBox.scrollHeight;
+  };
+  v.tabs.push(t);
+  t.render();
+  return t;
+}
+
+function ensurePortsTab(v) {
+  let t = v.tabs.find((x) => x.kind === "ports");
+  if (t) return t;
+  t = { kind: "ports", id: "p:ports" };
+  const body = el("div", "tabbody vsc-ports"); body.hidden = true;
+  const bar = el("div", "vsc-sub-bar");
+  const title = el("span", "hint", "Ports et services locaux du workspace");
+  const refreshBtn = el("button", "iconbtn", "↻"); refreshBtn.title = "Rafraîchir les ports";
+  refreshBtn.onclick = () => { t.scan(); };
+  bar.append(title, el("span", "grow"), refreshBtn);
+  const table = el("table", "vsc-ports-table");
+  const thead = el("thead");
+  thead.innerHTML = "<tr><th>Port</th><th>Protocole</th><th>Service</th><th>Statut</th><th>Action</th></tr>";
+  const tbody = el("tbody");
+  table.append(thead, tbody);
+  body.append(bar, table);
+  v.panelEl.appendChild(body);
+  t.el = body; t.table = table; t.tbody = tbody;
+  t.render = () => {
+    tbody.innerHTML = "";
+    for (const p of detectedPorts) {
+      const tr = el("tr");
+      tr.appendChild(el("td", "port-num", String(p.port)));
+      tr.appendChild(el("td", "", p.protocol));
+      tr.appendChild(el("td", "port-service", p.service));
+      const tdSt = el("td");
+      const badge = el("span", "port-status-badge " + (p.status.includes("écoute") || p.status.includes("Prêt") ? "ok" : "warn"), p.status);
+      tdSt.appendChild(badge);
+      tr.appendChild(tdSt);
+      const tdAct = el("td");
+      const openBtn = el("button", "port-open-btn", "Ouvrir ↗");
+      openBtn.onclick = () => window.open(p.openUrl, "_blank");
+      tdAct.appendChild(openBtn);
+      tr.appendChild(tdAct);
+      tbody.appendChild(tr);
+    }
+  };
+  t.scan = () => {
+    fetch("http://127.0.0.1:11434/api/tags").then(() => {
+      const o = detectedPorts.find(x => x.port === 11434);
+      if (o) o.status = "En écoute";
+      t.render();
+    }).catch(() => {});
+    t.render();
+  };
+  v.tabs.push(t);
+  t.render();
+  t.scan();
+  return t;
+}
+
+function ensureProDockTabs(v) {
+  if (!v) return;
+  ensureProblemsTab(v);
+  ensureOutputTab(v);
+  ensureDebugConsoleTab(v);
+  ensurePortsTab(v);
+}
+
+function curTab(v) { return v.tabs.find((t) => t.id === v.activeTab) || v.tabs[0] || null; }
+
 function renderPanel() {
   const v = active;
   const open = !!(v && v.panelOpen && v.tabs.length);
   panelEl.hidden = !open;
+  if (v && v.panelOpen) ensureProDockTabs(v);
   const cur = open ? curTab(v) : null;
   if (filesBtn) filesBtn.classList.toggle("on", !!(cur && cur.kind === "files"));
   $("btnbrowser").classList.toggle("on", !!(cur && cur.kind === "browser"));
   $("btnterm").classList.toggle("on", !!(cur && cur.kind === "term"));
+  const bp = $("btnproblems");
+  if (bp) bp.classList.toggle("on", !!(cur && cur.kind === "problems"));
   for (const o of views.values()) o.panelEl.hidden = o !== v || !open;
   if (!open) return;
-  // Never let the panel squeeze the chat below ~40% of a small window.
   panelEl.style.width = Math.min(panelWidth, Math.max(300, window.innerWidth * 0.6)) + "px";
   tabsEl.innerHTML = "";
+
+  // 1. Ordre exact des onglets VS Code à gauche
+  const dockOrder = ["problems", "output", "debug", "term", "ports"];
+  const dockLabels = {
+    problems: "Problems",
+    output: "Output",
+    debug: "Debug Console",
+    term: "Terminal",
+    ports: "Ports"
+  };
+
+  const tabsLeft = el("div", "vsc-dock-tabs");
+  for (const kind of dockOrder) {
+    const t = v.tabs.find((x) => x.kind === kind);
+    if (!t) continue;
+    const isAct = cur && cur.kind === kind;
+    const b = el("button", "vsc-tab" + (isAct ? " on" : ""));
+    b.type = "button";
+    let lbl = dockLabels[kind] || kind;
+    if (kind === "problems" && workspaceDiagnostics.length > 0) {
+      lbl += " " + workspaceDiagnostics.length;
+    }
+    b.textContent = lbl;
+    b.onclick = () => {
+      v.activeTab = t.id;
+      savePanel(v);
+      renderPanel();
+      if (t.kind === "term" && t.inp) t.inp.focus();
+    };
+    tabsLeft.appendChild(b);
+  }
+
+  // Autres onglets (Browser, Files, Review, Plan)
   for (const t of v.tabs) {
-    const b = el("div", "ptab" + (t === cur ? " on" : ""));
-    b.appendChild(el("span", "ico", t.kind === "browser" ? "◎" : t.kind === "files" ? "▤" : t.kind === "review" ? "Δ" : t.kind === "plan" ? "☑" : ">_"));
-    b.appendChild(el("span", "lbl", t.kind === "browser" ? (t.url ? t.url.replace(/^https?:\/\//, "") : "new tab") : t.kind === "files" ? "project files" : t.kind === "review" ? "review" : t.kind === "plan" ? "tasks" : "terminal " + String(t.tid || "").replace(/^t/, "")));
-    const x = el("span", "x", "×"); x.title = "close tab";
+    if (dockOrder.includes(t.kind)) continue;
+    const isAct = t === cur;
+    const b = el("div", "ptab" + (isAct ? " on" : ""));
+    b.appendChild(el("span", "ico", t.kind === "browser" ? "◎" : t.kind === "files" ? "▤" : t.kind === "review" ? "Δ" : "☑"));
+    b.appendChild(el("span", "lbl", t.kind === "browser" ? (t.url ? t.url.replace(/^https?:\/\//, "") : "new tab") : t.kind === "files" ? "project files" : t.kind === "review" ? "review" : "tasks"));
+    const x = el("span", "x", "×");
+    x.title = "close tab";
     x.onclick = (e) => { e.stopPropagation(); closeTab(v, t); };
     b.appendChild(x);
-    b.onclick = () => { v.activeTab = t.id; savePanel(v); renderPanel(); if (t.kind === "term" && t.inp) t.inp.focus(); };
-    b.title = t.kind === "browser" ? (t.url || "new browser tab") : t.kind === "files" ? "workspace explorer" : t.kind === "review" ? "review uncommitted changes" : t.kind === "plan" ? "task list" : "terminal in " + shortPath(t.cwd);
-    tabsEl.appendChild(b);
+    b.onclick = () => { v.activeTab = t.id; savePanel(v); renderPanel(); };
+    tabsLeft.appendChild(b);
   }
-  tabsEl.appendChild(el("span", "grow"));
+  tabsEl.appendChild(tabsLeft);
+  const legacyWrap = el("div", "vsc-legacy-actions");
+  legacyWrap.style.display = "none";
   const nb = el("button", "iconbtn", "+◎"); nb.title = "new browser tab"; nb.onclick = () => openBrowserTab(v);
   const nf = el("button", "iconbtn", "+▤"); nf.title = "project files"; nf.onclick = () => openFilesTab(v);
   const ns = el("button", "iconbtn", "+⊞"); ns.title = "split: second files panel"; ns.onclick = () => openFilesTab(v, false, true);
@@ -1356,8 +1966,237 @@ function renderPanel() {
   const np = el("button", "iconbtn", "+☑"); np.title = "task list"; np.onclick = () => openPlanTab(v);
   const nt = el("button", "iconbtn", "+>_"); nt.title = "new terminal"; nt.onclick = () => openTerminalTab(v);
   const cl = el("button", "iconbtn", "»"); cl.title = "hide panel"; cl.onclick = () => { v.panelOpen = false; savePanel(v); renderPanel(); };
-  tabsEl.appendChild(nb); tabsEl.appendChild(nf); tabsEl.appendChild(ns); tabsEl.appendChild(nr); tabsEl.appendChild(np); tabsEl.appendChild(nt); tabsEl.appendChild(cl);
+  legacyWrap.append(nb, nf, ns, nr, np, nt, cl);
+  tabsEl.appendChild(legacyWrap);
+  tabsEl.appendChild(el("span", "grow"));
+
+  // 2. Toolbar droite dynamique identique à VS Code
+  const toolRight = el("div", "vsc-dock-tools");
+  if (cur && cur.kind === "term") {
+    const termsList = v.tabs.filter((x) => x.kind === "term");
+    if (!termSidebarMode) {
+      // Mode Dropdown (Capture 1 de l'utilisateur) : [>_] pwsh - DELL v
+      const termDropdown = el("div", "vsc-term-dropdown");
+      const termIcon = el("span", "vsc-term-ico", ">_");
+      const termTitle = el("span", "vsc-term-title", "pwsh - DELL" + (termsList.length > 1 ? " (" + (termsList.indexOf(cur) + 1) + ")" : ""));
+      const termChevron = el("span", "vsc-term-chevron", " ⌵");
+      termDropdown.append(termIcon, termTitle, termChevron);
+      termDropdown.title = "Terminaux actifs — cliquer pour basculer";
+      termDropdown.onclick = (e) => {
+        e.stopPropagation();
+        const items = termsList.map((tm, idx) => ({
+          label: (idx + 1) + ": pwsh - DELL" + (tm === cur ? " (actif)" : ""),
+          on: tm === cur,
+          run: () => { v.activeTab = tm.id; savePanel(v); renderPanel(); if (tm.inp) tm.inp.focus(); }
+        }));
+        items.push(null);
+        items.push({
+          label: "+ Nouveau terminal (PowerShell)",
+          run: () => openTerminalTab(v)
+        });
+        items.push({
+          label: "Afficher la barre latérale des terminaux",
+          run: () => { termSidebarMode = true; renderPanel(); }
+        });
+        statusMenu(termDropdown, ["Terminaux", ...items]);
+      };
+      toolRight.appendChild(termDropdown);
+
+      // Bouton + v (Nouveau terminal)
+      const newTermBtn = el("button", "vsc-tool-btn", "+ ⌵");
+      newTermBtn.title = "Nouveau terminal (PowerShell)";
+      newTermBtn.onclick = (e) => {
+        e.stopPropagation();
+        openTerminalTab(v);
+      };
+      toolRight.appendChild(newTermBtn);
+
+      // Bouton @
+      const atBtn = el("button", "vsc-tool-btn", "@");
+      atBtn.title = "Environnement local : DELL";
+      atBtn.onclick = () => showToast("Environnement d'exécution : Machine locale DELL", "info");
+      toolRight.appendChild(atBtn);
+
+      // Bouton Split [|]
+      const splitBtn = el("button", "vsc-tool-btn", "◫");
+      splitBtn.title = "Diviser le terminal";
+      splitBtn.onclick = () => openTerminalTab(v);
+      toolRight.appendChild(splitBtn);
+
+      // Bouton Poubelle 🗑
+      const killBtn = el("button", "vsc-tool-btn", "🗑");
+      killBtn.title = "Fermer / Tuer le terminal actif";
+      killBtn.onclick = () => closeTab(v, cur);
+      toolRight.appendChild(killBtn);
+
+      // Bouton ...
+      const moreBtn = el("button", "vsc-tool-btn", "…");
+      moreBtn.title = "Options du terminal";
+      moreBtn.onclick = (e) => {
+        e.stopPropagation();
+        statusMenu(moreBtn, [
+          "Terminal Pro",
+          {
+            label: "Afficher la barre latérale des onglets",
+            run: () => { termSidebarMode = true; renderPanel(); }
+          },
+          {
+            label: "Effacer l'affichage (Ctrl+L)",
+            run: () => { if (cur.out) cur.out.innerHTML = ""; cur.cur = null; cur.lines = 0; }
+          },
+          {
+            label: "Interrompre la commande (Ctrl+C)",
+            run: () => post("/term/interrupt", { sid: v.sid, tid: cur.tid })
+          },
+          {
+            label: "Redémarrer ce terminal",
+            run: () => { closeTab(v, cur); openTerminalTab(v); }
+          }
+        ]);
+      };
+      toolRight.appendChild(moreBtn);
+    } else {
+      // Mode Sidebar active (Capture 2 de l'utilisateur) : + ⌵, ..., 🗑
+      const newTermBtn = el("button", "vsc-tool-btn", "+ ⌵");
+      newTermBtn.title = "Nouveau terminal";
+      newTermBtn.onclick = () => openTerminalTab(v);
+      toolRight.appendChild(newTermBtn);
+
+      const killBtn = el("button", "vsc-tool-btn", "🗑");
+      killBtn.title = "Fermer le terminal";
+      killBtn.onclick = () => closeTab(v, cur);
+      toolRight.appendChild(killBtn);
+
+      const moreBtn = el("button", "vsc-tool-btn", "…");
+      moreBtn.title = "Options du terminal";
+      moreBtn.onclick = (e) => {
+        e.stopPropagation();
+        statusMenu(moreBtn, [
+          "Terminal Pro",
+          {
+            label: "Masquer la barre latérale (mode dropdown)",
+            run: () => { termSidebarMode = false; renderPanel(); }
+          },
+          {
+            label: "Effacer l'affichage (Ctrl+L)",
+            run: () => { if (cur.out) cur.out.innerHTML = ""; cur.cur = null; cur.lines = 0; }
+          }
+        ]);
+      };
+      toolRight.appendChild(moreBtn);
+    }
+  } else if (cur && cur.kind === "problems") {
+    // Filtre Filter (e.g. text, **/*.ts, !**/nod...
+    const filterBox = el("div", "vsc-filter-box");
+    const filterIn = document.createElement("input");
+    filterIn.className = "vsc-filter-in";
+    filterIn.placeholder = "Filter (e.g. text, **/*.ts, !**/nod...";
+    filterIn.value = cur.filter || "";
+    filterIn.oninput = () => {
+      cur.filter = filterIn.value;
+      if (cur.render) cur.render();
+    };
+    const filterIco = el("span", "vsc-filter-ico", "⑂");
+    filterIco.title = "Filtre actif";
+    filterBox.append(filterIn, filterIco);
+    toolRight.appendChild(filterBox);
+
+    const treeToggle = el("button", "vsc-tool-btn", "⊞");
+    treeToggle.title = "Tout développer / réduire";
+    treeToggle.onclick = () => {
+      const lists = cur.el.querySelectorAll(".prob-items-list");
+      const anyVisible = [...lists].some((l) => !l.hidden);
+      lists.forEach((l) => { l.hidden = anyVisible; });
+    };
+    toolRight.appendChild(treeToggle);
+
+    const menuBtn = el("button", "vsc-tool-btn", "≡");
+    menuBtn.title = "Options d'affichage";
+    toolRight.appendChild(menuBtn);
+  } else if (cur && cur.kind === "output") {
+    const sel = document.createElement("select");
+    sel.className = "vsc-channel-select";
+    for (const ch of Object.keys(outputChannels)) {
+      const opt = document.createElement("option"); opt.value = ch; opt.textContent = ch; sel.appendChild(opt);
+    }
+    sel.value = activeOutputChannel;
+    sel.onchange = () => { activeOutputChannel = sel.value; cur.render(); };
+    toolRight.appendChild(sel);
+
+    const clr = el("button", "vsc-tool-btn", "🧹"); clr.title = "Effacer la sortie";
+    clr.onclick = () => { outputChannels[activeOutputChannel] = []; cur.render(); };
+    toolRight.appendChild(clr);
+
+    const cp = el("button", "vsc-tool-btn", "📋"); cp.title = "Copier";
+    cp.onclick = () => {
+      navigator.clipboard.writeText((outputChannels[activeOutputChannel] || []).join("\n"));
+      showToast("Copié !", "info");
+    };
+    toolRight.appendChild(cp);
+  } else if (cur && cur.kind === "debug") {
+    const clr = el("button", "vsc-tool-btn", "🧹"); clr.title = "Effacer la console";
+    clr.onclick = () => { debugLogs = []; cur.render(); };
+    toolRight.appendChild(clr);
+  } else if (cur && cur.kind === "ports") {
+    const ref = el("button", "vsc-tool-btn", "↻"); ref.title = "Rafraîchir les ports";
+    ref.onclick = () => { cur.scan(); };
+    toolRight.appendChild(ref);
+  }
+
+  // Séparateur vertical |
+  const sep = el("span", "vsc-sep", "|");
+  toolRight.appendChild(sep);
+
+  // Bouton Maximiser ⛶
+  const maxBtn = el("button", "vsc-tool-btn", panelEl.classList.contains("maximized") ? "🗗" : "⛶");
+  maxBtn.title = panelEl.classList.contains("maximized") ? "Restaurer la taille du dock" : "Maximiser le dock";
+  maxBtn.onclick = () => {
+    panelEl.classList.toggle("maximized");
+    maxBtn.textContent = panelEl.classList.contains("maximized") ? "🗗" : "⛶";
+  };
+  toolRight.appendChild(maxBtn);
+
+  // Bouton Fermer ✕
+  const closeBtn = el("button", "vsc-tool-btn", "✕");
+  closeBtn.title = "Fermer le dock";
+  closeBtn.onclick = () => { v.panelOpen = false; savePanel(v); renderPanel(); };
+  toolRight.appendChild(closeBtn);
+
+  tabsEl.appendChild(toolRight);
+
   for (const t of v.tabs) if (t.el) t.el.hidden = t !== cur;
+
+  // Sidebar latérale des terminaux (Capture 2 de l'utilisateur) uniquement si termSidebarMode actif
+  const termTabs = v.tabs.filter((t) => t.kind === "term");
+  if (cur && cur.kind === "term") {
+    let sideTabs = cur.el.querySelector(".vsc-term-sidebar-pane");
+    if (termSidebarMode && termTabs.length > 0) {
+      if (!sideTabs) {
+        sideTabs = el("div", "vsc-term-sidebar-pane");
+        cur.el.appendChild(sideTabs);
+      }
+      sideTabs.innerHTML = "";
+      for (const tm of termTabs) {
+        const it = el("div", "vsc-term-side-item" + (tm === cur ? " active" : ""));
+        const ic = el("span", "vsc-term-side-ico", ">_");
+        const lb = el("span", "vsc-term-side-lbl", "pwsh  DELL");
+        const kBtn = el("button", "vsc-term-side-del", "×");
+        kBtn.title = "Fermer ce terminal";
+        kBtn.onclick = (e) => { e.stopPropagation(); closeTab(v, tm); };
+        it.append(ic, lb, kBtn);
+        it.onclick = () => {
+          v.activeTab = tm.id;
+          savePanel(v);
+          renderPanel();
+          if (tm.inp) tm.inp.focus();
+        };
+        sideTabs.appendChild(it);
+      }
+    } else if (sideTabs) {
+      sideTabs.remove();
+    }
+  }
+
   const fileTabs = v.tabs.filter((t) => t.kind === "files" && t.el);
   if (open && cur && cur.kind === "files" && fileTabs.length > 1) {
     v.panelEl.classList.add("split2");
@@ -1366,6 +2205,7 @@ function renderPanel() {
     v.panelEl.classList.remove("split2");
   }
 }
+
 function closeTab(v, t) {
   const i = v.tabs.indexOf(t);
   if (t.kind === "term") { post("/term/close", { sid: v.sid, tid: t.tid }); removeTermTab(v, t.tid); return; }
@@ -1375,24 +2215,45 @@ function closeTab(v, t) {
   if (v.activeTab === t.id) v.activeTab = (v.tabs[i] || v.tabs[i - 1] || {}).id || null;
   savePanel(v); renderPanel();
 }
+
 function togglePanelKind(kind) {
   const v = active;
   if (!v) { showToast("Ouvrez d’abord une session dans la barre latérale.", "warn"); return; }
+  ensureProDockTabs(v);
   const cur = curTab(v);
   if (v.panelOpen && cur && cur.kind === kind) { v.panelOpen = false; savePanel(v); renderPanel(); return; }
   const existing = v.tabs.filter((t) => t.kind === kind).pop();
   if (existing) {
     v.activeTab = existing.id; v.panelOpen = true; savePanel(v); renderPanel();
     if (kind === "term" && existing.inp) existing.inp.focus();
+  } else if (kind === "problems") {
+    const pt = ensureProblemsTab(v);
+    v.activeTab = pt.id; v.panelOpen = true; savePanel(v); renderPanel();
+    scanWorkspaceProblems(v);
+  } else if (kind === "output") {
+    const ot = ensureOutputTab(v);
+    v.activeTab = ot.id; v.panelOpen = true; savePanel(v); renderPanel();
+  } else if (kind === "debug") {
+    const dt = ensureDebugConsoleTab(v);
+    v.activeTab = dt.id; v.panelOpen = true; savePanel(v); renderPanel();
+    if (dt.inp) dt.inp.focus();
+  } else if (kind === "ports") {
+    const pot = ensurePortsTab(v);
+    v.activeTab = pot.id; v.panelOpen = true; savePanel(v); renderPanel();
   } else if (kind === "browser") openBrowserTab(v);
   else if (kind === "files") openFilesTab(v);
   else if (kind === "review") openReviewTab(v);
   else if (kind === "plan") openPlanTab(v);
   else openTerminalTab(v);
 }
+
 $("btnfiles").onclick = () => togglePanelKind("files");
 $("btnbrowser").onclick = () => togglePanelKind("browser");
 $("btnterm").onclick = () => togglePanelKind("term");
+{
+  const bp = $("btnproblems");
+  if (bp) bp.onclick = () => togglePanelKind("problems");
+}
 { const br = $("btnreview"); if (br) br.onclick = () => togglePanelKind("review"); }
 
 // browser tabs
@@ -3040,6 +3901,20 @@ function ensureTermTab(v, tid, cwd) {
   if (t) { if (cwd) setPrompt(t, cwd); return t; }
   t = { kind: "term", tid, id: "t:" + tid, cwd: cwd || "", history: [], hi: 0, lines: 0, cur: null, ansi: { classes: [], pending: "" } };
   const body = el("div", "tabbody term"); body.hidden = true;
+  const toolbar = el("div", "term-toolbar");
+  const toolLeft = el("div", "term-tool-left");
+  const termBadge = el("span", "term-badge", "TERMINAL");
+  const termCwd = el("span", "term-cwd", shortPath(cwd || "") || "workspace");
+  toolLeft.appendChild(termBadge); toolLeft.appendChild(termCwd);
+  const toolRight = el("div", "term-tool-right");
+  const btnInterrupt = el("button", "term-btn warn", "⏹ Interrompre (Ctrl+C)");
+  btnInterrupt.type = "button"; btnInterrupt.title = "Interrompre la commande en cours";
+  btnInterrupt.onclick = () => { post("/term/interrupt", { sid: v.sid, tid }); };
+  const btnClear = el("button", "term-btn", "🧹 Effacer (Ctrl+L)");
+  btnClear.type = "button"; btnClear.title = "Effacer l'affichage du terminal";
+  btnClear.onclick = () => { out.innerHTML = ""; t.cur = null; t.lines = 0; };
+  toolRight.appendChild(btnInterrupt); toolRight.appendChild(btnClear);
+  toolbar.appendChild(toolLeft); toolbar.appendChild(toolRight);
   const out = el("pre", "out");
   const row = el("div", "trow");
   const prompt = el("span", "prompt");
@@ -3069,7 +3944,12 @@ function ensureTermTab(v, tid, cwd) {
   if (v === active) renderPanel();
   return t;
 }
-function setPrompt(t, cwd) { t.cwd = cwd; t.promptEl.textContent = (shortPath(cwd) || "…") + " ❯"; t.promptEl.title = cwd; }
+function setPrompt(t, cwd) {
+  t.cwd = cwd;
+  const p = cwd ? (cwd.includes(":") || cwd.startsWith("/") ? (navigator.platform.includes("Win") ? "PS " + cwd + "> " : cwd + " ❯ ") : shortPath(cwd) + " ❯ ") : "PS C:\\Users\\DELL> ";
+  t.promptEl.innerHTML = '<span class="term-status-dot" title="Terminal actif"></span> ' + esc(p);
+  t.promptEl.title = cwd;
+}
 function termWrite(v, tid, text) {
   const t = v.terms.get(tid) || ensureTermTab(v, tid, "");
   const out = t.out;

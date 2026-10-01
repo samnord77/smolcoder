@@ -584,3 +584,13 @@ test("pro inline editor features include cursor-style ctrl+k, chips, and keyboar
   assert.ok(CLIENT_JS.includes("inlineAccept.click()"), "keyboard shortcut triggers inlineAccept");
 });
 
+test("unified activity center timeline exposes subagents, tools, skills, mcps, files, and durations", () => {
+  assert.ok(CLIENT_JS.includes("activitybar"), "activity bar container is present");
+  assert.ok(CLIENT_JS.includes("actpulse"), "activity live pulse is present");
+  assert.ok(CLIENT_JS.includes("acttimeline"), "activity timeline container is present");
+  assert.ok(CLIENT_JS.includes("recordActivity"), "recordActivity helper is implemented");
+  assert.ok(CLIENT_JS.includes("renderActivity"), "renderActivity helper is implemented");
+  assert.ok(CLIENT_JS.includes("startToolActivity"), "tool lifecycle starts activity tracking");
+  assert.ok(CLIENT_JS.includes("finishToolActivity"), "tool lifecycle settles activity duration and status");
+});
+

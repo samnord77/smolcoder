@@ -12,6 +12,7 @@ export type LifecycleEvent =
   | "context_update"
   | "pre_compact"
   | "post_compact"
+  | "validation"
   | "session_end";
 
 type Handler = (payload?: unknown) => void | Promise<void>;

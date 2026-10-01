@@ -1,4 +1,23 @@
-export type SyntaxTokenKind = "plain" | "tok-k" | "tok-s" | "tok-n" | "tok-c" | "tok-f" | "tok-o" | "tok-tag" | "tok-t" | "tok-d";
+export type SyntaxTokenKind =
+  | "plain"
+  | "tok-k"
+  | "tok-control"
+  | "tok-bool"
+  | "tok-s"
+  | "tok-regex"
+  | "tok-n"
+  | "tok-c"
+  | "tok-f"
+  | "tok-o"
+  | "tok-tag"
+  | "tok-t"
+  | "tok-d"
+  | "tok-prop"
+  | "tok-v"
+  | "tok-const"
+  | "tok-b1"
+  | "tok-b2"
+  | "tok-b3";
 export interface SyntaxToken {
   kind: SyntaxTokenKind;
   text: string;
@@ -25,6 +44,14 @@ export function tokenizeCode(source: string, language = ""): SyntaxToken[] {
     "makefile",
   ].includes(lang);
   const dashComments = ["sql", "lua", "haskell", "hs"].includes(lang);
+  const controlKeywords = new Set([
+    "if", "else", "return", "switch", "case", "default", "break", "continue",
+    "for", "while", "do", "try", "catch", "finally", "throw", "yield", "await",
+    "elif", "except", "pass", "raise"
+  ]);
+  const boolKeywords = new Set([
+    "true", "false", "null", "undefined", "NaN", "Infinity", "True", "False", "None"
+  ]);
   const keywords = new Set(
     (
       "async await break case catch class const continue debugger default delete do else export extends finally for from function get if import in instanceof let new of return set static super switch this throw try typeof var void while with yield " +
@@ -39,9 +66,16 @@ export function tokenizeCode(source: string, language = ""): SyntaxToken[] {
     ).split(/\s+/)
   );
   const tokens: SyntaxToken[] = [];
+  let lastNonSpaceText = "";
   const add = (kind: SyntaxTokenKind, text: string) => {
-    if (text) tokens.push({ kind, text });
+    if (text) {
+      tokens.push({ kind, text });
+      if (kind !== "plain" && kind !== "tok-c") {
+        lastNonSpaceText = text;
+      }
+    }
   };
+  let bracketDepth = 0;
   let i = 0;
   while (i < source.length) {
     const start = i;
@@ -81,6 +115,38 @@ export function tokenizeCode(source: string, language = ""): SyntaxToken[] {
       add("tok-c", source.slice(start, i));
       continue;
     }
+    // Expressions régulières (ex: /read-only/, /On branch|HEAD/)
+    if (ch === "/" && (!lang || ["js", "jsx", "ts", "tsx", "javascript", "typescript"].includes(lang))) {
+      const prevText = lastNonSpaceText;
+      const isRegexStart = !prevText || ["(", "[", "{", ",", "=", ":", ";", "!", "&", "|", "?", "+", "-", "*", "^", "%", "return", "case", "yield", "await"].includes(prevText);
+      if (isRegexStart) {
+        let rIdx = i + 1;
+        let inClass = false;
+        let closed = false;
+        while (rIdx < source.length) {
+          const rc = source[rIdx];
+          if (rc === "\n") break;
+          if (rc === "\\") {
+            rIdx += 2;
+            continue;
+          }
+          if (rc === "[") inClass = true;
+          else if (rc === "]") inClass = false;
+          else if (rc === "/" && !inClass) {
+            closed = true;
+            rIdx++;
+            while (rIdx < source.length && /[a-z]/i.test(source[rIdx])) rIdx++;
+            break;
+          }
+          rIdx++;
+        }
+        if (closed) {
+          add("tok-regex", source.slice(i, rIdx));
+          i = rIdx;
+          continue;
+        }
+      }
+    }
     if (ch === "'" || ch === '"' || (ch === "`" && ["js", "jsx", "ts", "tsx", "javascript", "typescript"].includes(lang))) {
       const quote = ch;
       i++;
@@ -104,13 +170,34 @@ export function tokenizeCode(source: string, language = ""): SyntaxToken[] {
       i++;
       while (i < source.length && /[\w$]/.test(source[i])) i++;
       const word = source.slice(start, i);
-      if (keywords.has(word)) add("tok-k", word);
+      if (controlKeywords.has(word)) add("tok-control", word);
+      else if (boolKeywords.has(word)) add("tok-bool", word);
+      else if (keywords.has(word)) add("tok-k", word);
       else if (/^[A-Z][a-z0-9]/.test(word)) add("tok-t", word);
+      else if (/^[A-Z][A-Z0-9_]+$/.test(word) && ["js", "jsx", "ts", "tsx", "javascript", "typescript"].includes(lang)) add("tok-const", word);
       else {
         let next = i;
         while (next < source.length && /\s/.test(source[next])) next++;
-        add(source[next] === "(" ? "tok-f" : "plain", word);
+        if (source[next] === "(") add("tok-f", word);
+        else if (source[next] === ":" && source[next + 1] !== ":") add("tok-prop", word);
+        else if (["js", "jsx", "ts", "tsx", "javascript", "typescript"].includes(lang)) add("tok-v", word);
+        else add("plain", word);
       }
+      continue;
+    }
+    // Parenthèses, accolades et crochets : Bracket pair colorization
+    if (ch === "(" || ch === "{" || ch === "[") {
+      const bKind = (["tok-b1", "tok-b2", "tok-b3"] as const)[bracketDepth % 3];
+      bracketDepth++;
+      add(bKind, ch);
+      i++;
+      continue;
+    }
+    if (ch === ")" || ch === "}" || ch === "]") {
+      bracketDepth = Math.max(0, bracketDepth - 1);
+      const bKind = (["tok-b1", "tok-b2", "tok-b3"] as const)[bracketDepth % 3];
+      add(bKind, ch);
+      i++;
       continue;
     }
     i++;
@@ -143,7 +230,10 @@ export function highlightEscapedHtml(source: string, language = ""): string {
 export function highlightAnsi(source: string, language = ""): string {
   const colors: Partial<Record<SyntaxTokenKind, string>> = {
     "tok-k": "\x1b[35m",
+    "tok-control": "\x1b[35m",
+    "tok-bool": "\x1b[34m",
     "tok-s": "\x1b[32m",
+    "tok-regex": "\x1b[31m",
     "tok-n": "\x1b[33m",
     "tok-c": "\x1b[90m",
     "tok-f": "\x1b[36m",
@@ -151,6 +241,12 @@ export function highlightAnsi(source: string, language = ""): string {
     "tok-tag": "\x1b[34m",
     "tok-t": "\x1b[94m",
     "tok-d": "\x1b[93m",
+    "tok-prop": "\x1b[94m",
+    "tok-v": "\x1b[37m",
+    "tok-const": "\x1b[96m",
+    "tok-b1": "\x1b[33m",
+    "tok-b2": "\x1b[35m",
+    "tok-b3": "\x1b[36m",
   };
   return tokenizeCode(source, language)
     .map(({ kind, text }) => {
