@@ -1,10 +1,10 @@
 {
   "path": "desktop/main.js",
-  "content_hash": "518fcb049546e4335dec5e49b6d6dfd4",
-  "updated_at": "2026-10-01T08:39:53",
-  "lines": 735,
-  "size_bytes": 27888,
-  "mtime_ns": 1790810702695882400,
+  "content_hash": "dbb3cd48a9bc4949d09fb44f9702eeab",
+  "updated_at": "2026-10-01T10:03:18",
+  "lines": 743,
+  "size_bytes": 28242,
+  "mtime_ns": 1790842775962689900,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -182,56 +182,56 @@
       "type": "function",
       "name": "startHubWatchdog",
       "line_start": 96,
-      "line_end": 123,
+      "line_end": 131,
       "signature": "function startHubWatchdog(win) {"
     },
     {
       "type": "function",
       "name": "openMainWindow",
-      "line_start": 125,
-      "line_end": 159,
+      "line_start": 133,
+      "line_end": 167,
       "signature": "function openMainWindow() {"
     },
     {
       "type": "function",
       "name": "openEditor",
-      "line_start": 161,
-      "line_end": 177,
+      "line_start": 169,
+      "line_end": 185,
       "signature": "function openEditor() {"
     },
     {
       "type": "variable",
       "name": "panelWin",
-      "line_start": 179,
-      "line_end": 179,
+      "line_start": 187,
+      "line_end": 187,
       "signature": "let panelWin = null;"
     },
     {
       "type": "variable",
       "name": "gitWin",
-      "line_start": 180,
-      "line_end": 180,
+      "line_start": 188,
+      "line_end": 188,
       "signature": "let gitWin = null;"
     },
     {
       "type": "function",
       "name": "openGit",
-      "line_start": 182,
-      "line_end": 191,
+      "line_start": 190,
+      "line_end": 199,
       "signature": "function openGit() {"
     },
     {
       "type": "function",
       "name": "openPanel",
-      "line_start": 193,
-      "line_end": 209,
+      "line_start": 201,
+      "line_end": 217,
       "signature": "function openPanel() {"
     },
     {
       "type": "function",
       "name": "openShare",
-      "line_start": 212,
-      "line_end": 229,
+      "line_start": 220,
+      "line_end": 237,
       "signature": "async function openShare() {",
       "async": true,
       "doc": "Read-only live-follow link for the current session (copied to clipboard)."
@@ -239,29 +239,29 @@
     {
       "type": "function",
       "name": "buildMenu",
-      "line_start": 231,
-      "line_end": 325,
+      "line_start": 239,
+      "line_end": 333,
       "signature": "function buildMenu() {"
     },
     {
       "type": "function",
       "name": "assertRoot",
-      "line_start": 328,
-      "line_end": 331,
+      "line_start": 336,
+      "line_end": 339,
       "signature": "function assertRoot() {"
     },
     {
       "type": "constant",
       "name": "SKIP_DIRS",
-      "line_start": 333,
-      "line_end": 333,
+      "line_start": 341,
+      "line_end": 341,
       "signature": "const SKIP_DIRS = new Set([\"node_modules\", \".git\", \"dist\", \".smolcoder\"]);"
     },
     {
       "type": "function",
       "name": "activeWorkspace",
-      "line_start": 493,
-      "line_end": 503,
+      "line_start": 501,
+      "line_end": 511,
       "signature": "async function activeWorkspace() {",
       "async": true
     }

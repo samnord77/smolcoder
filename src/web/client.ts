@@ -814,10 +814,10 @@ function scheduleWorkspaceRefresh(v) {
   }, 1200);
 }
 function notifyAgentFileActivity(v, m) {
-  if (!m) return;
+  if (!v || !m) return;
   try {
     if (CHIP_TOOLS.indexOf(m.name) >= 0) {
-      const ft = v.tabs.find((x) => x.kind === "files");
+      const ft = v.tabs && v.tabs.find((x) => x.kind === "files");
       if (ft && ft.agentLine) {
         ft.agentLine.textContent = "🤖 " + m.name + (m.summary ? " " + m.summary : "");
         ft.agentLine.hidden = false;
@@ -825,6 +825,33 @@ function notifyAgentFileActivity(v, m) {
     }
     if (DISK_TOOLS.indexOf(m.name) >= 0) scheduleWorkspaceRefresh(v);
   } catch (e) {}
+
+  let targetFile = m.path || m.file || "";
+  if (!targetFile && m.summary && /(?:\.[a-zA-Z0-9]+|\/|\\)/.test(m.summary)) {
+    const matched = /([a-zA-Z0-9_\-./\\]+\.[a-zA-Z0-9]+)/.exec(m.summary);
+    if (matched) targetFile = matched[1];
+  }
+  if (!targetFile) return;
+  v.lastTouchedFile = targetFile;
+
+  // Rafraîchir l'arborescence et afficher le fichier manipulé en live
+  const filesTab = v.tabs && v.tabs.find((t) => t.kind === "files");
+  if (filesTab) {
+    if (filesTab.refreshFiles) {
+      try { filesTab.refreshFiles(); } catch (e) {}
+    }
+    if (m.name === "write_file" || m.name === "edit_file" || m.name === "read_file") {
+      if (filesTab.loadFile) {
+        void filesTab.loadFile(targetFile).catch(() => {});
+      }
+    }
+  }
+
+  // Rafraîchir le panneau de revue de diffs en direct
+  const revTab = v.tabs && v.tabs.find((t) => t.kind === "review");
+  if (revTab && revTab.reload) {
+    try { revTab.reload(); } catch (e) {}
+  }
 }
 
 // ---- centre d'activite unifie & timeline ----
@@ -1001,6 +1028,7 @@ function finishToolActivity(v, m) {
   completeActivity(v, v.currentToolAct || "tool", !m.err, m.err ? (m.body || m.line || "erreur") : "");
   v.currentToolAct = null;
 }
+
 
 // ---- offload card ----------------------------------------------------------
 // Countdown against the server's REAL shell deadline. Every button acts on
@@ -4121,12 +4149,33 @@ $("sidegrip").onmousedown = (e) => {
 // ---- sidebar collapse -----------------------------------------------------
 function setSide(collapsed) {
   sideEl.classList.toggle("collapsed", collapsed);
-  $("sidetoggle").hidden = !collapsed;
+  const tog = $("sidetoggle");
+  if (tog) {
+    tog.hidden = false;
+    tog.classList.toggle("active", !collapsed);
+    tog.classList.toggle("on", !collapsed);
+    tog.title = collapsed ? "Afficher le panneau latéral (Ctrl+B)" : "Masquer le panneau latéral (Ctrl+B)";
+    tog.setAttribute("aria-expanded", collapsed ? "false" : "true");
+  }
   ls.set("smol.side", collapsed ? "1" : "0");
 }
+function toggleSide() {
+  setSide(!sideEl.classList.contains("collapsed"));
+}
 function narrow() { return window.matchMedia("(max-width: 1000px)").matches; }
-$("sidecollapse").onclick = () => setSide(true);
-$("sidetoggle").onclick = () => setSide(false);
+const sideCollBtn = $("sidecollapse");
+if (sideCollBtn) sideCollBtn.onclick = () => setSide(true);
+const sideTogBtn = $("sidetoggle");
+if (sideTogBtn) sideTogBtn.onclick = () => toggleSide();
+window.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b" && !e.shiftKey && !e.altKey) {
+    const tag = (e.target && e.target.tagName) || "";
+    if (tag !== "INPUT" && tag !== "TEXTAREA") {
+      e.preventDefault();
+      toggleSide();
+    }
+  }
+});
 setSide(ls.get("smol.side") === "1" || (narrow() && !!location.hash));
 
 // ---- input + slash menu ---------------------------------------------------
@@ -4621,7 +4670,60 @@ function ccOverview(d) {
     c.appendChild(el("span", "", s.verification.passed ? "vérification passée" : "réparation auto ×" + s.verification.attempts));
     chips.appendChild(c);
   }
+  if (d.localModels && (d.localModels.loaded || []).length) {
+    for (const m of d.localModels.loaded) {
+      const c = el("span", "cc-light ok");
+      c.appendChild(el("span", "dot"));
+      c.appendChild(el("span", "", "modèle : " + m.name));
+      const vStr = m.vramMb ? (m.vramMb >= 1024 ? (m.vramMb / 1024).toFixed(1) + " Go VRAM" : m.vramMb + " Mo VRAM") : "";
+      if (vStr) c.appendChild(el("span", "cc-tag", vStr));
+      chips.appendChild(c);
+    }
+  }
   if (chips.childNodes.length) wrap.appendChild(ccSection("En direct", chips));
+
+  // Monitoring en direct des modèles locaux et VRAM
+  const lm = d.localModels;
+  if (lm) {
+    const loadedList = lm.loaded || [];
+    const vramMb = lm.totalVramMb || 0;
+    const vramStr = vramMb >= 1024 ? (vramMb / 1024).toFixed(1) + " Go" : vramMb + " Mo";
+    const lmSec = el("div", "cc-sec");
+    const lmHead = el("h3", "", "⚡ Monitoring Modèles Locaux & VRAM");
+    lmSec.appendChild(lmHead);
+
+    const lmGrid = el("div", "cc-grid");
+    const vramCard = ccCard(
+      "VRAM active allouée",
+      loadedList.length ? vramStr + " utilisée par " + loadedList.length + " modèle(s) chargé(s)" : "0 Mo (aucun modèle résident en VRAM)",
+      "Gérer (/models)",
+      () => { ccSend("/models"); closeCC(); }
+    );
+    lmGrid.appendChild(vramCard);
+
+    const enginesText = "Ollama: " + (lm.ollamaOnline ? "En ligne (11434)" : "Hors ligne") + " · LM Studio: " + (lm.lmStudioOnline ? "En ligne (1234)" : "Hors ligne");
+    const enginesCard = ccCard(
+      "Moteurs d'inférence locaux",
+      enginesText,
+      "Tester la connexion",
+      () => loadCC()
+    );
+    lmGrid.appendChild(enginesCard);
+
+    for (const m of loadedList) {
+      const mVram = m.vramMb ? (m.vramMb >= 1024 ? (m.vramMb / 1024).toFixed(1) + " Go VRAM" : m.vramMb + " Mo VRAM") : (m.sizeMb ? m.sizeMb + " Mo" : "Actif");
+      const mCard = ccCard(
+        "🧠 " + m.name,
+        "Fournisseur : " + m.provider + " · Charge VRAM : " + mVram + (m.contextLength ? " · Contexte : " + m.contextLength + " tokens" : ""),
+        "Sélectionner",
+        () => { ccSend("/model " + m.name); closeCC(); }
+      );
+      lmGrid.appendChild(mCard);
+    }
+    lmSec.appendChild(lmGrid);
+    wrap.appendChild(lmSec);
+  }
+
   const grid = el("div", "cc-grid");
   const runs = d.subagents && d.subagents.stats ? d.subagents.stats.runs : 0;
   grid.appendChild(ccCard("Sous-agents", runs ? runs + " délégations cumulées dans cet espace." : "Aucune délégation encore : chaque rôle est prêt.", "Voir les rôles", () => ccGoTab("agents")));

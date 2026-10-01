@@ -58,7 +58,10 @@ export const STYLES = `
   .grow { flex: 1; }
   .iconbtn { background: transparent; border: 1px solid transparent; color: var(--dim); cursor: pointer; border-radius: var(--radius-sm); padding: 4px 8px; line-height: 1.2; display: inline-flex; align-items: center; gap: 6px; transition: var(--transition); }
   .iconbtn:hover { color: var(--fg); border-color: var(--line); background: rgba(255, 255, 255, 0.05); }
-  .iconbtn.on { color: var(--accent); border-color: rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.1); box-shadow: 0 0 12px var(--accent-glow); }
+  .iconbtn.on, .iconbtn.active { color: var(--accent); border-color: rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.1); box-shadow: 0 0 12px var(--accent-glow); }
+  #sidetoggle { display: inline-flex !important; align-items: center; justify-content: center; }
+  #sidetoggle.active, #sidetoggle.on { color: var(--accent); border-color: rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.12); }
+  #sidecollapse { font-weight: 700; font-size: 14px; }
   .iconbtn svg { display: block; }
   #btnreview { position: relative; }
   .review-badge {
@@ -1400,7 +1403,30 @@ export const STYLES = `
 
   /* ---- Terminal Pro & Sidebar VS Code ---- */
   .vsc-legacy-actions {
-    display: none !important;
+    display: inline-flex !important;
+    align-items: center;
+    gap: 3px;
+    margin-left: 6px;
+    padding-left: 6px;
+    border-left: 1px solid var(--line);
+    flex-shrink: 0;
+  }
+  .vsc-legacy-actions .iconbtn {
+    height: 24px;
+    padding: 2px 7px;
+    font-size: 11px;
+    font-family: inherit;
+    font-weight: 500;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--line);
+    color: var(--dim);
+    transition: all 0.15s ease;
+  }
+  .vsc-legacy-actions .iconbtn:hover {
+    background: rgba(56, 189, 248, 0.12);
+    color: var(--fg);
+    border-color: rgba(56, 189, 248, 0.4);
   }
   .term-status-dot {
     display: inline-block;

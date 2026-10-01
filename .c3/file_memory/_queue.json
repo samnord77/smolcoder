@@ -1,6 +1,9 @@
 {
   "pending": [
-    ".smol/plans/947d10b7.json"
+    ".smol/plans/947d10b7.json",
+    "src/web/client.ts",
+    "src/web/hub.ts",
+    "src/web/page.ts"
   ],
   "inflight": [
     "desktop/hub-client.js",

@@ -15,6 +15,7 @@ import {
   type ChatOptions,
   type ChatResult,
   type Effort,
+  extractToolCallsFromContent,
   lastUserIndex,
   MAX_OUTPUT_TOKENS,
   type Msg,
@@ -247,6 +248,14 @@ export class OllamaProvider implements Provider {
       }
     }
     if (!finished) throw new Error("Ollama stream ended before completion; the response was discarded");
+
+    if (toolCalls.length === 0 && content) {
+      const extracted = extractToolCallsFromContent(content);
+      if (extracted.toolCalls.length > 0) {
+        content = extracted.content;
+        toolCalls.push(...extracted.toolCalls);
+      }
+    }
 
     return {
       content,

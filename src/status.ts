@@ -12,6 +12,14 @@ import { projectVerification } from "./verification";
 const BUILD_STATUS_TTL_MS = Math.max(5_000, Number(process.env.SMOLCODER_STATUS_BUILD_TTL_MS) || 30_000);
 const buildStatusCache = new Map<string, { at: number; command: string; result: { command: string; state: string } }>();
 
+export interface LocalLoadedModel {
+  backend: "ollama" | "lmstudio";
+  name: string;
+  sizeVramMb?: number;
+  sizeMb?: number;
+  details?: string;
+}
+
 export interface StatusReport {
   ok: boolean;
   workspace: string;
@@ -22,6 +30,12 @@ export interface StatusReport {
   mcp: { name: string; ok: boolean; tools: number; error: string | null; enabled: boolean; retrying?: boolean }[];
   lsp: { lang: string; ok: boolean; hint: string; exts: string[] }[];
   subagents: { total: number; names: string[] };
+  localModels: {
+    loaded: LocalLoadedModel[];
+    totalVramMb: number;
+    ollamaOnline: boolean;
+    lmStudioOnline: boolean;
+  };
   build: { command: string; state: string };
   system: { node: string; platform: string; arch: string; cpus: number; memTotalMb: number; memFreeMb: number; uptimeSec: number };
   errors: string[];
@@ -115,6 +129,63 @@ export async function buildStatusReport(opts: {
     errors.push(`subagents: ${String(e?.message ?? e).slice(0, 120)}`);
   }
 
+  // Monitoring direct des modèles locaux (Ollama / LM Studio)
+  const localLoaded: LocalLoadedModel[] = [];
+  let ollamaOnline = false;
+  let lmStudioOnline = false;
+
+  try {
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), 1200);
+    const res = await fetch("http://127.0.0.1:11434/api/ps", { signal: ctl.signal });
+    clearTimeout(t);
+    if (res.ok) {
+      ollamaOnline = true;
+      const data = (await res.json()) as any;
+      if (Array.isArray(data?.models)) {
+        for (const m of data.models) {
+          const vramMb = m.size_vram ? Math.round(m.size_vram / 1048576) : 0;
+          const sizeMb = m.size ? Math.round(m.size / 1048576) : 0;
+          localLoaded.push({
+            backend: "ollama",
+            name: m.name || m.model || "modèle",
+            sizeVramMb: vramMb,
+            sizeMb,
+            details: m.details?.parameter_size ? `${m.details.parameter_size} (${m.details.quantization_level || ""})` : undefined,
+          });
+        }
+      }
+    }
+  } catch {
+    /* Ollama offline */
+  }
+
+  try {
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), 1200);
+    const res = await fetch("http://127.0.0.1:1234/v1/models", { signal: ctl.signal });
+    clearTimeout(t);
+    if (res.ok) {
+      lmStudioOnline = true;
+      const data = (await res.json()) as any;
+      if (Array.isArray(data?.data)) {
+        for (const m of data.data) {
+          if (m.id) {
+            localLoaded.push({
+              backend: "lmstudio",
+              name: m.id,
+              details: "chargé dans LM Studio",
+            });
+          }
+        }
+      }
+    }
+  } catch {
+    /* LM Studio offline */
+  }
+
+  const totalVramMb = localLoaded.reduce((acc, m) => acc + (m.sizeVramMb || 0), 0);
+
   const modelId = opts.modelId ?? "unknown";
   return {
     ok: errors.length === 0,
@@ -136,6 +207,12 @@ export async function buildStatusReport(opts: {
     mcp,
     lsp,
     subagents: { total: roles.length, names: roles.map((r) => r.name) },
+    localModels: {
+      loaded: localLoaded,
+      totalVramMb,
+      ollamaOnline,
+      lmStudioOnline,
+    },
     build: runBuildCheck(workspace),
     system: {
       node: process.version,

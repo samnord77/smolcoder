@@ -166,3 +166,58 @@ export function lastUserIndex(messages: Msg[]): number {
   }
   return -1;
 }
+
+/** Fallback parser: if a local model emits tool calls as inline XML tags, code blocks,
+ * or raw JSON in content instead of structured tool_calls, extract and normalize them. */
+export function extractToolCallsFromContent(content: string): { content: string; toolCalls: ToolCall[] } {
+  if (!content?.trim()) return { content, toolCalls: [] };
+  const calls: ToolCall[] = [];
+  let cleaned = content;
+
+  // Pattern 1: <tool_call> ... </tool_call>
+  const xmlRe = /<tool_call>([\s\S]*?)<\/tool_call>/gi;
+  for (const match of content.matchAll(xmlRe)) {
+    try {
+      const parsed = JSON.parse(match[1].trim());
+      const name = parsed.name || parsed.function?.name || parsed.tool;
+      const args = parsed.arguments || parsed.args || parsed.parameters || {};
+      if (name && typeof name === "string") {
+        calls.push({ id: nextCallId(), name, ...parseArgs(args) });
+        cleaned = cleaned.replace(match[0], "").trim();
+      }
+    } catch {
+      /* ignore invalid JSON inside tags */
+    }
+  }
+
+  // Pattern 2: ```tool:read_file\n{...}\n```
+  const toolFenceRe = /```tool:([a-zA-Z0-9_-]+)\s*\n([\s\S]*?)```/gi;
+  for (const match of content.matchAll(toolFenceRe)) {
+    try {
+      const name = match[1];
+      const parsed = JSON.parse(match[2].trim());
+      calls.push({ id: nextCallId(), name, ...parseArgs(parsed) });
+      cleaned = cleaned.replace(match[0], "").trim();
+    } catch {
+      /* ignore */
+    }
+  }
+
+  // Pattern 3: ```json\n{"name": "...", "arguments": {...}}\n```
+  const jsonFenceRe = /```(?:json)?\s*\n(\{\s*"(?:name|tool|function)"[\s\S]*?\})\s*```/gi;
+  for (const match of content.matchAll(jsonFenceRe)) {
+    try {
+      const parsed = JSON.parse(match[1].trim());
+      const name = parsed.name || parsed.function?.name || parsed.tool;
+      const args = parsed.arguments || parsed.args || parsed.parameters || {};
+      if (name && typeof name === "string") {
+        calls.push({ id: nextCallId(), name, ...parseArgs(args) });
+        cleaned = cleaned.replace(match[0], "").trim();
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  return { content: cleaned, toolCalls: calls };
+}

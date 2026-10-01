@@ -21,6 +21,7 @@ import {
   EFFORT_RANK,
   type Effort,
   estimateReplayTokens,
+  extractToolCallsFromContent,
   MAX_OUTPUT_TOKENS,
   type Msg,
   nextCallId,
@@ -323,6 +324,14 @@ export class LmStudioProvider implements Provider {
         name: p.name,
         ...parseArgs(p.args),
       }));
+
+    if (toolCalls.length === 0 && content) {
+      const extracted = extractToolCallsFromContent(content);
+      if (extracted.toolCalls.length > 0) {
+        content = extracted.content;
+        toolCalls.push(...extracted.toolCalls);
+      }
+    }
 
     const genMs = lastTokAt > firstTokAt ? lastTokAt - firstTokAt : 0;
     return {
