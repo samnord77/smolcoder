@@ -1,10 +1,10 @@
 {
   "path": "test/cowork.test.js",
-  "content_hash": "69c0092ab6578647a95915d901ea1252",
-  "updated_at": "2026-09-28T19:36:39",
-  "lines": 68,
-  "size_bytes": 3172,
-  "mtime_ns": 1790620581288907400,
+  "content_hash": "0ac570568625a447fe35ea5e54152b53",
+  "updated_at": "2026-10-01T08:30:52",
+  "lines": 176,
+  "size_bytes": 7835,
+  "mtime_ns": 1790807231300344600,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -47,8 +47,8 @@
     {
       "type": "function",
       "name": "workspace",
-      "line_start": 9,
-      "line_end": 11,
+      "line_start": 10,
+      "line_end": 12,
       "signature": "function workspace() {"
     }
   ]

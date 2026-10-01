@@ -1,0 +1,75 @@
+{
+  "path": "src/orchestrator.ts",
+  "content_hash": "0ba4eec4ed6862f369c8c7aad22cd73b",
+  "updated_at": "2026-10-01T08:32:53",
+  "lines": 301,
+  "size_bytes": 11765,
+  "mtime_ns": 1790824147052405200,
+  "language": "typescript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "type",
+      "name": "TaskCategory",
+      "line_start": 15,
+      "line_end": 23,
+      "signature": "type TaskCategory =",
+      "children": []
+    },
+    {
+      "type": "type",
+      "name": "TaskComplexity",
+      "line_start": 25,
+      "line_end": 25,
+      "signature": "type TaskComplexity = \"simple\" | \"moderate\" | \"complex\";",
+      "children": []
+    },
+    {
+      "type": "interface",
+      "name": "TaskClassification",
+      "line_start": 27,
+      "line_end": 36,
+      "signature": "interface TaskClassification {",
+      "children": []
+    },
+    {
+      "type": "interface",
+      "name": "OrchestrationSummaryContext",
+      "line_start": 38,
+      "line_end": 46,
+      "signature": "interface OrchestrationSummaryContext {",
+      "children": []
+    },
+    {
+      "type": "function",
+      "name": "normalizeText",
+      "line_start": 51,
+      "line_end": 56,
+      "signature": "function normalizeText(text: string): string {",
+      "doc": "Normalise une cha\u00eene textuelle pour l'analyse heuristique multilingue."
+    },
+    {
+      "type": "function",
+      "name": "assessComplexity",
+      "line_start": 61,
+      "line_end": 72,
+      "signature": "function assessComplexity(raw: string, normalized: string): TaskComplexity {",
+      "doc": "D\u00e9termine la complexit\u00e9 op\u00e9rationnelle d'une demande."
+    },
+    {
+      "type": "function",
+      "name": "classifyTask",
+      "line_start": 78,
+      "line_end": 239,
+      "signature": "function classifyTask(request: string): TaskClassification {"
+    },
+    {
+      "type": "function",
+      "name": "formatOrchestratorSummary",
+      "line_start": 244,
+      "line_end": 301,
+      "signature": "function formatOrchestratorSummary(ctx: OrchestrationSummaryContext): string {"
+    }
+  ]
+}

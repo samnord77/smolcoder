@@ -1,10 +1,10 @@
 {
   "path": "src/tools/web.ts",
-  "content_hash": "131121ac10a0c26943bb0c5eeb2bffb4",
-  "updated_at": "2026-09-28T19:36:40",
-  "lines": 118,
-  "size_bytes": 5317,
-  "mtime_ns": 1790620579952924900,
+  "content_hash": "1b8f89b19bfd0dca58164399939051c8",
+  "updated_at": "2026-10-01T08:34:55",
+  "lines": 123,
+  "size_bytes": 5366,
+  "mtime_ns": 1790814001053824300,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -48,21 +48,21 @@
       "type": "function",
       "name": "htmlToText",
       "line_start": 42,
-      "line_end": 57,
+      "line_end": 62,
       "signature": "function htmlToText(html: string): { title: string; text: string } {"
     },
     {
       "type": "function",
       "name": "pageTitle",
-      "line_start": 59,
-      "line_end": 61,
+      "line_start": 64,
+      "line_end": 66,
       "signature": "function pageTitle(html: string): string {"
     },
     {
       "type": "function",
       "name": "fetchUrl",
-      "line_start": 63,
-      "line_end": 118,
+      "line_start": 68,
+      "line_end": 123,
       "signature": "async function fetchUrl(root: string, args: any, signal?: AbortSignal): Promise<string> {",
       "async": true
     }

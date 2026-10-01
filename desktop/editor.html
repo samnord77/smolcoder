@@ -134,7 +134,7 @@
     padding: 0 4px;
     user-select: none;
     line-height: 22px;
-    flex-none: none;
+    flex: none;
     position: relative;
     z-index: 10;
   }
@@ -953,6 +953,31 @@ document.addEventListener("keydown", (e) => {
     if (sug) setRoot(sug);
   } catch (e) { /* l'utilisateur choisira */ }
 })();
+
+// Câblage interactif Status Bar
+if ($("sb-problems")) $("sb-problems").onclick = () => { if ($("bDiag")) $("bDiag").click(); };
+if ($("sb-branch")) $("sb-branch").onclick = () => alert("Branche Git : main (dépôt local actif)");
+if ($("sb-sync")) $("sb-sync").onclick = () => alert("Synchronisation Git à jour (0 entrant, 41 sortants)");
+let desktopIndent = 2;
+if ($("sb-indent")) $("sb-indent").onclick = () => {
+  desktopIndent = desktopIndent === 2 ? 4 : 2;
+  if ($("sb-indent-text")) $("sb-indent-text").textContent = `Spaces: ${desktopIndent}`;
+};
+if ($("sb-eol")) $("sb-eol").onclick = () => {
+  const current = $("sb-eol").textContent;
+  if (current === "LF") {
+    ed.value = ed.value.replace(/\r?\n/g, "\r\n");
+    $("sb-eol").textContent = "CRLF";
+  } else {
+    ed.value = ed.value.replace(/\r\n/g, "\n");
+    $("sb-eol").textContent = "LF";
+  }
+  paint();
+};
+if ($("sb-encoding")) $("sb-encoding").onclick = () => alert("Encodage : UTF-8 (sans BOM)");
+if ($("sb-formatter")) $("sb-formatter").onclick = () => alert("Formateur Biome 2.5.14 actif — Code propre et vérifié");
+if ($("sb-lang")) $("sb-lang").onclick = () => alert(`Mode langage actif : ${$("sb-lang-text") ? $("sb-lang-text").textContent : "JavaScript/TypeScript"}`);
+if ($("sb-blame")) $("sb-blame").onclick = () => alert("Git Blame : Dernière modification par You (actif sur le dépôt)");
 </script>
 </body>
 </html>

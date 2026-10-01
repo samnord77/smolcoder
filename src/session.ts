@@ -129,11 +129,41 @@ export function autoPickModel(
   url?: string
 ): DetectedModel {
   if (wanted) {
-    const hit =
+    let hit =
       models.find((m) => m.id === wanted && m.baseUrl === url) ??
-      models.find((m) => m.id === wanted) ??
-      models.find((m) => m.id.toLowerCase().includes(wanted.toLowerCase()));
+      models.find((m) => m.id === wanted);
     if (hit) return hit;
+
+    const norm = (s: string) => s.toLowerCase().replace(/:latest$/, "").replace(/[-_]/g, ":");
+    const wantedNorm = norm(wanted);
+    hit = models.find((m) => norm(m.id) === wantedNorm);
+    if (hit) return hit;
+
+    hit =
+      models.find((m) => m.id.toLowerCase().includes(wanted.toLowerCase())) ??
+      models.find((m) => wanted.toLowerCase().includes(m.id.toLowerCase()));
+    if (hit) return hit;
+
+    const words = wanted.toLowerCase().replace(/[^a-z0-9]/g, " ").split(/\s+/).filter((w) => w.length >= 2);
+    if (words.length >= 2) {
+      hit = models.find((m) => {
+        const mLower = m.id.toLowerCase();
+        return words.every((w) => mLower.includes(w));
+      });
+      if (hit) return hit;
+    }
+
+    // Repli intelligent si le modèle précis sauvegardé n'existe plus
+    const local = models.filter((m) => !m.host);
+    const pool = local.length ? local : models;
+    const fallback =
+      models.find((m) => m.id === remembered && m.baseUrl === url) ??
+      models.find((m) => m.id === remembered) ??
+      pool.find((m) => m.backend === "ollama") ??
+      pool.find((m) => m.loaded) ??
+      pool[0];
+    if (fallback) return fallback;
+
     throw new Error(`Model "${wanted}" was not found on the selected backend. Use /models to choose an available model.`);
   }
   // With nothing remembered, a model on this computer beats one across the network.

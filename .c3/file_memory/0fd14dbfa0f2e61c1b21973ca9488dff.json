@@ -1,10 +1,10 @@
 {
   "path": "src/detect.ts",
-  "content_hash": "397e483b6ba4e77c9bb0eedc575ccc03",
-  "updated_at": "2026-09-28T19:36:39",
-  "lines": 523,
-  "size_bytes": 22960,
-  "mtime_ns": 1790620578352343600,
+  "content_hash": "3ccafe34ab4821a6c662945e37a0498d",
+  "updated_at": "2026-10-01T08:34:54",
+  "lines": 525,
+  "size_bytes": 22992,
+  "mtime_ns": 1790817957833457100,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -305,22 +305,22 @@
       "type": "function",
       "name": "detectAll",
       "line_start": 370,
-      "line_end": 422,
+      "line_end": 424,
       "signature": "async function detectAll(opts: DetectOptions = {}): Promise<DetectedModel[]> {",
       "async": true
     },
     {
       "type": "constant",
       "name": "DEFAULT_OLLAMA_CTX_CAP",
-      "line_start": 424,
-      "line_end": 424,
+      "line_start": 426,
+      "line_end": 426,
       "signature": "const DEFAULT_OLLAMA_CTX_CAP = 32768; // avoid surprise VRAM blowups on huge-window models"
     },
     {
       "type": "function",
       "name": "resolveContextWindow",
-      "line_start": 436,
-      "line_end": 523,
+      "line_start": 438,
+      "line_end": 525,
       "signature": "async function resolveContextWindow(model: DetectedModel, ctxOverride?: number): Promise<DetectedModel> {",
       "async": true
     }

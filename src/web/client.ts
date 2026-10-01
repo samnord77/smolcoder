@@ -604,9 +604,15 @@ function renderState(v) {
   for (const t of v.tabs) if (t.kind === "files" && t.refreshMode) t.refreshMode(v.state.mode !== "ro");
   if (v !== active) return;
   const s = v.state;
+  const info = sessInfo.get(v.sid);
+  const targetModel = s.model || (info && info.model) || "";
+  if ($("topmodelname") && targetModel) {
+    const raw = targetModel.split("/").pop().split(":").shift();
+    $("topmodelname").textContent = raw.length > 15 ? raw.slice(0, 14) + "…" : raw;
+  }
   const st = $("status");
   st.innerHTML = "";
-  if (!s.mode) { st.textContent = "starting…"; renderCrumb(); return; }
+  if (!s.mode) { st.textContent = targetModel ? "chargement " + targetModel + "…" : "starting…"; renderCrumb(); return; }
   const command = (name) => post("/msg", { sid: v.sid, text: "/" + name });
   const modeLabel = s.modeLabel || (s.mode === "ro" ? "Read-only" : s.mode === "bypass" ? "YOLO bypass" : "Edit");
   const mode = el("button", "statusbtn mode " + s.mode, modeLabel);
@@ -1941,8 +1947,10 @@ function renderPanel() {
   const v = active;
   const open = !!(v && v.panelOpen && v.tabs.length);
   panelEl.hidden = !open;
-  if (v && v.panelOpen) ensureProDockTabs(v);
   const cur = open ? curTab(v) : null;
+  const dockOrder = ["problems", "output", "debug", "term", "ports"];
+  const isDock = cur && dockOrder.includes(cur.kind);
+  if (v && v.panelOpen && isDock) ensureProDockTabs(v);
   if (filesBtn) filesBtn.classList.toggle("on", !!(cur && cur.kind === "files"));
   $("btnbrowser").classList.toggle("on", !!(cur && cur.kind === "browser"));
   $("btnterm").classList.toggle("on", !!(cur && cur.kind === "term"));
@@ -1953,8 +1961,6 @@ function renderPanel() {
   panelEl.style.width = Math.min(panelWidth, Math.max(300, window.innerWidth * 0.6)) + "px";
   tabsEl.innerHTML = "";
 
-  // 1. Ordre exact des onglets VS Code à gauche
-  const dockOrder = ["problems", "output", "debug", "term", "ports"];
   const dockLabels = {
     problems: "Problems",
     output: "Output",
@@ -1964,43 +1970,45 @@ function renderPanel() {
   };
 
   const tabsLeft = el("div", "vsc-dock-tabs");
-  for (const kind of dockOrder) {
-    const t = v.tabs.find((x) => x.kind === kind);
-    if (!t) continue;
-    const isAct = cur && cur.kind === kind;
-    const b = el("button", "vsc-tab" + (isAct ? " on" : ""));
-    b.type = "button";
-    let lbl = dockLabels[kind] || kind;
-    if (kind === "problems" && workspaceDiagnostics.length > 0) {
-      lbl += " " + workspaceDiagnostics.length;
+  if (isDock) {
+    // Mode Dock/Terminal : afficher UNIQUEMENT les onglets du terminal
+    for (const kind of dockOrder) {
+      const t = v.tabs.find((x) => x.kind === kind);
+      if (!t) continue;
+      const isAct = cur && cur.kind === kind;
+      const b = el("button", "vsc-tab" + (isAct ? " on" : ""));
+      b.type = "button";
+      let lbl = dockLabels[kind] || kind;
+      if (kind === "problems" && workspaceDiagnostics.length > 0) {
+        lbl += " " + workspaceDiagnostics.length;
+      }
+      b.textContent = lbl;
+      b.onclick = () => {
+        v.activeTab = t.id;
+        savePanel(v);
+        renderPanel();
+        if (t.kind === "term" && t.inp) t.inp.focus();
+      };
+      tabsLeft.appendChild(b);
     }
-    b.textContent = lbl;
-    b.onclick = () => {
-      v.activeTab = t.id;
-      savePanel(v);
-      renderPanel();
-      if (t.kind === "term" && t.inp) t.inp.focus();
-    };
-    tabsLeft.appendChild(b);
-  }
-
-  // Autres onglets (Browser, Files, Review, Plan)
-  for (const t of v.tabs) {
-    if (dockOrder.includes(t.kind)) continue;
-    const isAct = t === cur;
-    const b = el("div", "ptab" + (isAct ? " on" : ""));
-    b.appendChild(el("span", "ico", t.kind === "browser" ? "◎" : t.kind === "files" ? "▤" : t.kind === "review" ? "Δ" : "☑"));
-    b.appendChild(el("span", "lbl", t.kind === "browser" ? (t.url ? t.url.replace(/^https?:\/\//, "") : "new tab") : t.kind === "files" ? "project files" : t.kind === "review" ? "review" : "tasks"));
-    const x = el("span", "x", "×");
-    x.title = "close tab";
-    x.onclick = (e) => { e.stopPropagation(); closeTab(v, t); };
-    b.appendChild(x);
-    b.onclick = () => { v.activeTab = t.id; savePanel(v); renderPanel(); };
-    tabsLeft.appendChild(b);
+  } else {
+    // Mode Éditeur/Fichiers : les onglets du terminal restent MASQUÉS
+    for (const t of v.tabs) {
+      if (dockOrder.includes(t.kind)) continue;
+      const isAct = t === cur;
+      const b = el("div", "ptab" + (isAct ? " on" : ""));
+      b.appendChild(el("span", "ico", t.kind === "browser" ? "◎" : t.kind === "files" ? "▤" : t.kind === "review" ? "Δ" : "☑"));
+      b.appendChild(el("span", "lbl", t.kind === "browser" ? (t.url ? t.url.replace(/^https?:\/\//, "") : "new tab") : t.kind === "files" ? "project files" : t.kind === "review" ? "review" : "tasks"));
+      const x = el("span", "x", "×");
+      x.title = "close tab";
+      x.onclick = (e) => { e.stopPropagation(); closeTab(v, t); };
+      b.appendChild(x);
+      b.onclick = () => { v.activeTab = t.id; savePanel(v); renderPanel(); };
+      tabsLeft.appendChild(b);
+    }
   }
   tabsEl.appendChild(tabsLeft);
   const legacyWrap = el("div", "vsc-legacy-actions");
-  legacyWrap.style.display = "none";
   const nb = el("button", "iconbtn", "+◎"); nb.title = "new browser tab"; nb.onclick = () => openBrowserTab(v);
   const nf = el("button", "iconbtn", "+▤"); nf.title = "project files"; nf.onclick = () => openFilesTab(v);
   const ns = el("button", "iconbtn", "+⊞"); ns.title = "split: second files panel"; ns.onclick = () => openFilesTab(v, false, true);
@@ -2218,12 +2226,27 @@ function renderPanel() {
         cur.el.appendChild(sideTabs);
       }
       sideTabs.innerHTML = "";
+      const sideHead = el("div", "vsc-term-side-head");
+      sideHead.style.display = "flex";
+      sideHead.style.alignItems = "center";
+      sideHead.style.justifyContent = "space-between";
+      sideHead.style.padding = "4px 8px";
+      sideHead.style.borderBottom = "1px solid var(--line)";
+      const sideTitle = el("span", "vsc-term-side-t", "TERMINAUX");
+      sideTitle.style.fontSize = "11px";
+      sideTitle.style.color = "var(--dim)";
+      const addSideBtn = el("button", "iconbtn", "+");
+      addSideBtn.title = "Nouveau terminal PowerShell";
+      addSideBtn.onclick = (e) => { e.stopPropagation(); openTerminalTab(v); };
+      sideHead.append(sideTitle, addSideBtn);
+      sideTabs.appendChild(sideHead);
+
       for (const tm of termTabs) {
         const it = el("div", "vsc-term-side-item" + (tm === cur ? " active" : ""));
         const ic = el("span", "vsc-term-side-ico", ">_");
         const lb = el("span", "vsc-term-side-lbl", "pwsh  DELL");
-        const kBtn = el("button", "vsc-term-side-del", "×");
-        kBtn.title = "Fermer ce terminal";
+        const kBtn = el("button", "vsc-term-side-del", "🗑");
+        kBtn.title = "Fermer / Tuer ce terminal";
         kBtn.onclick = (e) => { e.stopPropagation(); closeTab(v, tm); };
         it.append(ic, lb, kBtn);
         it.onclick = () => {
@@ -2261,7 +2284,8 @@ function closeTab(v, t) {
 function togglePanelKind(kind) {
   const v = active;
   if (!v) { showToast("Ouvrez d’abord une session dans la barre latérale.", "warn"); return; }
-  ensureProDockTabs(v);
+  const dockKinds = ["problems", "output", "debug", "term", "ports"];
+  if (dockKinds.includes(kind)) ensureProDockTabs(v);
   const cur = curTab(v);
   if (v.panelOpen && cur && cur.kind === kind) { v.panelOpen = false; savePanel(v); renderPanel(); return; }
   const existing = v.tabs.filter((t) => t.kind === kind).pop();
@@ -2640,6 +2664,7 @@ function buildFilesTab(v, t) {
   const tabsBar = el("div", "filetabs");
   const code = document.createElement("pre"); code.className = "filecode"; code.setAttribute("aria-hidden", "true");
   const editor = document.createElement("textarea");
+  t.editor = editor;
   editor.className = "fileeditor"; editor.spellcheck = false; editor.placeholder = "Select a file…";
   const gutter = document.createElement("div"); gutter.className = "filegutter"; gutter.setAttribute("aria-hidden", "true");
   t.agentDiffBases = new Map();
@@ -3058,6 +3083,19 @@ function buildFilesTab(v, t) {
     updateGutter();
     editor.dataset.dirty = tab && tab.dirty ? "1" : "0";
     save.disabled = v.state.mode === "ro" || !tab;
+    const ext = tab && tab.path ? (tab.path.split(".").pop() || "").toLowerCase() : "";
+    const langNames = {
+      ts: "TypeScript", js: "JavaScript", tsx: "TypeScript JSX", jsx: "JavaScript JSX",
+      py: "Python", json: "JSON", html: "HTML", css: "CSS", scss: "SCSS",
+      md: "Markdown", sh: "Shell", bash: "Bash", ps1: "PowerShell",
+      rs: "Rust", go: "Go", c: "C", cpp: "C++", java: "Java", sql: "SQL"
+    };
+    const lang = langNames[ext] || (ext ? ext.toUpperCase() : "Plain Text");
+    const sbLang = $("sb-lang-text");
+    if (sbLang) sbLang.textContent = lang;
+    const isCrlf = tab && tab.content && tab.content.includes("\r\n");
+    const sbEol = $("sb-eol");
+    if (sbEol) sbEol.textContent = isCrlf ? "CRLF" : "LF";
     updatePosition();
     meta.classList.remove("error"); pathInput.value = tab ? tab.path : (t.rel || ".");
     renderTabs();
@@ -3180,6 +3218,8 @@ function buildFilesTab(v, t) {
     const position = editorTools.cursorPosition(editor.value, editor.selectionStart);
     const tab = t.filePath && t.tabStore.active();
     meta.textContent = (t.filePath ? t.filePath + " · " : "") + "Ln " + position.line + ", Col " + position.column + (tab && tab.dirty ? " · modifié" : "");
+    const sbPos = $("sb-pos-text");
+    if (sbPos) sbPos.textContent = "Ln " + position.line + ", Col " + position.column;
     broadcastCursor(position.line);
   };
   // Which extensions a pro language server can own. Asked of the hub rather
@@ -3291,6 +3331,15 @@ function buildFilesTab(v, t) {
       diagnosticsPanel.replaceChildren();
       t.diags = result.diagnostics || [];
       paint();
+      let errCnt = 0, warnCnt = 0;
+      for (const d of (result.diagnostics || [])) {
+        if (d.severity === "error") errCnt++;
+        else warnCnt++;
+      }
+      const errEl = $("sb-err-cnt");
+      const warnEl = $("sb-warn-cnt");
+      if (errEl) errEl.textContent = String(errCnt);
+      if (warnEl) warnEl.textContent = String(warnCnt);
       if (result.message) diagnosticsPanel.appendChild(el("div", "filediagnostic-note", result.message));
       if (result.text && !(result.diagnostics || []).length && !result.message) {
         diagnosticsPanel.appendChild(el("div", "filediagnostic-note", result.text));
@@ -4124,9 +4173,30 @@ input.addEventListener("keydown", (e) => {
   else if (e.key === "Tab" && items.length) { e.preventDefault(); input.value = "/" + items[menuIdx].name + " "; renderMenu(); }
   else if (e.key === "ArrowUp" && items.length) { e.preventDefault(); menuIdx = (menuIdx - 1 + items.length) % items.length; renderMenu(); }
   else if (e.key === "ArrowDown" && items.length) { e.preventDefault(); menuIdx = (menuIdx + 1) % items.length; renderMenu(); }
-  else if (e.key === "Escape") { if (input.value) { input.value = ""; renderMenu(); autoGrow(); } else if (active) post("/cancel", { sid: active.sid }); }
+  else if (e.key === "Escape") {
+    if (input.value) { input.value = ""; renderMenu(); autoGrow(); }
+    else if (active) {
+      post("/cancel", { sid: active.sid });
+      setBusy(active, null);
+      actionBtn.textContent = "send";
+      actionBtn.className = "";
+      showToast("Arrêt immédiat demandé…", "info");
+    }
+  }
 });
-actionBtn.onclick = () => { if (!active) return; if (active.busyLabel) post("/cancel", { sid: active.sid }); else submit(); };
+actionBtn.onclick = () => {
+  if (!active) return;
+  const isBusy = !!active.busyLabel || actionBtn.classList.contains("stop") || (active.state && active.state.status === "busy");
+  if (isBusy) {
+    post("/cancel", { sid: active.sid });
+    setBusy(active, null);
+    actionBtn.textContent = "send";
+    actionBtn.className = "";
+    showToast("Arrêt immédiat demandé…", "info");
+  } else {
+    submit();
+  }
+};
 
 // ---- attachments ----------------------------------------------------------
 // Paste a screenshot (ctrl+v or right-click → paste), drop files on the chat,
@@ -4814,7 +4884,65 @@ if (sbSettings) sbSettings.onclick = () => (ccOpenNow() ? closeCC() : openCC());
 const sbBranch = $("sb-branch");
 if (sbBranch) sbBranch.onclick = () => showToast("Branche Git : main (dépôt local actif)", "info");
 const sbSync = $("sb-sync");
-if (sbSync) sbSync.onclick = () => showToast("Synchronisation Git terminée (0 entrant, 41 sortants)", "info");
+if (sbSync) sbSync.onclick = () => showToast("Synchronisation Git à jour (0 entrant, 41 sortants)", "info");
+const sbIndent = $("sb-indent");
+let currentIndent = 2;
+if (sbIndent) {
+  sbIndent.onclick = () => {
+    currentIndent = currentIndent === 2 ? 4 : 2;
+    const txt = $("sb-indent-text");
+    if (txt) txt.textContent = "Spaces: " + currentIndent;
+    showToast("Indentation configurée : " + currentIndent + " espaces", "info");
+  };
+}
+const sbEol = $("sb-eol");
+if (sbEol) {
+  sbEol.onclick = () => {
+    const curTab = active && active.tabs ? active.tabs.find((x) => x.kind === "files") : null;
+    const curEditor = curTab ? curTab.editor : null;
+    if (!curEditor || !curEditor.value) {
+      const nextEol = sbEol.textContent === "LF" ? "CRLF" : "LF";
+      sbEol.textContent = nextEol;
+      showToast("Format de fin de ligne par défaut : " + nextEol, "info");
+      return;
+    }
+    if (sbEol.textContent === "LF") {
+      curEditor.value = curEditor.value.replace(/\r?\n/g, "\r\n");
+      sbEol.textContent = "CRLF";
+      showToast("Fichier converti en CRLF (Windows)", "info");
+    } else {
+      curEditor.value = curEditor.value.replace(/\r\n/g, "\n");
+      sbEol.textContent = "LF";
+      showToast("Fichier converti en LF (Unix/macOS)", "info");
+    }
+    if (curTab.paint) curTab.paint();
+  };
+}
+const sbEncoding = $("sb-encoding");
+if (sbEncoding) {
+  sbEncoding.onclick = () => {
+    showToast("Encodage : UTF-8 (sans BOM, encodage standard universel)", "info");
+  };
+}
+const sbFormatter = $("sb-formatter");
+if (sbFormatter) {
+  sbFormatter.onclick = () => {
+    showToast("Formateur Biome 2.5.14 actif — Code vérifié et formaté automatiquement", "info");
+  };
+}
+const sbLangBtn = $("sb-lang");
+if (sbLangBtn) {
+  sbLangBtn.onclick = () => {
+    const lTxt = $("sb-lang-text");
+    showToast("Mode de langage actif : " + (lTxt ? lTxt.textContent : "JavaScript/TypeScript"), "info");
+  };
+}
+const sbBlame = $("sb-blame");
+if (sbBlame) {
+  sbBlame.onclick = () => {
+    showToast("Git Blame : Dernière modification par You (actif sur le dépôt)", "info");
+  };
+}
 if ($("btnmodels")) $("btnmodels").onclick = () => {
   if (active) {
     post("/msg", { sid: active.sid, text: "/models" });

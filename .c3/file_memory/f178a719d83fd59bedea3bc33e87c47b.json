@@ -1,0 +1,27 @@
+{
+  "path": "test/orchestrator.test.js",
+  "content_hash": "f49e1834a7d17836a36cb326405b65fc",
+  "updated_at": "2026-10-01T08:34:54",
+  "lines": 67,
+  "size_bytes": 3291,
+  "mtime_ns": 1790823755620173400,
+  "language": "javascript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "constant",
+      "name": "test",
+      "line_start": 1,
+      "line_end": 1,
+      "signature": "const test = require(\"node:test\");"
+    },
+    {
+      "type": "constant",
+      "name": "assert",
+      "line_start": 2,
+      "line_end": 2,
+      "signature": "const assert = require(\"node:assert/strict\");"
+    }
+  ]
+}

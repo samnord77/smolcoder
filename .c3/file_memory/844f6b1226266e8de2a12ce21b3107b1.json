@@ -1,10 +1,10 @@
 {
   "path": "desktop/editor.html",
-  "content_hash": "d5352407868ace4a45441efb88a03d57",
-  "updated_at": "2026-09-30T22:58:49",
-  "lines": 800,
-  "size_bytes": 51670,
-  "mtime_ns": 1790787275748062700,
+  "content_hash": "6ca3e5649f2c9901734f6a124e9d9320",
+  "updated_at": "2026-10-01T08:34:55",
+  "lines": 983,
+  "size_bytes": 59173,
+  "mtime_ns": 1790836458409411700,
   "language": "html",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -13,217 +13,329 @@
       "type": "section",
       "name": "#bar",
       "tag": "div",
-      "line_start": 128,
-      "line_end": 138,
+      "line_start": 200,
+      "line_end": 210,
       "signature": "<div id=\"bar\">"
     },
     {
       "type": "section",
       "name": "#bFolder",
       "tag": "button",
-      "line_start": 129,
-      "line_end": 129,
-      "signature": "<button id=\"bFolder\">\ud83d\udcc1 Dossier</button>"
+      "line_start": 201,
+      "line_end": 201,
+      "signature": "<button type=\"button\" id=\"bFolder\">\ud83d\udcc1 Dossier</button>"
     },
     {
       "type": "section",
       "name": "#bSave",
       "tag": "button",
-      "line_start": 130,
-      "line_end": 130,
-      "signature": "<button id=\"bSave\">\ud83d\udcbe Enregistrer (Ctrl+S)</button>"
+      "line_start": 202,
+      "line_end": 202,
+      "signature": "<button type=\"button\" id=\"bSave\">\ud83d\udcbe Enregistrer (Ctrl+S)</button>"
     },
     {
       "type": "section",
       "name": "#bDiag",
       "tag": "button",
-      "line_start": 131,
-      "line_end": 131,
-      "signature": "<button id=\"bDiag\" title=\"Analyser le fichier avec le serveur de langage\">\u2713 Probl\u00e8mes</button>"
+      "line_start": 203,
+      "line_end": 203,
+      "signature": "<button type=\"button\" id=\"bDiag\" title=\"Analyser le fichier avec le serveur de langage\">\u2713 Probl\u00e8mes</button>"
     },
     {
       "type": "section",
       "name": "#bInline",
       "tag": "button",
-      "line_start": 132,
-      "line_end": 132,
-      "signature": "<button id=\"bInline\" title=\"Modifier la s\u00e9lection avec l'IA (Ctrl+K)\">\u2728 Inline</button>"
+      "line_start": 204,
+      "line_end": 204,
+      "signature": "<button type=\"button\" id=\"bInline\" title=\"Modifier la s\u00e9lection avec l'IA (Ctrl+K)\">\u2728 Inline</button>"
     },
     {
       "type": "section",
       "name": "#bNewFile",
       "tag": "button",
-      "line_start": 133,
-      "line_end": 133,
-      "signature": "<button id=\"bNewFile\" title=\"Nouveau fichier\">+F</button>"
+      "line_start": 205,
+      "line_end": 205,
+      "signature": "<button type=\"button\" id=\"bNewFile\" title=\"Nouveau fichier\">+F</button>"
     },
     {
       "type": "section",
       "name": "#bNewFolder",
       "tag": "button",
-      "line_start": 134,
-      "line_end": 134,
-      "signature": "<button id=\"bNewFolder\" title=\"Nouveau dossier\">+D</button>"
+      "line_start": 206,
+      "line_end": 206,
+      "signature": "<button type=\"button\" id=\"bNewFolder\" title=\"Nouveau dossier\">+D</button>"
     },
     {
       "type": "section",
       "name": "#bRename",
       "tag": "button",
-      "line_start": 135,
-      "line_end": 135,
-      "signature": "<button id=\"bRename\" title=\"Renommer le fichier ouvert\">\u270e</button>"
+      "line_start": 207,
+      "line_end": 207,
+      "signature": "<button type=\"button\" id=\"bRename\" title=\"Renommer le fichier ouvert\">\u270e</button>"
     },
     {
       "type": "section",
       "name": "#bDelete",
       "tag": "button",
-      "line_start": 136,
-      "line_end": 136,
-      "signature": "<button id=\"bDelete\" title=\"Supprimer le fichier ouvert\">\ud83d\uddd1</button>"
+      "line_start": 208,
+      "line_end": 208,
+      "signature": "<button type=\"button\" id=\"bDelete\" title=\"Supprimer le fichier ouvert\">\ud83d\uddd1</button>"
     },
     {
       "type": "section",
       "name": "#root",
       "tag": "span",
-      "line_start": 137,
-      "line_end": 137,
+      "line_start": 209,
+      "line_end": 209,
       "signature": "<span id=\"root\">aucun dossier \u2014 cliquez \u00ab Dossier \u00bb</span>"
     },
     {
       "type": "section",
       "name": "#inlineBar",
-      "tag": "div",
-      "line_start": 139,
-      "line_end": 139,
-      "signature": "<div id=\"inlineBar\" role=\"search\"><input id=\"inlineInput\" placeholder=\"Instruction : ex. ajoute la gestion d'erreur\u2026\" aria-label=\"Instruction d'\u00e9dition IA\"><button id=\"inlineGo\" type=\"button\">G\u00e9n\u00e9rer</button><button id=\"inlineCancel\" type=\"button\">Fermer</button></div>"
+      "tag": "search",
+      "line_start": 211,
+      "line_end": 211,
+      "signature": "<search id=\"inlineBar\"><div style=\"display:flex;gap:6px;align-items:center;width:100%;\"><input id=\"inlineInput\" placeholder=\"Instruction : ex. refactoriser, typer, ajouter gestion d'erreurs\u2026\" aria-label=\"Instruction d'\u00e9dition IA\"><button id=\"inlineGo\" type=\"button\">G\u00e9n\u00e9rer</button><button id=\"inlineCancel\" type=\"button\">Fermer</button></div><div id=\"inlineChips\" style=\"display:flex;gap:6px;overflo"
     },
     {
       "type": "section",
       "name": "#inlineInput",
       "tag": "input",
-      "line_start": 139,
-      "line_end": 139,
-      "signature": "<input id=\"inlineInput\" placeholder=\"Instruction : ex. ajoute la gestion d'erreur\u2026\" aria-label=\"Instruction d'\u00e9dition IA\"><button id=\"inlineGo\" type=\"button\">G\u00e9n\u00e9rer</button><button id=\"inlineCancel\" type=\"button\">Fermer</button></div>"
+      "line_start": 211,
+      "line_end": 211,
+      "signature": "<input id=\"inlineInput\" placeholder=\"Instruction : ex. refactoriser, typer, ajouter gestion d'erreurs\u2026\" aria-label=\"Instruction d'\u00e9dition IA\"><button id=\"inlineGo\" type=\"button\">G\u00e9n\u00e9rer</button><button id=\"inlineCancel\" type=\"button\">Fermer</button></div><div id=\"inlineChips\" style=\"display:flex;gap:6px;overflow-x:auto;padding-top:4px;\"></div></search>"
     },
     {
       "type": "section",
       "name": "#inlinePreview",
-      "tag": "div",
-      "line_start": 140,
-      "line_end": 140,
-      "signature": "<div id=\"inlinePreview\" role=\"region\" aria-label=\"Aper\u00e7u de modification IA\"><div class=\"diffPreview\" id=\"inlineDiff\"></div><div class=\"row\"><span id=\"inlineStatus\" style=\"flex:1;color:#9cdcfe;font:12px Segoe UI,sans-serif;\"></span><button id=\"inlineAccept\" type=\"button\">Accepter</button><button id=\"inlineReject\" type=\"button\" class=\"reject\">Rejeter</button></div></div>"
+      "tag": "section",
+      "line_start": 212,
+      "line_end": 212,
+      "signature": "<section id=\"inlinePreview\" aria-label=\"Aper\u00e7u de modification IA\"><div class=\"diffPreview\" id=\"inlineDiff\"></div><div class=\"row\"><span id=\"inlineStatus\" style=\"flex:1;color:#9cdcfe;font:12px Segoe UI,sans-serif;\"></span><button id=\"inlineAccept\" type=\"button\">Accepter</button><button id=\"inlineReject\" type=\"button\" class=\"reject\">Rejeter</button></div></section>"
     },
     {
       "type": "section",
       "name": "#main",
       "tag": "div",
-      "line_start": 141,
-      "line_end": 145,
+      "line_start": 213,
+      "line_end": 217,
       "signature": "<div id=\"main\">"
     },
     {
       "type": "section",
       "name": "#side",
       "tag": "div",
-      "line_start": 142,
-      "line_end": 142,
-      "signature": "<div id=\"side\"><div id=\"searchBox\"><input id=\"searchInput\" placeholder=\"Rechercher dans le projet\u2026\" aria-label=\"Rechercher dans le projet\"><button id=\"searchButton\" title=\"Rechercher\">\u2315</button></div><div id=\"results\" hidden></div><div id=\"tree\"></div></div>"
+      "line_start": 214,
+      "line_end": 214,
+      "signature": "<div id=\"side\"><div id=\"searchBox\"><input id=\"searchInput\" placeholder=\"Rechercher dans le projet\u2026\" aria-label=\"Rechercher dans le projet\"><button type=\"button\" id=\"searchButton\" title=\"Rechercher\">\u2315</button></div><div id=\"results\" hidden></div><div id=\"tree\"></div></div>"
     },
     {
       "type": "section",
       "name": "#searchBox",
       "tag": "div",
-      "line_start": 142,
-      "line_end": 142,
-      "signature": "<div id=\"searchBox\"><input id=\"searchInput\" placeholder=\"Rechercher dans le projet\u2026\" aria-label=\"Rechercher dans le projet\"><button id=\"searchButton\" title=\"Rechercher\">\u2315</button></div><div id=\"results\" hidden></div><div id=\"tree\"></div></div>"
+      "line_start": 214,
+      "line_end": 214,
+      "signature": "<div id=\"searchBox\"><input id=\"searchInput\" placeholder=\"Rechercher dans le projet\u2026\" aria-label=\"Rechercher dans le projet\"><button type=\"button\" id=\"searchButton\" title=\"Rechercher\">\u2315</button></div><div id=\"results\" hidden></div><div id=\"tree\"></div></div>"
     },
     {
       "type": "section",
       "name": "#searchInput",
       "tag": "input",
-      "line_start": 142,
-      "line_end": 142,
-      "signature": "<input id=\"searchInput\" placeholder=\"Rechercher dans le projet\u2026\" aria-label=\"Rechercher dans le projet\"><button id=\"searchButton\" title=\"Rechercher\">\u2315</button></div><div id=\"results\" hidden></div><div id=\"tree\"></div></div>"
+      "line_start": 214,
+      "line_end": 214,
+      "signature": "<input id=\"searchInput\" placeholder=\"Rechercher dans le projet\u2026\" aria-label=\"Rechercher dans le projet\"><button type=\"button\" id=\"searchButton\" title=\"Rechercher\">\u2315</button></div><div id=\"results\" hidden></div><div id=\"tree\"></div></div>"
     },
     {
       "type": "section",
       "name": "#sidegrip",
       "tag": "div",
-      "line_start": 143,
-      "line_end": 143,
+      "line_start": 215,
+      "line_end": 215,
       "signature": "<div id=\"sidegrip\" title=\"Glisser pour redimensionner\" aria-hidden=\"true\"></div>"
     },
     {
       "type": "section",
       "name": "#editorPane",
       "tag": "div",
-      "line_start": 144,
-      "line_end": 144,
-      "signature": "<div id=\"editorPane\"><div id=\"tabs\" role=\"tablist\" aria-label=\"Fichiers ouverts\"></div><div id=\"findBar\" role=\"search\"><input id=\"findInput\" aria-label=\"Rechercher dans le fichier\" placeholder=\"Rechercher dans le fichier\"><button id=\"findPrev\" type=\"button\" title=\"Occurrence pr\u00e9c\u00e9dente (Maj+F3)\">\u2191</button><button id=\"findNext\" type=\"button\" title=\"Occurrence suivante (F3)\">\u2193</button><span id=\"find"
+      "line_start": 216,
+      "line_end": 216,
+      "signature": "<div id=\"editorPane\"><div id=\"tabs\" role=\"tablist\" aria-label=\"Fichiers ouverts\"></div><search id=\"findBar\"><input id=\"findInput\" aria-label=\"Rechercher dans le fichier\" placeholder=\"Rechercher dans le fichier\"><button id=\"findPrev\" type=\"button\" title=\"Occurrence pr\u00e9c\u00e9dente (Maj+F3)\">\u2191</button><button id=\"findNext\" type=\"button\" title=\"Occurrence suivante (F3)\">\u2193</button><span id=\"findCount\" aria"
     },
     {
       "type": "section",
       "name": "#tabs",
       "tag": "div",
-      "line_start": 144,
-      "line_end": 144,
-      "signature": "<div id=\"tabs\" role=\"tablist\" aria-label=\"Fichiers ouverts\"></div><div id=\"findBar\" role=\"search\"><input id=\"findInput\" aria-label=\"Rechercher dans le fichier\" placeholder=\"Rechercher dans le fichier\"><button id=\"findPrev\" type=\"button\" title=\"Occurrence pr\u00e9c\u00e9dente (Maj+F3)\">\u2191</button><button id=\"findNext\" type=\"button\" title=\"Occurrence suivante (F3)\">\u2193</button><span id=\"findCount\" aria-live=\"pol"
+      "line_start": 216,
+      "line_end": 216,
+      "signature": "<div id=\"tabs\" role=\"tablist\" aria-label=\"Fichiers ouverts\"></div><search id=\"findBar\"><input id=\"findInput\" aria-label=\"Rechercher dans le fichier\" placeholder=\"Rechercher dans le fichier\"><button id=\"findPrev\" type=\"button\" title=\"Occurrence pr\u00e9c\u00e9dente (Maj+F3)\">\u2191</button><button id=\"findNext\" type=\"button\" title=\"Occurrence suivante (F3)\">\u2193</button><span id=\"findCount\" aria-live=\"polite\"></span"
     },
     {
       "type": "section",
       "name": "#findBar",
-      "tag": "div",
-      "line_start": 144,
-      "line_end": 144,
-      "signature": "<div id=\"findBar\" role=\"search\"><input id=\"findInput\" aria-label=\"Rechercher dans le fichier\" placeholder=\"Rechercher dans le fichier\"><button id=\"findPrev\" type=\"button\" title=\"Occurrence pr\u00e9c\u00e9dente (Maj+F3)\">\u2191</button><button id=\"findNext\" type=\"button\" title=\"Occurrence suivante (F3)\">\u2193</button><span id=\"findCount\" aria-live=\"polite\"></span><div id=\"replaceWrap\"><input id=\"replaceInput\" aria-la"
+      "tag": "search",
+      "line_start": 216,
+      "line_end": 216,
+      "signature": "<search id=\"findBar\"><input id=\"findInput\" aria-label=\"Rechercher dans le fichier\" placeholder=\"Rechercher dans le fichier\"><button id=\"findPrev\" type=\"button\" title=\"Occurrence pr\u00e9c\u00e9dente (Maj+F3)\">\u2191</button><button id=\"findNext\" type=\"button\" title=\"Occurrence suivante (F3)\">\u2193</button><span id=\"findCount\" aria-live=\"polite\"></span><div id=\"replaceWrap\"><input id=\"replaceInput\" aria-label=\"Rempla"
     },
     {
       "type": "section",
       "name": "#findInput",
       "tag": "input",
-      "line_start": 144,
-      "line_end": 144,
+      "line_start": 216,
+      "line_end": 216,
       "signature": "<input id=\"findInput\" aria-label=\"Rechercher dans le fichier\" placeholder=\"Rechercher dans le fichier\"><button id=\"findPrev\" type=\"button\" title=\"Occurrence pr\u00e9c\u00e9dente (Maj+F3)\">\u2191</button><button id=\"findNext\" type=\"button\" title=\"Occurrence suivante (F3)\">\u2193</button><span id=\"findCount\" aria-live=\"polite\"></span><div id=\"replaceWrap\"><input id=\"replaceInput\" aria-label=\"Remplacer par\" placeholder="
     },
     {
       "type": "section",
       "name": "#findPrev",
       "tag": "button",
-      "line_start": 144,
-      "line_end": 144,
+      "line_start": 216,
+      "line_end": 216,
       "signature": "<button id=\"findPrev\" type=\"button\" title=\"Occurrence pr\u00e9c\u00e9dente (Maj+F3)\">\u2191</button><button id=\"findNext\" type=\"button\" title=\"Occurrence suivante (F3)\">\u2193</button><span id=\"findCount\" aria-live=\"polite\"></span><div id=\"replaceWrap\"><input id=\"replaceInput\" aria-label=\"Remplacer par\" placeholder=\"Remplacer par\"><button id=\"replaceOne\" type=\"button\">Remplacer</button><button id=\"replaceAll\" type=\"b"
     },
     {
       "type": "section",
       "name": "#err",
       "tag": "div",
-      "line_start": 146,
-      "line_end": 146,
+      "line_start": 218,
+      "line_end": 218,
       "signature": "<div id=\"err\"></div>"
     },
     {
       "type": "section",
       "name": "#diagPanel",
-      "tag": "div",
-      "line_start": 147,
-      "line_end": 147,
-      "signature": "<div id=\"diagPanel\" role=\"region\" aria-label=\"Probl\u00e8mes du fichier\"></div>"
+      "tag": "section",
+      "line_start": 219,
+      "line_end": 219,
+      "signature": "<section id=\"diagPanel\" aria-label=\"Probl\u00e8mes du fichier\"></section>"
     },
     {
       "type": "section",
-      "name": "#status",
-      "tag": "div",
-      "line_start": 148,
-      "line_end": 148,
-      "signature": "<div id=\"status\"><span id=\"sFile\">\u2014</span><span id=\"sPosition\">Ln 1, Col 1</span><span id=\"sDirty\"></span><span id=\"sMsg\"></span><span id=\"zoomctl\" role=\"group\" aria-label=\"Taille du texte de l'interface\"><span class=\"zl\">Texte</span><button class=\"zstep\" type=\"button\" id=\"zoomOut\" title=\"R\u00e9duire la taille du texte\" aria-label=\"R\u00e9duire la taille du texte\">-</button><span class=\"zbar\"><span class=\""
+      "name": "#vsc-statusbar",
+      "tag": "footer",
+      "line_start": 220,
+      "line_end": 238,
+      "signature": "<footer id=\"vsc-statusbar\" class=\"vsc-statusbar\" role=\"status\" aria-label=\"Barre d'\u00e9tat\">"
+    },
+    {
+      "type": "section",
+      "name": "#sb-branch",
+      "tag": "button",
+      "line_start": 222,
+      "line_end": 222,
+      "signature": "<button type=\"button\" class=\"vsc-sb-item\" id=\"sb-branch\" title=\"Branche Git active (cliquez pour basculer)\"><span class=\"vsc-sb-ico\">\u2387</span> <span id=\"sb-branch-name\">main*</span></button>"
+    },
+    {
+      "type": "section",
+      "name": "#sb-sync",
+      "tag": "button",
+      "line_start": 223,
+      "line_end": 223,
+      "signature": "<button type=\"button\" class=\"vsc-sb-item\" id=\"sb-sync\" title=\"Synchroniser les modifications (0 entrants, 41 sortants)\"><span class=\"vsc-sb-ico\">\u21bb</span> 0\u2193 41\u2191</button>"
+    },
+    {
+      "type": "section",
+      "name": "#sb-problems",
+      "tag": "button",
+      "line_start": 224,
+      "line_end": 224,
+      "signature": "<button type=\"button\" class=\"vsc-sb-item\" id=\"sb-problems\" title=\"Probl\u00e8mes du fichier (cliquez pour afficher/masquer)\"><span class=\"vsc-sb-ico vsc-err\">\u2297</span> <span id=\"sb-err-cnt\">0</span> <span class=\"vsc-sb-ico vsc-warn\">\u26a0</span> <span id=\"sb-warn-cnt\">0</span></button>"
     },
     {
       "type": "section",
       "name": "#sFile",
       "tag": "span",
-      "line_start": 148,
-      "line_end": 148,
-      "signature": "<span id=\"sFile\">\u2014</span><span id=\"sPosition\">Ln 1, Col 1</span><span id=\"sDirty\"></span><span id=\"sMsg\"></span><span id=\"zoomctl\" role=\"group\" aria-label=\"Taille du texte de l'interface\"><span class=\"zl\">Texte</span><button class=\"zstep\" type=\"button\" id=\"zoomOut\" title=\"R\u00e9duire la taille du texte\" aria-label=\"R\u00e9duire la taille du texte\">-</button><span class=\"zbar\"><span class=\"zfill\" id=\"zfill\""
+      "line_start": 225,
+      "line_end": 225,
+      "signature": "<span id=\"sFile\" hidden>\u2014</span><span id=\"sDirty\" hidden></span><span id=\"sMsg\" hidden></span>"
+    },
+    {
+      "type": "section",
+      "name": "#sb-blame",
+      "tag": "button",
+      "line_start": 228,
+      "line_end": 228,
+      "signature": "<button type=\"button\" class=\"vsc-sb-item\" id=\"sb-blame\" title=\"GitLens : auteur de la ligne courante\"><span class=\"vsc-sb-ico\">\u2316</span> <span id=\"sb-blame-text\">You, 3 days ago</span></button>"
+    },
+    {
+      "type": "section",
+      "name": "#sb-pos",
+      "tag": "button",
+      "line_start": 229,
+      "line_end": 229,
+      "signature": "<button type=\"button\" class=\"vsc-sb-item\" id=\"sb-pos\" title=\"Ligne et colonne du curseur\"><span id=\"sPosition\">Ln 1, Col 1</span></button>"
+    },
+    {
+      "type": "section",
+      "name": "#sPosition",
+      "tag": "span",
+      "line_start": 229,
+      "line_end": 229,
+      "signature": "<span id=\"sPosition\">Ln 1, Col 1</span></button>"
+    },
+    {
+      "type": "section",
+      "name": "#sb-indent",
+      "tag": "button",
+      "line_start": 230,
+      "line_end": 230,
+      "signature": "<button type=\"button\" class=\"vsc-sb-item\" id=\"sb-indent\" title=\"Indentation du document\"><span id=\"sb-indent-text\">Spaces: 2</span></button>"
+    },
+    {
+      "type": "section",
+      "name": "#sb-indent-text",
+      "tag": "span",
+      "line_start": 230,
+      "line_end": 230,
+      "signature": "<span id=\"sb-indent-text\">Spaces: 2</span></button>"
+    },
+    {
+      "type": "section",
+      "name": "#sb-encoding",
+      "tag": "button",
+      "line_start": 231,
+      "line_end": 231,
+      "signature": "<button type=\"button\" class=\"vsc-sb-item\" id=\"sb-encoding\" title=\"Encodage du fichier\">UTF-8</button>"
+    },
+    {
+      "type": "section",
+      "name": "#sb-eol",
+      "tag": "button",
+      "line_start": 232,
+      "line_end": 232,
+      "signature": "<button type=\"button\" class=\"vsc-sb-item\" id=\"sb-eol\" title=\"Fin de ligne\">LF</button>"
+    },
+    {
+      "type": "section",
+      "name": "#sb-lang",
+      "tag": "button",
+      "line_start": 233,
+      "line_end": 233,
+      "signature": "<button type=\"button\" class=\"vsc-sb-item\" id=\"sb-lang\" title=\"S\u00e9lectionner le mode de langage\"><span class=\"vsc-sb-ico\">{ }</span> <span id=\"sb-lang-text\">JavaScript</span></button>"
+    },
+    {
+      "type": "section",
+      "name": "#sb-formatter",
+      "tag": "button",
+      "line_start": 234,
+      "line_end": 234,
+      "signature": "<button type=\"button\" class=\"vsc-sb-item\" id=\"sb-formatter\" title=\"Formateur actif : Biome\"><span class=\"vsc-sb-ico\">\u25b3</span> 2.5.14</button>"
+    },
+    {
+      "type": "section",
+      "name": "#sb-settings",
+      "tag": "button",
+      "line_start": 235,
+      "line_end": 235,
+      "signature": "<button type=\"button\" class=\"vsc-sb-item\" id=\"sb-settings\" title=\"Param\u00e8tres et options\"><span class=\"vsc-sb-ico\">\u2699</span> Param\u00e8tres</button>"
+    },
+    {
+      "type": "section",
+      "name": "#sb-bell",
+      "tag": "button",
+      "line_start": 236,
+      "line_end": 236,
+      "signature": "<button type=\"button\" class=\"vsc-sb-item\" id=\"sb-bell\" title=\"Notifications\"><span class=\"vsc-sb-ico\">\ud83d\udd14</span></button>"
     }
   ]
 }

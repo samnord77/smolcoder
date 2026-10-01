@@ -23,6 +23,7 @@ import { ContextManager } from "../context";
 import { applyOp, type CrdOp, docFromText } from "../crdt";
 import { EventBus } from "../events";
 import { gitApplyHunk, gitCommit, gitDiffFiles, gitRevertFile, gitStage, gitStageLines, gitStatusMap, gitUnstage } from "../git";
+import { appendSmolLog, readRecentLogs } from "../logger";
 import { installLspServer } from "../lsp-install";
 import { LSP_LANGS, lspAvailability, queryCode, queryDiagStructured, serverDefForLang } from "../lsp-pro";
 import { loadMcpConfig, setMcpEnabled } from "../mcp";
@@ -434,6 +435,7 @@ export class WebHub {
 
   private log(s: string): void {
     if (!this.opts.quiet) console.log(s);
+    appendSmolLog("info", s);
   }
 
   // ---- sessions ---------------------------------------------------------------
@@ -610,7 +612,19 @@ export class WebHub {
       };
     }
     try {
-      const session = await this.factory(live.channel, live.workspace, prefs, live.id);
+      let session: Session;
+      try {
+        session = await this.factory(live.channel, live.workspace, prefs, live.id);
+      } catch (firstErr: any) {
+        // Si le modèle précis de l'ancienne session est introuvable, repli immédiat sur le modèle par défaut actuel
+        if (restore && (prefs.model !== this.opts.prefs.model || prefs.backend !== this.opts.prefs.backend)) {
+          const fallbackPrefs = { ...prefs, model: this.opts.prefs.model, backend: this.opts.prefs.backend, baseUrl: this.opts.prefs.baseUrl };
+          session = await this.factory(live.channel, live.workspace, fallbackPrefs, live.id);
+          live.channel.warn(`Le modèle enregistré (${restore.model || "inconnu"}) n'était plus disponible — session reprise avec ${session.chosen.id}`);
+        } else {
+          throw firstErr;
+        }
+      }
       if (live.channel.closed || this.live.get(live.id) !== live) {
         session.taskManager.killAll();
         return;
@@ -903,6 +917,9 @@ export class WebHub {
         case "/ping":
           json(200, { ok: true, pid: process.pid, version: this.opts.version, startedAt: this.bootedAt });
           return;
+        case "/logs":
+          json(200, { logs: readRecentLogs(200, url.searchParams.get("workspace") || undefined) });
+          return;
         case "/events":
           this.sse(req, res);
           return;
@@ -923,9 +940,14 @@ export class WebHub {
         case "/upload":
           this.serveUpload(res, url);
           return;
-        case "/workspace/tree":
-          json(200, this.workspaceTree(url.searchParams.get("sid"), url.searchParams.get("path")));
+        case "/workspace/tree": {
+          try {
+            json(200, this.workspaceTree(url.searchParams.get("sid"), url.searchParams.get("path")));
+          } catch (err: any) {
+            json(200, { entries: [], path: url.searchParams.get("path") || ".", error: String(err?.message ?? err) });
+          }
           return;
+        }
         case "/workspace/search": {
           const sid = String(url.searchParams.get("sid") ?? "");
           const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
@@ -1442,9 +1464,15 @@ export class WebHub {
         if (!bridge) throw new Error("mcp: no MCP bridge for this session");
         return { message: await bridge.debugServer(name, timeoutMs) };
       }
-      case "/cancel":
-        live().channel.cancel();
+      case "/cancel": {
+        const l = live();
+        l.channel.cancel();
+        if (l.session) {
+          l.session.agent.cancel();
+          l.session.taskManager.killAll();
+        }
         return {};
+      }
       case "/sessions/new":
         return { id: this.openSession(this.checkDir(d.workspace)) };
       case "/sessions/resume":
@@ -1649,17 +1677,19 @@ export class WebHub {
   private workspaceTree(sidRaw: string | null, relRaw: string | null): any {
     const sid = String(sidRaw ?? "");
     const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
-    if (!live) throw new Error("no such session");
+    const meta = this.metas.get(sid);
+    const ws = live?.workspace ?? meta?.workspace ?? this.workspaces.list()[0]?.path;
+    if (!ws) throw new Error("no such session or workspace");
     const rel = String(relRaw ?? "").trim() || ".";
     let abs: string;
     try {
-      abs = resolveInWorkspace(live.workspace, rel);
+      abs = resolveInWorkspace(ws, rel);
     } catch (err: any) {
       throw new Error(err instanceof SandboxError ? err.message : String(err?.message ?? err));
     }
     const st = fs.statSync(abs);
     if (!st.isDirectory()) throw new Error("not a folder");
-    const statusMap = gitStatusMap(live.workspace, abs);
+    const statusMap = gitStatusMap(ws, abs);
     const entries = fs
       .readdirSync(abs, { withFileTypes: true })
       .filter((e) => !e.name.startsWith(".") && !["node_modules", "dist", "build", "coverage", ".git"].includes(e.name))
@@ -1680,34 +1710,36 @@ export class WebHub {
         }
         return {
           name: e.name,
-          path: path.relative(live.workspace, child).split(path.sep).join("/") || ".",
+          path: path.relative(ws, child).split(path.sep).join("/") || ".",
           dir: e.isDirectory(),
           status: statusMap.get(e.name) ?? "",
           size,
           mtimeMs,
         };
       });
-    return { workspace: live.workspace, path: rel === "." ? "." : path.relative(live.workspace, abs).split(path.sep).join("/"), entries };
+    return { workspace: ws, path: rel === "." ? "." : path.relative(ws, abs).split(path.sep).join("/"), entries };
   }
 
   private workspaceFile(res: http.ServerResponse, url: URL): void {
     const sid = String(url.searchParams.get("sid") ?? "");
     const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
-    if (!live) {
+    const meta = this.metas.get(sid);
+    const ws = live?.workspace ?? meta?.workspace ?? this.workspaces.list()[0]?.path;
+    if (!ws) {
       res.writeHead(404, { "content-type": "application/json" });
-      res.end(JSON.stringify({ error: "no such session" }));
+      res.end(JSON.stringify({ error: "no such session or workspace" }));
       return;
     }
     let abs: string;
     try {
-      abs = resolveInWorkspace(live.workspace, String(url.searchParams.get("path") ?? ""));
+      abs = resolveInWorkspace(ws, String(url.searchParams.get("path") ?? ""));
       const st = fs.statSync(abs);
       if (st.isDirectory()) throw new Error("not a file");
       if (url.searchParams.get("meta") === "1") {
         res.writeHead(200, { "content-type": "application/json" });
         res.end(
           JSON.stringify({
-            path: path.relative(live.workspace, abs).split(path.sep).join("/"),
+            path: path.relative(ws, abs).split(path.sep).join("/"),
             size: st.size,
             mtimeMs: st.mtimeMs,
           })
@@ -1719,7 +1751,7 @@ export class WebHub {
       res.writeHead(200, { "content-type": "application/json" });
       res.end(
         JSON.stringify({
-          path: path.relative(live.workspace, abs).split(path.sep).join("/"),
+          path: path.relative(ws, abs).split(path.sep).join("/"),
           content,
           size: st.size,
           mtimeMs: st.mtimeMs,

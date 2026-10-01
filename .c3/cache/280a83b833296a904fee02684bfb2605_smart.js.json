@@ -1,0 +1,9 @@
+{
+  "original_tokens": 453,
+  "compressed_tokens": 78,
+  "saved_tokens": 375,
+  "savings_pct": 82.8,
+  "compressed": "# desktop-startup.test.js (.js) \u2014 47 lines\nconst test = require(\"node:test\");\nconst assert = require(\"node:assert/strict\");\nconst Module = require(\"node:module\");\nconst path = require(\"node:path\");\nconst desktopPackage = require(\"../desktop/package.json\");\nconst rootPackage = require(\"../package.json\");\nconst fs = require(\"node:fs\");",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\desktop-startup.test.js"
+}

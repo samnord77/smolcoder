@@ -1,10 +1,10 @@
 {
   "path": "desktop/mcp.html",
-  "content_hash": "9589f3bc903b2791a23032b85d2be8fb",
-  "updated_at": "2026-09-29T16:59:44",
-  "lines": 220,
-  "size_bytes": 12947,
-  "mtime_ns": 1790696423010313300,
+  "content_hash": "ca0a71f6080c5cf7f845dcab15ddd9de",
+  "updated_at": "2026-10-01T08:32:53",
+  "lines": 210,
+  "size_bytes": 12745,
+  "mtime_ns": 1790810288519055700,
   "language": "html",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -15,7 +15,7 @@
       "tag": "button",
       "line_start": 70,
       "line_end": 70,
-      "signature": "<button id=\"bRefresh\">\u21bb Actualiser</button>"
+      "signature": "<button id=\"bRefresh\" type=\"button\">\u21bb Actualiser</button>"
     },
     {
       "type": "section",
@@ -28,10 +28,10 @@
     {
       "type": "section",
       "name": "#zoomctl",
-      "tag": "span",
+      "tag": "fieldset",
       "line_start": 72,
       "line_end": 72,
-      "signature": "<span id=\"zoomctl\" role=\"group\" aria-label=\"Taille du texte de l'interface\"><span class=\"zl\">Texte</span><button class=\"zstep\" type=\"button\" id=\"zoomOut\" title=\"R\u00e9duire la taille du texte\" aria-label=\"R\u00e9duire la taille du texte\">-</button><span class=\"zbar\"><span class=\"zfill\" id=\"zfill\"></span><input type=\"range\" id=\"zoomRange\" min=\"0\" max=\"100\" step=\"5\" aria-label=\"Taille du texte en pourcentage"
+      "signature": "<fieldset id=\"zoomctl\" aria-label=\"Taille du texte de l'interface\"><span class=\"zl\">Texte</span><button class=\"zstep\" type=\"button\" id=\"zoomOut\" title=\"R\u00e9duire la taille du texte\" aria-label=\"R\u00e9duire la taille du texte\">-</button><span class=\"zbar\"><span class=\"zfill\" id=\"zfill\"></span><input type=\"range\" id=\"zoomRange\" min=\"0\" max=\"100\" step=\"5\" aria-label=\"Taille du texte en pourcentage\"></span>"
     },
     {
       "type": "section",

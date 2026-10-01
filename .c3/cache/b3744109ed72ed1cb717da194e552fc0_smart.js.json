@@ -1,0 +1,9 @@
+{
+  "original_tokens": 532,
+  "compressed_tokens": 84,
+  "saved_tokens": 448,
+  "savings_pct": 84.2,
+  "compressed": "# process-lifecycle.test.js (.js) \u2014 52 lines\nconst test = require(\"node:test\");\nconst assert = require(\"node:assert/strict\");\nconst fs = require(\"node:fs\");\nconst path = require(\"node:path\");\nconst os = require(\"node:os\");\nconst delay = (ms) => new Promise((r) => setTimeout(r, ms));\nconst alive = (pid) =>",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\process-lifecycle.test.js"
+}

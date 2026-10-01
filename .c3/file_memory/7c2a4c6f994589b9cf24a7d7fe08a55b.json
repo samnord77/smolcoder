@@ -1,10 +1,10 @@
 {
   "path": "extras/secondary-agent-tools/cleanup-decorative-modals.js",
-  "content_hash": "1d7d1c15d05855dd805d2f82f6c5d7dd",
-  "updated_at": "2026-09-27T18:37:48",
-  "lines": 72,
-  "size_bytes": 2840,
-  "mtime_ns": 1790369675024845700,
+  "content_hash": "3090cea6deba274db7b95e68d6af9aa1",
+  "updated_at": "2026-10-01T08:35:49",
+  "lines": 71,
+  "size_bytes": 2797,
+  "mtime_ns": 1790836942225723800,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -67,16 +67,9 @@
     },
     {
       "type": "constant",
-      "name": "modalEnd",
-      "line_start": 43,
-      "line_end": 43,
-      "signature": "const modalEnd = '<!-- /modalPillars -->';"
-    },
-    {
-      "type": "constant",
       "name": "jsPillars",
-      "line_start": 53,
-      "line_end": 65,
+      "line_start": 52,
+      "line_end": 64,
       "signature": "const jsPillars = `// Modal 5 Piliers & Outils"
     }
   ]

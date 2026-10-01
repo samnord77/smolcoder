@@ -1,0 +1,9 @@
+{
+  "original_tokens": 649,
+  "compressed_tokens": 91,
+  "saved_tokens": 558,
+  "savings_pct": 86.0,
+  "compressed": "# README.md (.md) \u2014 48 lines\n# Smolcoder Desktop (v0.1.0)  IDE bureau Electron autour du hub smolcoder existant. Zero changement du hub.\n## Lancer  ```powershell\n## Contenu  | Fichier | Role |\n## Menus natifs  Session (nouvelle, annuler, editeur Ctrl+E), Modele (/models), Mode (ro/edit/",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\desktop\\README.md"
+}

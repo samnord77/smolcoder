@@ -1,0 +1,9 @@
+{
+  "original_tokens": 2002,
+  "compressed_tokens": 60,
+  "saved_tokens": 1942,
+  "savings_pct": 97.0,
+  "compressed": "# cowork.test.js (.js) \u2014 176 lines\nconst test = require(\"node:test\");\nconst assert = require(\"node:assert/strict\");\nconst fs = require(\"node:fs\");\nconst os = require(\"node:os\");\nconst path = require(\"node:path\");\nfunction workspace()",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\cowork.test.js"
+}

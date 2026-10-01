@@ -1,10 +1,10 @@
 {
   "path": "desktop/git.html",
-  "content_hash": "429c013ef0a3e448a41be6beb087f67d",
-  "updated_at": "2026-09-29T16:36:45",
-  "lines": 303,
-  "size_bytes": 16119,
-  "mtime_ns": 1790696198026838900,
+  "content_hash": "7d3655bd40ee08f03bfe347a89995011",
+  "updated_at": "2026-10-01T08:32:53",
+  "lines": 304,
+  "size_bytes": 16055,
+  "mtime_ns": 1790810985240595700,
   "language": "html",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -30,7 +30,7 @@
       "tag": "button",
       "line_start": 102,
       "line_end": 102,
-      "signature": "<button id=\"bRefresh\" aria-label=\"Actualiser le statut Git\">\u21bb Actualiser</button>"
+      "signature": "<button id=\"bRefresh\" type=\"button\" aria-label=\"Actualiser le statut Git\">\u21bb Actualiser</button>"
     },
     {
       "type": "section",
@@ -54,7 +54,7 @@
       "tag": "div",
       "line_start": 106,
       "line_end": 106,
-      "signature": "<div id=\"stats\" aria-label=\"Statistiques des modifications\"></div>"
+      "signature": "<div id=\"stats\"></div>"
     },
     {
       "type": "section",
@@ -102,7 +102,7 @@
       "tag": "pre",
       "line_start": 112,
       "line_end": 112,
-      "signature": "<pre id=\"diff\" aria-label=\"Diff du fichier\"><span class=\"head\">Choisissez un fichier \u00e0 gauche pour voir ses modifications\u2026</span></pre>"
+      "signature": "<pre id=\"diff\"><span class=\"head\">Choisissez un fichier \u00e0 gauche pour voir ses modifications\u2026</span></pre>"
     },
     {
       "type": "section",
@@ -134,7 +134,7 @@
       "tag": "button",
       "line_start": 118,
       "line_end": 118,
-      "signature": "<button id=\"bCommit\">\u2713 Commit</button>"
+      "signature": "<button id=\"bCommit\" type=\"button\">\u2713 Commit</button>"
     },
     {
       "type": "section",
@@ -142,7 +142,7 @@
       "tag": "div",
       "line_start": 120,
       "line_end": 120,
-      "signature": "<div id=\"status\"><span id=\"sCount\">\u2014</span><span id=\"sMsg\"></span><span id=\"zoomctl\" role=\"group\" aria-label=\"Taille du texte de l'interface\"><span class=\"zl\">Texte</span><button class=\"zstep\" type=\"button\" id=\"zoomOut\" title=\"R\u00e9duire la taille du texte\" aria-label=\"R\u00e9duire la taille du texte\">-</button><span class=\"zbar\"><span class=\"zfill\" id=\"zfill\"></span><input type=\"range\" id=\"zoomRange\" min"
+      "signature": "<div id=\"status\"><span id=\"sCount\">\u2014</span><span id=\"sMsg\"></span><fieldset id=\"zoomctl\" aria-label=\"Taille du texte de l'interface\"><span class=\"zl\">Texte</span><button class=\"zstep\" type=\"button\" id=\"zoomOut\" title=\"R\u00e9duire la taille du texte\" aria-label=\"R\u00e9duire la taille du texte\">-</button><span class=\"zbar\"><span class=\"zfill\" id=\"zfill\"></span><input type=\"range\" id=\"zoomRange\" min=\"0\" max="
     },
     {
       "type": "section",
@@ -150,7 +150,7 @@
       "tag": "span",
       "line_start": 120,
       "line_end": 120,
-      "signature": "<span id=\"sCount\">\u2014</span><span id=\"sMsg\"></span><span id=\"zoomctl\" role=\"group\" aria-label=\"Taille du texte de l'interface\"><span class=\"zl\">Texte</span><button class=\"zstep\" type=\"button\" id=\"zoomOut\" title=\"R\u00e9duire la taille du texte\" aria-label=\"R\u00e9duire la taille du texte\">-</button><span class=\"zbar\"><span class=\"zfill\" id=\"zfill\"></span><input type=\"range\" id=\"zoomRange\" min=\"0\" max=\"100\" st"
+      "signature": "<span id=\"sCount\">\u2014</span><span id=\"sMsg\"></span><fieldset id=\"zoomctl\" aria-label=\"Taille du texte de l'interface\"><span class=\"zl\">Texte</span><button class=\"zstep\" type=\"button\" id=\"zoomOut\" title=\"R\u00e9duire la taille du texte\" aria-label=\"R\u00e9duire la taille du texte\">-</button><span class=\"zbar\"><span class=\"zfill\" id=\"zfill\"></span><input type=\"range\" id=\"zoomRange\" min=\"0\" max=\"100\" step=\"5\" ar"
     }
   ]
 }

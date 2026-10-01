@@ -95,7 +95,7 @@ export const PAGE_HTML = `<!doctype html>
     <div id="logs"></div>
     <div id="busywrap">
       <div id="busy">
-        <div class="halo-spinner" aria-hidden="true"><div class="halo-ring"></div></div>
+        <div class="pro-orbits" aria-hidden="true"><span></span><span></span><span></span></div>
         <span class="wave-dots" aria-hidden="true"><i></i><i></i><i></i></span>
         <span id="busylabel">Réflexion en cours…</span>
         <span id="busysecs"></span>

@@ -1,0 +1,9 @@
+{
+  "original_tokens": 9013,
+  "compressed_tokens": 138,
+  "saved_tokens": 8875,
+  "savings_pct": 98.5,
+  "compressed": "# web.test.js (.js) \u2014 752 lines\nconst test = require(\"node:test\");\nconst assert = require(\"node:assert/strict\");\nconst fs = require(\"node:fs\");\nconst http = require(\"node:http\");\nconst os = require(\"node:os\");\nconst path = require(\"node:path\");\nconst sleep = (ms) => new Promise((r) => setTimeout(r, ms));\nasync function until(fn, ms = 4000, label = \"condition\")\nfunction tmpdir(prefix)\nfunction makeChannel(id = \"s1\")\nfunction fakeFactory(log)\nfunction request(hub, method, p, body)\nfunction readEvents(hub, stopWhen)",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\web.test.js"
+}

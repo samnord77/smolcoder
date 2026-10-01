@@ -96,7 +96,6 @@ function stopHubWatchdog() {
 function startHubWatchdog(win) {
   stopHubWatchdog();
   let fails = 0;
-  let alerted = false;
   let busy = false;
   hubWatchTimer = setInterval(async () => {
     if (!mainWin || win !== mainWin || win.isDestroyed()) {
@@ -110,15 +109,24 @@ function startHubWatchdog(win) {
       fails = 0;
     } catch {
       fails += 1;
-      if (fails >= 2 && !alerted) {
-        alerted = true;
-        stopHubWatchdog();
-        errBox("Serveur injoignable — rouvrez l'IDE quand il tourne");
+      if (fails >= 2) {
+        try {
+          const ensured = await hub.ensureHub(cfg, (line) => console.log(line));
+          if (ensured?.rec && !win.isDestroyed()) {
+            hubRec = ensured.rec;
+            const sid = await hub.ensureSession(hubRec, projectDir);
+            const targetUrl = `http://127.0.0.1:${hubRec.port}/?k=${hubRec.token}#${sid}`;
+            win.loadURL(targetUrl);
+            fails = 0;
+          }
+        } catch {
+          /* Nouvelle tentative automatique au prochain cycle */
+        }
       }
     } finally {
       busy = false;
     }
-  }, 15000);
+  }, 10000);
   if (hubWatchTimer.unref) hubWatchTimer.unref();
 }
 

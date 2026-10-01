@@ -1,10 +1,10 @@
 {
   "path": "desktop/sse-check.js",
-  "content_hash": "19de14edf9fc1041aeb97f143f018012",
-  "updated_at": "2026-09-25T16:47:59",
-  "lines": 30,
-  "size_bytes": 994,
-  "mtime_ns": 1790350360791497900,
+  "content_hash": "439d1fa52f9b2d1fb8b56e080582c6ea",
+  "updated_at": "2026-10-01T08:32:54",
+  "lines": 31,
+  "size_bytes": 1015,
+  "mtime_ns": 1790820804962994200,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -27,7 +27,7 @@
       "type": "constant",
       "name": "req",
       "line_start": 4,
-      "line_end": 26,
+      "line_end": 27,
       "signature": "const req = http.get("
     }
   ]

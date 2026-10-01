@@ -1,0 +1,9 @@
+{
+  "original_tokens": 756,
+  "compressed_tokens": 40,
+  "saved_tokens": 716,
+  "savings_pct": 94.7,
+  "compressed": "# continuous-validation.test.js (.js) \u2014 79 lines\nconst test = require(\"node:test\");\nconst assert = require(\"node:assert/strict\");\nconst path = require(\"node:path\");",
+  "mode": "smart",
+  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\continuous-validation.test.js"
+}

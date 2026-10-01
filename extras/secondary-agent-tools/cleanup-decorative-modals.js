@@ -40,7 +40,6 @@ if (editorHtml.includes(clutteredBar)) {
 
 // Supprimer modalPillars s'il est présent
 const modalStart = '<div id="modalPillars"';
-const modalEnd = '<!-- /modalPillars -->';
 if (editorHtml.includes(modalStart)) {
   const sIdx = editorHtml.indexOf(modalStart);
   const eIdx = editorHtml.indexOf('</div>\n</div>\n</div>', sIdx);

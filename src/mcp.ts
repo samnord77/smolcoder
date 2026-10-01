@@ -530,9 +530,12 @@ export interface McpBridge {
   closeAll(): void;
 }
 
+export type McpStateKind = "actif" | "désactivé" | "démarrage" | "lent" | "erreur" | "clé manquante";
+
 export interface McpStatusRow {
   name: string;
   ok: boolean;
+  state?: McpStateKind;
   tools?: string[];
   error?: string;
   /** second probe in flight (slow-but-alive server): the UI shows
@@ -673,12 +676,27 @@ export function createMcpBridge(workspace: string): McpBridge {
     async status(timeoutMs = 8000): Promise<McpStatusRow[]> {
       const cfgs = loadMcpConfig(workspace);
       const now = Date.now();
+      const classify = (r: McpStatusRow, en: boolean): McpStateKind => {
+        if (!en) return "désactivé";
+        if (r.ok) return "actif";
+        if (r.retrying) return "démarrage";
+        if (r.error === "too slow to answer") return "lent";
+        if (r.error && /clé|401|api.?key|auth/i.test(r.error)) return "clé manquante";
+        return "erreur";
+      };
       return Promise.all(
         cfgs.map(async (cfg) => {
-          if (cfg.enabled === false) return { name: cfg.name, ok: false, error: "désactivé (enabled: false)" };
+          if (cfg.enabled === false) {
+            const row: McpStatusRow = { name: cfg.name, ok: false, state: "désactivé", error: "désactivé (enabled: false)" };
+            return row;
+          }
           const hit = statusCache.get(cfg.name);
-          if (hit && now - hit.at < STATUS_TTL_MS) return hit.row;
+          if (hit && now - hit.at < STATUS_TTL_MS) {
+            hit.row.state = classify(hit.row, true);
+            return hit.row;
+          }
           const row = await probeOne(cfg, timeoutMs);
+          row.state = classify(row, true);
           statusCache.set(cfg.name, { at: Date.now(), row });
           // Too slow for the quick pass: finish in the background (once) so
           // the next refresh shows the truth instead of a server that can

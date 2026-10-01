@@ -1,10 +1,10 @@
 {
   "path": ".smol/plans/947d10b7.json",
-  "content_hash": "e61f9c4bc6449b40809b71a799ab6d1b",
-  "updated_at": "2026-09-27T17:30:45",
+  "content_hash": "9a54ec309c71d70eda5c0cd6472de45c",
+  "updated_at": "2026-10-01T08:35:49",
   "lines": 38,
   "size_bytes": 914,
-  "mtime_ns": 1790511562238210600,
+  "mtime_ns": 1790839712962362800,
   "language": "json",
   "parser_version": "4",
   "parser": "tree_sitter",

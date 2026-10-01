@@ -1,10 +1,10 @@
 {
   "path": "src/tools/shell.ts",
-  "content_hash": "132fffdf32f1b03d94c7d2818b9d814a",
-  "updated_at": "2026-09-30T22:56:44",
-  "lines": 335,
-  "size_bytes": 12748,
-  "mtime_ns": 1790804048657010900,
+  "content_hash": "74b7f75f26b8723f8ab39f79c90c65fe",
+  "updated_at": "2026-10-01T08:34:54",
+  "lines": 333,
+  "size_bytes": 12719,
+  "mtime_ns": 1790813545273055500,
   "language": "typescript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -150,7 +150,7 @@
       "type": "function",
       "name": "runCommand",
       "line_start": 208,
-      "line_end": 335,
+      "line_end": 333,
       "signature": "function runCommand(command: string, cwd: string, signal?: AbortSignal, onCtl?: (ctl: ShellControl) => void): Promise<string> {"
     }
   ]

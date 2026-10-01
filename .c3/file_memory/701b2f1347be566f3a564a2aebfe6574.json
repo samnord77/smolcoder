@@ -1,0 +1,34 @@
+{
+  "path": "test/continuous-validation.test.js",
+  "content_hash": "41d8b362131daf2a8e2d14e7028deb3d",
+  "updated_at": "2026-10-01T08:32:53",
+  "lines": 79,
+  "size_bytes": 3023,
+  "mtime_ns": 1790824874220537900,
+  "language": "javascript",
+  "parser_version": "4",
+  "parser": "tree_sitter",
+  "sections": [
+    {
+      "type": "constant",
+      "name": "test",
+      "line_start": 1,
+      "line_end": 1,
+      "signature": "const test = require(\"node:test\");"
+    },
+    {
+      "type": "constant",
+      "name": "assert",
+      "line_start": 2,
+      "line_end": 2,
+      "signature": "const assert = require(\"node:assert/strict\");"
+    },
+    {
+      "type": "constant",
+      "name": "path",
+      "line_start": 3,
+      "line_end": 3,
+      "signature": "const path = require(\"node:path\");"
+    }
+  ]
+}

@@ -1,10 +1,10 @@
 {
   "path": "test/web.test.js",
-  "content_hash": "49e6bfd51e4309dc84787c4887e55c69",
-  "updated_at": "2026-09-30T22:59:36",
-  "lines": 751,
-  "size_bytes": 33217,
-  "mtime_ns": 1790790495045973600,
+  "content_hash": "744ac38fe7c0ee091810c1103c701846",
+  "updated_at": "2026-10-01T08:32:52",
+  "lines": 752,
+  "size_bytes": 33245,
+  "mtime_ns": 1790819654971671500,
   "language": "javascript",
   "parser_version": "4",
   "parser": "tree_sitter",
@@ -99,7 +99,7 @@
       "type": "function",
       "name": "readEvents",
       "line_start": 354,
-      "line_end": 380,
+      "line_end": 381,
       "signature": "function readEvents(hub, stopWhen) {",
       "doc": "Read SSE events from /events until one satisfies `stopWhen` (or 3s pass)."
     }
