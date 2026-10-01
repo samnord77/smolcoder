@@ -20,6 +20,9 @@ const ICON_ATTACH =
 const ICON_GAUGE =
   '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 18a9 9 0 1 1 16.8 0"/><path d="M12 13.5l4.8-4.8"/><circle cx="12" cy="15" r="1.6"/></svg>';
 
+const ICON_SIDEBAR =
+  '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>';
+
 export const PAGE_HTML = `<!doctype html>
 <html lang="fr">
 <head>
@@ -55,7 +58,7 @@ export const PAGE_HTML = `<!doctype html>
 </aside>
 <div id="main" role="main">
   <div id="top" role="toolbar" aria-label="Barre d'outils IDE">
-    <button type="button" class="iconbtn" id="sidetoggle" title="Afficher la barre latérale (Ctrl+B)" hidden>☰</button>
+    <button type="button" class="iconbtn" id="sidetoggle" title="Basculer la barre latérale (Ctrl+B)">${ICON_SIDEBAR}</button>
     <div id="crumb"></div>
     <button type="button" class="ide-badge" id="btnmodels" title="Changer de modèle (/models)"><span class="led blue"></span><span id="topmodelname">Modèle</span></button>
     <button type="button" class="iconbtn" id="btnfiles" title="Fichiers du projet et éditeur">${ICON_FILES}</button>
