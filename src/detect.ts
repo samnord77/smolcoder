@@ -278,8 +278,12 @@ export interface ServerInfo {
  * nothing there). Both native listings are requested together so a dead
  * address costs one timeout, not one per backend. */
 export async function identifyServer(base: string, timeoutMs = NETWORK_PROBE_TIMEOUT_MS): Promise<ServerInfo | null> {
-  const [tags, v1] = await Promise.all([probeJson(`${base}/api/tags`, timeoutMs), probeJson(`${base}/api/v1/models`, timeoutMs)]);
-  if (!tags.reached && !v1.reached) return null;
+  const [tags, v1, v0probe] = await Promise.all([
+    probeJson(`${base}/api/tags`, timeoutMs),
+    probeJson(`${base}/api/v1/models`, timeoutMs),
+    probeJson(`${base}/api/v0/models`, timeoutMs),
+  ]);
+  if (!tags.reached && !v1.reached && !v0probe.reached) return null;
   // LM Studio first: its listing names models by "key", which nothing else does.
   const lmKeyed =
     Array.isArray(v1.data?.models) && v1.data.models.length > 0 && v1.data.models.every((m: any) => typeof m?.key === "string");
@@ -288,6 +292,11 @@ export async function identifyServer(base: string, timeoutMs = NETWORK_PROBE_TIM
   if (ollama) return { backend: "ollama", baseUrl: base, models: ollama };
   const lmV1 = parseLmStudioV1(v1.data, base);
   if (lmV1) return { backend: "lmstudio", baseUrl: base, models: lmV1 };
+
+  if (v0probe.reached && v0probe.data) {
+    const v0models = parseLmStudioV0(v0probe.data, base);
+    if (v0models) return { backend: "lmstudio", baseUrl: base, models: v0models };
+  }
 
   const v0 = parseLmStudioV0(await tryFetchJson(`${base}/api/v0/models`, undefined, timeoutMs), base);
   if (v0) return { backend: "lmstudio", baseUrl: base, models: v0 };
@@ -523,8 +532,28 @@ export async function resolveContextWindow(model: DetectedModel, ctxOverride?: n
   }
   // LM Studio: an already-loaded model stays resident; an override only shrinks our budget
   // (we cannot change what LM Studio allocated).
-  if (ctxOverride && ctxOverride < model.contextWindow) {
-    return { ...model, contextWindow: ctxOverride };
+  if (model.backend === "lmstudio") {
+    try {
+      const v0 = parseLmStudioV0(await tryFetchJson(`${model.baseUrl}/api/v0/models`, undefined, 2000), model.baseUrl);
+      const m0 = v0?.find((x) => x.id === model.id || model.id.includes(x.id) || x.id.includes(model.id));
+      if (m0 && m0.contextWindow > 0) {
+        return {
+          ...model,
+          contextWindow: ctxOverride ? Math.min(ctxOverride, m0.contextWindow) : m0.contextWindow,
+          maxContext: m0.maxContext,
+          loaded: m0.loaded,
+          note: undefined,
+        };
+      }
+    } catch {
+      /* ignore */
+    }
+    if (model.note?.includes("context window unknown")) {
+      return { ...model, note: undefined };
+    }
   }
-  return model;
+  if (ctxOverride && ctxOverride < model.contextWindow) {
+    return { ...model, contextWindow: ctxOverride, note: undefined };
+  }
+  return { ...model, note: undefined };
 }
