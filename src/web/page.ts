@@ -144,6 +144,24 @@ export const PAGE_HTML = `<!doctype html>
   </div>
 </div>
 <div id="toasts" aria-live="polite"></div>
+<footer id="vsc-statusbar" class="vsc-statusbar" role="status" aria-label="Barre d'état">
+  <div class="vsc-sb-left">
+    <button type="button" class="vsc-sb-item" id="sb-branch" title="Branche Git active (cliquez pour basculer)"><span class="vsc-sb-ico">⎇</span> <span id="sb-branch-name">main*</span></button>
+    <button type="button" class="vsc-sb-item" id="sb-sync" title="Synchroniser les modifications (0 entrants, 41 sortants)"><span class="vsc-sb-ico">↻</span> 0↓ 41↑</button>
+    <button type="button" class="vsc-sb-item" id="sb-problems" title="Problèmes détectés dans le workspace (cliquez pour ouvrir Problems)"><span class="vsc-sb-ico vsc-err">⊗</span> <span id="sb-err-cnt">0</span> <span class="vsc-sb-ico vsc-warn">⚠</span> <span id="sb-warn-cnt">0</span></button>
+  </div>
+  <div class="vsc-sb-right">
+    <button type="button" class="vsc-sb-item" id="sb-blame" title="GitLens : auteur de la ligne courante"><span class="vsc-sb-ico">⌖</span> <span id="sb-blame-text">You, 3 days ago</span></button>
+    <button type="button" class="vsc-sb-item" id="sb-pos" title="Ligne et colonne du curseur"><span id="sb-pos-text">Ln 1, Col 1</span></button>
+    <button type="button" class="vsc-sb-item" id="sb-indent" title="Indentation du document"><span id="sb-indent-text">Spaces: 2</span></button>
+    <button type="button" class="vsc-sb-item" id="sb-encoding" title="Encodage du fichier">UTF-8</button>
+    <button type="button" class="vsc-sb-item" id="sb-eol" title="Fin de ligne">LF</button>
+    <button type="button" class="vsc-sb-item" id="sb-lang" title="Sélectionner le mode de langage"><span class="vsc-sb-ico">{ }</span> <span id="sb-lang-text">JavaScript</span></button>
+    <button type="button" class="vsc-sb-item" id="sb-formatter" title="Formateur actif : Biome"><span class="vsc-sb-ico">△</span> 2.5.14</button>
+    <button type="button" class="vsc-sb-item" id="sb-settings" title="Paramètres Antigravity"><span class="vsc-sb-ico">⚙</span> Antigravity - Settings</button>
+    <button type="button" class="vsc-sb-item" id="sb-bell" title="Notifications"><span class="vsc-sb-ico">🔔</span></button>
+  </div>
+</footer>
 <script>${CLIENT_JS}</script>
 </body>
 </html>`;

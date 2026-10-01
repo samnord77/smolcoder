@@ -77,7 +77,7 @@
   #imagePreview img { display: block; max-width: 100%; max-height: calc(100% - 32px); object-fit: contain; }
   #bar button:disabled { opacity: .55; cursor: not-allowed; }
   #codeLayer, #ed { position: absolute; inset: 0; margin: 0; padding: 12px 14px; font: inherit; line-height: 1.6; tab-size: 2; white-space: pre-wrap; overflow: auto; word-wrap: break-word; }
-  #codeLayer { pointer-events: none; color: #d4d4d4; }
+  #codeLayer { pointer-events: none; color: #9cdcfe; }
   #ed { background: transparent; color: transparent; caret-color: #fff; border: 0; outline: none; resize: none; }
   #ed::placeholder { color: #858585; opacity: 1; }
   #ed:focus-visible { outline: 2px solid #007acc; outline-offset: -2px; }
@@ -104,25 +104,80 @@
   .completeItem:hover, .completeItem.sel { background: #094771; }
   .completeItem .kind { color: #858585; margin-left: 8px; }
   .tok-com, .tok-c { color: #6a9955; font-style: italic; }
-  .tok-k { color: #569cd6; }
-  .tok-control { color: #c586c0; }
-  .tok-bool { color: #569cd6; }
+  .tok-k { color: #569cd6; font-weight: 600; }
+  .tok-control { color: #c586c0; font-weight: 600; }
+  .tok-bool { color: #569cd6; font-weight: 600; }
   .tok-s { color: #ce9178; }
   .tok-regex { color: #d16969; }
-  .tok-f { color: #dcdcaa; }
+  .tok-f { color: #dcdcaa; font-weight: 500; }
   .tok-prop { color: #9cdcfe; }
   .tok-v { color: #9cdcfe; }
-  .tok-const { color: #4fc1ff; }
-  .tok-t { color: #4ec9b0; }
+  .tok-const { color: #4fc1ff; font-weight: 600; }
+  .tok-t { color: #4ec9b0; font-weight: 600; }
   .tok-n { color: #b5cea8; }
   .tok-d { color: #dcdcaa; }
-  .tok-tag { color: #569cd6; }
-  .tok-o { color: #d4d4d4; }
-  .tok-b1 { color: #ffd700; }
-  .tok-b2 { color: #da70d6; }
-  .tok-b3 { color: #179fff; }
-  #status { display: flex; gap: 8px 16px; flex-wrap: wrap; align-items: center; padding: 8px 12px; min-height: 28px; background: #007acc; color: #fff;
-    font-size: 12.5px; font-family: Segoe UI, sans-serif; }
+  .tok-tag { color: #569cd6; font-weight: 600; }
+  .tok-o { color: #80c7ff; }
+  .tok-b1 { color: #ffd700; font-weight: 600; }
+  .tok-b2 { color: #da70d6; font-weight: 600; }
+  .tok-b3 { color: #179fff; font-weight: 600; }
+  /* ---- Barre d'état officielle VS Code ---- */
+  .vsc-statusbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 22px;
+    background: #007acc;
+    color: #ffffff;
+    font-size: 11px;
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    padding: 0 4px;
+    user-select: none;
+    line-height: 22px;
+    flex-none: none;
+    position: relative;
+    z-index: 10;
+  }
+  .vsc-sb-left, .vsc-sb-right {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    gap: 2px;
+  }
+  .vsc-sb-item {
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    height: 22px;
+    padding: 0 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: inherit;
+    font-size: 11px;
+    cursor: pointer;
+    border-radius: 2px;
+    outline: none;
+    white-space: nowrap;
+    transition: background 0.1s ease;
+  }
+  .vsc-sb-item:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+  .vsc-sb-item:active {
+    background: rgba(255, 255, 255, 0.3);
+  }
+  .vsc-sb-ico {
+    display: inline-flex;
+    align-items: center;
+    font-size: 11px;
+  }
+  .vsc-sb-ico.vsc-err {
+    color: #ffd7d7;
+  }
+  .vsc-sb-ico.vsc-warn {
+    color: #fff3c4;
+  }
   #err { color: #f48771; padding: 4px 12px; font-size: 12.5px; line-height: 1.5; min-height: 22px; }
   #diagPanel { display: none; position: absolute; z-index: 5; left: 260px; right: 0; bottom: 58px; max-height: 150px; overflow: auto; background: #181818; border: 1px solid #3c3c3c; box-shadow: 0 8px 24px #0008; font: 12px Segoe UI, sans-serif; }
   #diagPanel.open { display: block; }
@@ -162,7 +217,25 @@
 </div>
 <div id="err"></div>
 <section id="diagPanel" aria-label="Problèmes du fichier"></section>
-<div id="status"><span id="sFile">—</span><span id="sPosition">Ln 1, Col 1</span><span id="sDirty"></span><span id="sMsg"></span><div id="zoomctl"><span class="zl">Texte</span><button class="zstep" type="button" id="zoomOut" title="Réduire la taille du texte" aria-label="Réduire la taille du texte">-</button><span class="zbar"><span class="zfill" id="zfill"></span><input type="range" id="zoomRange" min="0" max="100" step="5" aria-label="Taille du texte en pourcentage"></span><button class="zstep" type="button" id="zoomIn" title="Agrandir la taille du texte" aria-label="Agrandir la taille du texte">+</button><span class="zval" id="zval">100%</span></div></div>
+<footer id="vsc-statusbar" class="vsc-statusbar" role="status" aria-label="Barre d'état">
+  <div class="vsc-sb-left">
+    <button type="button" class="vsc-sb-item" id="sb-branch" title="Branche Git active (cliquez pour basculer)"><span class="vsc-sb-ico">⎇</span> <span id="sb-branch-name">main*</span></button>
+    <button type="button" class="vsc-sb-item" id="sb-sync" title="Synchroniser les modifications (0 entrants, 41 sortants)"><span class="vsc-sb-ico">↻</span> 0↓ 41↑</button>
+    <button type="button" class="vsc-sb-item" id="sb-problems" title="Problèmes du fichier (cliquez pour afficher/masquer)"><span class="vsc-sb-ico vsc-err">⊗</span> <span id="sb-err-cnt">0</span> <span class="vsc-sb-ico vsc-warn">⚠</span> <span id="sb-warn-cnt">0</span></button>
+    <span id="sFile" hidden>—</span><span id="sDirty" hidden></span><span id="sMsg" hidden></span>
+  </div>
+  <div class="vsc-sb-right">
+    <button type="button" class="vsc-sb-item" id="sb-blame" title="GitLens : auteur de la ligne courante"><span class="vsc-sb-ico">⌖</span> <span id="sb-blame-text">You, 3 days ago</span></button>
+    <button type="button" class="vsc-sb-item" id="sb-pos" title="Ligne et colonne du curseur"><span id="sPosition">Ln 1, Col 1</span></button>
+    <button type="button" class="vsc-sb-item" id="sb-indent" title="Indentation du document"><span id="sb-indent-text">Spaces: 2</span></button>
+    <button type="button" class="vsc-sb-item" id="sb-encoding" title="Encodage du fichier">UTF-8</button>
+    <button type="button" class="vsc-sb-item" id="sb-eol" title="Fin de ligne">LF</button>
+    <button type="button" class="vsc-sb-item" id="sb-lang" title="Sélectionner le mode de langage"><span class="vsc-sb-ico">{ }</span> <span id="sb-lang-text">JavaScript</span></button>
+    <button type="button" class="vsc-sb-item" id="sb-formatter" title="Formateur actif : Biome"><span class="vsc-sb-ico">△</span> 2.5.14</button>
+    <button type="button" class="vsc-sb-item" id="sb-settings" title="Paramètres Antigravity"><span class="vsc-sb-ico">⚙</span> Antigravity - Settings</button>
+    <button type="button" class="vsc-sb-item" id="sb-bell" title="Notifications"><span class="vsc-sb-ico">🔔</span></button>
+  </div>
+</footer>
 <script>
 const $ = (id) => document.getElementById(id);
 const tree = $("tree"), ed = $("ed"), err = $("err");
@@ -278,6 +351,16 @@ function showTab(tab, loadedImage) {
   ed.value = image ? "" : (tab?.content ?? ""); paint(); setDirty(Boolean(tab?.dirty));
   updateCursor();
   $("sFile").textContent = tab ? tab.path : "—"; $("sMsg").textContent = "";
+  const ext = tab ? (tab.path.split(".").pop() || "").toLowerCase() : "";
+  const langMap = {
+    js: "JavaScript", jsx: "JavaScript React", ts: "TypeScript", tsx: "TypeScript React",
+    html: "HTML", css: "CSS", json: "JSON", md: "Markdown", py: "Python",
+    sh: "Shell Script", bash: "Bash", ps1: "PowerShell", rs: "Rust", go: "Go",
+    c: "C", cpp: "C++", java: "Java", yml: "YAML", yaml: "YAML", toml: "TOML", sql: "SQL"
+  };
+  if ($("sb-lang-text")) $("sb-lang-text").textContent = langMap[ext] || (ext ? ext.toUpperCase() : "Plain Text");
+  if ($("sb-err-cnt")) $("sb-err-cnt").textContent = "0";
+  if ($("sb-warn-cnt")) $("sb-warn-cnt").textContent = "0";
   $("imageMeta").textContent = "";
   if (image) {
     $("sMsg").textContent = "Image · lecture seule";

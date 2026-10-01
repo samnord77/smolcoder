@@ -170,18 +170,31 @@ export function tokenizeCode(source: string, language = ""): SyntaxToken[] {
       i++;
       while (i < source.length && /[\w$]/.test(source[i])) i++;
       const word = source.slice(start, i);
-      if (controlKeywords.has(word)) add("tok-control", word);
-      else if (boolKeywords.has(word)) add("tok-bool", word);
-      else if (keywords.has(word)) add("tok-k", word);
-      else if (/^[A-Z][a-z0-9]/.test(word)) add("tok-t", word);
-      else if (/^[A-Z][A-Z0-9_]+$/.test(word) && ["js", "jsx", "ts", "tsx", "javascript", "typescript"].includes(lang)) add("tok-const", word);
-      else {
-        let next = i;
-        while (next < source.length && /\s/.test(source[next])) next++;
-        if (source[next] === "(") add("tok-f", word);
-        else if (source[next] === ":" && source[next + 1] !== ":") add("tok-prop", word);
-        else if (["js", "jsx", "ts", "tsx", "javascript", "typescript"].includes(lang)) add("tok-v", word);
-        else add("plain", word);
+      let next = i;
+      while (next < source.length && /\s/.test(source[next])) next++;
+      const isCall = source[next] === "(";
+
+      if (lastNonSpaceText === ".") {
+        if (isCall) add("tok-f", word);
+        else add("tok-prop", word);
+      } else if (controlKeywords.has(word)) {
+        add("tok-control", word);
+      } else if (boolKeywords.has(word)) {
+        add("tok-bool", word);
+      } else if (isCall && !["if", "for", "while", "switch", "catch"].includes(word)) {
+        add("tok-f", word);
+      } else if (keywords.has(word)) {
+        add("tok-k", word);
+      } else if (/^[A-Z][a-zA-Z0-9]/.test(word) && !/^[A-Z0-9_]+$/.test(word)) {
+        add("tok-t", word);
+      } else if (/^[A-Z][A-Z0-9_]+$/.test(word) && ["js", "jsx", "ts", "tsx", "javascript", "typescript"].includes(lang)) {
+        add("tok-const", word);
+      } else if (source[next] === ":" && source[next + 1] !== ":") {
+        add("tok-prop", word);
+      } else if (["js", "jsx", "ts", "tsx", "javascript", "typescript"].includes(lang) || !lang) {
+        add("tok-v", word);
+      } else {
+        add("plain", word);
       }
       continue;
     }
@@ -201,7 +214,7 @@ export function tokenizeCode(source: string, language = ""): SyntaxToken[] {
       continue;
     }
     i++;
-    add(/[=+*%!?|&^~<>:-]/.test(ch) ? "tok-o" : "plain", ch);
+    add(/[=+*%!?|&^~<>:.,;/-]/.test(ch) ? "tok-o" : "plain", ch);
   }
   return tokens;
 }

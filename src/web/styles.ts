@@ -202,7 +202,7 @@ export const STYLES = `
   .md strong { color: #f0f6fc; }
   .md code { background: rgba(245, 158, 11, 0.12); padding: 2px 6px; border-radius: 4px; color: #fcd34d; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; }
   .md pre { background: #070a0e; border: 1px solid var(--line); border-radius: var(--radius-md); padding: 12px 14px; overflow-x: auto; margin: 10px 0; box-shadow: 0 4px 16px rgba(0,0,0,0.3); }
-  .md pre code { background: none; padding: 0; color: var(--fg); font-family: 'JetBrains Mono', monospace; }
+  .md pre code { background: none; padding: 0; color: #9cdcfe; font-family: 'JetBrains Mono', Consolas, monospace; }
   .md table { border-collapse: collapse; margin: 10px 0; display: block; overflow-x: auto; max-width: 100%; border-radius: var(--radius-sm); border: 1px solid var(--line); }
   .md th, .md td { border: 1px solid var(--line); padding: 6px 12px; text-align: left; }
   .md th { background: #131922; color: #f0f6fc; font-weight: 600; }
@@ -498,31 +498,31 @@ export const STYLES = `
   .fileminimap i:nth-child(3n) { opacity: .7; }
   .minimap-bars { position: absolute; inset: 10px 4px; }
   .minimap-box { position: absolute; left: 0; right: 0; top: 0; background: rgba(56,189,248,.14); border-top: 1px solid rgba(56,189,248,.5); border-bottom: 1px solid rgba(56,189,248,.5); pointer-events: none; }
-  .filecode { pointer-events: none; color: var(--fg); }
+  .filecode { pointer-events: none; color: #9cdcfe; }
   .fileeditor { resize: none; border: 0; outline: 0; background: transparent; color: transparent; caret-color: #fff; }
   .fileeditor:focus { outline: 1px solid var(--accent); outline-offset: -1px; }
   .filemeta { flex: none; min-height: 26px; padding: 6px 9px; border-top: 1px solid var(--line); color: var(--dim); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .filemeta.error { color: var(--red); }
-  .tok-key { color: #c586c0; } .tok-str { color: #ce9178; } .tok-num { color: #b5cea8; }
-  .tok-com { color: #6a9955; font-style: italic; } .tok-lit { color: #569cd6; }
-  .tok-k { color: #569cd6; }
-  .tok-control { color: #c586c0; }
-  .tok-bool { color: #569cd6; }
+  .tok-key { color: #c586c0; font-weight: 600; } .tok-str { color: #ce9178; } .tok-num { color: #b5cea8; }
+  .tok-com { color: #6a9955; font-style: italic; } .tok-lit { color: #569cd6; font-weight: 600; }
+  .tok-k { color: #569cd6; font-weight: 600; }
+  .tok-control { color: #c586c0; font-weight: 600; }
+  .tok-bool { color: #569cd6; font-weight: 600; }
   .tok-s { color: #ce9178; }
   .tok-regex { color: #d16969; }
-  .tok-f { color: #dcdcaa; }
+  .tok-f { color: #dcdcaa; font-weight: 500; }
   .tok-prop { color: #9cdcfe; }
   .tok-v { color: #9cdcfe; }
-  .tok-const { color: #4fc1ff; }
-  .tok-t { color: #4ec9b0; }
+  .tok-const { color: #4fc1ff; font-weight: 600; }
+  .tok-t { color: #4ec9b0; font-weight: 600; }
   .tok-n { color: #b5cea8; }
   .tok-c { color: #6a9955; font-style: italic; }
   .tok-d { color: #dcdcaa; }
-  .tok-tag { color: #569cd6; }
-  .tok-o { color: #d4d4d4; }
-  .tok-b1 { color: #ffd700; }
-  .tok-b2 { color: #da70d6; }
-  .tok-b3 { color: #179fff; }
+  .tok-tag { color: #569cd6; font-weight: 600; }
+  .tok-o { color: #80c7ff; }
+  .tok-b1 { color: #ffd700; font-weight: 600; }
+  .tok-b2 { color: #da70d6; font-weight: 600; }
+  .tok-b3 { color: #179fff; font-weight: 600; }
   .ab { font-weight: 700; } .ad { opacity: .6; }
   .a30 { color: #3b4048; } .a31 { color: var(--red); } .a32 { color: var(--green); } .a33 { color: var(--yellow); }
   .a34 { color: #7aa2f7; } .a35 { color: var(--magenta); } .a36 { color: var(--accent); } .a37 { color: #c0caf5; }
@@ -1549,4 +1549,69 @@ export const STYLES = `
     max-width: 100% !important;
     z-index: 100;
   }
+
+  /* ---- Barre d'état inférieure officielle VS Code (Status Bar) ---- */
+  .vsc-statusbar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 22px;
+    background: #007acc;
+    color: #ffffff;
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 4px;
+    z-index: 1000;
+    user-select: none;
+    line-height: 22px;
+  }
+  .vsc-sb-left, .vsc-sb-right {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    gap: 2px;
+  }
+  .vsc-sb-item {
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    height: 22px;
+    padding: 0 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: inherit;
+    font-size: 11px;
+    cursor: pointer;
+    border-radius: 2px;
+    outline: none;
+    white-space: nowrap;
+    transition: background 0.1s ease;
+  }
+  .vsc-sb-item:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+  .vsc-sb-item:active {
+    background: rgba(255, 255, 255, 0.3);
+  }
+  .vsc-sb-ico {
+    display: inline-flex;
+    align-items: center;
+    font-size: 11px;
+  }
+  .vsc-sb-ico.vsc-err {
+    color: #ffd7d7;
+  }
+  .vsc-sb-ico.vsc-warn {
+    color: #fff3c4;
+  }
+  /* Padding bas sur le conteneur principal pour ne pas chevaucher la statusbar */
+  body {
+    padding-bottom: 22px;
+  }
+
 `;

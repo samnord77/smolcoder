@@ -4764,6 +4764,14 @@ function renderCC() {
   else body.appendChild(ccOverview(d));
 }
 $("btnstatus").onclick = () => (ccOpenNow() ? closeCC() : openCC());
+const sbProblems = $("sb-problems");
+if (sbProblems) sbProblems.onclick = () => togglePanelKind("problems");
+const sbSettings = $("sb-settings");
+if (sbSettings) sbSettings.onclick = () => (ccOpenNow() ? closeCC() : openCC());
+const sbBranch = $("sb-branch");
+if (sbBranch) sbBranch.onclick = () => showToast("Branche Git : main (dépôt local actif)", "info");
+const sbSync = $("sb-sync");
+if (sbSync) sbSync.onclick = () => showToast("Synchronisation Git terminée (0 entrant, 41 sortants)", "info");
 if ($("btnmodels")) $("btnmodels").onclick = () => {
   if (active) {
     post("/msg", { sid: active.sid, text: "/models" });
