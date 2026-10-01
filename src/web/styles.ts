@@ -60,6 +60,28 @@ export const STYLES = `
   .iconbtn:hover { color: var(--fg); border-color: var(--line); background: rgba(255, 255, 255, 0.05); }
   .iconbtn.on { color: var(--accent); border-color: rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.1); box-shadow: 0 0 12px var(--accent-glow); }
   .iconbtn svg { display: block; }
+  #btnreview { position: relative; }
+  .review-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: #007acc;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 700;
+    min-width: 16px;
+    height: 16px;
+    line-height: 14px;
+    padding: 0 4px;
+    border-radius: 8px;
+    text-align: center;
+    border: 1px solid var(--bg);
+    box-shadow: 0 0 8px rgba(0, 122, 204, 0.75);
+    pointer-events: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
   .primary { background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.15); padding: 7px 16px; border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35); transition: var(--transition); }
   .primary:hover { box-shadow: 0 6px 20px rgba(2, 132, 199, 0.55); transform: translateY(-1px); }
   .ghost { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(8px); color: var(--fg); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 6px 12px; cursor: pointer; font-weight: 500; transition: var(--transition); }

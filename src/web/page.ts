@@ -62,7 +62,7 @@ export const PAGE_HTML = `<!doctype html>
     <button type="button" class="iconbtn" id="btnbrowser" title="Navigateur intégré : aperçu live">${ICON_BROWSER}</button>
     <button type="button" class="iconbtn" id="btnproblems" title="Problèmes du workspace (Problems)">⚠</button>
     <button type="button" class="iconbtn" id="btnterm" title="Terminal & Dock Pro (Ctrl+\`)">${ICON_TERMINAL}</button>
-    <button type="button" class="iconbtn" id="btnreview" title="Revue des modifications (diff par hunk)">Δ</button>
+    <button type="button" class="iconbtn" id="btnreview" title="Revue des modifications (diff par hunk)">Δ<span id="review-badge" class="review-badge" hidden>0</span></button>
     <button type="button" class="iconbtn" id="btnstatus" title="Centre de Contrôle Pro">${ICON_GAUGE}</button>
   </div>
   <div id="activitybar" class="activity-bar" aria-live="polite">

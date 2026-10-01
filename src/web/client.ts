@@ -803,6 +803,7 @@ function scheduleWorkspaceRefresh(v) {
       if (rv && rv.reload) rv.reload();
       const ff = v.tabs.find((x) => x.kind === "files");
       if (ff && ff.refreshFiles) ff.refreshFiles();
+      fetchReviewBadge();
     } catch (e) {}
   }, 1200);
 }
@@ -1398,7 +1399,7 @@ function show(sid) {
     if (location.hash) history.replaceState(null, "", location.pathname + location.search);
     $("status").textContent = "";
   }
-  renderPanel(); renderSidebar(); renderCrumb(); renderTitle(); renderWelcome(); renderAttachments(); renderActivity(active);
+  renderPanel(); renderSidebar(); renderCrumb(); renderTitle(); renderWelcome(); renderAttachments(); renderActivity(active); fetchReviewBadge();
   stick();
 }
 function newSession(path) {
@@ -1602,9 +1603,26 @@ function loadPanelState(v) {
       const tab = { kind: "browser", url: t.url || "", id: uid() };
       buildBrowserTab(v, tab); v.tabs.push(tab);
     }
-    v.panelOpen = !!st.open;
+    v.panelOpen = false;
     v.activeTab = st.active || (v.tabs[0] && v.tabs[0].id) || null;
   } catch (e) {}
+}
+function updateReviewBadge(count) {
+  const badge = $("review-badge");
+  if (!badge) return;
+  const n = Number(count) || 0;
+  badge.textContent = n > 99 ? "99+" : String(n);
+  badge.hidden = n <= 0;
+}
+function fetchReviewBadge() {
+  if (!active) return;
+  fetch("/code/diff?k=" + k + "&sid=" + encodeURIComponent(active.sid))
+    .then((r) => r.json())
+    .then((d) => {
+      const cnt = (d.files || []).length;
+      updateReviewBadge(cnt);
+    })
+    .catch(() => {});
 }
 function curTab(v) { return v.tabs.find((t) => t.id === v.activeTab) || v.tabs[0] || null; }
 // ---- VS Code Pro Dock State & Tabs ----------------------------------------
@@ -3743,6 +3761,7 @@ function buildReviewTab(v, t) {
         list.replaceChildren();
         diffBody.replaceChildren();
         files = d.files || [];
+        updateReviewBadge(files.length);
         if (!files.some((f) => f.file === selected)) selected = files[0] ? files[0].file : null;
         note.textContent = d.note || (files.length + " file(s) with uncommitted changes");
         let allAdds = 0, allDels = 0;
