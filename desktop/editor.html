@@ -49,7 +49,11 @@
   .result:hover { background: #37373d; }
   #tree .d { color: #4ec9b0; cursor: pointer; padding: 4px 6px; border-radius: 4px; display: flex; align-items: center; }
     #tree .f { color: #d4d4d4; cursor: pointer; padding: 4px 6px; white-space: nowrap; border-radius: 4px; display: flex; align-items: center; }
-    .fileitem-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 16px; padding: 0 3px; font-size: 9.5px; font-weight: 700; font-family: Consolas, monospace; border-radius: 3px; margin-right: 6px; flex-shrink: 0; line-height: 1; }
+    .fileitem-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 21px; padding: 0 5px; font-size: 13px; font-weight: 900; font-family: Consolas, monospace; border-radius: 4px; margin-right: 7px; flex-shrink: 0; line-height: 1; }
+    .fileitem-badge.status-m { color: #e3b341; background: rgba(227,179,65,.14); }
+    .fileitem-badge.status-a, .fileitem-badge.status-u { color: #3fb950; background: rgba(63,185,80,.15); }
+    .fileitem-badge.status-d { color: #f85149; background: rgba(248,81,73,.15); }
+    .fileitem-badge.status-r { color: #d2a8ff; background: rgba(210,168,255,.15); }
     .fileitem-icon { display: inline-flex; align-items: center; justify-content: center; width: 20px; font-size: 13px; margin-right: 6px; flex-shrink: 0; }
     .fileitem-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; text-align: left; }
   #tree .f { color: #d4d4d4; cursor: pointer; padding: 6px 8px; white-space: nowrap; border-radius: 4px; }
@@ -219,19 +223,20 @@
 <section id="diagPanel" aria-label="Problèmes du fichier"></section>
 <footer id="vsc-statusbar" class="vsc-statusbar" role="status" aria-label="Barre d'état">
   <div class="vsc-sb-left">
-    <button type="button" class="vsc-sb-item" id="sb-branch" title="Branche Git active (cliquez pour basculer)"><span class="vsc-sb-ico">⎇</span> <span id="sb-branch-name">main*</span></button>
-    <button type="button" class="vsc-sb-item" id="sb-sync" title="Synchroniser les modifications (0 entrants, 41 sortants)"><span class="vsc-sb-ico">↻</span> 0↓ 41↑</button>
+    <button type="button" class="vsc-sb-item" id="sb-branch" title="Actualiser la branche Git locale"><span class="vsc-sb-ico">⎇</span> <span id="sb-branch-name">—</span></button>
+    <button type="button" class="vsc-sb-item" id="sb-sync" title="Comparer avec la référence upstream locale (aucun fetch/push)"><span class="vsc-sb-ico">↻</span> <span id="sb-sync-text">—</span></button>
     <button type="button" class="vsc-sb-item" id="sb-problems" title="Problèmes du fichier (cliquez pour afficher/masquer)"><span class="vsc-sb-ico vsc-err">⊗</span> <span id="sb-err-cnt">0</span> <span class="vsc-sb-ico vsc-warn">⚠</span> <span id="sb-warn-cnt">0</span></button>
+    <button type="button" class="vsc-sb-item" id="sb-backend" title="Statut du serveur LLM local (Ollama / LM Studio)"><span class="vsc-sb-ico" id="sb-backend-dot">●</span> <span id="sb-backend-text">LLM : connexion…</span></button>
     <span id="sFile" hidden>—</span><span id="sDirty" hidden></span><span id="sMsg" hidden></span>
   </div>
   <div class="vsc-sb-right">
-    <button type="button" class="vsc-sb-item" id="sb-blame" title="GitLens : auteur de la ligne courante"><span class="vsc-sb-ico">⌖</span> <span id="sb-blame-text">You, 3 days ago</span></button>
+    <button type="button" class="vsc-sb-item" id="sb-blame" title="Afficher l'auteur Git réel de la ligne courante"><span class="vsc-sb-ico">⌖</span> <span id="sb-blame-text">Git blame</span></button>
     <button type="button" class="vsc-sb-item" id="sb-pos" title="Ligne et colonne du curseur"><span id="sPosition">Ln 1, Col 1</span></button>
     <button type="button" class="vsc-sb-item" id="sb-indent" title="Indentation du document"><span id="sb-indent-text">Spaces: 2</span></button>
     <button type="button" class="vsc-sb-item" id="sb-encoding" title="Encodage du fichier">UTF-8</button>
     <button type="button" class="vsc-sb-item" id="sb-eol" title="Fin de ligne">LF</button>
     <button type="button" class="vsc-sb-item" id="sb-lang" title="Sélectionner le mode de langage"><span class="vsc-sb-ico">{ }</span> <span id="sb-lang-text">JavaScript</span></button>
-    <button type="button" class="vsc-sb-item" id="sb-formatter" title="Formateur actif : Biome"><span class="vsc-sb-ico">△</span> 2.5.14</button>
+    <button type="button" class="vsc-sb-item" id="sb-formatter" title="Formatage depuis l'éditeur non disponible"><span class="vsc-sb-ico">△</span> Formateur —</button>
     <button type="button" class="vsc-sb-item" id="sb-settings" title="Paramètres et options"><span class="vsc-sb-ico">⚙</span> Paramètres</button>
     <button type="button" class="vsc-sb-item" id="sb-bell" title="Notifications"><span class="vsc-sb-ico">🔔</span></button>
   </div>
@@ -388,7 +393,9 @@ function closeTab(filePath) {
 function getFileItemHtml(name, isDir, depth, status) {
   const safeName = String(name || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const indent = (depth && depth > 0) ? `<span style="display:inline-block;width:${depth * 14}px;flex-shrink:0;"></span>` : "";
-  const badge = status ? `<span class="fileitem-badge" style="color:${status === "?" ? "#9cdcfe" : "#f08080"};border:1px solid #555;">${String(status).replace(/&/g, "&amp;").replace(/</g, "&lt;")}</span>` : "";
+  const statusClass = ({ M: "m", A: "a", D: "d", R: "r", U: "u", N: "u" })[status] || "";
+  const statusText = status === "N" ? "U" : status;
+  const badge = statusClass ? `<span class="fileitem-badge status-${statusClass}" title="${statusClass === "m" ? "Modifié" : statusClass === "a" || statusClass === "u" ? "Ajouté ou non suivi" : statusClass === "d" ? "Supprimé" : "Renommé"}">${statusText}</span>` : "";
   if (isDir) {
     const folderSvg = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;margin-right:6px;"><path d="M1.5 3A1.5 1.5 0 0 1 3 1.5h3.1a1.5 1.5 0 0 1 1.06.44L8.5 3.25H13A1.5 1.5 0 0 1 14.5 4.75v8a1.5 1.5 0 0 1-1.5 1.5H3A1.5 1.5 0 0 1 1.5 12.75V3z" fill="#E8B839"/><path d="M1.5 5.5h13v7.25a1.25 1.25 0 0 1-1.25 1.25H2.75A1.25 1.25 0 0 1 1.5 12.75V5.5z" fill="#F4CF65"/></svg>';
     return `${indent}${badge}${folderSvg}<span class="fileitem-name" style="color:#fde047;font-weight:500;">${safeName}</span>`;
@@ -476,9 +483,12 @@ function getFileItemHtml(name, isDir, depth, status) {
   }
   return `${indent}${badge}${iconSvg}<span class="fileitem-name" style="color:${nameColor};">${safeName}</span>`;
 }
+let treeRefreshPromise = null;
 async function refreshTree() {
-  tree.innerHTML = "";
-  async function walk(rel, depth) {
+  if (treeRefreshPromise) return treeRefreshPromise;
+  treeRefreshPromise = (async () => {
+  const nextTree = document.createElement("div");
+  async function walk(rel, depth, container) {
     let items;
     try { items = await window.smolEd.list(rel); }
     catch (e) { if (rel === ".") showErr(e.message); return; }
@@ -489,11 +499,18 @@ async function refreshTree() {
       div.innerHTML = getFileItemHtml(it.name, it.dir, depth, it.status);
       if (p === cur) div.classList.add("open");
       div.onclick = () => { it.dir ? toggle(p) : openFile(p); };
-      tree.appendChild(div);
-      if (it.dir && folders[p]) await walk(p, depth + 1);
+      container.appendChild(div);
+      if (it.dir && folders[p]) await walk(p, depth + 1, container);
     }
   }
-  await walk(".", 0);
+  await walk(".", 0, nextTree);
+  if (nextTree.innerHTML === tree.innerHTML) return;
+  const keepScroll = tree.scrollTop;
+  tree.replaceChildren(...nextTree.childNodes);
+  tree.scrollTop = keepScroll;
+  })();
+  try { await treeRefreshPromise; }
+  finally { treeRefreshPromise = null; }
 }
 function toggle(p) {
   if (folders[p]) {
@@ -503,6 +520,9 @@ function toggle(p) {
   }
   refreshTree();
 }
+setInterval(() => {
+  if (root && !document.hidden) void refreshTree().catch((e) => showErr(e.message));
+}, 15000);
 
 async function openFile(p) {
   stashCurrent();
@@ -651,7 +671,14 @@ async function setRoot(r) {
   ed.value = ""; setDirty(false); paint(); renderTabs();
   $("root").textContent = r || "aucun dossier";
   $("sFile").textContent = "—"; $("sMsg").textContent = "";
-  if (r) refreshTree(); else tree.innerHTML = "";
+  if (r) {
+    refreshTree();
+    void refreshDesktopGitStatus();
+  } else {
+    tree.innerHTML = "";
+    $("sb-branch-name").textContent = "—";
+    $("sb-sync-text").textContent = "—";
+  }
   return true;
 }
 
@@ -954,10 +981,39 @@ document.addEventListener("keydown", (e) => {
   } catch (e) { /* l'utilisateur choisira */ }
 })();
 
+async function refreshDesktopGitStatus() {
+  if (!root) return null;
+  const [repo, sync] = await Promise.all([window.smolEd.gitStatus(), window.smolEd.gitSyncStatus()]);
+  $("sb-branch-name").textContent = sync.error ? "Git ?" : repo.branch || "(detached)";
+  $("sb-branch").title = `Branche locale : ${repo.branch || "(detached)"}`;
+  const syncText = $("sb-sync-text");
+  if (sync.error || !sync.upstream || sync.ahead === null || sync.behind === null) {
+    syncText.textContent = "—";
+    $("sb-sync").title = sync.error || "Aucune référence upstream configurée; aucun fetch/push effectué.";
+  } else {
+    syncText.textContent = `${sync.behind}↓ ${sync.ahead}↑`;
+    $("sb-sync").title = `${sync.behind} en retard, ${sync.ahead} en avance sur ${sync.upstream} (référence locale; aucun fetch/push).`;
+  }
+  return sync;
+}
+
 // Câblage interactif Status Bar
 if ($("sb-problems")) $("sb-problems").onclick = () => { if ($("bDiag")) $("bDiag").click(); };
-if ($("sb-branch")) $("sb-branch").onclick = () => alert("Branche Git : main (dépôt local actif)");
-if ($("sb-sync")) $("sb-sync").onclick = () => alert("Synchronisation Git à jour (0 entrant, 41 sortants)");
+if ($("sb-branch")) $("sb-branch").onclick = async () => {
+  try {
+    const sync = await refreshDesktopGitStatus();
+    alert(sync?.error || `Branche locale : ${sync?.branch || "(detached)"}`);
+  } catch (e) { showErr(e.message); }
+};
+if ($("sb-sync")) $("sb-sync").onclick = async () => {
+  try {
+    const sync = await refreshDesktopGitStatus();
+    if (!sync || sync.error) { alert(sync?.error || "Statut Git indisponible."); return; }
+    alert(sync.upstream && sync.ahead !== null && sync.behind !== null
+      ? `${sync.behind} commit(s) en retard, ${sync.ahead} en avance sur ${sync.upstream}.\nComparaison locale uniquement : aucun fetch/push effectué.`
+      : "Aucune référence upstream configurée. Aucun fetch/push effectué.");
+  } catch (e) { showErr(e.message); }
+};
 let desktopIndent = 2;
 if ($("sb-indent")) $("sb-indent").onclick = () => {
   desktopIndent = desktopIndent === 2 ? 4 : 2;
@@ -975,9 +1031,62 @@ if ($("sb-eol")) $("sb-eol").onclick = () => {
   paint();
 };
 if ($("sb-encoding")) $("sb-encoding").onclick = () => alert("Encodage : UTF-8 (sans BOM)");
-if ($("sb-formatter")) $("sb-formatter").onclick = () => alert("Formateur Biome 2.5.14 actif — Code propre et vérifié");
-if ($("sb-lang")) $("sb-lang").onclick = () => alert(`Mode langage actif : ${$("sb-lang-text") ? $("sb-lang-text").textContent : "JavaScript/TypeScript"}`);
-if ($("sb-blame")) $("sb-blame").onclick = () => alert("Git Blame : Dernière modification par You (actif sur le dépôt)");
+if ($("sb-formatter")) $("sb-formatter").onclick = () => alert("Le formatage depuis la barre d’état n’est pas encore relié à l’éditeur.");
+if ($("sb-lang")) $("sb-lang").onclick = () => alert("Le mode de langage est déterminé par l’extension du fichier; le remplacement manuel n’est pas encore disponible.");
+if ($("sb-blame")) $("sb-blame").onclick = async () => {
+  if (!cur) { showErr("Ouvrez un fichier suivi par Git pour afficher son auteur."); return; }
+  try {
+    const line = window.smolEd.editorTools.cursorPosition(ed.value, ed.selectionStart).line;
+    const result = await window.smolEd.gitBlame(cur, line);
+    $("sb-blame-text").textContent = result.startsWith("Error:") ? "Git blame indisponible" : result.slice(0, 60);
+    $("sb-blame").title = result;
+  } catch (e) { showErr(e.message); }
+};
+
+let lastBackendData = null;
+async function refreshBackendStatus() {
+  const item = $("sb-backend");
+  if (!item || !window.smolEd?.backendStatus) return;
+  try {
+    const data = await window.smolEd.backendStatus();
+    lastBackendData = data;
+    const dot = $("sb-backend-dot");
+    const txt = $("sb-backend-text");
+    const online = data.ollamaOnline || data.lmStudioOnline;
+    if (dot) {
+      dot.textContent = online ? "🟢" : "🔴";
+      dot.style.color = online ? "#7ee787" : "#ff7b72";
+    }
+    if (txt) {
+      if (!online) {
+        txt.textContent = "LLM hors ligne";
+        item.title = "Ollama & LM Studio indisponibles (11434 / 1234)";
+      } else {
+        const engine = data.ollamaOnline ? "Ollama" : "LM Studio";
+        const loaded = (data.loaded?.[0]) ? data.loaded[0].name : "aucun modèle chargé";
+        const vramStr = data.totalVramMb ? (data.totalVramMb >= 1024 ? ` ${(data.totalVramMb / 1024).toFixed(1)} Go` : ` ${data.totalVramMb} Mo`) : "";
+        txt.textContent = `${engine}: ${loaded}${vramStr}`;
+        item.title = `${engine} en ligne · ${(data.loaded || []).length} modèle(s) actif(s) · VRAM: ${data.totalVramMb || 0} Mo\nCliquez pour afficher le diagnostic complet.`;
+      }
+    }
+  } catch (e) {
+    if ($("sb-backend-text")) $("sb-backend-text").textContent = "LLM : statut indisponible";
+  }
+}
+if ($("sb-backend")) {
+  $("sb-backend").onclick = () => {
+    if (!lastBackendData) { alert("Diagnostic backend en cours de détection…"); return; }
+    const d = lastBackendData;
+    const engines = `Ollama : ${d.ollamaOnline ? "🟢 Connecté (port 11434)" : "🔴 Hors ligne"}\nLM Studio : ${d.lmStudioOnline ? "🟢 Connecté (port 1234)" : "🔴 Hors ligne"}`;
+    const models = (d.loaded?.length)
+      ? d.loaded.map((m) => `• ${m.name} (${m.backend}) : ${m.sizeVramMb ? `${m.sizeVramMb} Mo VRAM` : (m.sizeMb ? `${m.sizeMb} Mo` : "Actif")}`).join("\n")
+      : "Aucun modèle résident en mémoire (il sera chargé à la première requête)";
+    const vram = `VRAM totale estimée : ${d.totalVramMb ? (d.totalVramMb >= 1024 ? `${(d.totalVramMb / 1024).toFixed(1)} Go` : `${d.totalVramMb} Mo`) : "0 Mo"}`;
+    alert(`=== Diagnostic Moteurs Locaux & VRAM ===\n\n${engines}\n\n${vram}\n\nModèles résidents :\n${models}`);
+  };
+}
+void refreshBackendStatus();
+setInterval(() => { void refreshBackendStatus(); }, 8000);
 </script>
 </body>
 </html>

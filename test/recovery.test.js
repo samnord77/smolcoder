@@ -124,9 +124,27 @@ test("a silent backend hits its deadline and releases the request", async (t) =>
   });
   global.fetch = (_url, opts) =>
     new Promise((_resolve, reject) => opts.signal.addEventListener("abort", () => reject(opts.signal.reason), { once: true }));
+  await assert.rejects(new OllamaProvider("http://silent", "m", 8000).chat(messages, [], { idleTimeoutMs: 20 }), (error) => {
+    assert.match(error.message, /timed out waiting for data/);
+    assert.equal(error.code, "BACKEND_IDLE_TIMEOUT");
+    return true;
+  });
+});
+
+test("a silent backend's whole-request deadline is distinguished from an idle deadline", async (t) => {
+  const original = global.fetch;
+  t.after(() => {
+    global.fetch = original;
+  });
+  global.fetch = (_url, opts) =>
+    new Promise((_resolve, reject) => opts.signal.addEventListener("abort", () => reject(opts.signal.reason), { once: true }));
   await assert.rejects(
-    new OllamaProvider("http://silent", "m", 8000).chat(messages, [], { idleTimeoutMs: 20 }),
-    /timed out waiting for data/
+    new OllamaProvider("http://silent", "m", 8000).chat(messages, [], { idleTimeoutMs: 100, timeoutMs: 20 }),
+    (error) => {
+      assert.match(error.message, /request timed out/);
+      assert.equal(error.code, "BACKEND_REQUEST_TIMEOUT");
+      return true;
+    }
   );
 });
 

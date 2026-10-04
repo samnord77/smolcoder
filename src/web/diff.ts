@@ -26,9 +26,7 @@ export function lineChangeFlags(oldText: string, newText: string): Array<{ added
   for (let i = oldLines.length - 1; i >= 0; i--) {
     for (let j = newLines.length - 1; j >= 0; j--) {
       lcs[i * width + j] =
-        oldLines[i] === newLines[j]
-          ? lcs[(i + 1) * width + j + 1] + 1
-          : Math.max(lcs[(i + 1) * width + j], lcs[i * width + j + 1]);
+        oldLines[i] === newLines[j] ? lcs[(i + 1) * width + j + 1] + 1 : Math.max(lcs[(i + 1) * width + j], lcs[i * width + j + 1]);
     }
   }
 

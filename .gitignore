@@ -6,3 +6,12 @@ release/
 
 # local runtime state (session databases, delegate counters)
 .smol/
+
+# tool bookkeeping (C3 index, ledger, per-file memory)
+.c3/
+
+# scratch logs and one-off debug scripts
+.scratch/
+
+# editor/backup copies of tracked files
+*.bak

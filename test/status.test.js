@@ -46,25 +46,46 @@ test("/status marks a remote model as needing internet", async () => {
 });
 
 test("/status separates a disabled server from a broken one", async () => {
+  // Names are fictional on purpose: the report also merges the live MCP
+  // config, and a real disabled server would mask the case under test.
   const r = await buildStatusReport({
     workspace: tmpWorkspace(),
     mcpStatus: async () => [
       { name: "browse", ok: true, tools: [1, 2] },
-      { name: "zapier", ok: false, error: "401 unauthorized" },
+      { name: "ghost", ok: false, error: "401 unauthorized" },
+      { name: "hidden", ok: true, tools: [1], enabled: false },
     ],
   });
-  assert.equal(r.mcp.length, 2);
+  assert.equal(r.mcp.length, 3);
   const text = renderStatusText(r);
-  assert.match(text, /zapier\s+401 unauthorized/, "the reason for a failure is shown");
+  assert.match(text, /ghost\s+401 unauthorized/, "the reason for a failure is shown");
+  assert.match(text, /hidden\s+disabled/, "a disabled server is not reported as broken");
   assert.match(text, /1 active/);
+  assert.match(text, /1 down/);
+  assert.match(text, /1 disabled/);
 });
 
 test("/status never claims a check passed when it was stopped", async () => {
   const r = await buildStatusReport({ workspace: tmpWorkspace() });
   const state = r.build.state;
   assert.ok(
-    state === "passing" || /FAILING|still running|killed|could not run|not judged/.test(state),
+    state === "passing" || /FAILING|still running|killed|could not run|not judged|not run/.test(state),
     `the check state is honest, got: ${state}`
   );
   if (state.startsWith("FAILING")) assert.match(state, /exit \d+/, "a failure names its exit code");
+});
+
+test("/status never executes project scripts while the control centre is loading", async () => {
+  const ws = fs.mkdtempSync(path.join(os.tmpdir(), "smol-status-passive-"));
+  const marker = path.join(ws, "status-ran");
+  fs.writeFileSync(
+    path.join(ws, "package.json"),
+    JSON.stringify({
+      scripts: { test: `node -e "require('fs').writeFileSync('status-ran','yes')"` },
+    })
+  );
+  const report = await buildStatusReport({ workspace: ws });
+  assert.equal(report.build.command, "npm run test");
+  assert.match(report.build.state, /not run/);
+  assert.equal(fs.existsSync(marker), false, "opening status must not run the user's test script");
 });

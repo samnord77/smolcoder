@@ -72,10 +72,67 @@ export function runBuildCheck(workspace: string): { command: string; state: stri
   }
 }
 
+/** Status views must remain observational: never launch project scripts simply
+ * because a dashboard was opened. Explicit /check still runs the command. */
+function buildCheckStatus(workspace: string): { command: string; state: string } {
+  const command = projectVerification(workspace);
+  if (!command) return { command: "", state: "no check command found" };
+  const key = `${path.resolve(workspace)}\0${command}`;
+  const cached = buildStatusCache.get(key);
+  if (cached && Date.now() - cached.at < BUILD_STATUS_TTL_MS) return cached.result;
+  return { command, state: "not run (use /check to verify)" };
+}
+
 /** Invalidate the cached project verdict after an edit or an explicit check. */
 export function invalidateBuildCheck(workspace: string): void {
   const root = path.resolve(workspace);
   for (const key of buildStatusCache.keys()) if (key.startsWith(`${root}\0`) || key === root) buildStatusCache.delete(key);
+}
+
+export interface LocalModelsProbeResult {
+  loaded: LocalLoadedModel[];
+  totalVramMb: number;
+  ollamaOnline: boolean;
+  lmStudioOnline: boolean;
+}
+
+export async function probeLocalModelsStatus(): Promise<LocalModelsProbeResult> {
+  const localLoaded: LocalLoadedModel[] = [];
+  const probe = async (url: string): Promise<any | null> => {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 1200);
+    try {
+      const response = await fetch(url, { signal: ctl.signal });
+      return response.ok ? await response.json() : null;
+    } catch {
+      return null;
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+  const [ollamaData, lmStudioData] = await Promise.all([probe("http://127.0.0.1:11434/api/ps"), probe("http://127.0.0.1:1234/v1/models")]);
+  const ollamaOnline = !!ollamaData;
+  const lmStudioOnline = !!lmStudioData;
+  if (Array.isArray(ollamaData?.models)) {
+    for (const m of ollamaData.models) {
+      const vramMb = m.size_vram ? Math.round(m.size_vram / 1048576) : 0;
+      const sizeMb = m.size ? Math.round(m.size / 1048576) : 0;
+      localLoaded.push({
+        backend: "ollama",
+        name: m.name || m.model || "modèle",
+        sizeVramMb: vramMb,
+        sizeMb,
+        details: m.details?.parameter_size ? `${m.details.parameter_size} (${m.details.quantization_level || ""})` : undefined,
+      });
+    }
+  }
+  if (Array.isArray(lmStudioData?.data)) {
+    for (const m of lmStudioData.data) {
+      if (m.id) localLoaded.push({ backend: "lmstudio", name: m.id, details: "chargé dans LM Studio" });
+    }
+  }
+  const totalVramMb = localLoaded.reduce((acc, m) => acc + (m.sizeVramMb || 0), 0);
+  return { loaded: localLoaded, totalVramMb, ollamaOnline, lmStudioOnline };
 }
 
 export async function buildStatusReport(opts: {
@@ -88,7 +145,16 @@ export async function buildStatusReport(opts: {
   modeLabel?: string;
   contextTokens?: number;
   contextWindow?: number;
-  mcpStatus?: () => Promise<{ name: string; ok: boolean; tools?: unknown[]; error?: string; retrying?: boolean }[]>;
+  mcpStatus?: () => Promise<
+    {
+      name: string;
+      ok: boolean;
+      tools?: unknown[];
+      error?: string;
+      retrying?: boolean;
+      enabled?: boolean;
+    }[]
+  >;
 }): Promise<StatusReport> {
   const errors: string[] = [];
   const workspace = opts.workspace;
@@ -107,7 +173,7 @@ export async function buildStatusReport(opts: {
         ok: !!r.ok,
         tools: Array.isArray(r.tools) ? r.tools.length : 0,
         error: r.error ? String(r.error).slice(0, 200) : null,
-        enabled: !off.has(r.name.toLowerCase()),
+        enabled: r.enabled === false ? false : !off.has(r.name.toLowerCase()),
         retrying: r.retrying === true || undefined,
       }));
     } catch (e: any) {
@@ -129,62 +195,9 @@ export async function buildStatusReport(opts: {
     errors.push(`subagents: ${String(e?.message ?? e).slice(0, 120)}`);
   }
 
-  // Monitoring direct des modèles locaux (Ollama / LM Studio)
-  const localLoaded: LocalLoadedModel[] = [];
-  let ollamaOnline = false;
-  let lmStudioOnline = false;
-
-  try {
-    const ctl = new AbortController();
-    const t = setTimeout(() => ctl.abort(), 1200);
-    const res = await fetch("http://127.0.0.1:11434/api/ps", { signal: ctl.signal });
-    clearTimeout(t);
-    if (res.ok) {
-      ollamaOnline = true;
-      const data = (await res.json()) as any;
-      if (Array.isArray(data?.models)) {
-        for (const m of data.models) {
-          const vramMb = m.size_vram ? Math.round(m.size_vram / 1048576) : 0;
-          const sizeMb = m.size ? Math.round(m.size / 1048576) : 0;
-          localLoaded.push({
-            backend: "ollama",
-            name: m.name || m.model || "modèle",
-            sizeVramMb: vramMb,
-            sizeMb,
-            details: m.details?.parameter_size ? `${m.details.parameter_size} (${m.details.quantization_level || ""})` : undefined,
-          });
-        }
-      }
-    }
-  } catch {
-    /* Ollama offline */
-  }
-
-  try {
-    const ctl = new AbortController();
-    const t = setTimeout(() => ctl.abort(), 1200);
-    const res = await fetch("http://127.0.0.1:1234/v1/models", { signal: ctl.signal });
-    clearTimeout(t);
-    if (res.ok) {
-      lmStudioOnline = true;
-      const data = (await res.json()) as any;
-      if (Array.isArray(data?.data)) {
-        for (const m of data.data) {
-          if (m.id) {
-            localLoaded.push({
-              backend: "lmstudio",
-              name: m.id,
-              details: "chargé dans LM Studio",
-            });
-          }
-        }
-      }
-    }
-  } catch {
-    /* LM Studio offline */
-  }
-
-  const totalVramMb = localLoaded.reduce((acc, m) => acc + (m.sizeVramMb || 0), 0);
+  // Probe both local model servers concurrently so a missing service does not
+  // add its timeout after the other server has already answered.
+  const { loaded: localLoaded, totalVramMb, ollamaOnline, lmStudioOnline } = await probeLocalModelsStatus();
 
   const modelId = opts.modelId ?? "unknown";
   return {
@@ -213,7 +226,7 @@ export async function buildStatusReport(opts: {
       ollamaOnline,
       lmStudioOnline,
     },
-    build: runBuildCheck(workspace),
+    build: buildCheckStatus(workspace),
     system: {
       node: process.version,
       platform: process.platform,

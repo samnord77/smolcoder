@@ -37,6 +37,26 @@ function makeChannel(id = "s1") {
   return { ch, sent, changes };
 }
 
+test("channel: tool lifecycle keeps execution ids and classifies the actual tool", () => {
+  const { ch, sent } = makeChannel();
+  ch.toolCall("write_file", { path: "src/app.ts" }, "tool-write-1");
+  ch.toolResult("Created src/app.ts", "tool-write-1");
+  assert.deepEqual(
+    sent.filter((event) => event.t === "tool" || event.t === "result").map((event) => [event.t, event.executionId, event.category]),
+    [
+      ["tool", "tool-write-1", "modification"],
+      ["result", "tool-write-1", undefined],
+    ]
+  );
+});
+
+test("channel: cancelled turns are replayable lifecycle events", () => {
+  const { ch, sent } = makeChannel();
+  ch.turnCancelled();
+  assert.deepEqual(sent.at(-1), { t: "turn_cancelled", sid: "s1" });
+  assert.ok(ch.replay.some((event) => event.t === "turn_cancelled"));
+});
+
 test("channel: a message resolves readInput, is echoed with the session id, and titles the session", async () => {
   const { ch, sent } = makeChannel();
   const p = ch.readInput();
@@ -52,6 +72,16 @@ test("channel: a message resolves readInput, is echoed with the session id, and 
     "user events are replayed"
   );
   assert.ok(!ch.replay.some((e) => e.t === "state"), "state events are not replayed");
+});
+test("channel: Cowork execution ID survives the input queue without changing the prompt", async () => {
+  const { ch, sent } = makeChannel();
+  const id = "w_01234567-89ab-cdef-0123-456789abcdef";
+  const pending = ch.readInput();
+  ch.handleMessage("Run this work item", [], id);
+  assert.deepEqual(await pending, { text: "Run this work item", attachments: [], workItemId: id });
+  const event = sent.find((item) => item.t === "user");
+  assert.equal(event.s, "Run this work item");
+  assert.equal(event.workItemId, id);
 });
 test("channel: messages sent while busy queue up and a slash command does not become the title", async () => {
   const { ch } = makeChannel();
@@ -151,9 +181,21 @@ test("channel: the status view sees live sub-agents and auto-loaded skills", () 
   ch.subagent("start", "explore login flow");
   assert.equal(ch.stateEvent().s.subagent, "explore login flow");
   assert.equal(ch.stateEvent().s.subagentRuns, 1);
-  ch.subagent("done", "4 actions");
+  ch.subagent("done", "completed: 2 actions", {
+    outcome: "completed",
+    verification: "passed",
+    report: "Found the login handler.",
+    filesTouched: ["src/login.ts"],
+    toolCalls: 2,
+  });
   assert.equal(ch.stateEvent().s.subagent, null);
-  assert.equal(ch.stateEvent().s.subagentRuns, 1);
+  assert.deepEqual(sent.find((e) => e.t === "sub" && e.phase === "done").details, {
+    outcome: "completed",
+    verification: "passed",
+    report: "Found the login handler.",
+    filesTouched: ["src/login.ts"],
+    toolCalls: 2,
+  });
   ch.skills(["impeccable-design", 42, "  "]);
   assert.deepEqual(ch.stateEvent().s.skills, ["impeccable-design"]);
   assert.ok(sent.some((e) => e.t === "skills" && e.names[0] === "impeccable-design"));
@@ -391,6 +433,8 @@ test("hub: token guard, page, ping, folder listing, and the running-hub record",
     assert.equal(page.status, 200);
     assert.match(page.body, /id="side"/);
     assert.match(page.body, /id="panel"/);
+    assert.match(page.body, /id="systemmonitor"/);
+    assert.match(page.body, /id="sessionstats"/);
     const ping = JSON.parse((await request(hub, "GET", `/ping?k=${hub.authToken}`)).body);
     assert.equal(ping.ok, true);
     const rec = readHubRecord(dataDir);
@@ -442,22 +486,38 @@ test("hub: sessions start, echo, save, close, resume, delete; workspaces add and
     assert.equal(calls[0].prefs.effort, "off");
     assert.equal(calls[0].planKey, id, "each web conversation gets an isolated durable plan key");
     await until(() => hub.snapshot().workspaces[0].sessions[0].status === "idle", 2000, "idle session");
-    const workCreated = JSON.parse((await request(hub, "POST", `/work/items${k}`, {
-      sid: id, action: "create", title: "Review cowork integration", area: "IDE", priority: "high",
-    })).body);
+    const workCreated = JSON.parse(
+      (
+        await request(hub, "POST", `/work/items${k}`, {
+          sid: id,
+          action: "create",
+          title: "Review cowork integration",
+          area: "IDE",
+          priority: "high",
+        })
+      ).body
+    );
     assert.match(workCreated.result, /Created work item/);
     assert.equal(workCreated.items.length, 1);
     assert.equal(workCreated.items[0].title, "Review cowork integration");
     const workCompleted = await request(hub, "POST", `/work/items${k}`, {
-      sid: id, action: "complete", task_id: workCreated.items[0].id,
+      sid: id,
+      action: "complete",
+      task_id: workCreated.items[0].id,
     });
     assert.equal(JSON.parse(workCompleted.body).items[0].status, "completed");
     const workStatus = JSON.parse((await request(hub, "GET", `/status?k=${hub.authToken}&sid=${encodeURIComponent(id)}`)).body);
     assert.equal(workStatus.workItems[0].title, "Review cowork integration");
     hub.live.get(id).session.agent.mode = "ro";
-    const readOnlyWrite = JSON.parse((await request(hub, "POST", `/work/items${k}`, {
-      sid: id, action: "create", title: "Must be blocked",
-    })).body);
+    const readOnlyWrite = JSON.parse(
+      (
+        await request(hub, "POST", `/work/items${k}`, {
+          sid: id,
+          action: "create",
+          title: "Must be blocked",
+        })
+      ).body
+    );
     assert.match(readOnlyWrite.error, /read-only mode/i);
     hub.live.get(id).session.agent.mode = "edit";
     await request(hub, "POST", `/msg${k}`, { sid: id, text: "hello there" });
@@ -723,6 +783,13 @@ test("hub: /status is the control centre report and /agents/draft writes a bound
   try {
     const opened = JSON.parse((await request(hub, "POST", `/sessions/new${k}`, { workspace: ws })).body);
     const status = JSON.parse((await request(hub, "GET", `/status${k}&sid=${opened.id}`)).body);
+    const overview = JSON.parse((await request(hub, "GET", `/session/overview${k}&sid=${opened.id}`)).body);
+    assert.equal(overview.backgroundTasks, 0);
+    assert.equal(overview.artifacts, 0);
+    assert.equal(overview.changes, null, "Git counters are explicitly unavailable outside a repository");
+    assert.ok(overview.system.memory.totalBytes > 0);
+    assert.ok(overview.system.memory.percent >= 0 && overview.system.memory.percent <= 100);
+    assert.ok(overview.system.gpu === null || overview.system.gpu.memoryTotalBytes > 0);
     assert.equal(status.sid, opened.id);
     assert.ok(Array.isArray(status.tools), "tools list is always present");
     assert.ok(

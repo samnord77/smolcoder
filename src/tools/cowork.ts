@@ -5,7 +5,7 @@ import { resolveInWorkspace } from "../sandbox";
 
 export type WorkStatus = "open" | "completed" | "archived";
 export type WorkPriority = "low" | "normal" | "high" | "urgent";
-export type ExecutionStatus = "idle" | "running" | "verified" | "failed";
+export type ExecutionStatus = "idle" | "running" | "verified" | "unverified" | "failed" | "cancelled";
 
 export interface WorkSnapshot {
   file: string;
@@ -32,11 +32,15 @@ export interface WorkItem {
 
 const MAX_FILE_BYTES = 512 * 1024;
 const MAX_ITEMS = 1000;
-const LOCK_TIMEOUT_MS = 5000;
+// Concurrent agent workers can be CPU-starved while the model, LSP and test
+// processes are active. Five seconds caused false "busy" failures even though
+// the lock owner was healthy. Keep the wait bounded, but give a real
+// cross-process write burst enough time to drain.
+const LOCK_TIMEOUT_MS = 15_000;
 const STALE_LOCK_AGE_MS = 60_000;
 const PRIORITIES: WorkPriority[] = ["low", "normal", "high", "urgent"];
 const STATUSES: WorkStatus[] = ["open", "completed", "archived"];
-const EXECUTION_STATUSES: ExecutionStatus[] = ["idle", "running", "verified", "failed"];
+const EXECUTION_STATUSES: ExecutionStatus[] = ["idle", "running", "verified", "unverified", "failed", "cancelled"];
 
 function boundedText(value: unknown, max: number, required = false): string | null {
   if (value === undefined && !required) return "";
@@ -71,8 +75,7 @@ function isItem(value: unknown): value is WorkItem {
   if (!baseValid) return false;
   if (item.assignedRole !== undefined && typeof item.assignedRole !== "string") return false;
   if (item.acceptanceCriteria !== undefined && typeof item.acceptanceCriteria !== "string") return false;
-  if (item.executionStatus !== undefined && !EXECUTION_STATUSES.includes(item.executionStatus as ExecutionStatus))
-    return false;
+  if (item.executionStatus !== undefined && !EXECUTION_STATUSES.includes(item.executionStatus as ExecutionStatus)) return false;
   if (item.lastReport !== undefined && typeof item.lastReport !== "string") return false;
   if (item.snapshots !== undefined && !Array.isArray(item.snapshots)) return false;
   return true;
@@ -91,7 +94,7 @@ export class CoworkBoard {
   async run(args: Record<string, unknown>): Promise<string> {
     try {
       if (args.action === "list") return this.list(this.load(), args);
-      if (["create", "update", "complete", "archive", "assign", "record_report"].includes(String(args.action))) {
+      if (["create", "update", "archive", "assign", "record_report"].includes(String(args.action))) {
         return await this.withLock(() => {
           const items = this.load();
           switch (args.action) {
@@ -99,8 +102,6 @@ export class CoworkBoard {
               return this.create(items, args);
             case "update":
               return this.update(items, args);
-            case "complete":
-              return this.changeStatus(items, args, "completed");
             case "archive":
               return this.changeStatus(items, args, "archived");
             case "assign":
@@ -116,6 +117,48 @@ export class CoworkBoard {
     } catch (error: any) {
       return `Error: ${error?.message ?? String(error)}`;
     }
+  }
+
+  async beginExecution(taskId: string): Promise<string> {
+    return this.withLock(() => {
+      const items = this.load();
+      const item = items.find((row) => row.id === taskId && row.status === "open");
+      if (!item) return "Error: open work item not found; it was not started.";
+      if (item.executionStatus === "running") return "Error: this work item is already running.";
+      item.executionStatus = "running";
+      item.updatedAt = new Date().toISOString();
+      this.save(items);
+      return `Started work item ${item.id}: ${item.title}`;
+    });
+  }
+
+  async finishExecution(taskId: string, outcome: "verified" | "unverified" | "failed" | "cancelled", report: string): Promise<string> {
+    return this.withLock(() => {
+      const items = this.load();
+      const item = items.find((row) => row.id === taskId);
+      if (!item) return `Error: work item ${taskId} no longer exists.`;
+      if (item.executionStatus !== "running") {
+        return `Error: work item ${taskId} is not running; its execution result was left unchanged.`;
+      }
+      item.executionStatus = outcome;
+      item.lastReport = report.slice(0, 8000);
+      if (outcome === "verified" && item.status === "open") item.status = "completed";
+      item.updatedAt = new Date().toISOString();
+      this.save(items);
+      return `Finished work item ${item.id}: status=${item.status}, execution=${item.executionStatus}`;
+    });
+  }
+
+  async completeWorkItem(taskId: string): Promise<string> {
+    return this.withLock(() => {
+      const items = this.load();
+      const item = items.find((row) => row.id === taskId && row.status === "open");
+      if (!item) return 'Error: open work item not found; use work {"action":"list"} to see available IDs.';
+      item.status = "completed";
+      item.updatedAt = new Date().toISOString();
+      this.save(items);
+      return `Work item ${item.id} completed: ${item.title}`;
+    });
   }
 
   items(): WorkItem[] {
@@ -361,20 +404,14 @@ export class CoworkBoard {
     const id = typeof args.task_id === "string" ? args.task_id.trim() : "";
     const index = items.findIndex((item) => item.id === id);
     if (index < 0) return 'Error: work item not found; use work {"action":"list"} to see available IDs.';
+    if (args.execution_status !== undefined || args.mark_completed === true) {
+      return "Error: execution status and completion are controlled by the session runtime, not by the model.";
+    }
     const item = { ...items[index] };
     if (args.report !== undefined) {
       const report = boundedText(args.report, 8000);
       if (report === null) return "Error: report must be at most 8,000 characters.";
       item.lastReport = report;
-    }
-    if (args.execution_status !== undefined) {
-      if (!EXECUTION_STATUSES.includes(args.execution_status as ExecutionStatus)) {
-        return 'Error: execution_status must be "idle", "running", "verified" or "failed".';
-      }
-      item.executionStatus = args.execution_status as ExecutionStatus;
-    }
-    if (args.mark_completed === true && item.status === "open") {
-      item.status = "completed";
     }
     if (args.snapshot && typeof args.snapshot === "object") {
       const s = args.snapshot as { file?: unknown; summary?: unknown };

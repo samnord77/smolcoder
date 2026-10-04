@@ -6,7 +6,7 @@
 
 import type { Attachment, UserInput } from "../attachments";
 import type { Plan } from "../plan";
-import { type SelectOption, type SessionUI, type SlashCommand, summarizeArgs } from "../ui";
+import { type AgentPhase, type AgentPhaseDetails, type SelectOption, type SessionUI, type SlashCommand, summarizeArgs } from "../ui";
 import { renderEditDiff } from "./diff";
 
 export type Event = Record<string, any>;
@@ -42,6 +42,8 @@ export class SessionChannel implements SessionUI {
   subagentRuns = 0;
   /** Skills that auto-loaded into the current turn. */
   skillsActive: string[] = [];
+  /** Structured Auto Copilot phase shown by web and Electron status panels. */
+  autopilot: { phase: AgentPhase; label: string; details?: AgentPhaseDetails } | null = null;
   replay: Event[] = [];
   closed = false;
 
@@ -86,10 +88,11 @@ export class SessionChannel implements SessionUI {
   // ---- input from the page -------------------------------------------------
 
   /** A message from the page: text, attachments, or both. */
-  handleMessage(text: string, attachments: Attachment[] = []): void {
+  handleMessage(text: string, attachments: Attachment[] = [], workItemId?: string): void {
     text = text.trim();
     if ((!text && !attachments.length) || this.closed) return;
-    const input: string | UserInput = attachments.length ? { text, attachments } : text;
+    const input: string | UserInput =
+      attachments.length || workItemId ? { text, attachments, ...(workItemId ? { workItemId } : {}) } : text;
     if (this.pendingInput) {
       const resolve = this.pendingInput;
       this.pendingInput = null;
@@ -144,7 +147,8 @@ export class SessionChannel implements SessionUI {
         ? []
         : input.attachments.map((a) => ({ id: a.id, name: a.name, kind: a.kind, size: a.size, url: uploadUrl(this.id, a.id) }));
     this.setStatus("busy");
-    this.broadcast({ t: "user", s: text, ...(files.length ? { files } : {}) });
+    const workItemId = typeof input === "string" ? undefined : input.workItemId;
+    this.broadcast({ t: "user", s: text, ...(files.length ? { files } : {}), ...(workItemId ? { workItemId } : {}) });
     const label = text || files.map((f) => f.name).join(", ");
     if (!this.title && !label.startsWith("/")) {
       this.title = label.replace(/\s+/g, " ").slice(0, 60);
@@ -184,6 +188,7 @@ export class SessionChannel implements SessionUI {
         subagent: this.subagentActive,
         subagentRuns: this.subagentRuns,
         skills: this.skillsActive,
+        ...(this.autopilot ? { autopilot: this.autopilot } : {}),
       },
     };
   }
@@ -258,8 +263,19 @@ export class SessionChannel implements SessionUI {
     this.broadcast({ t: "thinking", s: text });
   }
 
-  toolCall(name: string, args: Record<string, any>): void {
+  toolCall(name: string, args: Record<string, any>, executionId?: string): void {
     const ev: Record<string, any> = { t: "tool", name, summary: summarizeArgs(name, args) };
+    if (executionId) ev.executionId = executionId;
+    ev.category =
+      name === "verification"
+        ? "verification"
+        : name === "delegate"
+          ? "delegation"
+          : ["read_file", "list_files", "search", "symbols", "index_symbols"].includes(name)
+            ? "observation"
+            : ["edit_file", "write_file", "delete_file", "delete_path", "move_path", "create_folder"].includes(name)
+              ? "modification"
+              : "tool";
     if (name === "run_command" && typeof args?.command === "string") ev.command = args.command.slice(0, 20_000);
     if (name === "edit_file" && typeof args?.old_text === "string" && typeof args?.new_text === "string") {
       try {
@@ -271,16 +287,38 @@ export class SessionChannel implements SessionUI {
     this.broadcast(ev);
   }
 
-  toolResult(result: string): void {
+  toolResult(result: string, executionId?: string): void {
     const lines = result.split("\n");
     const first = lines[0] ?? "";
-    this.broadcast({
+    const ev: Record<string, any> = {
       t: "result",
       line: first.slice(0, 160),
       err: first.startsWith("Error"),
       extra: lines.length > 1 ? lines.length - 1 : 0,
       body: result,
-    });
+    };
+    if (executionId) ev.executionId = executionId;
+    this.broadcast(ev);
+  }
+
+  turnCancelled(): void {
+    this.autopilotPhase("cancelled", "tour annulé");
+    this.broadcast({ t: "turn_cancelled" });
+  }
+
+  autopilotPhase(phase: AgentPhase, label: string, details?: AgentPhaseDetails): void {
+    this.autopilot = { phase, label: label.slice(0, 240), ...(details ? { details } : {}) };
+    if (phase === "error") this.setStatus("error");
+    else if (phase === "completed" || phase === "cancelled") this.setStatus("idle");
+    else this.setStatus("busy");
+    this.broadcast({ t: "autopilot", phase, label: this.autopilot.label, ...(details ? { details } : {}) });
+    this.pushState();
+  }
+
+  turnError(message: string): void {
+    this.autopilotPhase("error", message || "échec du tour", { message: message || "échec du tour" });
+    this.stopSpinner();
+    this.broadcast({ t: "turn_error", message: message || "échec du tour" });
   }
 
   planUpdated(plan: Plan): void {
@@ -288,15 +326,39 @@ export class SessionChannel implements SessionUI {
     this.pushState();
   }
 
-  subagent(phase: "start" | "done", label: string): void {
+  subagent(
+    phase: "start" | "done",
+    label: string,
+    details?: {
+      outcome?: string;
+      verification?: string;
+      report?: string;
+      filesTouched?: string[];
+      toolCalls?: number;
+    }
+  ): void {
     const clean = label.slice(0, 200);
+    const safeDetails = details
+      ? {
+          outcome: typeof details.outcome === "string" ? details.outcome.slice(0, 40) : "",
+          verification: typeof details.verification === "string" ? details.verification.slice(0, 40) : "",
+          report: typeof details.report === "string" ? details.report.slice(0, 3000) : "",
+          filesTouched: Array.isArray(details.filesTouched)
+            ? details.filesTouched
+                .filter((file): file is string => typeof file === "string")
+                .slice(0, 10)
+                .map((file) => file.slice(0, 300))
+            : [],
+          toolCalls: Number.isFinite(details.toolCalls) ? Math.max(0, Math.floor(details.toolCalls!)) : 0,
+        }
+      : undefined;
     if (phase === "start") {
       this.subagentActive = clean;
       this.subagentRuns += 1;
     } else {
       this.subagentActive = null;
     }
-    this.broadcast({ t: "sub", phase, label: clean });
+    this.broadcast({ t: "sub", phase, label: clean, ...(safeDetails ? { details: safeDetails } : {}) });
     this.pushState();
   }
 

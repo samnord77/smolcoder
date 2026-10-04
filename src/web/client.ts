@@ -206,8 +206,8 @@ function getView(sid) {
   let v = views.get(sid);
   if (!v) {
     v = {
-      sid, logEl: el("div", "log"), state: { commands: [] }, curText: null, curThought: null, thoughtBuf: "", thoughtStart: 0,
-      busyLabel: null, busyStart: 0, unread: false, draft: "", scrollTop: null, followBottom: true, asks: new Map(), curTool: null, planEl: null, curSub: null, lastTool: null,
+      sid, logEl: el("div", "log"), state: { commands: [] }, curText: null, curThought: null, thoughtBuf: "", thoughtStart: 0, messageMarkCounter: 0, messageBookmarks: null,
+      busyLabel: null, busyStart: 0, unread: false, draft: "", scrollTop: null, followBottom: true, asks: new Map(), curTool: null, toolCards: new Map(), toolActivities: new Map(), agentFileOps: new Map(), planEl: null, curSub: null, lastTool: null,
       terms: new Map(), tabs: [], activeTab: null, panelOpen: false, panelEl: el("div", "panelview"),
     };
     v.logEl.hidden = true; logsEl.appendChild(v.logEl);
@@ -306,15 +306,58 @@ function replayBtn(getText) {
   };
   return b;
 }
-function msgMeta(getText) {
+function messageBookmarkSet(v) {
+  if (!v.messageBookmarks) {
+    try {
+      const saved = JSON.parse(localStorage.getItem("smolcoder.bookmarks:" + v.sid) || "[]");
+      v.messageBookmarks = new Set(Array.isArray(saved) ? saved.filter((item) => typeof item === "string") : []);
+    } catch {
+      v.messageBookmarks = new Set();
+    }
+  }
+  return v.messageBookmarks;
+}
+function nextMessageMark(v, role) {
+  v.messageMarkCounter = (v.messageMarkCounter || 0) + 1;
+  return role + ":" + v.messageMarkCounter;
+}
+function bookmarkBtn(v, messageKey) {
+  const saved = messageBookmarkSet(v);
+  const b = el("button", "msgbookmark" + (saved.has(messageKey) ? " marked" : ""), "⚑");
+  const updateLabel = () => {
+    const marked = saved.has(messageKey);
+    b.className = "msgbookmark" + (marked ? " marked" : "");
+    b.title = marked ? "Retirer le marqueur de ce message" : "Marquer ce message";
+    b.setAttribute("aria-label", b.title);
+    b.setAttribute("aria-pressed", String(marked));
+  };
+  updateLabel();
+  b.type = "button";
+  b.onclick = (ev) => {
+    ev.stopPropagation();
+    if (saved.has(messageKey)) saved.delete(messageKey);
+    else saved.add(messageKey);
+    updateLabel();
+    try {
+      localStorage.setItem("smolcoder.bookmarks:" + v.sid, JSON.stringify([...saved]));
+    } catch {
+      showToast("Le marqueur est actif mais n'a pas pu être sauvegardé localement.", "error");
+      return;
+    }
+    showToast(saved.has(messageKey) ? "Message marqué" : "Marqueur retiré", saved.has(messageKey) ? "success" : "info");
+  };
+  return b;
+}
+function msgMeta(getText, v, messageKey) {
   const meta = el("div", "msgmeta");
   meta.appendChild(msgTime());
   meta.appendChild(copyBtn(getText));
   meta.appendChild(replayBtn(getText));
+  if (v && messageKey) meta.appendChild(bookmarkBtn(v, messageKey));
   return meta;
 }
 // A sent message: its text, then thumbnails for images and links for files.
-function userBubble(m) {
+function userBubble(m, v) {
   const d = el("div", "user", m.s || "");
   if (m.files && m.files.length) {
     const row = el("div", "files");
@@ -331,7 +374,7 @@ function userBubble(m) {
     }
     d.appendChild(row);
   }
-  d.appendChild(msgMeta(() => m.s || ""));
+  d.appendChild(msgMeta(() => m.s || "", v, nextMessageMark(v, "user")));
   return d;
 }
 // Streaming: accumulate raw markdown on the element, re-render on a short
@@ -412,6 +455,8 @@ const SPIN_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "�
 let spinTimer = null, spinIdx = 0;
 function renderBusy() {
   const label = active ? active.busyLabel : null;
+  const mainEl = $("main");
+  if (mainEl) mainEl.classList.toggle("agent-working", !!label);
   actionBtn.textContent = label ? "■ stop" : "send";
   actionBtn.className = label ? "stop" : "";
   actionBtn.title = label ? "interrupt the agent (esc)" : "send (enter)";
@@ -677,6 +722,21 @@ function renderState(v) {
     st.appendChild(cmdChip);
   }
   if (s.tasks) st.appendChild(el("span", "task-chip", s.tasks + " running"));
+  if (s.autopilot && s.autopilot.label) {
+    const phase = String(s.autopilot.phase || "starting");
+    const phaseClass =
+      phase === "completed" ? "done" : phase === "error" || phase === "paused" ? "warn" : phase === "cancelled" ? "stopped" : "live";
+    const phaseChip = el("span", "task-chip autopilot-phase " + phaseClass);
+    const marker = phase === "completed" ? "✓" : phase === "error" || phase === "paused" ? "!" : phase === "cancelled" ? "Ⅱ" : "·";
+    phaseChip.textContent = marker + " " + String(s.autopilot.label).slice(0, 100);
+    const details = s.autopilot.details || {};
+    phaseChip.title =
+      String(s.autopilot.label) +
+      (details.tool ? "\noutil : " + details.tool : "") +
+      (details.path ? "\nfichier : " + details.path : "") +
+      (details.step ? "\nétape : " + details.step + (details.maxSteps ? "/" + details.maxSteps : "") : "");
+    st.appendChild(phaseChip);
+  }
   if (s.verification && (s.outcome === "running" || s.outcome === "idle")) {
     const vchip = el("span", "task-chip", s.verification.passed ? "vérifié ✓" : "réparation auto " + s.verification.attempts);
     vchip.title = "Contrôles automatiques en cours";
@@ -734,7 +794,10 @@ function renderState(v) {
   st.appendChild(ensureZoomCtl());
   if (s.subagent) {
     const chip = el("span", "task-chip sub-chip live");
-    chip.appendChild(el("span", "dot"));
+    const halo = el("span", "subagent-halo");
+    halo.setAttribute("role", "status");
+    halo.setAttribute("aria-label", "Sous-agent en cours");
+    chip.appendChild(halo);
     chip.appendChild(document.createTextNode("sous-agent " + String(s.subagent).slice(0, 40)));
     chip.title = "Sous-agent en cours : " + s.subagent;
     chip.onclick = () => openCC("agents");
@@ -749,6 +812,20 @@ function renderState(v) {
   if (s.outcome === "error" || s.outcome === "cancelled") {
     const paused = el("span", s.outcome === "error" ? "line-warn" : "task-chip", s.outcome === "error" ? "Paused" : "Stopped");
     paused.title = s.lastError || "Turn cancelled; progress is kept"; st.appendChild(paused);
+    const resume = el("button", "statusbtn autopilot-resume", s.outcome === "error" ? "reprendre" : "relancer");
+    resume.type = "button";
+    resume.title = s.lastError || "Reprendre le dernier plan Auto Copilot avec le contexte conservé";
+    resume.onclick = () => {
+      resume.disabled = true;
+      resume.textContent = "reprise...";
+      post("/msg", { sid: v.sid, text: "continue" })
+        .catch((err) => {
+          resume.disabled = false;
+          resume.textContent = s.outcome === "error" ? "reprendre" : "relancer";
+          showToast(String(err && err.message ? err.message : err), "error");
+        });
+    };
+    st.appendChild(resume);
     if (s.outcome === "error" && s.lastError) showToast(s.lastError, "error");
   }
   if ($("topmodelname") && s.model) {
@@ -813,30 +890,51 @@ function scheduleWorkspaceRefresh(v) {
     } catch (e) {}
   }, 1200);
 }
-function notifyAgentFileActivity(v, m) {
+function notifyAgentFileActivity(v, m, completed) {
   if (!v || !m) return;
+  const targetFile = m.path || m.file || (() => {
+    if (!m.summary || !/(?:\.[a-zA-Z0-9]+|\/|\\)/.test(m.summary)) return "";
+    return /([a-zA-Z0-9_\-./\\]+\.[a-zA-Z0-9]+)/.exec(m.summary)?.[1] || "";
+  })();
+  const operationId = m.executionId;
+  if (targetFile && operationId && CHIP_TOOLS.includes(m.name)) {
+    const key = targetFile.replace(/\\/g, "/").replace(/^\.\//, "");
+    if (!completed) {
+      let operations = v.agentFileOps.get(key);
+      if (!operations) {
+        operations = new Map();
+        v.agentFileOps.set(key, operations);
+      }
+      operations.set(operationId, m.name);
+    } else {
+      const operations = v.agentFileOps.get(key);
+      operations?.delete(operationId);
+      if (operations && !operations.size) v.agentFileOps.delete(key);
+    }
+  }
   try {
     if (CHIP_TOOLS.indexOf(m.name) >= 0) {
       const ft = v.tabs && v.tabs.find((x) => x.kind === "files");
       if (ft && ft.agentLine) {
-        ft.agentLine.textContent = "🤖 " + m.name + (m.summary ? " " + m.summary : "");
+        const activeCount = [...v.agentFileOps.values()].reduce((count, operations) => count + operations.size, 0);
+        ft.agentLine.textContent = completed
+          ? (activeCount ? "🤖 " + activeCount + " opération(s) fichier en cours" : "✓ " + m.name + " terminé")
+          : "🤖 " + m.name + (targetFile ? " · " + targetFile : m.summary ? " " + m.summary : "");
         ft.agentLine.hidden = false;
       }
     }
     if (DISK_TOOLS.indexOf(m.name) >= 0) scheduleWorkspaceRefresh(v);
   } catch (e) {}
 
-  let targetFile = m.path || m.file || "";
-  if (!targetFile && m.summary && /(?:\.[a-zA-Z0-9]+|\/|\\)/.test(m.summary)) {
-    const matched = /([a-zA-Z0-9_\-./\\]+\.[a-zA-Z0-9]+)/.exec(m.summary);
-    if (matched) targetFile = matched[1];
-  }
   if (!targetFile) return;
   v.lastTouchedFile = targetFile;
 
   // Rafraîchir l'arborescence et afficher le fichier manipulé en live
   const filesTab = v.tabs && v.tabs.find((t) => t.kind === "files");
   if (filesTab) {
+    if (filesTab.renderNestedTree) {
+      try { filesTab.renderNestedTree(); } catch (e) {}
+    }
     if (filesTab.refreshFiles) {
       try { filesTab.refreshFiles(); } catch (e) {}
     }
@@ -844,6 +942,9 @@ function notifyAgentFileActivity(v, m) {
       if (filesTab.loadFile) {
         void filesTab.loadFile(targetFile).catch(() => {});
       }
+    }
+    if (completed && (m.name === "write_file" || m.name === "edit_file") && filesTab.reloadAgentFile) {
+      void filesTab.reloadAgentFile(targetFile).catch(() => {});
     }
   }
 
@@ -911,11 +1012,13 @@ function renderActivity(v) {
   if (actAgent) {
     const sub = v.activeSubagent || (cur?.type === "sub" ? cur.desc : null);
     if (sub) {
+      actAgent.className = "act-agent badge sub-agent-live";
       actAgent.textContent = "⇄ " + sub;
       actAgent.hidden = false;
       actAgent.title = "Sous-agent actif : " + sub;
       actAgent.onclick = () => openCC("agents");
     } else {
+      actAgent.className = "act-agent badge";
       actAgent.hidden = true;
     }
   }
@@ -1020,13 +1123,63 @@ function startToolActivity(v, m) {
   }
   if (targetFile) v.lastTouchedFile = targetFile;
   const act = recordActivity(v, isMcp ? "mcp" : "tool", m.name, m.summary || "", targetFile, isMcp);
-  v.currentToolAct = act;
+  if (m.executionId) v.toolActivities.set(m.executionId, act);
+  else v.currentToolAct = act;
+  return act;
 }
 
-function finishToolActivity(v, m) {
+function finishToolActivity(v, m, activity, toolMeta) {
   if (!v) return;
-  completeActivity(v, v.currentToolAct || "tool", !m.err, m.err ? (m.body || m.line || "erreur") : "");
+  const item = activity || (m.executionId ? v.toolActivities.get(m.executionId) : null) || v.currentToolAct || "tool";
+  const output = m.body || m.line || "";
+  const exitMatch = (toolMeta?.name === "run_command" || toolMeta?.name === "verification") && output.match(/\[exit code (-?\d+) in ([^\]]+)\]/i);
+  const failed = !!m.err || !!(exitMatch && Number.parseInt(exitMatch[1], 10) !== 0);
+  completeActivity(v, item, !failed, failed ? (output || "erreur") : "");
+  if (m.executionId) v.toolActivities.delete(m.executionId);
+  if (v.currentToolAct === item) v.currentToolAct = null;
+}
+
+function cancelPendingToolCards(v) {
+  if (!v) return;
+  const cards = new Set(v.toolCards.values());
+  if (v.curTool) cards.add(v.curTool);
+  let cancelledFileOps = false;
+  for (const card of cards) {
+    if (card._toolOutcome?.textContent !== "En cours") continue;
+    card.className = (card.className || "tool") + " cancelled";
+    card._toolOutcome.textContent = "Annulé";
+    card._toolOutcome.className = "tool-outcome cancelled";
+    card.appendChild(el("pre", "result cancelled", "Opération interrompue; aucun résultat final n’a été reçu."));
+    const activity = card._toolActivity;
+    if (activity) {
+      activity.durationMs = Math.max(10, Date.now() - activity.startTime);
+      activity.status = "cancelled";
+      activity.desc = (activity.desc ? activity.desc + " — " : "") + "annulé";
+      if (v.currentActivity === activity) v.currentActivity = null;
+    }
+    if (card._toolMeta) {
+      if (CHIP_TOOLS.includes(card._toolMeta.name)) cancelledFileOps = true;
+      notifyAgentFileActivity(v, card._toolMeta, true);
+    }
+  }
+  v.toolCards.clear();
+  v.toolActivities.clear();
+  v.curTool = null;
   v.currentToolAct = null;
+  v.agentFileOps.clear();
+  clearOffload(v);
+  if (cancelledFileOps) {
+    const filesTab = v.tabs?.find((tab) => tab.kind === "files");
+    if (filesTab?.agentLine) {
+      filesTab.agentLine.textContent = "⏸ opérations fichier annulées";
+      filesTab.agentLine.hidden = false;
+    }
+    scheduleWorkspaceRefresh(v);
+  }
+  if (v.curSub?._summary) v.curSub._summary.appendChild(document.createTextNode(" · annulé"));
+  v.curSub = null;
+  v.activeSubagent = null;
+  renderActivity(v);
 }
 
 
@@ -1129,11 +1282,28 @@ function handle(m) {
       renderState(v);
       if (v === active) renderTaskRail();
       break;
-    case "user": endThought(v); v.curText = null; v.curTool = null; v.planEl = null; v.curSub = null; add(v, userBubble(m)); break;
+    case "autopilot":
+      v.state.autopilot = {
+        phase: m.phase,
+        label: m.label || "",
+        ...(m.details ? { details: m.details } : {}),
+      };
+      renderState(v);
+      break;
+    case "turn_error":
+      v.state.outcome = "error";
+      v.state.lastError = m.message || "Le tour Auto Copilot a échoué.";
+      setBusy(v, null);
+      renderState(v);
+      break;
+    case "user": endThought(v); v.curText = null; v.curTool = null; v.planEl = null; v.curSub = null; add(v, userBubble(m, v)); break;
     case "response_reset":
       if (v.curText) v.curText.remove();
       if (v.curThought) v.curThought.remove();
       v.curText = null; v.curThought = null; v.thoughtBuf = ""; break;
+    case "turn_cancelled":
+      cancelPendingToolCards(v);
+      break;
     case "token":
       endThought(v);
       if (!v.curText) {
@@ -1142,8 +1312,9 @@ function handle(m) {
         const w = subAdd(v, el("div", "msgwrap"));
         v.curText = el("div", "md");
         v.curText._raw = "";
-        w.appendChild(v.curText);
-        w.appendChild(msgMeta(() => (v.curText ? v.curText._raw : "") || ""));
+        const responseNode = v.curText;
+        w.appendChild(responseNode);
+        w.appendChild(msgMeta(() => responseNode._raw || "", v, nextMessageMark(v, "assistant")));
       }
       v.curText._raw += m.s; scheduleMd(v, v.curText); break;
     case "thinking":
@@ -1156,9 +1327,19 @@ function handle(m) {
       if (v === active) stick(); break;
     case "tool": {
       endThought(v); v.curText = null;
+      if (v.curSub && typeof m.executionId === "string" && m.executionId.startsWith("child-")) {
+        v.curSub._actionCount = (v.curSub._actionCount || 0) + 1;
+        if (v.curSub._progress) v.curSub._progress.textContent = v.curSub._actionCount + " action" + (v.curSub._actionCount === 1 ? "" : "s");
+      }
       const d = el("details", "tool");
       const summary = el("summary"); summary.appendChild(el("span", "name", m.name.replace(/_/g, " "))); summary.appendChild(el("span", "tool-args", m.summary || ""));
-      d.appendChild(summary); v.curTool = d;
+      if (m.category) summary.appendChild(el("span", "tool-category", m.category));
+      const outcome = el("span", "tool-outcome pending", "En cours");
+      summary.appendChild(outcome);
+      d.appendChild(summary); d._summary = summary; v.curTool = d;
+      d._toolMeta = m;
+      d._toolOutcome = outcome;
+      if (m.executionId) v.toolCards.set(m.executionId, d);
       if (m.name === "run_command" && typeof m.command === "string") {
         const command = el("pre", "tool-command", m.command);
         d.appendChild(command);
@@ -1177,7 +1358,7 @@ function handle(m) {
       }
       subAdd(v, d);
       notifyAgentFileActivity(v, m);
-      startToolActivity(v, m);
+      d._toolActivity = startToolActivity(v, m);
       if (m.name === "run_command") armOffload(v, d, m.summary || "");
       else clearOffload(v);
       break;
@@ -1186,25 +1367,32 @@ function handle(m) {
       clearOffload(v);
       endThought(v); v.curText = null;
       const rawText = m.body || m.line || "";
-      const isCmd = v.lastTool?.name === "run_command";
+      const toolCard = m.executionId ? v.toolCards.get(m.executionId) : v.curTool;
+      const toolMeta = m.executionId ? toolCard?._toolMeta : v.lastTool;
+      const isCmd = toolMeta?.name === "run_command";
       const body = el("pre", "result" + (m.err ? " err" : ""));
       if (isCmd) {
         body.appendChild(ansiToFrag(rawText));
       } else {
         body.textContent = rawText;
       }
-      if (v.curTool) {
-        v.curTool.classList.add(m.err ? "failed" : "finished");
+      if (toolCard) {
+        const exitMatch = (isCmd || toolMeta?.name === "verification") && rawText.match(/\[exit code (-?\d+) in ([^\]]+)\]/i);
+        const failed = !!m.err || !!(exitMatch && Number.parseInt(exitMatch[1], 10) !== 0);
+        toolCard.classList.add(failed ? "failed" : "finished");
+        if (toolCard._toolOutcome) {
+          toolCard._toolOutcome.textContent = failed ? "Échec" : "Terminé";
+          toolCard._toolOutcome.className = "tool-outcome " + (failed ? "failed" : "finished");
+        }
         if (isCmd) {
-          const exitMatch = rawText.match(/\[exit code (-?\d+) in ([^\]]+)\]/i);
           if (exitMatch) {
             const codeNum = Number.parseInt(exitMatch[1], 10);
             const dur = exitMatch[2];
             const badge = el("span", "cmd-badge " + (codeNum === 0 ? "ok" : "err"), (codeNum === 0 ? "✓ 0" : "✕ " + codeNum) + " (" + dur + ")");
-            v.curTool.querySelector("summary")?.appendChild(badge);
+            toolCard._summary?.appendChild(badge);
           }
           const actions = el("div", "cmd-actions");
-          const cmdText = v.lastTool.command || v.lastTool.summary || "";
+          const cmdText = toolMeta.command || toolMeta.summary || "";
           const btnCopy = el("button", "cmd-action-btn", "📋 Copier");
           btnCopy.type = "button";
           btnCopy.title = "Copier la commande";
@@ -1234,14 +1422,15 @@ function handle(m) {
           actions.appendChild(btnRerun);
           body.appendChild(actions);
         }
-        v.curTool.appendChild(body);
-        if (m.err) v.curTool.open = true;
-        v.curTool = null;
+        toolCard.appendChild(body);
+        if (m.err && !isCmd && toolMeta?.name !== "verification") toolCard.open = true;
+        if (m.executionId) v.toolCards.delete(m.executionId);
+        if (v.curTool === toolCard) v.curTool = null;
       }
       else add(v, body);
-      if (m.sid === active?.sid && ccOpenNow() && v.lastTool?.name === "work") loadCC();
-      notifyAgentFileActivity(v, v.lastTool);
-      finishToolActivity(v, m);
+      if (m.sid === active?.sid && ccOpenNow() && toolMeta?.name === "work") loadCC();
+      notifyAgentFileActivity(v, toolMeta, true);
+      finishToolActivity(v, m, toolCard?._toolActivity, toolMeta);
       break;
     }
       case "plan": endThought(v); v.curText = null; renderPlan(v, m); v.planCache = m; { const pt = v.tabs.find((t) => t.kind === "plan"); if (pt && pt.renderSteps) { try { pt.renderSteps(m); } catch (e) {} } } break;
@@ -1268,22 +1457,59 @@ function handle(m) {
         if (ft.filePath === m.file) void ft.loadFile(m.file);
         break;
       }
-      case "sub": endThought(v); v.curText = null;
-        if (m.phase === "start") {
-          v.activeSubagent = m.label || "";
-          recordActivity(v, "sub", "sous-agent", m.label || "", "", false);
-          const d = el("details", "subagent"); d.open = true;
-          const summary = el("summary"); summary.appendChild(document.createTextNode("⇄ sous-agent : " + (m.label || ""))); summary.appendChild(el("span", "sub-dot", " ●"));
-          d.appendChild(summary); d._summary = summary; d._dot = summary.querySelector(".sub-dot");
-          v.curSub = d; add(v, d);
-        } else {
-          completeActivity(v, "sub", !m.err, m.err ? "erreur" : "");
-          v.activeSubagent = null;
-          if (v.curSub) { if (v.curSub._dot) v.curSub._dot.textContent = " ✓"; v.curSub._summary.appendChild(document.createTextNode(" · done")); v.curSub = null; }
-          else add(v, el("div", "line-status", "✓ sous-agent : " + (m.label || "")));
-        }
-        renderActivity(v);
-        break;
+    case "sub": endThought(v); v.curText = null;
+      if (m.phase === "start") {
+        v.activeSubagent = m.label || "";
+        recordActivity(v, "sub", "sous-agent", m.label || "", "", false);
+        const d = el("details", "subagent"); d.open = true;
+        const summary = el("summary", "subagent-summary");
+        const halo = el("span", "subagent-halo");
+        halo.setAttribute("role", "status");
+        halo.setAttribute("aria-label", "Sous-agent en cours");
+        const title = el("span", "subagent-title", m.label || "");
+        const progress = el("span", "subagent-progress", "0 action");
+        summary.appendChild(halo);
+        summary.appendChild(title);
+        summary.appendChild(progress);
+        d.appendChild(summary);
+        d._summary = summary;
+        d._halo = halo;
+        d._progress = progress;
+        d._actionCount = 0;
+        d._startedAt = Date.now();
+        v.curSub = d; add(v, d);
+      } else {
+        const details = m.details || {};
+        const outcome = details.outcome || (m.err ? "error" : "completed");
+        const failed = outcome === "error" || outcome === "failed";
+        const cancelled = outcome === "cancelled";
+        completeActivity(v, "sub", !failed && !cancelled, failed ? "erreur" : cancelled ? "annulé" : "");
+        v.activeSubagent = null;
+        if (v.curSub) {
+          const d = v.curSub;
+          d.className = "subagent " + (failed ? "failed" : cancelled ? "cancelled" : "finished");
+          d._halo.className = "subagent-halo " + (failed ? "failed" : cancelled ? "cancelled" : "finished");
+          d._halo.textContent = failed ? "!" : cancelled ? "Ⅱ" : "✓";
+          d._halo.setAttribute("aria-label", failed ? "Sous-agent en erreur" : cancelled ? "Sous-agent annulé" : "Sous-agent terminé");
+          const calls = Number.isFinite(details.toolCalls) ? Math.max(0, details.toolCalls) : d._actionCount;
+          const elapsed = Math.max(0, Math.round((Date.now() - d._startedAt) / 1000));
+          d._progress.textContent = calls + " action" + (calls === 1 ? "" : "s") + " · " + elapsed + "s";
+          const meta = el("div", "subagent-meta", "État : " + outcome + " · vérification : " + (details.verification || "non exécutée"));
+          d.appendChild(meta);
+          if (Array.isArray(details.filesTouched) && details.filesTouched.length) {
+            d.appendChild(el("div", "subagent-files", "Fichiers : " + details.filesTouched.join(", ")));
+          }
+          if (typeof details.report === "string" && details.report.trim()) {
+            const report = el("pre", "subagent-report");
+            report.textContent = details.report;
+            d.appendChild(report);
+          }
+          d.open = true;
+          v.curSub = null;
+        } else add(v, el("div", failed ? "line-error" : "line-status", (failed ? "!" : cancelled ? "Ⅱ" : "✓") + " sous-agent : " + (m.label || "")));
+      }
+      renderActivity(v);
+      break;
     case "line": endThought(v); v.curText = null; subAdd(v, el("div", "line-" + m.kind, m.s));
       if (m.kind === "error") ping("smolcoder — attention needed", m.s);
       break;
@@ -1424,6 +1650,8 @@ function show(sid) {
     logwrap.scrollTop = active.followBottom ? logwrap.scrollHeight : active.scrollTop || 0;
     active.scrollTop = logwrap.scrollTop;
     renderBusy();
+    void refreshSessionOverview(active);
+    void refreshGitStatus(active);
     if (location.hash !== "#" + sid) history.replaceState(null, "", "#" + sid);
     // On a narrow window the sidebar floats over the chat: tuck it away once
     // a session is picked.
@@ -1436,6 +1664,64 @@ function show(sid) {
   renderPanel(); renderSidebar(); renderCrumb(); renderTitle(); renderWelcome(); renderAttachments(); renderActivity(active); fetchReviewBadge();
   stick();
 }
+function formatBytes(bytes) {
+  if (!Number.isFinite(bytes) || bytes < 0) return "—";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let value = bytes, unit = 0;
+  while (value >= 1024 && unit < units.length - 1) { value /= 1024; unit++; }
+  return value.toFixed(unit > 1 ? 1 : 0) + " " + units[unit];
+}
+function setSystemMetric(name, value, percent) {
+  const metric = document.querySelector('.sysmetric[data-metric="' + name + '"]');
+  if (!metric) return;
+  metric.querySelector(".sysvalue").textContent = value;
+  const validPercent = Number.isFinite(percent);
+  metric.querySelector(".systrack i").style.width = validPercent ? Math.max(0, Math.min(100, percent)) + "%" : "0%";
+  metric.dataset.health = !validPercent ? "unknown" : percent < 60 ? "good" : percent < 85 ? "warn" : "high";
+  metric.title = Number.isFinite(percent) ? value + " · " + Math.round(percent) + "%" : value;
+}
+let overviewBusy = false;
+async function refreshSessionOverview(v) {
+  if (!v || active !== v || document.hidden || overviewBusy) return;
+  overviewBusy = true;
+  try {
+    const response = await fetch("/session/overview?k=" + k + "&sid=" + encodeURIComponent(v.sid));
+    if (!response.ok) throw new Error("HTTP " + response.status);
+    const data = await response.json();
+    if (active !== v) return;
+    const system = data.system || {};
+    const memory = system.memory || {};
+    const gpu = system.gpu;
+    const storage = system.storage;
+    setSystemMetric("cpu", Number.isFinite(system.cpuPercent) ? system.cpuPercent + "%" : "—", system.cpuPercent);
+    setSystemMetric("memory", Number.isFinite(memory.percent) ? memory.percent + "% · " + formatBytes(memory.usedBytes) : "—", memory.percent);
+    setSystemMetric("gpu", gpu ? gpu.utilizationPercent + "%" : "N/D", gpu && gpu.utilizationPercent);
+    setSystemMetric("vram", gpu ? formatBytes(gpu.memoryUsedBytes) + " / " + formatBytes(gpu.memoryTotalBytes) : "N/D", gpu ? gpu.memoryUsedBytes * 100 / gpu.memoryTotalBytes : null);
+    setSystemMetric("storage", storage ? storage.percent + "%" : "—", storage && storage.percent);
+    const changes = data.changes;
+    const changeValue = changes
+      ? changes.files + " · +" + changes.added + " −" + changes.removed
+      : "Git N/D";
+    $("sessionstat-changes-value").textContent = changeValue;
+    $("sessionstat-changes").title = changes
+      ? "Ouvrir la revue : " + changes.files + " fichiers, +" + changes.added + " lignes, −" + changes.removed + " lignes"
+      : "Statut Git indisponible";
+    $("sessionstat-background-value").textContent = String(data.backgroundTasks ?? "—");
+    $("sessionstat-artifacts-value").textContent = data.artifacts == null ? "N/D" : data.artifacts >= 500 ? "500+" : String(data.artifacts);
+  } catch {
+    if (active === v) {
+      for (const metric of document.querySelectorAll(".sysmetric .sysvalue")) metric.textContent = "—";
+      for (const stat of document.querySelectorAll(".sessionstat-value")) stat.textContent = "—";
+    }
+  } finally {
+    overviewBusy = false;
+  }
+}
+setInterval(() => { if (active && !document.hidden) void refreshSessionOverview(active); }, 2000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden && active) void refreshSessionOverview(active); });
+$("sessionstat-changes").onclick = () => { if (active) openReviewTab(active); };
+$("sessionstat-background").onclick = () => { if (active) openCC("overview"); };
+$("sessionstat-artifacts").onclick = () => { if (active) openCC("c3"); };
 function newSession(path) {
   post("/sessions/new", { workspace: path }).then((r) => { if (r.id) { pendingSelect = r.id; show(r.id); } else if (r.error) alert(r.error); });
 }
@@ -2725,6 +3011,85 @@ function buildFilesTab(v, t) {
   fileFindBar.append(currentFindInput, currentFindPrev, currentFindNext, currentFindCount, currentReplaceInput, currentReplaceOne, currentReplaceAll, currentFindClose);
   editorWrap.appendChild(tabsBar); editorWrap.appendChild(imagePreview); editorWrap.appendChild(gutter); editorWrap.appendChild(code); editorWrap.appendChild(editor); editorWrap.appendChild(minimap);
   t.editorWrap = editorWrap;
+  const lineAskButton = el("button", "fileline-plus", "+");
+  lineAskButton.type = "button";
+  lineAskButton.title = "Demander une action à l’agent sur cette ligne";
+  lineAskButton.setAttribute("aria-label", "Demander à l’agent une action sur la ligne");
+  lineAskButton.hidden = true;
+  const lineAskPopup = el("form", "fileline-popup");
+  lineAskPopup.hidden = true;
+  lineAskPopup.setAttribute("aria-label", "Instruction à l’agent pour la ligne sélectionnée");
+  const lineAskInput = document.createElement("textarea");
+  lineAskInput.rows = 3;
+  lineAskInput.maxLength = 2000;
+  lineAskInput.placeholder = "Corriger, expliquer, commenter, modifier…";
+  lineAskInput.setAttribute("aria-label", "Instruction pour l’agent");
+  const lineAskActions = el("div", "fileline-actions");
+  const lineAskSend = el("button", "cc-act primary", "Envoyer à l’agent");
+  lineAskSend.type = "submit";
+  const lineAskCancel = el("button", "cc-act", "Annuler");
+  lineAskCancel.type = "button";
+  lineAskActions.append(lineAskCancel, lineAskSend);
+  lineAskPopup.append(lineAskInput, lineAskActions);
+  editorWrap.append(lineAskButton, lineAskPopup);
+  let lineAskNumber = 0;
+  const hideLineAsk = () => { lineAskPopup.hidden = true; lineAskButton.hidden = true; };
+  const positionLineAsk = (line, y) => {
+    lineAskNumber = line;
+    lineAskButton.style.top = y + "px";
+    lineAskPopup.style.top = Math.max(36, Math.min(y, (editorWrap.clientHeight || 200) - 140)) + "px";
+    lineAskButton.title = "Demander à l’agent une action sur la ligne " + line;
+    lineAskButton.hidden = false;
+  };
+  editor.addEventListener("pointermove", (event) => {
+    if (!lineAskPopup.hidden) return;
+    const rect = editor.getBoundingClientRect();
+    const style = getComputedStyle(editor);
+    const lineHeight = parseFloat(style.lineHeight) || 18.75;
+    const paddingTop = parseFloat(style.paddingTop) || 10;
+    const line = Math.max(1, Math.min(editor.value.split("\n").length,
+      Math.floor((event.clientY - rect.top + editor.scrollTop - paddingTop) / lineHeight) + 1));
+    positionLineAsk(line, 45 + (line - 1) * lineHeight - editor.scrollTop);
+  });
+  editorWrap.addEventListener("pointerleave", () => {
+    if (lineAskPopup.hidden) lineAskButton.hidden = true;
+  });
+  lineAskButton.onclick = () => {
+    if (!t.filePath) { showError("Ouvrez d’abord un fichier."); return; }
+    lineAskPopup.hidden = false;
+    lineAskInput.value = "";
+    lineAskInput.focus();
+  };
+  lineAskCancel.onclick = hideLineAsk;
+  const sendLineAsk = () => {
+    const instruction = lineAskInput.value.trim();
+    if (!instruction) { lineAskInput.focus(); return; }
+    if (!t.filePath || lineAskNumber < 1) { showError("Aucune ligne de code sélectionnée."); return; }
+    const lines = editor.value.split("\n");
+    const first = Math.max(1, lineAskNumber - 2);
+    const last = Math.min(lines.length, lineAskNumber + 2);
+    const excerpt = lines.slice(first - 1, last).map((line, index) => (first + index) + ": " + line).join("\n");
+    const text = "Dans le fichier " + t.filePath + ", traite la ligne " + lineAskNumber + " selon cette demande : " + instruction +
+      "\n\nContexte du code (lignes " + first + " à " + last + ") :\n" + excerpt +
+      "\n\nOuvre le fichier complet si le contexte manque. Applique les modifications demandées et vérifie-les; pour une demande d’explication ou de commentaire, réponds sans modifier le code.";
+    lineAskSend.disabled = true;
+    post("/msg", { sid: v.sid, text })
+      .then((result) => {
+        if (result && result.error) throw new Error(result.error);
+        hideLineAsk();
+        showToast("Demande envoyée à l’agent avec le fichier et la ligne.", "info");
+      })
+      .catch((error) => showError(error.message || String(error)))
+      .finally(() => { lineAskSend.disabled = false; });
+  };
+  lineAskPopup.onsubmit = (event) => { event.preventDefault(); sendLineAsk(); };
+  lineAskInput.onkeydown = (event) => {
+    if (event.key === "Escape") { event.preventDefault(); hideLineAsk(); }
+    else if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+      event.preventDefault();
+      sendLineAsk();
+    }
+  };
   const completePop = el("div", "completepop"); completePop.hidden = true;
   completePop.setAttribute("role", "listbox");
   editorWrap.appendChild(completePop);
@@ -2983,6 +3348,24 @@ function buildFilesTab(v, t) {
   t.treeCache = new Map();
   t.expanded = new Set(["."]);
   const treeKey = (p) => (p && p !== "." ? p : ".");
+  const statusBadge = (status) => {
+    const badge = el("span", "fileitem-badge status-" + String(status).toLowerCase(), status);
+    const label = ({ M: "Modifié", A: "Ajouté", D: "Supprimé", R: "Renommé", U: "Non suivi" })[status] || "Changement Git";
+    badge.title = label;
+    badge.setAttribute("aria-label", label);
+    return badge;
+  };
+  const agentActivityBadge = (rel) => {
+    const key = String(rel || "").replace(/\\/g, "/").replace(/^\.\//, "");
+    const operations = v.agentFileOps.get(key);
+    if (!operations?.size) return null;
+    const names = [...new Set(operations.values())];
+    const label = "Agent en cours : " + names.join(", ");
+    const badge = el("span", "fileitem-agent-badge", "IA");
+    badge.title = label;
+    badge.setAttribute("aria-label", label);
+    return badge;
+  };
   const ensureKids = (rel, force) => {
     const key = treeKey(rel);
     if (!force && t.treeCache.has(key)) return Promise.resolve();
@@ -3027,8 +3410,10 @@ function buildFilesTab(v, t) {
           b.innerHTML = getFileItemHtml(item.name, true);
           b.onclick = () => toggleFolder(item.path);
           row.appendChild(tg);
-          if (item.status) row.appendChild(el("span", "fileitem-badge status-" + item.status.toLowerCase(), item.status));
           row.appendChild(b);
+          const agentBadge = agentActivityBadge(item.path);
+          if (agentBadge) row.appendChild(agentBadge);
+          if (item.status) row.appendChild(statusBadge(item.status));
           container.appendChild(row);
           if (open) {
             const sub = el("div", "treesub");
@@ -3041,8 +3426,10 @@ function buildFilesTab(v, t) {
           b.title = item.path;
           b.innerHTML = getFileItemHtml(item.name, false);
           b.onclick = () => t.loadFile(item.path);
-          if (item.status) row.appendChild(el("span", "fileitem-badge status-" + item.status.toLowerCase(), item.status));
           row.appendChild(b);
+          const agentBadge = agentActivityBadge(item.path);
+          if (agentBadge) row.appendChild(agentBadge);
+          if (item.status) row.appendChild(statusBadge(item.status));
           container.appendChild(row);
         }
       }
@@ -3479,7 +3866,27 @@ function buildFilesTab(v, t) {
       const tab = t.tabStore.open(d.path, d.content || "", d.mtimeMs || 0);
       displayTab(tab);
       return true;
-    } catch (e) { showError(e.message); return false; }
+    } catch (e) { showError(e.message); return false;     }
+  };
+  t.reloadAgentFile = async (rel) => {
+    const existing = t.tabStore.list().find((tab) => tab.path === rel);
+    if (!existing) return t.loadFile(rel);
+    if (existing.dirty) {
+      if (t.filePath === rel) {
+        agentText.textContent = "L’agent a modifié ce fichier. Le buffer local contient des changements : recharge après les avoir sauvegardés ou copiés.";
+        agentBar.hidden = false;
+      }
+      return false;
+    }
+    const response = await fetch("/workspace/file?k=" + k + "&sid=" + encodeURIComponent(v.sid) + "&path=" + encodeURIComponent(rel));
+    const data = await response.json();
+    if (!response.ok || data.error) throw new Error(data.error || "Impossible de recharger le fichier modifié.");
+    const refreshed = t.tabStore.reload(rel, data.content || "", data.mtimeMs || 0);
+    if (!refreshed) return false;
+    t.agentDiffBases.set(rel, existing.savedContent);
+    if (t.filePath === rel) displayTab(refreshed);
+    else renderTabs();
+    return true;
   };
   t.refreshMode = (canWrite) => {
     save.disabled = !canWrite || !t.filePath;
@@ -3535,6 +3942,7 @@ function buildFilesTab(v, t) {
     // the panel going blank and repopulating level by level.
     Promise.all(wanted.map((c) => ensureKids(c, true))).catch((e) => showError(e.message));
   };
+  t.renderNestedTree = renderNestedTree;
   t.refreshFiles = () => { try { refresh.onclick(); } catch (e) {} };
   const agentLine = el("div", "filemeta", "");
   agentLine.hidden = true;
@@ -4197,7 +4605,7 @@ function renderMenu() {
     menu.appendChild(d);
   });
 }
-function submit() {
+function submit(options = {}) {
   if (!active) { showError("Aucune session ouverte. Choisissez une session dans la barre laterale."); return; }
   let v = input.value;
   const items = menuItems();
@@ -4211,7 +4619,7 @@ function submit() {
   if (!v && !files.length) return;
   input.value = ""; active.draft = ""; active.pending = []; renderMenu(); autoGrow(); renderAttachments();
   scrollToBottom();
-  post("/msg", { sid: active.sid, text: v, attachments: files }).then((r) => { if (r && r.error) alert(r.error); });
+  post("/msg", { sid: active.sid, text: v, attachments: files, ...(options.workItemId ? { workItemId: options.workItemId } : {}) }).then((r) => { if (r && r.error) alert(r.error); });
 }
 function autoGrow() { input.rows = Math.min(12, Math.max(2, input.value.split("\n").length)); }
 input.addEventListener("input", () => { menuIdx = 0; renderMenu(); autoGrow(); });
@@ -4388,8 +4796,12 @@ const CC_TABS = [
   { id: "c3", label: "C3 / mémoire" },
   { id: "options", label: "Options" },
 ];
-let cc = { tab: "overview", data: null, error: "", loading: false, at: 0 };
+let cc = { tab: "overview", data: null, error: "", loading: false, at: 0, sid: "", requestId: 0, needsRender: false };
 function ccOpenNow() { return !$("cc").hidden; }
+function ccHasFocus() {
+  const panel = $("cc");
+  return !!(panel && typeof panel.contains === "function" && panel.contains(document.activeElement));
+}
 function openCC(tab) {
   if (tab) cc.tab = tab;
   $("cc").hidden = false;
@@ -4409,21 +4821,50 @@ function ccFastPoll(data) {
   window.clearTimeout(ccFastTimer);
   if (pending) ccFastTimer = window.setTimeout(() => { if (ccOpenNow() && !cc.loading) loadCC(); }, 4000);
 }
+function updateTopBackendStatus(d) {
+  const btn = $("btnmodels");
+  if (!btn) return;
+  const lm = d && d.localModels;
+  if (!lm) return;
+  const led = btn.querySelector(".led");
+  const online = Boolean(lm.ollamaOnline || lm.lmStudioOnline);
+  if (led) {
+    led.className = "led " + (online ? "green" : "red");
+  }
+  const engine = lm.ollamaOnline ? "Ollama" : (lm.lmStudioOnline ? "LM Studio" : "Aucun");
+  const vram = lm.totalVramMb ? (lm.totalVramMb >= 1024 ? (lm.totalVramMb / 1024).toFixed(1) + " Go" : lm.totalVramMb + " Mo") : "0 Mo";
+  btn.title = online
+    ? ("Moteur : " + engine + " (en ligne) · Charge VRAM : " + vram + " · Cliquer pour changer (/models)")
+    : "Moteurs locaux (Ollama / LM Studio) hors ligne !";
+}
+
 function loadCC() {
   if (!active) { cc.error = "ouvrez une session pour voir son statut"; cc.data = null; cc.loading = false; renderCC(); return; }
+  const sid = active.sid;
+  if (cc.loading && cc.sid === sid) return;
+  cc.sid = sid;
+  const requestId = ++cc.requestId;
   cc.loading = true; cc.error = "";
   renderCC();
   fetch("/status?k=" + k + "&sid=" + encodeURIComponent(active.sid))
     .then((r) => r.json())
     .then((d) => {
+      if (requestId !== cc.requestId || active?.sid !== sid) return;
       cc.loading = false;
       cc.data = d && !d.error ? d : null;
       cc.error = d && d.error ? d.error : "";
       cc.at = Date.now();
+      if (d && !d.error) updateTopBackendStatus(d);
       ccFastPoll(d);
-      renderCC();
+      if (ccHasFocus()) cc.needsRender = true;
+      else { cc.needsRender = false; renderCC(); }
     })
-    .catch((e) => { cc.loading = false; cc.error = (e && e.message) || "statut indisponible"; renderCC(); });
+    .catch((e) => {
+      if (requestId !== cc.requestId || active?.sid !== sid) return;
+      cc.loading = false; cc.error = (e && e.message) || "statut indisponible";
+      if (ccHasFocus()) cc.needsRender = true;
+      else { cc.needsRender = false; renderCC(); }
+    });
 }
 function renderCCTabs() {
   const tabs = $("cctabs");
@@ -4449,13 +4890,13 @@ function ccFill(text) {
   if (active) active.draft = text;
   input.focus();
 }
-function ccSend(text) {
+function ccSend(text, options = {}) {
   if (!active) {
     showToast("Veuillez d'abord ouvrir un dossier de projet", "info");
     return;
   }
   ccFill(text);
-  submit();
+  submit(options);
 }
 function ccKV(pairs) {
   const box = el("div", "cc-kv");
@@ -4595,13 +5036,18 @@ function ccWork(d) {
     row.appendChild(details);
     row.appendChild(el("span", "cc-tag", item.status));
     if (item.status === "open") {
-      const delegateBtn = el("button", "cc-act primary", "Déléguer");
+      const delegateBtn = el("button", "cc-act primary", "Exécuter avec l’agent");
       delegateBtn.type = "button";
-      delegateBtn.title = "Déléguer cette tâche au sous-agent";
+      delegateBtn.title = "Envoyer cette tâche à l’agent de la session pour qu’il l’exécute et vérifie le résultat";
       delegateBtn.onclick = () => {
         const targetRole = item.assignedRole || "expert";
-        const promptText = "Délègue cette tâche cowork au sous-agent « " + targetRole + " » : " + item.title + (item.acceptanceCriteria ? " [Critères d'acceptation : " + item.acceptanceCriteria + "]" : "") + " (ID: " + item.id + ")";
-        ccFill(promptText);
+        const promptText =
+          "Exécute maintenant cette tâche Cowork dans le workspace, ne te limite pas à un plan. ID: " + item.id +
+          "\nTâche: " + item.title +
+          "\nRôle spécialiste: " + targetRole +
+          (item.acceptanceCriteria ? "\nCritères d'acceptation: " + item.acceptanceCriteria : "") +
+          "\nInspecte le code concerné, réalise le travail, puis lance les vérifications adaptées. Termine avec un rapport factuel via l'outil work; le statut et la complétion sont mis à jour par le runtime d'après le résultat réel du tour et les vérifications. Si une délégation aide, délègue un sous-objectif borné et intègre son résultat toi-même.";
+        ccSend(promptText, { workItemId: item.id });
         closeCC();
       };
       row.appendChild(delegateBtn);
@@ -4984,9 +5430,51 @@ if (sbProblems) sbProblems.onclick = () => togglePanelKind("problems");
 const sbSettings = $("sb-settings");
 if (sbSettings) sbSettings.onclick = () => (ccOpenNow() ? closeCC() : openCC());
 const sbBranch = $("sb-branch");
-if (sbBranch) sbBranch.onclick = () => showToast("Branche Git : main (dépôt local actif)", "info");
+async function loadGitStatus(v) {
+  if (!v) throw new Error("Ouvrez une session de projet pour consulter Git.");
+  const response = await fetch("/git/status?k=" + k + "&sid=" + encodeURIComponent(v.sid));
+  const data = await response.json();
+  if (!response.ok || data.error) throw new Error(data.error || "Statut Git indisponible.");
+  if (data.sync && data.sync.error) throw new Error(data.sync.error);
+  return data.sync;
+}
+async function refreshGitStatus(v) {
+  try {
+    const sync = await loadGitStatus(v);
+    if (active !== v) return sync;
+    $("sb-branch-name").textContent = sync.branch || "(detached)";
+    sbBranch.title = "Branche locale : " + (sync.branch || "(detached)");
+    const syncText = $("sb-sync-text");
+    if (sync.upstream && sync.ahead !== null && sync.behind !== null) {
+      syncText.textContent = sync.behind + "↓ " + sync.ahead + "↑";
+      $("sb-sync").title = sync.behind + " en retard, " + sync.ahead + " en avance sur " + sync.upstream + " (référence locale; aucun fetch/push).";
+    } else {
+      syncText.textContent = "—";
+      $("sb-sync").title = sync.upstream ? "Écart upstream inconnu (référence locale)." : "Aucune référence upstream configurée; aucun fetch/push effectué.";
+    }
+    return sync;
+  } catch (error) {
+    if (active === v) {
+      $("sb-branch-name").textContent = "Git ?";
+      $("sb-sync-text").textContent = "—";
+      $("sb-branch").title = error.message || "Statut Git indisponible.";
+    }
+    return { error: error.message || String(error) };
+  }
+}
+if (sbBranch) sbBranch.onclick = async () => {
+  const sync = await refreshGitStatus(active);
+  showToast(sync.error || ("Branche locale : " + (sync.branch || "(detached)")), sync.error ? "error" : "info");
+};
 const sbSync = $("sb-sync");
-if (sbSync) sbSync.onclick = () => showToast("Synchronisation Git à jour (0 entrant, 41 sortants)", "info");
+if (sbSync) sbSync.onclick = async () => {
+  const sync = await refreshGitStatus(active);
+  const message = sync.error
+    || (sync.upstream && sync.ahead !== null && sync.behind !== null
+      ? sync.behind + " en retard, " + sync.ahead + " en avance sur " + sync.upstream + ". Comparaison locale uniquement : aucun fetch/push effectué."
+      : "Aucune référence upstream configurée. Aucun fetch/push effectué.");
+  showToast(message, sync.error ? "error" : "info");
+};
 const sbIndent = $("sb-indent");
 let currentIndent = 2;
 if (sbIndent) {
@@ -5027,24 +5515,30 @@ if (sbEncoding) {
   };
 }
 const sbFormatter = $("sb-formatter");
-if (sbFormatter) {
-  sbFormatter.onclick = () => {
-    showToast("Formateur Biome 2.5.14 actif — Code vérifié et formaté automatiquement", "info");
-  };
-}
+if (sbFormatter) sbFormatter.onclick = () => showToast("Le formatage depuis la barre d’état n’est pas encore relié à l’éditeur.", "warn");
 const sbLangBtn = $("sb-lang");
 if (sbLangBtn) {
-  sbLangBtn.onclick = () => {
-    const lTxt = $("sb-lang-text");
-    showToast("Mode de langage actif : " + (lTxt ? lTxt.textContent : "JavaScript/TypeScript"), "info");
-  };
+  sbLangBtn.title = "Mode déterminé par l’extension; remplacement manuel non disponible.";
+  sbLangBtn.onclick = () => showToast("Le mode de langage est déterminé par l’extension du fichier; le remplacement manuel n’est pas encore disponible.", "warn");
 }
 const sbBlame = $("sb-blame");
-if (sbBlame) {
-  sbBlame.onclick = () => {
-    showToast("Git Blame : Dernière modification par You (actif sur le dépôt)", "info");
-  };
-}
+if (sbBlame) sbBlame.onclick = async () => {
+  if (!active) { showToast("Ouvrez une session et un fichier d’abord.", "warn"); return; }
+  const files = active.tabs.find((tab) => tab.kind === "files");
+  if (!files?.filePath || !files.editor) { showToast("Ouvrez un fichier suivi par Git pour afficher son auteur.", "warn"); return; }
+  try {
+    const line = editorTools.cursorPosition(files.editor.value, files.editor.selectionStart).line;
+    const url = "/git/blame?k=" + k + "&sid=" + encodeURIComponent(active.sid) + "&path=" + encodeURIComponent(files.filePath) + "&line=" + line;
+    const response = await fetch(url);
+    const data = await response.json();
+    if (!response.ok || data.error) throw new Error(data.error || "Git blame indisponible.");
+    $("sb-blame-text").textContent = data.result.slice(0, 60);
+    $("sb-blame").title = data.result;
+    showToast(data.result, "info");
+  } catch (error) {
+    showToast(error.message || String(error), "error");
+  }
+};
 if ($("btnmodels")) $("btnmodels").onclick = () => {
   if (active) {
     post("/msg", { sid: active.sid, text: "/models" });
@@ -5055,10 +5549,16 @@ if ($("btnmodels")) $("btnmodels").onclick = () => {
 $("ccclose").onclick = closeCC;
 $("ccrefresh").onclick = () => loadCC();
 $("cc").onclick = (e) => { if (e.target === $("cc")) closeCC(); };
+$("cc").addEventListener("focusout", (event) => {
+  if (cc.needsRender && !$("cc").contains(event.relatedTarget)) {
+    cc.needsRender = false;
+    renderCC();
+  }
+});
 // Le hub peut ouvrir le centre directement (lien #status, IDE Electron) et le
 // rafraîchit tout seul pendant qu'il est ouvert.
 setTimeout(() => { if (location.hash === "#status" && active) openCC(); }, 600);
-setInterval(() => { if (ccOpenNow() && !cc.loading) loadCC(); }, 20000);
+setInterval(() => { if (ccOpenNow() && !cc.loading && !ccHasFocus()) loadCC(); }, 20000);
 
 // ---- connect (SSE avec retry + bandeau) -----------------------------------
 let es = null;

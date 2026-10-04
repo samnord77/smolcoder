@@ -11,14 +11,14 @@ import type { EventBus } from "./events";
 import { gitTurnSummary } from "./git";
 import { classifyTask, formatOrchestratorSummary, type TaskClassification } from "./orchestrator";
 import { Plan } from "./plan";
-import { abortableDelay } from "./providers/transport";
+import { abortableDelay, isBackendTimeoutError, isSlowPrefillError } from "./providers/transport";
 import { type ChatResult, type Msg, nextCallId, type Provider, type ToolSpec } from "./providers/types";
 import { commandEscapesWorkspace } from "./sandbox";
 import { recordDelegateStats, relevantSkillNames, relevantSkills, saveAutoRepairLesson } from "./skills";
 import { loadSubagentRoles, type SubagentRole } from "./subagents";
 import { buildToolSpecs, commandOf, executeTool, MODE_LABELS, type Mode, type ToolContext } from "./tools/index";
 import { runCommand } from "./tools/shell";
-import type { AgentUI } from "./ui";
+import type { AgentPhase, AgentPhaseDetails, AgentUI } from "./ui";
 import { c, fmtDuration, truncateMiddle } from "./util";
 import { failureSignature, mergeVerificationCommands, projectVerification } from "./verification";
 
@@ -31,6 +31,108 @@ export interface Verification {
 
 const TRANSIENT_ERROR = /fetch failed|econn|socket|network|timed?.?out|429|50[0-4]|stream ended|malformed JSON|stream error/i;
 const CONTEXT_ERROR = /context.{0,50}(exceed|overflow|full|length)|too (many|long).{0,30}tokens|prompt.{0,30}(too long|exceed)/i;
+const WORKSPACE_ACTION =
+  /\b(analy[sz](e|er|ez|erai|ons)?|audit(?:er|ez)?|inspect(?:er|ez)?|review|diagnos(?:e|er|ez|tic)|investigat(?:e|er|ez)|verif(?:y|ier|iez)|check|examin(?:e|er|ez)|scan(?:ner)?|search|find|locat(?:e|ing)|read|recherch(?:e|es|ez|er|ons)|cherch(?:e|es|ez|er|ons)|trouv(?:e|es|ez|er|ons)|localis(?:e|es|ez|er|ons)|corrig(?:e|er|ez)|fix|edit|modif(?:y|ier|iez)|optimis(?:e|er)|optimiz(?:e|er)|automat(?:e|iser|isez)|amélior(?:e|er|ez)|amelior(?:e|er|ez)|explor(?:e|er|ez)|list(?:er)?|résum(?:e|er|ez)|resum(?:e|er|ez)|expliqu(?:e|er|ez))\b/i;
+const WORKSPACE_TARGET =
+  /\b(projet|project|workspace|repository|repo|codebase|code|fichier|fichiers|file|files|dossier|folder|src|test|build|compilation|bug|erreur|error|pc|ordinateur|computer|machine|disque|drive|deepseek|ollama|lm studio|modele|model)\b/i;
+const ADVICE_REQUEST =
+  /^\s*(?:what are the best ways?|tell me how|should i|can you recommend|can you suggest|recommend(?:ations?)?|suggest(?:ions?)?|how could i|explain how i could)\b/i;
+const CONTINUATION = /^\s*(?:continue(?:r|z)?|poursui(?:s|vre|vez)?|reprends?|go on|keep going)\s*[.!…]*\s*$/i;
+const CHANGE_ACTION =
+  /\b(?:implement|build|create|add|fix|repair|correct|update|refactor|improve|enhance|remove|delete|modify|change|automate|write|generate|produces?|produced|construi(?:re|r|s|t|ez|ons)|corrig(?:e|es|ez|er|ons)|repar(?:e|es|ez|er|ons)|ajout(?:e|es|ez|er|ons)|cre(?:e|es|ez|er|ons)|cri(?:e|es|ez|er|ons)|modifi(?:e|es|ez|er|ons)|amelior(?:e|es|ez|er|ons)|enrich(?:i|is|it|ir|issons|issez)|optimis(?:e|es|ez|er|ons)|automatis(?:e|es|ez|er|ons)|supprim(?:e|es|ez|er|ons)|gener(?:e|es|ez|er|ons)|ecrit(?:s)?|ecriv(?:e|es|ez|ons)|redig(?:e|es|ez|er|ons)|fabriqu(?:e|es|ez|er|ons)|produis(?:t|s|ez|ons)|install(?:e|es|ez|er|ons))\b/;
+const CHANGE_TARGET =
+  /\b(?:workspace|project|repository|codebase|code|file|files|folder|src|test|copilot|autopilot|agent|cowork|ide|fichier|fichiers|dossier|dossiers|projet|projets|html|css|javascript|typescript|page|pages|site|sites|web|application|app|script|scripts|snippet|module|template|formulaire|form|composant|components|component|api|endpoint|serveur|server|preview|apercu|bundle|package|npm|calculatrice|jeu|game)\b/;
+function explicitlyRequestsWorkspaceChange(request: string): boolean {
+  const normalized = request
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  if (
+    /\b(?:without\s+(?:modifying|changing|creating|writing)|do not\s+(?:modify|change|create|write)|don'?t\s+(?:modify|change|create|write)|no changes|read[- ]only|sans\s+(?:rien\s+)?(?:modifi\w*|cre\w*|ecri\w*)|ne\s+(?:rien\s+)?(?:modifi\w*|cree|creer)|ne modifie pas|ne cree pas|ne creer pas|aucune modification)\b/.test(
+      normalized
+    )
+  ) {
+    return false;
+  }
+  if (
+    /^\s*(?:what|why|how|explain|tell me|recommend|suggest|should i|should we|do you think|expliquer|explique|pourquoi|comment|conseille|devrais-je)\b/.test(
+      normalized
+    ) ||
+    /^\s*(?:peux[- ]tu|pouvez[- ]tu|tu peux|can you|could you)\s+(?:m'?expliquer|me dire|m'indiquer|me montrer comment)/.test(normalized)
+  ) {
+    return false;
+  }
+  return CHANGE_ACTION.test(normalized) && CHANGE_TARGET.test(normalized);
+}
+function requiresWorkspaceChange(request: string, previousRequests: string[]): boolean {
+  if (CONTINUATION.test(request)) return previousRequests.slice(-3).some(explicitlyRequestsWorkspaceChange);
+  return explicitlyRequestsWorkspaceChange(request);
+}
+function requiresWorkspaceEvidence(request: string, previousRequests: string[]): boolean {
+  if (ADVICE_REQUEST.test(request)) return false;
+  const needsEvidence = (text: string) => WORKSPACE_ACTION.test(text) && WORKSPACE_TARGET.test(text);
+  return needsEvidence(request) || (CONTINUATION.test(request) && previousRequests.slice(-3).some(needsEvidence));
+}
+function localComputerSearchQuery(request: string): string | null {
+  const normalized = request.normalize("NFKD").replace(/[\u0300-\u036f]/g, "");
+  const asksToSearch = /\b(?:search|find|locate|look\s+for|recherch\w*|cherch\w*|trouv\w*|localis\w*)\b/i.test(normalized);
+  const localTarget =
+    /\b(?:pc|ordinateur|computer|this\s+computer|my\s+computer|my\s+pc|sur\s+mon\s+pc|sur\s+mon\s+ordinateur|drive|disque)\b/i.test(
+      normalized
+    );
+  const fileTarget = /\b(?:file|files|folder|directory|dossier|fichier|repertoire)\b/i.test(normalized);
+  if (!asksToSearch || !localTarget || !fileTarget) return null;
+
+  const target = /\b(?:folder|directory|dossier|file|files|fichier|repertoire)\b/i.exec(normalized);
+  const tail = target ? normalized.slice(target.index + target[0].length) : normalized;
+  const stopWords = new Set([
+    "a",
+    "an",
+    "and",
+    "called",
+    "computer",
+    "de",
+    "des",
+    "dossier",
+    "du",
+    "file",
+    "files",
+    "folder",
+    "for",
+    "fichier",
+    "find",
+    "le",
+    "la",
+    "les",
+    "my",
+    "named",
+    "on",
+    "ordinateur",
+    "pc",
+    "repertoire",
+    "recherche",
+    "rechercher",
+    "recherches",
+    "recherchez",
+    "recherchons",
+    "search",
+    "the",
+    "to",
+    "sur",
+    "this",
+    "un",
+    "une",
+    "with",
+    "workspace",
+    "projet",
+    "actuel",
+    "current",
+  ]);
+  const words = tail.match(/[a-z0-9][a-z0-9._-]{1,119}/gi) ?? [];
+  const candidates = words.filter((word) => !stopWords.has(word.toLocaleLowerCase()));
+  if (!candidates.length) return null;
+  return candidates.sort((a, b) => b.length - a.length)[0].slice(0, 120);
+}
 function needsTaskOrchestration(request: string): boolean {
   const normalized = request
     .normalize("NFKD")
@@ -44,7 +146,9 @@ function needsTaskOrchestration(request: string): boolean {
     return false;
   return (
     normalized.length >= 120 &&
-    /\b(fix|repair|correct|improv|enhanc|implement|build|create|refactor|corrig|repar|amelior|enrich|optimis|optimis|develop)\w*/.test(normalized) &&
+    /\b(fix|repair|correct|improv|enhanc|implement|build|create|refactor|corrig|repar|amelior|enrich|optimis|optimis|develop)\w*/.test(
+      normalized
+    ) &&
     /\b(all|every|entire|whole|deep|thorough|comprehensive|multiple|several|many|tous|toutes|tout|ensemble|global|plusieurs|beaucoup|approfond|pro|and|also|plus|et|puis)\w*/.test(
       normalized
     )
@@ -73,6 +177,7 @@ export function isAutoApproved(command: string, allowed: Set<string>, reason?: s
  * mais chaque ligne est signee ⇄ et la fin de tour ne sonne pas (seule la
  * fin du tour parent sonne). Le spinner affiche "sous-agent · …". */
 export class ChildUI implements AgentUI {
+  private readonly executionPrefix = `child-${nextCallId()}-`;
   constructor(private parent: AgentUI) {}
   resetResponse?(): void {
     this.parent.resetResponse?.();
@@ -83,11 +188,11 @@ export class ChildUI implements AgentUI {
   thinking(text: string): void {
     this.parent.thinking(text);
   }
-  toolCall(name: string, args: Record<string, any>): void {
-    this.parent.toolCall(name, args);
+  toolCall(name: string, args: Record<string, any>, executionId?: string): void {
+    this.parent.toolCall(name, args, executionId ? this.executionPrefix + executionId : undefined);
   }
-  toolResult(result: string): void {
-    this.parent.toolResult(result);
+  toolResult(result: string, executionId?: string): void {
+    this.parent.toolResult(result, executionId ? this.executionPrefix + executionId : undefined);
   }
   println(s?: string): void {
     this.parent.println(s);
@@ -135,11 +240,13 @@ export class Agent {
   outcome: "idle" | "running" | "completed" | "cancelled" | "error" = "idle";
   lastError: string | null = null;
   verificationResult: { attempts: number; passed: boolean; output: string } | null = null;
+  workspaceChangedThisTurn = false;
   lastClassification: TaskClassification | null = null;
   private verification?: Verification;
   private progressFailure = "";
   private sameVerificationFailures = 0;
   private canRefreshVerification = false;
+  private lastTurnWorkspaceEvidence = false;
 
   constructor(
     public provider: Provider,
@@ -198,16 +305,21 @@ export class Agent {
         if (bad.length) {
           return `Error: custom tools must come from your own tool list (no privilege escalation). Not allowed: ${bad.join(", ")}. Yours: ${mine.join(", ")}.`;
         }
-        const readerFallback = ["read_file", "list_files", "search", "symbols", "index_symbols", "fetch_url"].filter((t) =>
+        const readerFallback = ["read_file", "list_files", "search", "find_local", "symbols", "index_symbols", "fetch_url"].filter((t) =>
           mine.includes(t)
         );
+        const specialist = requestedRole
+          ? loadSubagentRoles(this.toolCtx.workspace).find((candidate) => candidate.name === requestedRole.trim().toLowerCase())
+          : undefined;
         role = {
-          name: "custom",
-          role: "Custom specialist",
+          name: specialist?.name ?? "custom",
+          role: specialist?.role ?? "Custom specialist",
           description: task.slice(0, 120),
           tools: wanted.length ? [...new Set(wanted)] : readerFallback,
-          instructions: customInstructions || "Do the subtask and report back with files, line numbers and what remains.",
-          source: "builtin" as const,
+          instructions:
+            [specialist?.instructions, customInstructions].filter(Boolean).join("\n\n") ||
+            "Do the subtask and report back with files, line numbers and what remains.",
+          source: specialist?.source ?? ("builtin" as const),
         };
       } else {
         const roleName = (requestedRole || "expert").trim().toLowerCase();
@@ -254,26 +366,48 @@ export class Agent {
           `Subtask (answer with a short report: what you found or changed, files + line numbers, what remains):\n${task}`
         );
       } catch (err: any) {
+        this.workspaceChangedThisTurn ||= child.workspaceChangedThisTurn;
         try {
           recordDelegateStats(this.toolCtx.workspace, child.lastTurnStats?.toolCalls ?? 0);
         } catch {
           /* stats must never break a turn */
         }
-        this.ui.subagent?.("done", "interrompu");
-        return `Sub-agent stopped: ${String(err?.message ?? err).slice(0, 800)}`;
+        const calls = child.lastTurnStats?.toolCalls ?? 0;
+        const verification = child.verificationResult ? (child.verificationResult.passed ? "passed" : "failed") : "not run";
+        const failure = String(err?.message ?? err).slice(0, 700);
+        const filesTouched = [...childCtx.filesTouched].slice(-10);
+        this.ui.subagent?.("done", `${child.outcome}: ${calls} actions`, {
+          outcome: child.outcome,
+          verification,
+          report: failure,
+          filesTouched,
+          toolCalls: calls,
+        });
+        return `Sub-agent execution=${child.outcome}; verification=${verification}; error=${failure}\nFiles touched: ${filesTouched.join(", ") || "none"}\n(Sub-agent did ${calls} tool calls.)`;
       }
-      if (signal?.aborted) throw signal.reason;
+      this.lastTurnWorkspaceEvidence ||= child.lastTurnWorkspaceEvidence;
+      this.workspaceChangedThisTurn ||= child.workspaceChangedThisTurn;
       const last = [...child.messages].reverse().find((m) => m.role === "assistant" && m.content.trim());
       const report = (last?.content ?? "No report.").slice(0, 3000);
-      const touched = [...childCtx.filesTouched].slice(-10).join(", ");
+      const filesTouched = [...childCtx.filesTouched].slice(-10);
       try {
         recordDelegateStats(this.toolCtx.workspace, child.lastTurnStats?.toolCalls ?? 0);
       } catch {
         /* stats must never break a turn */
       }
       const doneCalls = child.lastTurnStats?.toolCalls ?? 0;
-      this.ui.subagent?.("done", `${doneCalls} actions`);
-      return `${report}${touched ? `\nFiles touched: ${touched}` : ""}\n(Sub-agent did ${doneCalls} tool calls.)`;
+      const verification = child.verificationResult ? (child.verificationResult.passed ? "passed" : "failed") : "not run";
+      const outcome = signal?.aborted ? "cancelled" : child.outcome;
+      this.ui.subagent?.("done", `${outcome}: ${doneCalls} actions`, {
+        outcome,
+        verification,
+        report,
+        filesTouched,
+        toolCalls: doneCalls,
+      });
+      if (signal?.aborted) throw signal.reason;
+      const touched = filesTouched.join(", ");
+      return `Sub-agent execution=${child.outcome}; verification=${verification}\n${report}${touched ? `\nFiles touched: ${touched}` : ""}\n(Sub-agent did ${doneCalls} tool calls.)`;
     };
   }
 
@@ -283,15 +417,10 @@ export class Agent {
   }
 
   private async orchestrateBroadTask(request: string, signal: AbortSignal): Promise<number> {
-    const classification = classifyTask(request);
+    const classification = this.lastClassification ?? classifyTask(request);
     this.lastClassification = classification;
 
-    if (
-      !needsTaskOrchestration(request) ||
-      this.mode === "ro" ||
-      !this.toolCtx.delegate ||
-      (this.toolCtx.depth ?? 0) > 0
-    ) {
+    if (!needsTaskOrchestration(request) || this.mode === "ro" || !this.toolCtx.delegate || (this.toolCtx.depth ?? 0) > 0) {
       return 0;
     }
 
@@ -308,16 +437,23 @@ export class Agent {
       });
     }
 
-    const readTools = ["read_file", "list_files", "search", "symbols"].filter((name) => this.tools.some((tool) => tool.name === name));
+    const readTools = ["read_file", "list_files", "search", "find_local", "symbols"].filter((name) =>
+      this.tools.some((tool) => tool.name === name)
+    );
     const targetRole = classification.recommendedRole || "expert";
+    this.ui.autopilotPhase?.("delegating", `pré-vol de l’expert ${targetRole}`, {
+      tool: "delegate",
+      message: "inspection en lecture seule avant implémentation",
+    });
     const args = {
       task: `[Orchestrateur / ${classification.category}] Inspecter le workspace pour préparer cette demande sans modifier les fichiers. Identifier les fichiers et parcours concrets, les causes probables, et le plan d'implémentation à transmettre à l'agent principal:\n${request.slice(0, 1400)}`,
       tools: readTools.join(","),
-      instructions: "Exploration en lecture seule. Utilise les outils autorisés, rapporte les chemins exacts et les preuves; ne modifie aucun fichier. L'agent principal fera les changements.",
+      instructions:
+        "Exploration en lecture seule. Utilise les outils autorisés, rapporte les chemins exacts et les preuves; ne modifie aucun fichier. L'agent principal fera les changements.",
     };
     const id = nextCallId();
     this.ui.status(`· sous-agent d’exploration (${targetRole}) lancé avant l’implémentation`);
-    this.ui.toolCall("delegate", args);
+    this.ui.toolCall("delegate", args, id);
     this.messages.push({
       role: "assistant",
       content: "",
@@ -325,12 +461,12 @@ export class Agent {
     });
     let report: string;
     try {
-      report = await this.toolCtx.delegate(args.task, signal, undefined, { tools: args.tools, instructions: args.instructions });
+      report = await this.toolCtx.delegate(args.task, signal, targetRole, { tools: args.tools, instructions: args.instructions });
     } catch (error: any) {
       if (signal.aborted) throw signal.reason;
       report = `Error: sub-agent exploration failed: ${String(error?.message ?? error).slice(0, 500)}`;
     }
-    this.ui.toolResult(report);
+    this.ui.toolResult(report, id);
     this.messages.push({ role: "tool", content: report, toolCallId: id, toolName: "delegate" });
     await this.bus.emit("post_tool", { name: "delegate", args });
     await this.bus.emit("context_update");
@@ -347,9 +483,7 @@ export class Agent {
       commandsRun: this.toolCtx.commandsRun,
       verificationResult: this.verificationResult,
       durationMs: this.lastTurnStats?.durationMs,
-      stepsCompleted: this.toolCtx.plan.exists
-        ? { total: this.toolCtx.plan.steps.length, done: this.toolCtx.plan.doneCount }
-        : undefined,
+      stepsCompleted: this.toolCtx.plan.exists ? { total: this.toolCtx.plan.steps.length, done: this.toolCtx.plan.doneCount } : undefined,
     });
   }
 
@@ -442,13 +576,15 @@ export class Agent {
     const command = projectVerification(this.toolCtx.workspace);
     if (!command) return false;
     this.ui.status("· checking implementation progress");
-    this.ui.toolCall("verification", { command });
+    this.ui.autopilotPhase?.("validating", "vérification intermédiaire du projet", { tool: "verification" });
+    const executionId = nextCallId();
+    this.ui.toolCall("verification", { command }, executionId);
     this.ctxMgr.prepareBackground(this.messages, this.tools, this.provider, this.compactState());
     const output = await runCommand(command, this.toolCtx.workspace, signal);
     if (signal.aborted) throw abortError();
     const passed = !output.startsWith("Error") && /\[exit code 0 in [^\]]+\]\s*$/.test(output);
     this.progressFailure = passed ? "" : output;
-    this.ui.toolResult(output);
+    this.ui.toolResult(output, executionId);
     await this.bus.emit("post_progress_check", { command, passed, output });
     this.messages.push({
       role: "user",
@@ -484,7 +620,12 @@ export class Agent {
     if (attempts > (check.maxAttempts ?? 6))
       throw new Error("Acceptance attempt limit reached before the agent finished. The task is incomplete.");
     this.ui.status(`· checking acceptance (${attempts}/${check.maxAttempts ?? 6})`);
-    this.ui.toolCall("verification", { command: check.command });
+    this.ui.autopilotPhase?.("validating", `validation d’acceptance (${attempts}/${check.maxAttempts ?? 6})`, {
+      tool: "verification",
+      message: check.command,
+    });
+    const executionId = nextCallId();
+    this.ui.toolCall("verification", { command: check.command }, executionId);
     const output = await runCommand(check.command, this.toolCtx.workspace, signal);
     if (signal.aborted) throw abortError();
     const passed = !output.startsWith("Error") && /\[exit code 0 in [^\]]+\]\s*$/.test(output);
@@ -496,7 +637,7 @@ export class Agent {
         ? this.sameVerificationFailures + 1
         : 1;
     this.verificationResult = { attempts, passed, output };
-    this.ui.toolResult(output);
+    this.ui.toolResult(output, executionId);
     await this.bus.emit("post_verify", this.verificationResult);
     if (passed) {
       this.ui.status("· acceptance checks passed");
@@ -570,19 +711,32 @@ export class Agent {
     await this.ctxMgr.foreground();
     this.ctxMgr.cancelBackground(true);
     this.outcome = "running";
+    this.ui.autopilotPhase?.("starting", "tour de codage démarré");
+    this.workspaceChangedThisTurn = false;
     this.ctxMgr.resetAnchor(); // prior-turn reasoning no longer travels on the wire
     this.lastError = null;
     this.verificationResult = null;
     this.verification = this.callerVerification;
     this.progressFailure = "";
     this.sameVerificationFailures = 0;
+    this.lastTurnWorkspaceEvidence = false;
     // Earlier user decisions may exist only in a previous turn's summary.
     // Only a fresh conversation can safely discard every old narrative.
     this.canRefreshVerification = !this.originalRequest && this.messages.length === 1;
     const rendered = renderAttachmentsForModel(attachments, this.provider.vision !== false);
     const request = userInput || (attachments.length ? `See the attached ${attachments.length === 1 ? "file" : "files"}.` : "");
+    const previousRequests = this.messages
+      .filter((message) => message.role === "user" && !message.historyNote)
+      .slice(-3)
+      .map((message) => message.content);
+    if (this.currentRequest) previousRequests.push(this.currentRequest);
+    const evidenceRequest = request.startsWith("Subtask (") ? request.slice(request.indexOf("\n") + 1) : request;
+    const evidenceRequired = requiresWorkspaceEvidence(evidenceRequest, previousRequests);
+    const changeRequired = requiresWorkspaceChange(evidenceRequest, previousRequests);
     // Compaction keeps the request text, so the file names ride along with it.
     const requestNote = attachments.length ? `${request} [attached: ${attachments.map((a) => a.name).join(", ")}]` : request;
+    this.lastClassification = classifyTask(requestNote);
+    this.ui.autopilotPhase?.("planning", "analyse de la demande et préparation du plan");
     if (!this.originalRequest && this.toolCtx.plan.exists) {
       this.messages.push({
         role: "user",
@@ -595,9 +749,11 @@ export class Agent {
     // Auto-evolution: skills matching the task ride along without being asked.
     let autoSkills = "";
     let autoSkillNames: string[] = [];
+    const preferredSkills =
+      changeRequired || evidenceRequired || this.lastClassification.shouldDelegate ? this.lastClassification.recommendedSkills : [];
     try {
-      autoSkills = relevantSkills(this.toolCtx.workspace, requestNote);
-      autoSkillNames = relevantSkillNames(this.toolCtx.workspace, requestNote);
+      autoSkills = relevantSkills(this.toolCtx.workspace, requestNote, 1200, preferredSkills);
+      autoSkillNames = relevantSkillNames(this.toolCtx.workspace, requestNote, 2, preferredSkills);
     } catch {
       autoSkills = "";
       autoSkillNames = [];
@@ -611,7 +767,7 @@ export class Agent {
       this.messages.push({
         role: "user",
         historyNote: true,
-        content: `[Auto-loaded skills matching your task — read and apply them, then work:]\n${autoSkills}`,
+        content: `[Auto-loaded skills selected for this task — read and apply them, then work:]\n${autoSkills}`,
       });
     }
     this.messages.push({
@@ -626,6 +782,8 @@ export class Agent {
     let completed = false;
     let steps = 0;
     let nudges = 0;
+    let evidenceNudges = 0;
+    let changeNudges = 0;
     let toolCallsThisTurn = 0;
     let lastVerifiedToolCalls = -1;
     const runAcceptance = async () => {
@@ -643,8 +801,10 @@ export class Agent {
     const repeatedReads = new Map<string, { count: number; receipt?: Msg }>();
     let readsSinceAction = 0;
     let actionOnlyCalls = 0;
+    let turnRecovery = 0;
     let reasoningExhaustions = 0;
     let wroteThisTurn = false;
+    let changedWorkspaceThisTurn = false;
     let lastProgressCheck = 0;
     const stats: TurnStats = {
       modelCalls: 0,
@@ -657,10 +817,35 @@ export class Agent {
     };
     this.lastTurnStats = stats;
     try {
-      toolCallsThisTurn = await this.orchestrateBroadTask(requestNote, signal);
+      const localQuery = localComputerSearchQuery(evidenceRequest);
+      if (localQuery && this.tools.some((tool) => tool.name === "find_local")) {
+        if (signal.aborted) throw abortError();
+        const id = nextCallId();
+        const localWorkspace =
+          /\b(?:dans\s+(?:le\s+)?workspace|in\s+(?:the\s+)?workspace|dans\s+le\s+projet\s+actuel|in\s+the\s+current\s+project)\b/i.test(
+            evidenceRequest.normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
+          );
+        const args = { query: localQuery, ...(localWorkspace ? { path: "." } : {}) };
+        this.ui.status("· recherche locale exécutée avant la réponse");
+        this.ui.toolCall("find_local", args, id);
+        this.messages.push({ role: "assistant", content: "", toolCalls: [{ id, name: "find_local", args }] });
+        const output = await this.gateAndExecute("find_local", args, signal);
+        this.ui.toolResult(output, id);
+        this.messages.push({ role: "tool", content: output, toolCallId: id, toolName: "find_local" });
+        toolCallsThisTurn++;
+        stats.toolCalls++;
+        if (!output.startsWith("Error:")) this.lastTurnWorkspaceEvidence = true;
+        await this.bus.emit("post_tool", { name: "find_local", args });
+        await this.bus.emit("context_update");
+      }
+      toolCallsThisTurn += await this.orchestrateBroadTask(requestNote, signal);
       stats.toolCalls = toolCallsThisTurn;
       await this.refreshLoadedWindow();
       agentLoop: while (steps++ < this.maxSteps) {
+        this.ui.autopilotPhase?.("thinking", `raisonnement du modèle — étape ${steps}/${this.maxSteps}`, {
+          step: steps,
+          maxSteps: this.maxSteps,
+        });
         if (process.env.SMOL_DEBUG_VERIFY)
           console.error(
             "MODEL_STEP",
@@ -684,25 +869,20 @@ export class Agent {
 
         this.ui.startSpinner("thinking");
         let result: ChatResult;
-        // After 60s without a first token the backend is (usually) loading
-        // the model into memory — say so instead of spinning silently.
-        // Never fails the turn; Esc still cancels.
-        let slowTimer: NodeJS.Timeout | null = setTimeout(() => {
-          try {
-            this.ui.status(
-              "· still waiting for the first token — the model may be loading into memory (fresh loads take minutes); check Ollama / LM Studio, Esc cancels"
-            );
-          } catch {
-            /* a hint must never break a turn */
-          }
-        }, 60000);
         try {
-          if (typeof (slowTimer as any)?.unref === "function") (slowTimer as any).unref();
           result = await this.chatWithRetry(signal, actionOnlyCalls > 0);
           if (actionOnlyCalls > 0) actionOnlyCalls--;
+        } catch (err: any) {
+          const recoverable = isBackendTimeoutError(err) || isSlowPrefillError(err) || TRANSIENT_ERROR.test(String(err?.message ?? err));
+          if (turnRecovery < 2 && recoverable && err?.name !== "AbortError" && !signal.aborted) {
+            turnRecovery++;
+            this.ui.resetResponse?.();
+            this.ui.warn(`· appel au modèle interrompu — relance automatique du tour (${turnRecovery}/2) dans 10s`);
+            await abortableDelay(10_000, signal);
+            continue;
+          }
+          throw err;
         } finally {
-          if (slowTimer) clearTimeout(slowTimer);
-          slowTimer = null;
           this.ui.stopSpinner();
         }
         this.ctxMgr.calibrate(result.promptTokens, this.messages, this.tools);
@@ -728,6 +908,40 @@ export class Agent {
         if (result.content) this.ui.println(); // end the streamed line
 
         if (result.toolCalls.length === 0) {
+          if (evidenceRequired && !this.lastTurnWorkspaceEvidence) {
+            this.messages.pop();
+            this.ctxMgr.resetAnchor();
+            this.ui.resetResponse?.();
+            if (evidenceNudges++ === 0) {
+              this.ui.status("· analyse non vérifiée — demande d'inspection du workspace via les outils");
+              this.messages.push({
+                role: "user",
+                content:
+                  "[This request requires inspecting the actual workspace. Do not summarize or claim findings yet. Use the relevant read/search/status tools now; if tools are unavailable, say so explicitly.]",
+              });
+              continue;
+            }
+            throw new Error(
+              "Analyse non effectuée : aucun outil n'a consulté le workspace, donc aucun constat ne peut être présenté comme vérifié."
+            );
+          }
+          if (changeRequired && !changedWorkspaceThisTurn) {
+            this.messages.pop();
+            this.ctxMgr.resetAnchor();
+            this.ui.resetResponse?.();
+            if (changeNudges++ === 0) {
+              this.ui.status("· aucune modification du workspace détectée — demande d’exécution réelle");
+              this.messages.push({
+                role: "user",
+                content:
+                  '[This is an explicit workspace-change request, but no successful file mutation has occurred. Do not output text or code blocks. You MUST invoke write_file({"path": "...", "content": "..."}) or edit_file directly now to apply the changes, then verify them; if blocked, report the concrete blocker.]',
+              });
+              continue;
+            }
+            throw new Error(
+              "Tâche incomplète : aucune modification du workspace n’a été effectuée après la relance. Le modèle n’a pas confirmé une réussite fictive."
+            );
+          }
           // A reply cut off by the output cap, or an empty reply, is not a
           // finished turn — that is how local-model sessions die silently.
           // Nudge the model back on track (bounded).
@@ -797,6 +1011,7 @@ export class Agent {
           }
           completed = true;
           this.outcome = "completed";
+          this.ui.autopilotPhase?.("completed", "tâche terminée et résultat vérifié");
           try {
             const summary = gitTurnSummary(this.toolCtx.workspace, this.toolCtx.filesTouched);
             if (summary) this.ui.println(`  ${summary}`);
@@ -810,7 +1025,7 @@ export class Agent {
         for (const call of result.toolCalls) {
           if (process.env.SMOL_DEBUG_VERIFY) console.error("TOOL", call.name, toolCallsThisTurn + 1);
           if (signal.aborted) throw abortError();
-          this.ui.toolCall(call.name, call.parseError ? { __raw: (call.rawArgs ?? "").slice(0, 80) } : call.args);
+          this.ui.toolCall(call.name, call.parseError ? { __raw: (call.rawArgs ?? "").slice(0, 80) } : call.args, call.id);
 
           let output: string;
           let observedOutput: string | undefined;
@@ -831,6 +1046,14 @@ export class Agent {
                 ? `Error: ${call.name} is not allowed for the ${this.toolCtx.role ?? "restricted"} role. Available tools: ${this.tools.map((t) => t.name).join(", ")}.`
                 : `Error: the tool "${call.name}" is not available in ${MODE_LABELS[this.mode]} mode. Available tools: ${this.tools.map((t) => t.name).join(", ")}.`;
           } else {
+            const phase: AgentPhase = call.name === "delegate" ? "delegating" : call.name === "verification" ? "validating" : "executing";
+            const details: AgentPhaseDetails = {
+              tool: call.name,
+              ...(typeof call.args?.path === "string" ? { path: call.args.path } : {}),
+              step: steps,
+              maxSteps: this.maxSteps,
+            };
+            this.ui.autopilotPhase?.(phase, `${call.name} en cours`, details);
             this.toolCtx.resultCharLimit = this.ctxMgr.toolResultCharLimit();
             if (call.name === "run_command") {
               let end = this.messages.length - 1;
@@ -839,6 +1062,26 @@ export class Agent {
             }
             output = await this.gateAndExecute(call.name, call.args, signal);
             observedOutput = output; // fingerprint real evidence before coaching/reminders
+            if (
+              !output.startsWith("Error") &&
+              ["write_file", "edit_file", "move_path", "delete_path", "create_folder", "format"].includes(call.name)
+            ) {
+              changedWorkspaceThisTurn = true;
+              this.workspaceChangedThisTurn = true;
+            }
+            if (call.name === "delegate" && this.workspaceChangedThisTurn) {
+              changedWorkspaceThisTurn = true;
+              wroteThisTurn = true;
+              this.discoverVerification(true);
+            }
+            const observedWorkspace =
+              call.name === "read_file" ||
+              call.name === "list_files" ||
+              call.name === "search" ||
+              call.name === "find_local" ||
+              (call.name === "index_symbols" && call.args.action !== "refresh") ||
+              (call.name === "symbols" && call.args.action !== "setup");
+            if (observedWorkspace && !output.startsWith("Error:")) this.lastTurnWorkspaceEvidence = true;
             toolCallsThisTurn++;
             stats.toolCalls++;
             // Tier-0 context hygiene: a full overwrite makes every earlier
@@ -854,6 +1097,12 @@ export class Agent {
               readsSinceAction = 0;
               try {
                 const valResult = await validateChange(call.args.path, this.toolCtx.workspace, { runTargetedTests: true });
+                this.ui.autopilotPhase?.("validating", `validation continue de ${call.args.path}`, {
+                  path: call.args.path,
+                  tool: "continuous-validation",
+                  step: steps,
+                  maxSteps: this.maxSteps,
+                });
                 if (valResult.visualRail) {
                   this.ui.status?.(valResult.visualRail);
                   await this.bus.emit("validation", valResult);
@@ -888,7 +1137,7 @@ export class Agent {
               "\n[Repeated attempts are not making progress. Inspect the error or relevant file and change your approach before trying again.]";
           let readRepeats = 0;
           let readKey = "";
-          if (["read_file", "search", "list_files"].includes(call.name) && !output.startsWith("Error")) {
+          if (["read_file", "search", "list_files", "find_local"].includes(call.name) && !output.startsWith("Error")) {
             if (++readsSinceAction % 12 === 0 && this.mode !== "ro")
               output +=
                 "\n[Investigation checkpoint: record the exact APIs, unresolved error and next small edit with plan checkpoint. Then make and verify that edit before inspecting more modules.]";
@@ -921,8 +1170,9 @@ export class Agent {
             ["set", "done", "add"].includes(String(call.args?.action ?? (typeof call.args?.steps === "string" ? "set" : undefined)))
           ) {
             this.ui.planUpdated(this.toolCtx.plan);
+            this.ui.toolResult(output, call.id);
           } else {
-            this.ui.toolResult(output);
+            this.ui.toolResult(output, call.id);
           }
           this.messages.push({
             role: "tool",
@@ -1010,17 +1260,26 @@ export class Agent {
           }
         }
       }
+      this.ui.autopilotPhase?.("paused", `limite de ${this.maxSteps} étapes atteinte`, {
+        step: steps,
+        maxSteps: this.maxSteps,
+        message: "Progression conservée; reprendre avec « continue ».",
+      });
       throw new Error(`Paused after ${this.maxSteps} model steps. Progress is kept. Say "continue" to keep going.`);
     } catch (err: any) {
       if (err?.name === "AbortError" || signal.aborted) {
         this.ui.println();
         this.ui.status("· cancelled");
+        this.ui.turnCancelled?.();
+        this.ui.autopilotPhase?.("cancelled", "tour annulé; progression conservée");
         this.outcome = "cancelled";
         this.sanitizeAfterCancel();
         return;
       }
       this.outcome = "error";
       this.lastError = String(err?.message ?? err);
+      this.ui.autopilotPhase?.("error", this.lastError, { message: this.lastError });
+      this.ui.turnError?.(this.lastError);
       this.repairTranscript("[Tool did not run because the turn stopped after an error. Inspect the preceding error before continuing.]");
       throw err;
     } finally {
@@ -1048,17 +1307,29 @@ export class Agent {
 
   /** One model call, with bounded retries on transient backend failures
    * (Ollama/LM Studio hiccups, dropped sockets, 5xx). The transcript is
-   * unchanged between attempts, so a retry is always safe. */
+   * unchanged between attempts, so a retry is always safe. A local CPU model can
+   * also need minutes to prefill: Node gives up after ~300 s waiting for response
+   * headers, so that wait gets a long backoff instead of killing the turn. */
   private async chatWithRetry(signal: AbortSignal, actionOnly = false): Promise<ChatResult> {
     let lastErr: any;
     let recoveredContext = false;
-    for (let attempt = 1; attempt <= 3; attempt++) {
+    let timeoutRecovery = 0;
+    for (let attempt = 1; attempt <= 6; attempt++) {
       let streamed = false;
+      const requestStarted = Date.now();
+      const heartbeat = setInterval(() => {
+        const seconds = Math.round((Date.now() - requestStarted) / 1000);
+        if (seconds >= 15) this.ui.status(`· modèle local en préparation depuis ${seconds}s — patientez, le CPU charge le prompt`);
+      }, 15_000);
       try {
         return await this.provider.chat(this.messages, this.tools, {
           signal,
           ...(actionOnly ? { effortOverride: "off" as const } : {}),
-          maxTokens: Math.min(this.provider.maxOutputTokens, this.contextBudget().reserve),
+          maxTokens: Math.min(
+            this.provider.maxOutputTokens,
+            this.contextBudget().reserve,
+            timeoutRecovery > 0 ? Math.max(512, Math.floor(this.provider.maxOutputTokens * 0.65)) : Infinity
+          ),
           onToken: (t) => {
             streamed = true;
             this.ui.token(t);
@@ -1072,6 +1343,16 @@ export class Agent {
         if (err?.name === "AbortError" || signal.aborted) throw err;
         lastErr = err;
         if (streamed) this.ui.resetResponse?.();
+        if (isBackendTimeoutError(err)) {
+          if (timeoutRecovery >= 2 || attempt === 6) throw err;
+          timeoutRecovery++;
+          this.ui.warn(
+            `· délai du backend (${timeoutRecovery}/2) — nouvelle tentative automatique avec raisonnement réduit dans ${timeoutRecovery}s`
+          );
+          await abortableDelay(timeoutRecovery * 1000, signal);
+          actionOnly = true;
+          continue;
+        }
         if (!recoveredContext && CONTEXT_ERROR.test(String(err?.message ?? err))) {
           recoveredContext = true;
           this.ui.status("· backend context limit — reducing history and retrying");
@@ -1079,9 +1360,18 @@ export class Agent {
           this.ctxMgr.assertFits(this.messages, this.tools);
           continue;
         }
-        if (attempt === 3 || !TRANSIENT_ERROR.test(String(err?.message ?? err))) throw err;
-        this.ui.warn(`· backend error (${String(err?.message ?? err).slice(0, 80)}) — retrying in ${attempt * 3}s`);
-        await abortableDelay(attempt * 3000, signal);
+        const slow = isSlowPrefillError(err);
+        const message = String(err?.message ?? err);
+        if (attempt === 6 || !(slow || TRANSIENT_ERROR.test(message))) throw err;
+        const wait = slow ? Math.min(60, 15 * attempt) : attempt * 3;
+        this.ui.warn(
+          slow
+            ? `· le serveur local n'a pas répondu en ${Math.round((Date.now() - requestStarted) / 1000)}s (prompt lourd sur CPU) — nouvelle tentative ${attempt}/6 dans ${wait}s`
+            : `· backend error (${message.slice(0, 80)}) — nouvelle tentative ${attempt}/6 dans ${wait}s`
+        );
+        await abortableDelay(wait * 1000, signal);
+      } finally {
+        clearInterval(heartbeat);
       }
     }
     throw lastErr;

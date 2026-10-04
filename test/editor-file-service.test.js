@@ -3,7 +3,13 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { readWorkspaceFile, readWorkspaceImage, saveWorkspaceFile, MAX_EDITOR_FILE_BYTES, MAX_EDITOR_IMAGE_BYTES } = require("../desktop/editor-file-service");
+const {
+  readWorkspaceFile,
+  readWorkspaceImage,
+  saveWorkspaceFile,
+  MAX_EDITOR_FILE_BYTES,
+  MAX_EDITOR_IMAGE_BYTES,
+} = require("../desktop/editor-file-service");
 
 test("editor reads metadata and refuses to overwrite a file changed outside the editor", (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "smol-editor-files-"));

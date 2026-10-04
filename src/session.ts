@@ -28,6 +28,7 @@ import { RoutingProvider, routeProvider } from "./router";
 import { resolveInWorkspace } from "./sandbox";
 import { listSkills } from "./skills";
 import { buildStatusReport, renderStatusText } from "./status";
+import { CoworkBoard } from "./tools/cowork";
 import { readFile } from "./tools/fs-tools";
 import { MODE_LABELS, type Mode, type ToolContext } from "./tools/index";
 import { pickShell, runCommand } from "./tools/shell";
@@ -129,12 +130,14 @@ export function autoPickModel(
   url?: string
 ): DetectedModel {
   if (wanted) {
-    let hit =
-      models.find((m) => m.id === wanted && m.baseUrl === url) ??
-      models.find((m) => m.id === wanted);
+    let hit = models.find((m) => m.id === wanted && m.baseUrl === url) ?? models.find((m) => m.id === wanted);
     if (hit) return hit;
 
-    const norm = (s: string) => s.toLowerCase().replace(/:latest$/, "").replace(/[-_]/g, ":");
+    const norm = (s: string) =>
+      s
+        .toLowerCase()
+        .replace(/:latest$/, "")
+        .replace(/[-_]/g, ":");
     const wantedNorm = norm(wanted);
     hit = models.find((m) => norm(m.id) === wantedNorm);
     if (hit) return hit;
@@ -144,7 +147,11 @@ export function autoPickModel(
       models.find((m) => wanted.toLowerCase().includes(m.id.toLowerCase()));
     if (hit) return hit;
 
-    const words = wanted.toLowerCase().replace(/[^a-z0-9]/g, " ").split(/\s+/).filter((w) => w.length >= 2);
+    const words = wanted
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, " ")
+      .split(/\s+/)
+      .filter((w) => w.length >= 2);
     if (words.length >= 2) {
       hit = models.find((m) => {
         const mLower = m.id.toLowerCase();
@@ -698,35 +705,80 @@ export class Session {
   /** User-input pipeline — applied ONLY to user text, never to model
    * messages. `!` is checked first on the raw text (a shell command must not
    * have its arguments rewritten), otherwise @file mentions are expanded. */
-  private async handleUserMessage(input: string, attachments: Attachment[]): Promise<void> {
+  private async handleUserMessage(input: string, attachments: Attachment[], workItemId?: string): Promise<void> {
     const { ui, agent } = this;
-    if (input.startsWith("!") && input.slice(1).trim()) {
-      const cmd = input.slice(1).trim();
-      ui.toolCall("run_command", { command: cmd });
-      const raw = await runCommand(cmd, this.workspace);
-      const body = raw.length > 8000 ? truncateMiddle(raw, 8000) : raw;
-      ui.toolResult(body);
+    const board = workItemId ? new CoworkBoard(this.workspace) : null;
+    if (board && workItemId) {
       try {
-        await agent.runTurn(`${input}\n\n[shell output of "${cmd}":]\n${body}`, attachments);
+        const started = await board.beginExecution(workItemId);
+        if (started.startsWith("Error:")) {
+          ui.error(`\n${started}`);
+          return;
+        }
+        this.toolCtx.filesTouched.add(".smol/work-items.json");
+      } catch (error: any) {
+        ui.error(`\nCowork task could not be started: ${String(error?.message ?? error)}`);
+        return;
+      }
+    }
+    let turnStarted = false;
+    try {
+      if (input.startsWith("!") && input.slice(1).trim()) {
+        const cmd = input.slice(1).trim();
+        ui.toolCall("run_command", { command: cmd });
+        const raw = await runCommand(cmd, this.workspace);
+        const body = raw.length > 8000 ? truncateMiddle(raw, 8000) : raw;
+        ui.toolResult(body);
+        try {
+          turnStarted = true;
+          await agent.runTurn(`${input}\n\n[shell output of "${cmd}":]\n${body}`, attachments);
+          this.onTurnDone?.();
+        } catch (err: any) {
+          ui.error(`\n${err?.message ?? err}`);
+        }
+        return;
+      }
+      const imageRefs: Attachment[] = [];
+      const expanded = this.expandMentions(input, imageRefs);
+      try {
+        turnStarted = true;
+        await agent.runTurn(expanded, [...attachments, ...imageRefs]);
         this.onTurnDone?.();
       } catch (err: any) {
         ui.error(`\n${err?.message ?? err}`);
+        if (
+          String(err?.message ?? "")
+            .toLowerCase()
+            .includes("does not support tools")
+        ) {
+          ui.warn("This model does not support tool calling. Pick a tool-capable model with /models (e.g. qwen3, llama3.1, mistral-nemo).");
+        }
       }
-      return;
-    }
-    const imageRefs: Attachment[] = [];
-    const expanded = this.expandMentions(input, imageRefs);
-    try {
-      await agent.runTurn(expanded, [...attachments, ...imageRefs]);
-      this.onTurnDone?.();
-    } catch (err: any) {
-      ui.error(`\n${err?.message ?? err}`);
-      if (
-        String(err?.message ?? "")
-          .toLowerCase()
-          .includes("does not support tools")
-      ) {
-        ui.warn("This model does not support tool calling. Pick a tool-capable model with /models (e.g. qwen3, llama3.1, mistral-nemo).");
+    } finally {
+      if (board && workItemId) {
+        const outcome =
+          !turnStarted || agent.outcome === "error"
+            ? "failed"
+            : agent.outcome === "cancelled"
+              ? "cancelled"
+              : agent.outcome === "completed" && agent.verificationResult?.passed
+                ? "verified"
+                : "unverified";
+        const report =
+          outcome === "verified"
+            ? "Agent turn completed and automated acceptance checks passed."
+            : outcome === "unverified"
+              ? "Agent turn completed, but no successful automated acceptance check was recorded."
+              : outcome === "cancelled"
+                ? "Agent turn was cancelled."
+                : `Agent turn failed${agent.lastError ? `: ${agent.lastError}` : " before completion."}`;
+        try {
+          const result = await board.finishExecution(workItemId, outcome, report);
+          if (result.startsWith("Error:")) ui.warn(`· Cowork execution state could not be saved: ${result}`);
+          else this.toolCtx.filesTouched.add(".smol/work-items.json");
+        } catch (error: any) {
+          ui.warn(`· Cowork execution state could not be saved: ${String(error?.message ?? error)}`);
+        }
       }
     }
   }
@@ -948,6 +1000,7 @@ export class Session {
       const raw = await ui.readInput();
       const input = typeof raw === "string" ? raw : raw.text;
       const attachments = typeof raw === "string" ? [] : raw.attachments;
+      const workItemId = typeof raw === "string" ? undefined : raw.workItemId;
 
       if (!attachments.length && input.startsWith("/")) {
         try {
@@ -1091,7 +1144,7 @@ export class Session {
             case "status":
               // One report for the terminal, the web hub and Electron: they
               // read the same function, so the three surfaces cannot disagree.
-              ui.startSpinner("checking model, MCP, language servers, build");
+              ui.startSpinner("checking model, MCP and language servers");
               try {
                 const report = await buildStatusReport({
                   workspace: toolCtx.workspace,
@@ -1199,7 +1252,7 @@ export class Session {
         continue;
       }
 
-      await this.handleUserMessage(input, attachments);
+      await this.handleUserMessage(input, attachments, workItemId);
     }
   }
 

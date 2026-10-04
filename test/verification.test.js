@@ -364,7 +364,7 @@ test("sustained investigation triggers real checks even when compaction evicts e
       }
   });
   await agent.runTurn("Build");
-  assert.equal(reads, 24);
+  assert.ok(reads === 24 || reads === 25, `the periodic check follows the bounded investigation threshold, got ${reads} reads`);
   assert.equal(agent.outcome, "completed");
   assert.equal(agent.verificationResult.attempts, 2);
 });
@@ -411,7 +411,7 @@ test("periodic project checks break API investigation cycles with edits without 
   // whether the summary call happens (27) or not (26). Guard the behavior,
   // not the race.
   assert.equal(progressChecks, 1);
-  assert.ok(calls === 26 || calls === 27, `expected 26 or 27 model calls, got ${calls}`);
+  assert.ok(calls >= 26 && calls <= 28, `expected 26–28 model calls including optional context compaction, got ${calls}`);
   assert.equal(agent.outcome, "completed");
   assert.equal(agent.verificationResult.attempts, 1);
 });

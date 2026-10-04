@@ -8,6 +8,17 @@ import { colorizeResultBlock, createCodeStreamColorizer } from "./highlight";
 import type { Plan } from "./plan";
 import { c } from "./util";
 
+export type AgentPhase =
+  "starting" | "planning" | "delegating" | "thinking" | "executing" | "validating" | "paused" | "completed" | "cancelled" | "error";
+
+export interface AgentPhaseDetails {
+  step?: number;
+  maxSteps?: number;
+  tool?: string;
+  path?: string;
+  message?: string;
+}
+
 /** What the agent loop needs from a UI — implemented by the plain UI (used in
  * -p / non-TTY mode) and by the interactive Tui. */
 export interface AgentUI {
@@ -15,8 +26,8 @@ export interface AgentUI {
   resetResponse?(): void;
   token(text: string): void;
   thinking(text: string): void;
-  toolCall(name: string, args: Record<string, any>): void;
-  toolResult(result: string): void;
+  toolCall(name: string, args: Record<string, any>, executionId?: string): void;
+  toolResult(result: string, executionId?: string): void;
   println(s?: string): void;
   status(s: string): void;
   warn(s: string): void;
@@ -27,10 +38,26 @@ export interface AgentUI {
   confirmCommand(command: string, reason?: string): Promise<"yes" | "no" | "always">;
   /** Called when a user turn finishes normally, with a short summary label. */
   turnEnd(label: string): void;
+  /** A user cancelled the turn before every announced tool had a result. */
+  turnCancelled?(): void;
+  /** Structured Auto Copilot lifecycle state shared by all frontends. */
+  autopilotPhase?(phase: AgentPhase, label: string, details?: AgentPhaseDetails): void;
+  /** Close busy indicators when a turn fails before a normal turnEnd. */
+  turnError?(message: string): void;
   /** Called whenever the agent changes its plan — render the checklist. */
   planUpdated(plan: Plan): void;
-  /** Sub-agent progress (delegate tool). Optional so older UIs keep working. */
-  subagent?(phase: "start" | "done", label: string): void;
+  /** Sub-agent progress and its factual result (delegate tool). */
+  subagent?(
+    phase: "start" | "done",
+    label: string,
+    details?: {
+      outcome?: string;
+      verification?: string;
+      report?: string;
+      filesTouched?: string[];
+      toolCalls?: number;
+    }
+  ): void;
   /** Skills that auto-loaded into the turn that is starting. Optional. */
   skills?(names: string[]): void;
 }
@@ -215,6 +242,22 @@ export class UI implements AgentUI {
     this.meta(c.dim(`■ ${label}`));
   }
 
+  autopilotPhase(phase: AgentPhase, label: string): void {
+    const marker =
+      phase === "completed"
+        ? c.green("✓")
+        : phase === "error" || phase === "paused"
+          ? c.yellow("!")
+          : phase === "cancelled"
+            ? c.yellow("Ⅱ")
+            : c.cyan("·");
+    this.meta(`${marker} autopilot ${label}`);
+  }
+
+  turnError(message: string): void {
+    this.error(`· autopilot arrêté : ${message}`);
+  }
+
   planUpdated(plan: Plan): void {
     this.meta(renderPlan(plan));
   }
@@ -256,8 +299,17 @@ export function summarizeArgs(name: string, args: Record<string, any>): string {
       case "search":
         return `"${args.pattern}"${args.path ? ` in ${args.path}` : ""}`;
       case "run_command":
-        return String(args.command ?? "").replace(/\s+/g, " ").trim().slice(0, 72) +
-          (String(args.command ?? "").replace(/\s+/g, " ").trim().length > 72 ? "…" : "");
+        return (
+          String(args.command ?? "")
+            .replace(/\s+/g, " ")
+            .trim()
+            .slice(0, 72) +
+          (String(args.command ?? "")
+            .replace(/\s+/g, " ")
+            .trim().length > 72
+            ? "…"
+            : "")
+        );
       case "task":
         return [args.action, args.command ?? args.task_id ?? ""].filter(Boolean).join(" ");
       case "plan": {

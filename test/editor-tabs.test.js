@@ -51,3 +51,15 @@ test("editor tab save completion does not mark newer edits as saved", () => {
   assert.equal(tab.content, "newer edit while save was running");
   assert.equal(tab.savedContent, "saved snapshot");
 });
+
+test("agent reload updates only clean buffers and preserves dirty user edits", () => {
+  const tabs = makeEditorTabStore();
+  tabs.open("src/a.ts", "before", 10);
+  const refreshed = tabs.reload("src/a.ts", "agent change", 20);
+  assert.equal(refreshed.content, "agent change");
+  assert.equal(refreshed.savedContent, "agent change");
+  assert.equal(refreshed.mtimeMs, 20);
+  tabs.update("src/a.ts", "my unsaved edit");
+  assert.equal(tabs.reload("src/a.ts", "new agent change", 30), null);
+  assert.equal(tabs.active().content, "my unsaved edit");
+});

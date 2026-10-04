@@ -149,6 +149,7 @@ smolcoder sends your code and prompts to the server you choose, and runs the too
 - **Code editing keys.** `Tab` indents, `Shift+Tab` removes indentation, `Enter` keeps indentation (and indents inside `{}`, `[]` and `()`), `Ctrl+G` jumps to a line, and the editor shows the current line and column.
 - **One server for everything.** Running `smol --web` in another folder adds it to the UI that is already open.
 - **Desktop app mode.** `smol --web --app` opens the UI in its own window (no browser tab) when Chrome or Edge is installed — same hub, same sessions.
+- **Electron development shell.** From a source checkout, run `npm run desktop`; npm runs `predesktop` first to rebuild the shared `dist/` core. Run `npm run desktop:smoke` to check the Electron/Hub integration.
 
 ## Why it works well with local models
 

@@ -28,7 +28,7 @@ test("work items persist across board instances and support filters and completi
   assert.equal(new CoworkBoard(root).items().length, 1);
   assert.equal(new CoworkBoard(root).items()[0].status, "open");
   assert.doesNotMatch(await board.run({ action: "list", area: "personal" }), /Prepare quarterly report/);
-  assert.match(await board.run({ action: "complete", task_id: id }), /completed/);
+  assert.match(await board.completeWorkItem(id), /completed/);
   assert.match(await new CoworkBoard(root).run({ action: "list", status: "completed" }), /Prepare quarterly report/);
   assert.doesNotMatch(await board.run({ action: "list", status: "open" }), /Prepare quarterly report/);
 });
@@ -119,7 +119,7 @@ test("a restricted sub-agent cannot bypass its allowlist through direct tool exe
   assert.equal(fs.existsSync(path.join(root, "blocked.txt")), false);
 });
 
-test("pro cowork supports role assignment, acceptance criteria, snapshots and verified execution reports", async () => {
+test("Cowork runtime controls execution status and completion after checks succeed", async () => {
   const root = workspace();
   const board = new CoworkBoard(root);
   const created = await board.run({
@@ -149,17 +149,27 @@ test("pro cowork supports role assignment, acceptance criteria, snapshots and ve
   assert.match(assigned, /implementer/);
 
   // Record execution report with verification and snapshot
+  assert.match(
+    await board.run({
+      action: "record_report",
+      task_id: id,
+      report: "The model cannot claim that checks passed.",
+      execution_status: "verified",
+      mark_completed: true,
+    }),
+    /^Error: execution status and completion are controlled by the session runtime/
+  );
+
+  assert.match(await board.beginExecution(id), /Started work item/);
+  assert.equal(board.items()[0].executionStatus, "running");
   const reported = await board.run({
     action: "record_report",
     task_id: id,
-    report: "Successfully wired OAuth endpoint and passed acceptance checks.",
-    execution_status: "verified",
-    mark_completed: true,
+    report: "Successfully wired OAuth endpoint.",
     snapshot: { file: "src/auth.ts", summary: "Added OAuth routes" },
   });
   assert.match(reported, /Recorded execution report/);
-  assert.match(reported, /status=completed/);
-  assert.match(reported, /execution=verified/);
+  assert.match(await board.finishExecution(id, "verified", "Automated checks passed."), /status=completed, execution=verified/);
 
   items = board.items();
   assert.equal(items[0].status, "completed");
@@ -172,5 +182,27 @@ test("pro cowork supports role assignment, acceptance criteria, snapshots and ve
   const list = await board.run({ action: "list", status: "completed" });
   assert.match(list, /@implementer/);
   assert.match(list, /\[verified\]/);
-  assert.match(list, /Report: Successfully wired OAuth/);
+  assert.match(list, /Report: Automated checks passed/);
+});
+
+test("Cowork keeps an unverified execution open and cannot complete it by model report", async () => {
+  const board = new CoworkBoard(workspace());
+  const created = await board.run({ action: "create", title: "Repair failing build" });
+  const id = created.match(/(w_[a-f0-9-]{36})/)?.[1];
+  assert.ok(id, created);
+
+  const result = await board.run({
+    action: "record_report",
+    task_id: id,
+    report: "Build still fails.",
+    execution_status: "verified",
+    mark_completed: true,
+  });
+  assert.match(result, /^Error: execution status and completion are controlled by the session runtime/);
+  assert.match(await board.beginExecution(id), /Started work item/);
+  assert.match(await board.finishExecution(id, "unverified", "No automated checks were available."), /status=open, execution=unverified/);
+  const item = board.items().find((workItem) => workItem.id === id);
+  assert.equal(item.status, "open");
+  assert.equal(item.executionStatus, "unverified");
+  assert.equal(item.lastReport, "No automated checks were available.");
 });

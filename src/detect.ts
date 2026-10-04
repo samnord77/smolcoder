@@ -483,7 +483,11 @@ export async function resolveContextWindow(model: DetectedModel, ctxOverride?: n
       180_000
     );
     const ps = await tryFetchJson(`${model.baseUrl}/api/ps`, undefined, 3000);
-    const norm = (s: string) => (s || "").toLowerCase().replace(/^hf\.co\//, "").replace(/:latest$/, "");
+    const norm = (s: string) =>
+      (s || "")
+        .toLowerCase()
+        .replace(/^hf\.co\//, "")
+        .replace(/:latest$/, "");
     const target = norm(model.id);
     const entry =
       ps?.models?.find((m: any) => {

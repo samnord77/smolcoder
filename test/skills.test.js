@@ -52,6 +52,18 @@ test("relevant skills auto-match design work, ignore backend work", () => {
   assert.equal(skills.relevantSkills(ws, "rename variable in parser"), "");
 });
 
+test("orchestrator-preferred skills load even when their names do not overlap the user's wording", () => {
+  const ws = scratch();
+  const request = "Fix a defect in this repository.";
+  const preferred = ["bugfix-workflow", "coding-workflow"];
+  const content = skills.relevantSkills(ws, request, 1200, preferred);
+  const names = skills.relevantSkillNames(ws, request, 2, preferred);
+
+  assert.deepEqual(names, preferred);
+  assert.ok(content.indexOf("### skill bugfix-workflow") < content.indexOf("### skill coding-workflow"));
+  assert.match(content, /failing regression test/);
+});
+
 test("auto-matching uses skill descriptions and avoids incidental words in instructions", () => {
   const ws = scratch();
   skills.saveSkill(

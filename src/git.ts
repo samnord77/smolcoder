@@ -150,6 +150,39 @@ export function gitBranch(root: string): string {
   return r.out.trim() || "No branches.";
 }
 
+export interface GitSyncStatus {
+  branch: string;
+  upstream: string | null;
+  ahead: number | null;
+  behind: number | null;
+  error?: string;
+}
+
+/** Compare against locally cached upstream refs only; never fetches or pushes. */
+export function gitSyncStatus(root: string): GitSyncStatus {
+  const blocked = needRepo(root);
+  if (blocked) return { branch: "", upstream: null, ahead: null, behind: null, error: blocked };
+  const r = runGit(root, ["status", "--porcelain=v2", "--branch"]);
+  if (r.code !== 0) {
+    return {
+      branch: "",
+      upstream: null,
+      ahead: null,
+      behind: null,
+      error: `Error: git status failed (${r.out.slice(0, 200)}).`,
+    };
+  }
+  const branch = r.out.match(/^# branch\.head (.+)$/m)?.[1] ?? "";
+  const upstream = r.out.match(/^# branch\.upstream (.+)$/m)?.[1] ?? null;
+  const counts = r.out.match(/^# branch\.ab \+(\d+) -(\d+)$/m);
+  return {
+    branch,
+    upstream,
+    ahead: upstream && counts ? Number(counts[1]) : null,
+    behind: upstream && counts ? Number(counts[2]) : null,
+  };
+}
+
 export function gitStage(root: string, paths: string[]): string {
   const blocked = needRepo(root);
   if (blocked) return blocked;
@@ -371,16 +404,18 @@ export function gitDiffFiles(root: string, staged = false): DiffFilesResult {
         for (const u of untracked) {
           try {
             const content = fs.readFileSync(path.join(root, u), "utf8");
-            const lines = content.split("\n").filter(l => l.length > 0);
+            const lines = content.split("\n").filter((l) => l.length > 0);
             const hunkLines = lines.map((l) => `+${l}`);
             files.push({
               file: u,
               status: "A",
-              hunks: [{
-                index: 0,
-                header: `new file mode 100644`,
-                lines: hunkLines
-              }]
+              hunks: [
+                {
+                  index: 0,
+                  header: `new file mode 100644`,
+                  lines: hunkLines,
+                },
+              ],
             });
           } catch {
             // If file can't be read, add entry without hunks
@@ -613,7 +648,8 @@ export function gitStatusMap(root: string, dirAbs: string): Map<string, string> 
       if (!m) continue;
       const first = m[2].split("/")[0].replace(/^"|"$/g, "");
       const raw = m[1];
-      const status = raw === "??" ? "U" : raw.includes("U") ? "U" : raw.includes("D") ? "D" : raw.includes("A") ? "A" : raw.includes("R") ? "R" : "M";
+      const status =
+        raw === "??" ? "U" : raw.includes("U") ? "U" : raw.includes("D") ? "D" : raw.includes("A") ? "A" : raw.includes("R") ? "R" : "M";
       const rank: Record<string, number> = { M: 1, R: 2, A: 3, D: 4, U: 5 };
       if (first && (!out.has(first) || rank[status] > rank[out.get(first)!])) out.set(first, status);
     }

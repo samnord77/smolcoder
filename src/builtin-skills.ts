@@ -7,6 +7,44 @@
 // mode, honor the brief, verify in bounded passes, then stop polishing.
 
 export const BUILTIN_SKILLS: Record<string, string> = {
+  "coding-workflow": `coding-workflow (built-in).
+Use for implementation requests that change project code.
+- Read the repository instructions and inspect the exact files and call sites before editing.
+- Turn multi-step work into a short, concrete plan; keep unrelated cleanup out.
+- Make the smallest complete change that satisfies the requested behavior.
+- Use the repository's existing tools and patterns; do not claim to have run a command or changed a file unless it actually happened.
+- Run the narrowest relevant tests, then build/type-check when the change affects compiled code.
+- Report changed files, actual command results, and anything that remains unverified.
+`,
+  "bugfix-workflow": `bugfix-workflow (built-in).
+Use for bug reports and regressions.
+- Reproduce the reported behavior or write a failing regression test before changing implementation.
+- Trace the failure to its owning code path; fix the cause rather than hiding the symptom.
+- Keep the patch narrow and preserve existing behavior outside the defect.
+- Re-run the reproducer and relevant regression tests; do not call a failed or skipped check a pass.
+- State any environment-dependent behavior that could not be verified.
+`,
+  "code-review-workflow": `code-review-workflow (built-in).
+Use for code review, audit, and quality inspection.
+- Review the actual changed code and relevant callers, tests, and failure paths.
+- Report only actionable issues supported by concrete file/line evidence.
+- Prioritize correctness, data loss, security, and user-visible regressions; omit style-only preferences.
+- If no actionable issue is established, say so instead of inventing findings.
+`,
+  "workspace-investigation": `workspace-investigation (built-in).
+Use for requests to inspect or diagnose a project without modifying it.
+- Read repository guidance first, then inspect the paths and callers relevant to the question.
+- Use search and bounded file reads; follow evidence across interfaces instead of inferring from names.
+- Separate confirmed findings from hypotheses and include concrete paths and observed behavior.
+- Do not edit files or claim a complete audit when only a subset was inspected.
+`,
+  "documentation-workflow": `documentation-workflow (built-in).
+Use for project documentation changes.
+- Check the implementation and existing documentation conventions before editing.
+- Keep examples and commands consistent with the current code; verify referenced paths and scripts.
+- Make focused edits and run documentation checks when the repository provides them.
+- Distinguish verified instructions from assumptions or platform-specific caveats.
+`,
   "direct-style": `direct-style (built-in, adapted from i-have-adhd SKILL.md, MIT).
 Shape every response so it can be acted on immediately.
 - Lead with the next action: command, path or snippet first, prose after.

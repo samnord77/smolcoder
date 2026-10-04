@@ -24,11 +24,11 @@ function makeParent() {
     thinking(text) {
       calls.thinking.push(text);
     },
-    toolCall(name, args) {
-      calls.toolCall.push([name, args]);
+    toolCall(name, args, executionId) {
+      calls.toolCall.push([name, args, executionId]);
     },
-    toolResult(result) {
-      calls.toolResult.push(result);
+    toolResult(result, executionId) {
+      calls.toolResult.push([result, executionId]);
     },
     println(s) {
       calls.println.push(s);
@@ -82,12 +82,14 @@ test("thinking/toolCall/toolResult/println traversent inchangés", () => {
   const parent = makeParent();
   const child = new ChildUI(parent);
   child.thinking("ref...");
-  child.toolCall("read_file", { path: "a.txt" });
-  child.toolResult("contenu");
+  child.toolCall("read_file", { path: "a.txt" }, "call-1");
+  child.toolResult("contenu", "call-1");
   child.println("ligne");
   assert.deepEqual(parent.calls.thinking, ["ref..."]);
-  assert.deepEqual(parent.calls.toolCall, [["read_file", { path: "a.txt" }]]);
-  assert.deepEqual(parent.calls.toolResult, ["contenu"]);
+  assert.equal(parent.calls.toolCall.length, 1);
+  assert.deepEqual(parent.calls.toolCall[0].slice(0, 2), ["read_file", { path: "a.txt" }]);
+  assert.match(parent.calls.toolCall[0][2], /^child-/);
+  assert.deepEqual(parent.calls.toolResult, [["contenu", parent.calls.toolCall[0][2]]]);
   assert.deepEqual(parent.calls.println, ["ligne"]);
 });
 

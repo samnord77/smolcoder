@@ -106,13 +106,8 @@ export function checkSyntax(filePath: string, content?: string): { ok: boolean; 
         if (transpileRes.diagnostics && transpileRes.diagnostics.length > 0) {
           const first = transpileRes.diagnostics[0];
           const msg =
-            typeof first.messageText === "string"
-              ? first.messageText
-              : first.messageText?.messageText ?? "Erreur syntaxique TypeScript";
-          const line =
-            first.file && first.start !== undefined
-              ? first.file.getLineAndCharacterOfPosition(first.start).line + 1
-              : undefined;
+            typeof first.messageText === "string" ? first.messageText : (first.messageText?.messageText ?? "Erreur syntaxique TypeScript");
+          const line = first.file && first.start !== undefined ? first.file.getLineAndCharacterOfPosition(first.start).line + 1 : undefined;
           return { ok: false, error: `Erreur syntaxe TS: ${msg}`, line };
         }
         return { ok: true };
@@ -180,7 +175,7 @@ export function runTargetedTest(testFile: string, workspace: string, timeoutMs =
     });
 
     const durationMs = Date.now() - t0;
-    const passed = (res.status === 0);
+    const passed = res.status === 0;
     const output = `${res.stdout ?? ""}${res.stderr ?? ""}`.trim();
 
     return {
@@ -242,11 +237,7 @@ export function formatVisualRail(result: ValidationResult): string {
 /**
  * Exécute l'ensemble du cycle de validation continue sur un fichier modifié.
  */
-export async function validateChange(
-  filePath: string,
-  workspace: string,
-  options: ValidationOptions = {}
-): Promise<ValidationResult> {
+export async function validateChange(filePath: string, workspace: string, options: ValidationOptions = {}): Promise<ValidationResult> {
   const t0 = Date.now();
   const absPath = path.isAbsolute(filePath) ? filePath : resolveInWorkspace(workspace, filePath);
 

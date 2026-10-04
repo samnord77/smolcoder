@@ -20,7 +20,9 @@ test("broad explanatory questions do not launch unsolicited planning or sub-agen
     contextWindow: 8000,
     maxOutputTokens: 2000,
     setEffort() {},
-    effortLabel() { return null; },
+    effortLabel() {
+      return null;
+    },
     async chat(messages) {
       seen.push(messages);
       return { content: "Here is how the IDE workflows fit together.", toolCalls: [] };
@@ -37,10 +39,14 @@ test("broad explanatory questions do not launch unsolicited planning or sub-agen
     error() {},
     startSpinner() {},
     stopSpinner() {},
-    async confirmCommand() { return "yes"; },
+    async confirmCommand() {
+      return "yes";
+    },
     turnEnd() {},
     planUpdated() {},
-    subagent(...event) { subagentEvents.push(event); },
+    subagent(...event) {
+      subagentEvents.push(event);
+    },
   };
   const plan = new Plan(workspace);
   const agent = new Agent(
@@ -79,8 +85,12 @@ test("requests for advice about broad improvements stay informational", async (t
       contextWindow: 8000,
       maxOutputTokens: 2000,
       setEffort() {},
-      effortLabel() { return null; },
-      async chat() { return { content: "Here is some advice.", toolCalls: [] }; },
+      effortLabel() {
+        return null;
+      },
+      async chat() {
+        return { content: "Here is some advice.", toolCalls: [] };
+      },
     };
     const ui = {
       token() {},
@@ -93,10 +103,14 @@ test("requests for advice about broad improvements stay informational", async (t
       error() {},
       startSpinner() {},
       stopSpinner() {},
-      async confirmCommand() { return "yes"; },
+      async confirmCommand() {
+        return "yes";
+      },
       turnEnd() {},
       planUpdated() {},
-      subagent(...event) { subagentEvents.push(event); },
+      subagent(...event) {
+        subagentEvents.push(event);
+      },
     };
     const plan = new Plan(workspace);
     const agent = new Agent(

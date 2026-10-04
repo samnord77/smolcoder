@@ -339,16 +339,33 @@ function assertRoot() {
 }
 
 const SKIP_DIRS = new Set(["node_modules", ".git", "dist", ".smolcoder"]);
+const editorTreeStatusCache = new Map();
+async function editorTreeStatus(root) {
+  const key = path.resolve(root);
+  const cached = editorTreeStatusCache.get(key);
+  if (cached?.status && Date.now() - cached.at < 10000) return cached.status;
+  if (cached?.promise) return cached.promise;
+  const entry = { at: 0, status: null, promise: null };
+  entry.promise = gitService.status(root).then((status) => {
+    entry.at = Date.now();
+    entry.status = status;
+    return status;
+  }).finally(() => { entry.promise = null; });
+  editorTreeStatusCache.set(key, entry);
+  return entry.promise;
+}
 
 ipcMain.handle("ed:pickFolder", async () => {
   const r = await dialog.showOpenDialog({ properties: ["openDirectory"] });
   if (r.canceled || !r.filePaths.length) return null;
   editorRoot = r.filePaths[0];
+  editorTreeStatusCache.clear();
   return editorRoot;
 });
 
 ipcMain.handle("ed:setRoot", async (_e, dir) => {
   editorRoot = dir;
+  editorTreeStatusCache.clear();
   return editorRoot;
 });
 
@@ -358,10 +375,19 @@ ipcMain.handle("ed:list", async (_e, rel) => {
   const st = fs.statSync(abs);
   if (!st.isDirectory()) throw new Error("Pas un dossier.");
   const names = fs.readdirSync(abs, { withFileTypes: true });
-  let statusMap = new Map();
+  const statusMap = new Map();
   try {
-    const { gitStatusMap } = require(path.join(ROOT, "dist", "git.js"));
-    statusMap = gitStatusMap(root, abs);
+    const status = await editorTreeStatus(root);
+    const current = path.relative(root, abs).split(path.sep).join("/");
+    const prefix = current && current !== "." ? `${current}/` : "";
+    const rank = { M: 1, R: 2, A: 3, D: 4, N: 5 };
+    for (const file of status.files) {
+      const normalized = String(file.path || "").replace(/\\/g, "/");
+      if (prefix && !normalized.startsWith(prefix)) continue;
+      const child = (prefix ? normalized.slice(prefix.length) : normalized).split("/")[0];
+      const badge = file.badge === "U" ? "N" : file.badge;
+      if (child && (!statusMap.has(child) || rank[badge] > rank[statusMap.get(child)])) statusMap.set(child, badge);
+    }
   } catch {
     /* badges best effort */
   }
@@ -399,6 +425,21 @@ ipcMain.handle("ed:diagnostics", async (_e, rel) => {
   }
 });
 
+ipcMain.handle("ed:backendStatus", async () => {
+  try {
+    const { probeLocalModelsStatus } = require(path.join(ROOT, "dist", "status.js"));
+    return await probeLocalModelsStatus();
+  } catch (e) {
+    return {
+      loaded: [],
+      totalVramMb: 0,
+      ollamaOnline: false,
+      lmStudioOnline: false,
+      error: String(e?.message ? e.message : e),
+    };
+  }
+});
+
 ipcMain.handle("ed:save", async (_e, rel, content, expectedMtimeMs) => {
   const root = assertRoot();
   if (typeof content !== "string") throw new Error("Le contenu à enregistrer doit être du texte.");
@@ -414,6 +455,7 @@ ipcMain.handle("ed:save", async (_e, rel, content, expectedMtimeMs) => {
   }
   fs.mkdirSync(path.dirname(abs), { recursive: true });
   fs.writeFileSync(abs, content, "utf8");
+  editorTreeStatusCache.delete(path.resolve(root));
   return { mtimeMs: fs.statSync(abs).mtimeMs };
 });
 
@@ -427,6 +469,7 @@ ipcMain.handle("ed:new", async (_e, rel, dir) => {
     fs.mkdirSync(path.dirname(abs), { recursive: true });
     fs.writeFileSync(abs, "", "utf8");
   }
+  editorTreeStatusCache.delete(path.resolve(root));
   return { path: rel };
 });
 
@@ -439,6 +482,7 @@ ipcMain.handle("ed:rename", async (_e, rel, to) => {
   if (fs.existsSync(absTo)) throw new Error(`"${to}" existe déjà.`);
   fs.mkdirSync(path.dirname(absTo), { recursive: true });
   fs.renameSync(absFrom, absTo);
+  editorTreeStatusCache.delete(path.resolve(root));
   return { path: to };
 });
 
@@ -449,6 +493,7 @@ ipcMain.handle("ed:delete", async (_e, rel) => {
   if (!fs.existsSync(abs)) throw new Error(`"${rel}" n’existe pas.`);
   if (fs.statSync(abs).isDirectory()) fs.rmSync(abs, { recursive: true, force: true });
   else fs.unlinkSync(abs);
+  editorTreeStatusCache.delete(path.resolve(root));
   return {};
 });
 
@@ -511,6 +556,8 @@ async function activeWorkspace() {
 }
 
 ipcMain.handle("ed:gitStatus", async () => gitService.status(assertRoot()));
+ipcMain.handle("ed:gitSyncStatus", async () => gitService.syncStatus(assertRoot()));
+ipcMain.handle("ed:gitBlame", async (_event, rel, line) => gitService.blame(assertRoot(), rel, line));
 ipcMain.handle("git:status", async () => gitService.status(await activeWorkspace()));
 ipcMain.handle("git:diff", async (_event, rel) => ({ diff: await gitService.diff(await activeWorkspace(), rel) }));
 ipcMain.handle("git:commit", async (_event, message, rel) => gitService.commit(await activeWorkspace(), rel, message));

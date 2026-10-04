@@ -74,6 +74,9 @@ export class ContextManager {
   private lastCompletionTokens = 0;
   private anchorIndex = 0; // messages.length at the time usage was reported
   private floorWarned = false;
+  /** Size reported by the last floor result: only recompact once the
+   * transcript has grown past it by a worthwhile amount. */
+  private floorSize = 0;
   private calibration = 1;
   private replaysThinking = true;
   private background: { controller: AbortController; work: Promise<void> } | null = null;
@@ -91,6 +94,8 @@ export class ContextManager {
     this.window = window;
     this.calibration = 1;
     if (reserve !== undefined) this.reserve = reserve;
+    this.floorWarned = false; // a different window may not be at its floor
+    this.floorSize = 0;
     this.resetAnchor();
   }
 
@@ -104,12 +109,15 @@ export class ContextManager {
     }
   }
 
-  /** Drop the usage anchor (transcript replaced/cleared behind it). */
+  /** Drop the usage anchor (transcript replaced/cleared behind it).
+   * floorWarned deliberately survives: it is cleared by needsAttention once
+   * the transcript fits again, or by setWindow on a model switch. Clearing it
+   * here re-ran a futile summarizer call before every turn on a window that
+   * can never hold the system prompt. */
   resetAnchor(): void {
     this.lastPromptTokens = 0;
     this.lastCompletionTokens = 0;
     this.anchorIndex = 0;
-    this.floorWarned = false;
   }
 
   estimateMessages(messages: Msg[]): number {
@@ -184,8 +192,16 @@ export class ContextManager {
   assertFits(messages: Msg[], tools: ToolSpec[]): void {
     const size = this.estimatePrompt(messages, tools);
     if (size > this.usableWindow()) {
+      // The system prompt and the tool list must stay. When they alone do not
+      // fit, no amount of compaction can help: the model is simply too small.
+      const floor = this.estimatePrompt(
+        messages.filter((m) => m.role === "system"),
+        tools
+      );
       throw new Error(
-        `Context budget exceeded: about ${size} input tokens, ${this.usableWindow()} available after reserving the reply. Shorten the request or AGENTS.md, use /models for a larger loaded window, or restart with --ctx. The request was not sent.`
+        floor > this.usableWindow()
+          ? `Context budget exceeded: this model's window (${this.window} tokens) cannot hold the system prompt and tools alone (about ${floor} tokens, ${this.usableWindow()} usable after reserving the reply). Compaction cannot help - pick a larger model in /models, or restart with --ctx. The request was not sent.`
+          : `Context budget exceeded: about ${size} input tokens, ${this.usableWindow()} available after reserving the reply. Shorten the request or AGENTS.md, use /models for a larger loaded window, or restart with --ctx. The request was not sent.`
       );
     }
   }
@@ -243,11 +259,16 @@ export class ContextManager {
     const curPrompt = this.estimatePrompt(messages, tools);
     if (curPrompt <= 0.8 * this.usableWindow() && curPrompt <= 22000) {
       this.floorWarned = false; // healthy again — re-arm the floor warning
+      this.floorSize = 0;
       return false;
     }
     // Once we've established the transcript cannot shrink further, stop
-    // triggering a futile compaction before every request.
-    return !this.floorWarned || this.estimatePrompt(messages, tools) > this.usableWindow();
+    // triggering a futile compaction before every request. Re-run it only
+    // when the log has grown past that floor by a worthwhile amount.
+    if (this.floorWarned) {
+      return curPrompt > this.floorSize + Math.max(200, Math.floor(this.usableWindow() * 0.05));
+    }
+    return true;
   }
 
   /**
@@ -410,6 +431,7 @@ export class ContextManager {
       // (system prompt + AGENTS.md + tool schemas + the working tail).
       // Stop repeated futile summaries; assertFits still guards every request.
       this.floorWarned = true;
+      this.floorSize = after;
       return { messages: compacted, report: { action: "floor", before, after } };
     }
     return { messages: compacted, report: { action: "compacted", before, after } };

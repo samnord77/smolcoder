@@ -39,8 +39,8 @@ if errorlevel 1 (
 
 :: 3. Lancement de Smolcoder Desktop (Electron)
 echo [3/3] Lancement de Smolcoder Desktop...
-cd /d "%SMOL_ROOT%\desktop"
-start "" "node_modules\electron\dist\electron.exe" .
+cd /d "%SMOL_ROOT%"
+start "" "%SMOL_ROOT%\node_modules\electron\dist\electron.exe" "%SMOL_ROOT%\desktop"
 
 echo.
 echo ========================================================

@@ -23,6 +23,9 @@ contextBridge.exposeInMainWorld("smolEd", {
   inlineStart: (payload) => ipcRenderer.invoke("ed:inlineStart", payload),
   inlineResult: (op) => ipcRenderer.invoke("ed:inlineResult", op),
   gitStatus: () => ipcRenderer.invoke("ed:gitStatus"),
+  gitSyncStatus: () => ipcRenderer.invoke("ed:gitSyncStatus"),
+  gitBlame: (rel, line) => ipcRenderer.invoke("ed:gitBlame", rel, line),
+  backendStatus: () => ipcRenderer.invoke("ed:backendStatus"),
   highlightCode: (source, language) => highlightHtml(source, language),
   editorTools: {
     cursorPosition: (text, offset) => editorTools.cursorPosition(text, offset),

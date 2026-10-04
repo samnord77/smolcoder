@@ -14,8 +14,15 @@ const { TaskManager } = require("../dist/tools/tasks");
 
 function fakeUi() {
   const lines = [];
+  let resets = 0;
   return {
     lines,
+    get resets() {
+      return resets;
+    },
+    resetResponse() {
+      resets++;
+    },
     token() {},
     thinking() {},
     toolCall() {},
@@ -84,6 +91,139 @@ test("alternating unchanged reads stop with a recoverable error before the model
   assert.equal(agent.outcome, "error");
   assert.equal(agent.lastTurnStats.toolCalls, 9);
   assert.match(agent.messages.at(-1).content, /Do not restart the same reads/);
+});
+
+test("a local-PC folder search requires and accepts observed filename-search results", async () => {
+  const provider = scriptedProvider([{ content: "Voici le résultat de la recherche réelle." }]);
+  const agent = makeAgent(provider, fakeUi(), "ro");
+  fs.mkdirSync(path.join(agent.toolCtx.workspace, "DeepSeek-data"));
+
+  await agent.runTurn("recherche sur mon pc le dossier de DeepSeek dans le workspace");
+
+  assert.equal(agent.outcome, "completed");
+  assert.equal(agent.lastTurnWorkspaceEvidence, true);
+  assert.ok(provider.toolsets[0].includes("find_local"));
+  assert.equal(
+    agent.lastTurnStats.toolCalls,
+    1,
+    "the host executes the deterministic local lookup without relying on the model to call a tool"
+  );
+  assert.ok(provider.seen[0].some((message) => message.role === "tool" && message.content.includes("DeepSeek-data")));
+  const result = agent.messages.find((message) => message.role === "tool" && message.toolName === "find_local");
+  assert.match(result.content, /DeepSeek-data/);
+  assert.match(result.content, /File contents were not opened/);
+});
+
+test("project analysis cannot be reported as complete without workspace tool evidence", async () => {
+  const fabricated = "Analyse complète : le fichier src/fake.ts contient une erreur.";
+  const ui = fakeUi();
+  const provider = scriptedProvider([{ content: fabricated }, { content: fabricated }]);
+  const agent = makeAgent(provider, ui);
+
+  await assert.rejects(agent.runTurn("Analyse ce projet en profondeur et relève les anomalies."), /aucun outil n'a consulté le workspace/);
+  assert.equal(provider.seen.length, 2, "one bounded retry asks the model to inspect the workspace");
+  assert.equal(ui.resets, 2, "both unverified streamed answers are discarded");
+  assert.equal(agent.outcome, "error");
+  assert.equal(
+    agent.messages.some((message) => message.content === fabricated),
+    false
+  );
+
+  const continuationUi = fakeUi();
+  const continuationProvider = scriptedProvider([{ content: fabricated }, { content: fabricated }]);
+  const continuationAgent = makeAgent(continuationProvider, continuationUi);
+  continuationAgent.currentRequest = "Analyse ce projet en profondeur et relève les anomalies.";
+  continuationAgent.messages.push({ role: "user", historyNote: true, content: "[compacted history]" });
+  await assert.rejects(continuationAgent.runTurn("Continue"), /aucun outil n'a consulté le workspace/);
+  assert.equal(continuationProvider.seen.length, 2, "a short continuation inherits the previous analysis requirement");
+});
+
+test("an explicit workspace-change request cannot be reported complete without a successful mutation", async () => {
+  const ui = fakeUi();
+  const provider = scriptedProvider([{ content: "Done, the feature is implemented." }, { content: "The implementation is complete." }]);
+  const agent = makeAgent(provider, ui);
+
+  await assert.rejects(agent.runTurn("Add the missing feature to the workspace."), /aucune modification du workspace/i);
+  assert.equal(provider.seen.length, 2, "the agent gets one bounded chance to perform the requested change");
+  assert.equal(agent.outcome, "error");
+  assert.equal(
+    agent.messages.some((message) => /Done, the feature is implemented/.test(message.content)),
+    false
+  );
+});
+
+test("French workspace-change imperatives require an actual successful mutation", async () => {
+  for (const request of [
+    "Améliore le Copilot et l’autopilot dans le projet.",
+    "Ajoute les fonctionnalités manquantes au projet.",
+    "Enrichis le Copilot dans le workspace.",
+  ]) {
+    const provider = scriptedProvider([
+      { toolCalls: [{ id: "inspect", name: "list_files", args: { path: "." } }] },
+      { content: "C’est terminé, tout est amélioré." },
+      { content: "Les changements ont été ajoutés." },
+    ]);
+    const agent = makeAgent(provider, fakeUi());
+
+    await assert.rejects(agent.runTurn(request), /aucune modification du workspace/i, request);
+    assert.equal(
+      provider.seen.length,
+      3,
+      "after inspection, text-only completion receives one bounded opportunity to make the requested change"
+    );
+    assert.equal(agent.outcome, "error");
+  }
+});
+
+test("a successful file mutation satisfies the workspace-change gate", async () => {
+  const provider = scriptedProvider([
+    { toolCalls: [{ id: "write-feature", name: "write_file", args: { path: "feature.md", content: "Implemented feature." } }] },
+    { content: "The feature file was written." },
+  ]);
+  const agent = makeAgent(provider, fakeUi());
+
+  await agent.runTurn("Add the missing feature to the workspace.");
+
+  assert.equal(agent.outcome, "completed");
+  assert.equal(fs.readFileSync(path.join(agent.toolCtx.workspace, "feature.md"), "utf8"), "Implemented feature.");
+});
+
+test("Auto Copilot exposes a complete structured lifecycle while creating and validating work", async () => {
+  const phases = [];
+  const ui = fakeUi();
+  ui.autopilotPhase = (phase, label, details) => phases.push({ phase, label, details });
+  const provider = scriptedProvider([
+    {
+      toolCalls: [
+        { id: "mkdir", name: "create_folder", args: { path: "src" } },
+        { id: "write", name: "write_file", args: { path: "src/main.js", content: "console.log('ok');\n" } },
+      ],
+    },
+    { content: "Le fichier a été créé et contrôlé.", toolCalls: [] },
+  ]);
+  const agent = makeAgent(provider, ui, "bypass");
+
+  await agent.runTurn("Crée le module src/main.js dans le projet et vérifie-le.");
+
+  assert.equal(agent.outcome, "completed");
+  assert.equal(fs.readFileSync(path.join(agent.toolCtx.workspace, "src", "main.js"), "utf8"), "console.log('ok');\n");
+  assert.ok(phases.some((p) => p.phase === "starting"));
+  assert.ok(phases.some((p) => p.phase === "planning"));
+  assert.ok(phases.some((p) => p.phase === "executing" && p.details?.tool === "create_folder"));
+  assert.ok(phases.some((p) => p.phase === "executing" && p.details?.tool === "write_file"));
+  assert.equal(phases.at(-1).phase, "completed");
+});
+
+test("a planning-only tool call does not count as workspace analysis evidence", async () => {
+  const provider = scriptedProvider([
+    { toolCalls: [{ id: "plan-only", name: "plan", args: { action: "show" } }] },
+    { content: "The project has been fully analyzed.", toolCalls: [] },
+    { content: "The project has been fully analyzed.", toolCalls: [] },
+  ]);
+  const agent = makeAgent(provider, fakeUi());
+  await assert.rejects(agent.runTurn("Analyse ce projet et relève ses problèmes."), /aucun outil n'a consulté le workspace/);
+  assert.equal(provider.seen.length, 3, "the plan call is followed by one bounded inspection retry");
+  assert.equal(agent.lastTurnWorkspaceEvidence, false);
 });
 
 test("implicit plan creation renders once; showing it does not re-arm its completion nudge", async () => {
@@ -166,6 +306,76 @@ test("a truncated call that arrives as unparseable JSON (LM Studio) gets the sam
   const toolMsg = provider.seen[1].find((m) => m.role === "tool");
   assert.ok(toolMsg);
   assert.match(toolMsg.content, /^Error: Your tool call was cut off by the output limit of 2000 tokens/);
+});
+
+test("backend deadline failures get bounded action retries before surfacing the blocker", async () => {
+  for (const [code, message] of [
+    ["BACKEND_IDLE_TIMEOUT", "Backend timed out waiting for data. Check the model server and available memory."],
+    ["BACKEND_REQUEST_TIMEOUT", "Backend request timed out. The model did not finish within the request deadline."],
+  ]) {
+    const ui = fakeUi();
+    const provider = scriptedProvider([]);
+    let calls = 0;
+    provider.chat = async () => {
+      calls++;
+      const error = Object.assign(new Error(message), { code });
+      throw error;
+    };
+    const agent = makeAgent(provider, ui);
+
+    await assert.rejects(agent.runTurn("continue"), new RegExp(message.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+    // Three in-call retries, and up to two whole-turn restarts around them:
+    // the attempts stay bounded, they are just not given up on after three.
+    assert.ok(calls >= 3 && calls <= 9, `bounded retries, got ${calls}`);
+    assert.ok(ui.lines.some((line) => line.includes("nouvelle tentative automatique")));
+    assert.ok(ui.lines.some((line) => line.includes("relance automatique du tour")));
+    assert.ok(!ui.lines.some((line) => line.includes("retrying in")));
+  }
+});
+
+test("a backend timeout is recovered before a requested file mutation", async () => {
+  const ui = fakeUi();
+  const provider = scriptedProvider([
+    { content: "" },
+    { toolCalls: [{ id: "create", name: "write_file", args: { path: "autopilot.txt", content: "created after recovery\n" } }] },
+    { content: "Fichier créé et vérifié.", toolCalls: [] },
+  ]);
+  let calls = 0;
+  provider.chat = async (_messages, _tools, _opts) => {
+    calls++;
+    if (calls === 1) {
+      const error = Object.assign(new Error("Backend timed out waiting for data. Check the model server and available memory."), {
+        code: "BACKEND_IDLE_TIMEOUT",
+      });
+      throw error;
+    }
+    const r = [
+      { toolCalls: [{ id: "create", name: "write_file", args: { path: "autopilot.txt", content: "created after recovery\n" } }] },
+      { content: "Fichier créé et vérifié.", toolCalls: [] },
+    ][calls - 2] ?? { content: "Fichier créé et vérifié.", toolCalls: [] };
+    return { content: "", toolCalls: [], generatedTokens: 10, promptTokens: 10, completionTokens: 10, ...r };
+  };
+  const agent = makeAgent(provider, ui, "bypass");
+  await agent.runTurn("Crée le fichier autopilot.txt dans le projet.");
+  assert.equal(calls, 3);
+  assert.equal(fs.readFileSync(path.join(agent.toolCtx.workspace, "autopilot.txt"), "utf8"), "created after recovery\n");
+  assert.equal(agent.outcome, "completed");
+});
+
+test("a cancelled turn notifies the UI to close pending tool activity", async () => {
+  const ui = fakeUi();
+  let cancellations = 0;
+  ui.turnCancelled = () => cancellations++;
+  const provider = scriptedProvider([]);
+  provider.chat = async () => {
+    const error = new Error("cancelled");
+    error.name = "AbortError";
+    throw error;
+  };
+  const agent = makeAgent(provider, ui);
+  await agent.runTurn("continue");
+  assert.equal(agent.outcome, "cancelled");
+  assert.equal(cancellations, 1);
 });
 
 test("repeated reasoning exhaustion extends a bounded recovery interval then restores effort", async () => {
@@ -298,17 +508,50 @@ test("a matching saved skill is sent to the model and shown in turn status", asy
 
   await agent.runTurn("Prepare the release checklist");
 
-  assert.match(JSON.stringify(provider.seen[0]), /Auto-loaded skills matching your task/);
+  assert.match(JSON.stringify(provider.seen[0]), /Auto-loaded skills selected for this task/);
   assert.match(JSON.stringify(provider.seen[0]), /Check the version and changelog/);
   assert.deepEqual(loadedSkills, ["release-checklist"]);
 });
 
+test("the orchestrator's recommended coding skills are actually loaded and shown", async () => {
+  const provider = scriptedProvider([
+    { toolCalls: [{ id: "inspect", name: "list_files", args: {} }] },
+    { toolCalls: [{ id: "fix", name: "write_file", args: { path: "fix.md", content: "Fixed." } }] },
+    { content: "The project bug was fixed." },
+  ]);
+  const ui = fakeUi();
+  const loadedSkills = [];
+  ui.skills = (names) => loadedSkills.push(...names);
+  const agent = makeAgent(provider, ui);
+
+  await agent.runTurn("Fix the bug in this project.");
+
+  assert.ok(loadedSkills.includes("bugfix-workflow"));
+  assert.ok(loadedSkills.includes("coding-workflow"));
+  assert.match(JSON.stringify(provider.seen[0]), /failing regression test/);
+});
+
+test("a generic one-word build request does not inject task-specific recommendation skills", async () => {
+  const provider = scriptedProvider([{ content: "Ready when you are." }]);
+  const agent = makeAgent(provider, fakeUi());
+
+  await agent.runTurn("Build");
+
+  assert.doesNotMatch(JSON.stringify(provider.seen[0]), /coding-workflow/);
+});
+
 test("broad implementation requests get a visible plan and an automatic read-only sub-agent preflight", async () => {
   const provider = scriptedProvider([
+    { toolCalls: [{ id: "child-read", name: "list_files", args: { path: "." } }] },
     { content: "Found the file and UI wiring; the parent should handle changes.", toolCalls: [] },
     { toolCalls: [{ id: "p1", name: "plan", args: { action: "done" } }] },
     { toolCalls: [{ id: "p2", name: "plan", args: { action: "done" } }] },
     { toolCalls: [{ id: "p3", name: "plan", args: { action: "done" } }] },
+    {
+      toolCalls: [
+        { id: "write-feature", name: "write_file", args: { path: "src/feature.ts", content: "export const featureReady = true;\n" } },
+      ],
+    },
     { content: "Completed the implementation.", toolCalls: [] },
   ]);
   const ui = fakeUi();
@@ -323,12 +566,29 @@ test("broad implementation requests get a visible plan and an automatic read-onl
   await agent.runTurn(request);
 
   assert.equal(agent.outcome, "completed");
-  assert.deepEqual(subagentEvents.map(([phase]) => phase), ["start", "done"]);
+  assert.deepEqual(
+    subagentEvents.map(([phase]) => phase),
+    ["start", "done"]
+  );
+  assert.match(subagentEvents[0][1], /^implementer:/, "the recommended implementer role is actually assigned to the preflight");
+  assert.match(subagentEvents[1][1], /^completed: /);
   assert.equal(toolEvents[0][0], "delegate");
-  assert.equal(toolEvents[0][1].tools, "read_file,list_files,search,symbols");
-  assert.ok(provider.seen[1].some((m) => /Found the file and UI wiring/.test(m.content)), "the parent receives the child report");
+  assert.equal(toolEvents[0][1].tools, "read_file,list_files,search,find_local,symbols");
+  assert.deepEqual(
+    provider.toolsets[1].sort(),
+    ["find_local", "list_files", "read_file", "search", "symbols"],
+    "the selected expert retains the strict read-only preflight tool allowlist"
+  );
+  assert.match(provider.seen[0][0].content, /Sub-agent role: .* \(implementer\)/);
+  assert.ok(
+    provider.seen[2].some((m) => /Found the file and UI wiring/.test(m.content)),
+    "the parent receives the child report after its workspace tool observation"
+  );
   assert.match(agent.toolCtx.plan.modelView(), /\[x\]/);
-  assert.ok(agent.messages.some((m) => m.role === "tool" && m.toolName === "delegate"));
+  assert.ok(
+    toolEvents.some(([name]) => name === "delegate"),
+    "delegation is confirmed by the executed UI tool event"
+  );
 });
 
 test("delegate announces sub-agent start and done to the UI", async () => {
@@ -346,8 +606,50 @@ test("delegate announces sub-agent start and done to the UI", async () => {
   assert.equal(subs[0][0], "start");
   assert.match(subs[0][1], /find login/);
   assert.equal(subs[subs.length - 1][0], "done");
+  assert.match(subs[subs.length - 1][1], /completed: 0 actions/);
   const toolMsg = provider.seen.flat().find((m) => m.role === "tool" && /Sub-agent did/.test(m.content));
   assert.ok(toolMsg, "delegate result carries the sub-agent report");
+  assert.match(toolMsg.content, /execution=completed; verification=not run/);
+});
+
+test("a delegated code change propagates to parent verification and reports its actual outcome", async () => {
+  const provider = scriptedProvider([
+    { toolCalls: [{ id: "d1", name: "delegate", args: { task: "Create a file in the workspace", tools: "write_file" } }] },
+    { toolCalls: [{ id: "w1", name: "write_file", args: { path: "delegated.txt", content: "Created by child." } }] },
+    { content: "Created the requested file.", toolCalls: [] },
+    { content: "The delegated change is complete.", toolCalls: [] },
+  ]);
+  const agent = makeAgent(provider, fakeUi(), "bypass", true);
+
+  await agent.runTurn("Create a file in the workspace using a sub-agent.");
+
+  assert.equal(agent.outcome, "completed");
+  assert.equal(agent.workspaceChangedThisTurn, true);
+  assert.equal(fs.readFileSync(path.join(agent.toolCtx.workspace, "delegated.txt"), "utf8"), "Created by child.");
+  const report = agent.messages.find((message) => message.role === "tool" && message.toolName === "delegate");
+  assert.match(report.content, /execution=completed; verification=not run/);
+  assert.match(report.content, /Files touched: delegated\.txt/);
+});
+
+test("a delegated false completion claim is returned to the parent as an error, not a success", async () => {
+  const provider = scriptedProvider([
+    { toolCalls: [{ id: "d1", name: "delegate", args: { task: "Create a file in the workspace", tools: "write_file" } }] },
+    { content: "The file has been created.", toolCalls: [] },
+    { content: "It is definitely done.", toolCalls: [] },
+    { content: "The sub-agent could not complete the request.", toolCalls: [] },
+  ]);
+  const ui = fakeUi();
+  const subs = [];
+  ui.subagent = (phase, label) => subs.push([phase, label]);
+  const agent = makeAgent(provider, ui, "bypass", true);
+
+  await agent.runTurn("Delegate this task.");
+
+  const report = agent.messages.find((message) => message.role === "tool" && message.toolName === "delegate");
+  assert.match(report.content, /Sub-agent execution=error/);
+  assert.match(report.content, /aucune modification du workspace/i);
+  assert.equal(fs.existsSync(path.join(agent.toolCtx.workspace, "created.txt")), false);
+  assert.match(subs.at(-1)[1], /error: 0 actions/);
 });
 
 test("delegated role tool permissions are enforced, not just suggested", async () => {

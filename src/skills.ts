@@ -222,10 +222,10 @@ export function describeSkills(root: string): SkillInfo[] {
 
 /** Skills whose name or declared description overlaps the request, best match first.
  * Shared by the text loader and the live status view. */
-function matchingSkills(root: string, request: string): { name: string; score: number; excerpt: string }[] {
+function matchingSkills(root: string, request: string, preferredNames: string[] = []): { name: string; score: number; excerpt: string }[] {
   const req = keywords(String(request ?? ""));
-  if (!req.size) return [];
   const hits: { name: string; score: number; excerpt: string }[] = [];
+  const preferredOrder = new Map(preferredNames.map((name, index) => [name, index]));
   for (const s of allSkillTexts(root)) {
     const nameWords = keywords(s.name.replace(/[-_]/g, " "));
     const description = skillMeta(s.text).description;
@@ -234,20 +234,28 @@ function matchingSkills(root: string, request: string): { name: string; score: n
     const nameMatches = [...req].filter((word) => nameWords.has(word)).length;
     const summaryMatches = [...req].filter((word) => summaryWords.has(word)).length;
     const score = nameMatches * 2 + summaryMatches;
-    if (nameMatches > 0 || summaryMatches >= 2) {
+    if (preferredOrder.has(s.name) || nameMatches > 0 || summaryMatches >= 2) {
       hits.push({ name: s.name, score, excerpt: s.text.slice(0, 600) });
     }
   }
-  hits.sort((a, b) => b.score - a.score);
-  return hits;
+  return hits.sort((a, b) => {
+    const aPreferred = preferredOrder.get(a.name);
+    const bPreferred = preferredOrder.get(b.name);
+    if (aPreferred !== undefined || bPreferred !== undefined) {
+      if (aPreferred === undefined) return 1;
+      if (bPreferred === undefined) return -1;
+      return aPreferred - bPreferred;
+    }
+    return b.score - a.score;
+  });
 }
 
 /** Relevant skills are selected from their name/description, not generic
  * vocabulary buried in the full instructions. Capped to protect small contexts. */
-export function relevantSkills(root: string, request: string, maxChars = 1200): string {
+export function relevantSkills(root: string, request: string, maxChars = 1200, preferredNames: string[] = []): string {
   try {
     let out = "";
-    for (const h of matchingSkills(root, request).slice(0, 2)) {
+    for (const h of matchingSkills(root, request, preferredNames).slice(0, 2)) {
       const block = `### skill ${h.name}\n${h.excerpt}\n`;
       if ((out + block).length > maxChars) break;
       out += block;
@@ -259,9 +267,9 @@ export function relevantSkills(root: string, request: string, maxChars = 1200): 
 }
 
 /** Names of the skills that just rode into a turn (for the status view). */
-export function relevantSkillNames(root: string, request: string, limit = 2): string[] {
+export function relevantSkillNames(root: string, request: string, limit = 2, preferredNames: string[] = []): string[] {
   try {
-    return matchingSkills(root, request)
+    return matchingSkills(root, request, preferredNames)
       .slice(0, Math.max(0, limit))
       .map((h) => h.name);
   } catch {

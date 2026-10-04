@@ -1,8 +1,8 @@
-// Tool registry. Thirteen tools with flat parameters — no
+// Tool registry. Flat parameters — no
 // nested objects or arrays: small models mangle them), an example call inside
 // every description (small models imitate better than they infer), and the
 // mode decides which schemas are sent. The agent rechecks mode at execution.
-// Read-only mode keeps read_file, list_files, search, plan, skill
+// Read-only mode keeps read_file, list_files, search, find_local, plan, skill
 // (list/read only) and fetch_url; edit/bypass add write_file, edit_file,
 // run_command, task, delegate, mcp, symbols and skill save.
 
@@ -23,6 +23,7 @@ import { truncateMiddle } from "../util";
 import { syntaxCheck } from "./check";
 import { CoworkBoard } from "./cowork";
 import { createFolder, deletePath, editFile, listFiles, movePath, readFile, writeFile } from "./fs-tools";
+import { searchLocalFilesBounded } from "./local-search";
 import { searchFilesBounded } from "./search-worker";
 import { runCommand, type ShellControl } from "./shell";
 import type { TaskManager } from "./tasks";
@@ -39,13 +40,11 @@ export const MODE_LABELS: Record<Mode, string> = {
 const TOOL_RESULT_CAP = 10000; // chars — final safety net over per-tool caps
 
 function workTool(canWrite: boolean): ToolSpec {
-  const actions = canWrite
-    ? ["list", "create", "update", "complete", "archive", "assign", "record_report"]
-    : ["list"];
+  const actions = canWrite ? ["list", "create", "update", "archive", "assign", "record_report"] : ["list"];
   return {
     name: "work",
     description: canWrite
-      ? 'Keep durable personal and work tasks in this project. List: {"action":"list","status":"open"}. Create: {"action":"create","title":"Prepare report","area":"work","due":"2026-10-02","priority":"high","role":"architect","acceptance":"All tests pass"}. Assign role: {"action":"assign","task_id":"...","role":"implementer"}. Record execution report: {"action":"record_report","task_id":"...","report":"...","execution_status":"verified","mark_completed":true}. Data stays in .smol/work-items.json.'
+      ? 'Keep durable personal and work tasks in this project. List: {"action":"list","status":"open"}. Create: {"action":"create","title":"Prepare report","area":"work","due":"2026-10-02","priority":"high","role":"architect","acceptance":"All tests pass"}. Assign role: {"action":"assign","task_id":"...","role":"implementer"}. Record a factual report: {"action":"record_report","task_id":"...","report":"..."} . The session runtime, not the model, controls running/verified/failed status and completion based on the actual turn and checks. Data stays in .smol/work-items.json.'
       : 'Read the durable personal and work task list for this project. Example: {"action":"list","status":"open","area":"work"}.',
     parameters: {
       type: "object",
@@ -61,8 +60,6 @@ function workTool(canWrite: boolean): ToolSpec {
         role: { type: "string", description: "Assigned subagent specialist role (e.g. architect, implementer, quality_reviewer)" },
         acceptance: { type: "string", description: "Acceptance criteria / test verification required to complete the task" },
         report: { type: "string", description: "Execution report summary returned by the subagent" },
-        execution_status: { type: "string", enum: ["idle", "running", "verified", "failed"], description: "Execution status" },
-        mark_completed: { type: "boolean", description: "Whether to mark the work item as completed upon recording report" },
       },
       required: ["action"],
     },
@@ -107,6 +104,21 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
           path: { type: "string", description: "Folder to search in (optional)" },
         },
         required: ["pattern"],
+      },
+    },
+    {
+      name: "find_local",
+      description:
+        'Find files and folders on this computer by filename only. This does not open file contents. Default root is your user profile; narrow it with an absolute folder such as C:\\Users\\Name\\Downloads or a workspace-relative path. Example: {"query":"deepseek"}. Results are capped and say when incomplete.',
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Distinctive filename fragment, 2–120 characters; use e.g. deepseek, not a full sentence" },
+          path: { type: "string", description: "Optional absolute folder on this computer; default is the current user's home folder" },
+          max_results: { type: "number", description: "Maximum matching paths, 1–50 (default 50)" },
+          max_depth: { type: "number", description: "Maximum folder depth, 0–20 (default 12)" },
+        },
+        required: ["query"],
       },
     },
     {
@@ -513,6 +525,9 @@ export async function executeTool(name: string, args: Record<string, any>, ctx: 
         break;
       case "search":
         result = await searchFilesBounded(ctx.workspace, args, signal);
+        break;
+      case "find_local":
+        result = await searchLocalFilesBounded(ctx.workspace, args, signal);
         break;
       case "plan": {
         const action = args.action ?? (typeof args.steps === "string" ? "set" : undefined);

@@ -84,6 +84,8 @@ export interface ChatOptions {
   maxTokens?: number;
   /** Whole-request deadline and maximum silence between network chunks. */
   timeoutMs?: number;
+  /** Silence allowed before the first byte (model load + prompt prefill). */
+  firstDataTimeoutMs?: number;
   idleTimeoutMs?: number;
   /** Optional maintenance yields to foreground coding on the same server. */
   background?: boolean;
@@ -190,6 +192,19 @@ export function extractToolCallsFromContent(content: string): { content: string;
     }
   }
 
+  // Pattern 1b: <tool:name> ... </tool:name> or <function:name> ... </function:name>
+  const xmlNamedRe = /<(?:tool|call|function):([a-zA-Z0-9_-]+)>([\s\S]*?)<\/(?:tool|call|function):\1>/gi;
+  for (const match of content.matchAll(xmlNamedRe)) {
+    try {
+      const name = match[1];
+      const parsed = JSON.parse(match[2].trim());
+      calls.push({ id: nextCallId(), name, ...parseArgs(parsed) });
+      cleaned = cleaned.replace(match[0], "").trim();
+    } catch {
+      /* ignore */
+    }
+  }
+
   // Pattern 2: ```tool:read_file\n{...}\n```
   const toolFenceRe = /```tool:([a-zA-Z0-9_-]+)\s*\n([\s\S]*?)```/gi;
   for (const match of content.matchAll(toolFenceRe)) {
@@ -216,6 +231,37 @@ export function extractToolCallsFromContent(content: string): { content: string;
       }
     } catch {
       /* ignore */
+    }
+  }
+
+  // Pattern 4: Raw JSON tool call in text: {"name": "...", "arguments": {...}}
+  if (calls.length === 0) {
+    const rawJsonRe =
+      /\{\s*"(?:name|tool|function)"\s*:\s*"([a-zA-Z0-9_-]+)"\s*,\s*"(?:arguments|args|parameters)"\s*:\s*(\{[\s\S]*?\})\s*\}/g;
+    for (const match of content.matchAll(rawJsonRe)) {
+      try {
+        const name = match[1];
+        const parsedArgs = JSON.parse(match[2].trim());
+        calls.push({ id: nextCallId(), name, ...parseArgs(parsedArgs) });
+        cleaned = cleaned.replace(match[0], "").trim();
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+
+  // Pattern 5: Bracketed call: [TOOL_CALL: name({"arg": ...})] or [name({"arg": ...})]
+  if (calls.length === 0) {
+    const bracketRe = /\[(?:TOOL_CALL:\s*)?([a-zA-Z0-9_-]+)\s*\(\s*(\{[\s\S]*?\})\s*\)\]/g;
+    for (const match of content.matchAll(bracketRe)) {
+      try {
+        const name = match[1];
+        const parsedArgs = JSON.parse(match[2].trim());
+        calls.push({ id: nextCallId(), name, ...parseArgs(parsedArgs) });
+        cleaned = cleaned.replace(match[0], "").trim();
+      } catch {
+        /* ignore */
+      }
     }
   }
 

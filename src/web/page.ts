@@ -46,6 +46,11 @@ export const PAGE_HTML = `<!doctype html>
     <div class="taskrail-header" id="taskrail-head">tâches</div>
     <div id="taskrail-list"></div>
   </div>
+  <div id="sessionstats" role="group" aria-label="Résumé du workspace">
+    <button type="button" id="sessionstat-changes" class="sessionstat changes"><span class="sessionstat-title">Changes</span><span class="sessionstat-value" id="sessionstat-changes-value">—</span></button>
+    <button type="button" id="sessionstat-background" class="sessionstat background"><span class="sessionstat-title">Background</span><span class="sessionstat-value" id="sessionstat-background-value">—</span></button>
+    <button type="button" id="sessionstat-artifacts" class="sessionstat artifacts"><span class="sessionstat-title">Artifacts</span><span class="sessionstat-value" id="sessionstat-artifacts-value">—</span></button>
+  </div>
   <div class="sidefoot">
     <div class="sidefoot-info" style="display:flex;align-items:center;gap:6px;">
       <span class="led green" title="Moteur actif"></span>
@@ -67,6 +72,13 @@ export const PAGE_HTML = `<!doctype html>
     <button type="button" class="iconbtn" id="btnterm" title="Terminal & Dock Pro (Ctrl+\`)">${ICON_TERMINAL}</button>
     <button type="button" class="iconbtn" id="btnreview" title="Revue des modifications (diff par hunk)">Δ<span id="review-badge" class="review-badge" hidden>0</span></button>
     <button type="button" class="iconbtn" id="btnstatus" title="Centre de Contrôle Pro">${ICON_GAUGE}</button>
+  </div>
+  <div id="systemmonitor" role="group" aria-label="Utilisation du système">
+    <div class="sysmetric" data-metric="cpu"><span class="syslabel">CPU</span><span class="sysvalue">—</span><span class="systrack"><i></i></span></div>
+    <div class="sysmetric" data-metric="memory"><span class="syslabel">RAM</span><span class="sysvalue">—</span><span class="systrack"><i></i></span></div>
+    <div class="sysmetric" data-metric="gpu"><span class="syslabel">GPU</span><span class="sysvalue">—</span><span class="systrack"><i></i></span></div>
+    <div class="sysmetric" data-metric="vram"><span class="syslabel">VRAM</span><span class="sysvalue">—</span><span class="systrack"><i></i></span></div>
+    <div class="sysmetric" data-metric="storage"><span class="syslabel">Disque</span><span class="sysvalue">—</span><span class="systrack"><i></i></span></div>
   </div>
   <div id="activitybar" class="activity-bar" aria-live="polite">
     <div class="activity-summary" id="actsummary">
@@ -149,18 +161,18 @@ export const PAGE_HTML = `<!doctype html>
 <div id="toasts" aria-live="polite"></div>
 <footer id="vsc-statusbar" class="vsc-statusbar" role="status" aria-label="Barre d'état">
   <div class="vsc-sb-left">
-    <button type="button" class="vsc-sb-item" id="sb-branch" title="Branche Git active (cliquez pour basculer)"><span class="vsc-sb-ico">⎇</span> <span id="sb-branch-name">main*</span></button>
-    <button type="button" class="vsc-sb-item" id="sb-sync" title="Synchroniser les modifications (0 entrants, 41 sortants)"><span class="vsc-sb-ico">↻</span> 0↓ 41↑</button>
+    <button type="button" class="vsc-sb-item" id="sb-branch" title="Actualiser la branche Git locale"><span class="vsc-sb-ico">⎇</span> <span id="sb-branch-name">—</span></button>
+    <button type="button" class="vsc-sb-item" id="sb-sync" title="Comparer avec la référence upstream locale (aucun fetch/push)"><span class="vsc-sb-ico">↻</span> <span id="sb-sync-text">—</span></button>
     <button type="button" class="vsc-sb-item" id="sb-problems" title="Problèmes détectés dans le workspace (cliquez pour ouvrir Problems)"><span class="vsc-sb-ico vsc-err">⊗</span> <span id="sb-err-cnt">0</span> <span class="vsc-sb-ico vsc-warn">⚠</span> <span id="sb-warn-cnt">0</span></button>
   </div>
   <div class="vsc-sb-right">
-    <button type="button" class="vsc-sb-item" id="sb-blame" title="GitLens : auteur de la ligne courante"><span class="vsc-sb-ico">⌖</span> <span id="sb-blame-text">You, 3 days ago</span></button>
+    <button type="button" class="vsc-sb-item" id="sb-blame" title="Afficher l'auteur Git réel de la ligne courante"><span class="vsc-sb-ico">⌖</span> <span id="sb-blame-text">Git blame</span></button>
     <button type="button" class="vsc-sb-item" id="sb-pos" title="Ligne et colonne du curseur"><span id="sb-pos-text">Ln 1, Col 1</span></button>
     <button type="button" class="vsc-sb-item" id="sb-indent" title="Indentation du document"><span id="sb-indent-text">Spaces: 2</span></button>
     <button type="button" class="vsc-sb-item" id="sb-encoding" title="Encodage du fichier">UTF-8</button>
     <button type="button" class="vsc-sb-item" id="sb-eol" title="Fin de ligne">LF</button>
     <button type="button" class="vsc-sb-item" id="sb-lang" title="Sélectionner le mode de langage"><span class="vsc-sb-ico">{ }</span> <span id="sb-lang-text">JavaScript</span></button>
-    <button type="button" class="vsc-sb-item" id="sb-formatter" title="Formateur actif : Biome"><span class="vsc-sb-ico">△</span> 2.5.14</button>
+    <button type="button" class="vsc-sb-item" id="sb-formatter" title="Formatage depuis l'éditeur non disponible"><span class="vsc-sb-ico">△</span> Formateur —</button>
     <button type="button" class="vsc-sb-item" id="sb-settings" title="Paramètres et options"><span class="vsc-sb-ico">⚙</span> Paramètres</button>
     <button type="button" class="vsc-sb-item" id="sb-bell" title="Notifications"><span class="vsc-sb-ico">🔔</span></button>
   </div>

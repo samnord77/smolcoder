@@ -6,7 +6,7 @@ const { spawnSync } = require("node:child_process");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { isGitRepo, queryGit, GIT_ACTIONS } = require("../dist/git");
+const { gitSyncStatus, isGitRepo, queryGit, GIT_ACTIONS } = require("../dist/git");
 
 function gitAvailable() {
   try {
@@ -68,6 +68,41 @@ test("git: full flow — stage, commit, status, diff, log, blame, branch", () =>
   assert.match(blame, /Smol Test/);
   assert.match(queryGit(repo, { action: "branch" }), /main|master/);
   assert.equal(isGitRepo(repo), true);
+});
+
+test("git sync status compares only cached upstream refs without contacting a remote", () => {
+  if (!gitAvailable()) return;
+  const repo = scratchRepo();
+  const bare = fs.mkdtempSync(path.join(os.tmpdir(), "smol-git-origin-"));
+  const git = (cwd, args) => {
+    const r = spawnSync("git", args, { cwd, encoding: "utf8", timeout: 15000, windowsHide: true });
+    assert.equal(r.status, 0, `git ${args.join(" ")} failed: ${r.stderr}`);
+    return r.stdout.trim();
+  };
+  git(bare, ["init", "--bare"]);
+  fs.writeFileSync(path.join(repo, "tracked.txt"), "base\n");
+  git(repo, ["add", "tracked.txt"]);
+  git(repo, ["commit", "-m", "base"]);
+  git(repo, ["remote", "add", "origin", bare]);
+  git(repo, ["push", "-u", "origin", "HEAD"]);
+
+  assert.deepEqual((({ branch, upstream, ahead, behind }) => ({ branch, upstream, ahead, behind }))(gitSyncStatus(repo)), {
+    branch: "main",
+    upstream: "origin/main",
+    ahead: 0,
+    behind: 0,
+  });
+  fs.appendFileSync(path.join(repo, "tracked.txt"), "local\n");
+  git(repo, ["commit", "-am", "local"]);
+  const localAhead = gitSyncStatus(repo);
+  assert.equal(localAhead.ahead, 1);
+  assert.equal(localAhead.behind, 0);
+  assert.equal(localAhead.upstream, "origin/main");
+
+  const noUpstream = gitSyncStatus(scratchRepo());
+  assert.equal(noUpstream.upstream, null);
+  assert.equal(noUpstream.ahead, null);
+  assert.equal(noUpstream.behind, null);
 });
 
 const DIFF_SAMPLE = `diff --git a/app.txt b/app.txt

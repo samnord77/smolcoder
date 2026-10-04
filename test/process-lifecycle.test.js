@@ -23,9 +23,20 @@ for (const background of [false, true])
     }
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "smol-process-"));
     let pid;
-    t.after(() => {
+    t.after(async () => {
       if (pid && alive(pid)) killTree(pid);
-      fs.rmSync(root, { recursive: true, force: true });
+      let lastError;
+      for (let i = 0; i < 40; i++) {
+        try {
+          fs.rmSync(root, { recursive: true, force: true });
+          return;
+        } catch (error) {
+          if (error.code !== "EPERM" && error.code !== "EBUSY") throw error;
+          lastError = error;
+          await delay(50);
+        }
+      }
+      throw lastError;
     });
     fs.writeFileSync(
       path.join(root, "worker.cjs"),

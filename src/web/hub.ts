@@ -22,7 +22,18 @@ import { DATA_DIR, loadConfig } from "../config";
 import { ContextManager } from "../context";
 import { applyOp, type CrdOp, docFromText } from "../crdt";
 import { EventBus } from "../events";
-import { gitApplyHunk, gitCommit, gitDiffFiles, gitRevertFile, gitStage, gitStageLines, gitStatusMap, gitUnstage } from "../git";
+import {
+  gitApplyHunk,
+  gitBlame,
+  gitCommit,
+  gitDiffFiles,
+  gitRevertFile,
+  gitStage,
+  gitStageLines,
+  gitStatusMap,
+  gitSyncStatus,
+  gitUnstage,
+} from "../git";
 import { appendSmolLog, readRecentLogs } from "../logger";
 import { installLspServer } from "../lsp-install";
 import { LSP_LANGS, lspAvailability, queryCode, queryDiagStructured, serverDefForLang } from "../lsp-pro";
@@ -44,6 +55,7 @@ import { type Event, SessionChannel, uploadUrl } from "./channel";
 import { renderEditDiff } from "./diff";
 import { PAGE_HTML } from "./page";
 import { type SessionMeta, SessionStore, WorkspaceStore, workspaceKey } from "./store";
+import { collectSessionOverview } from "./system-metrics";
 import { Terminal } from "./terminal";
 
 export type SessionFactory = (ui: SessionChannel, workspace: string, prefs: SessionPrefs, planKey?: string) => Promise<Session>;
@@ -618,9 +630,16 @@ export class WebHub {
       } catch (firstErr: any) {
         // Si le modèle précis de l'ancienne session est introuvable, repli immédiat sur le modèle par défaut actuel
         if (restore && (prefs.model !== this.opts.prefs.model || prefs.backend !== this.opts.prefs.backend)) {
-          const fallbackPrefs = { ...prefs, model: this.opts.prefs.model, backend: this.opts.prefs.backend, baseUrl: this.opts.prefs.baseUrl };
+          const fallbackPrefs = {
+            ...prefs,
+            model: this.opts.prefs.model,
+            backend: this.opts.prefs.backend,
+            baseUrl: this.opts.prefs.baseUrl,
+          };
           session = await this.factory(live.channel, live.workspace, fallbackPrefs, live.id);
-          live.channel.warn(`Le modèle enregistré (${restore.model || "inconnu"}) n'était plus disponible — session reprise avec ${session.chosen.id}`);
+          live.channel.warn(
+            `Le modèle enregistré (${restore.model || "inconnu"}) n'était plus disponible — session reprise avec ${session.chosen.id}`
+          );
         } else {
           throw firstErr;
         }
@@ -1065,6 +1084,46 @@ export class WebHub {
           }
           return;
         }
+        case "/git/status": {
+          const sid = String(url.searchParams.get("sid") ?? "");
+          const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
+          if (!live) {
+            json(404, { error: "no such session" });
+            return;
+          }
+          json(200, { sync: gitSyncStatus(live.workspace) });
+          return;
+        }
+        case "/session/overview": {
+          const sid = String(url.searchParams.get("sid") ?? "");
+          const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
+          if (!live) {
+            json(404, { error: "no such session" });
+            return;
+          }
+          void collectSessionOverview(live.workspace, live.session?.taskManager.runningSummary().length ?? 0)
+            .then((overview) => json(200, overview))
+            .catch((err: any) => json(500, { error: String(err?.message ?? err).slice(0, 300) }));
+          return;
+        }
+        case "/git/blame": {
+          const sid = String(url.searchParams.get("sid") ?? "");
+          const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
+          if (!live) {
+            json(404, { error: "no such session" });
+            return;
+          }
+          const file = String(url.searchParams.get("path") ?? "");
+          const line = Number(url.searchParams.get("line"));
+          if (!file) {
+            json(400, { error: "path is required" });
+            return;
+          }
+          const result = gitBlame(live.workspace, file, Number.isInteger(line) && line > 0 ? line : undefined);
+          if (result.startsWith("Error:")) json(400, { error: result });
+          else json(200, { result });
+          return;
+        }
         case "/shell/live": {
           // What the offload card counts down against: real deadlines.
           json(200, { items: liveShellList() });
@@ -1411,7 +1470,8 @@ export class WebHub {
         const attachments = ids.map((id) => l.uploads.get(id));
         if (attachments.some((a) => !a)) throw new Error("an attachment is no longer available — add it again");
         for (const id of ids) l.uploads.delete(id);
-        l.channel.handleMessage(String(d.text ?? ""), attachments as Attachment[]);
+        if (d.workItemId !== undefined && typeof d.workItemId !== "string") throw new Error("invalid Cowork work item ID");
+        l.channel.handleMessage(String(d.text ?? ""), attachments as Attachment[], d.workItemId as string | undefined);
         return {};
       }
       case "/upload/remove":
@@ -1529,7 +1589,7 @@ export class WebHub {
           throw new Error("creating or changing work items is unavailable in read-only mode");
         }
         const board = new CoworkBoard(l.workspace);
-        const result = await board.run(d);
+        const result = d.action === "complete" ? await board.completeWorkItem(String(d.task_id ?? "")) : await board.run(d);
         if (result.startsWith("Error:")) throw new Error(result);
         if (d.action !== "list") l.session.toolCtx.filesTouched.add(".smol/work-items.json");
         return { result, items: board.items() };
@@ -1768,20 +1828,32 @@ export class WebHub {
     const sid = String(url.searchParams.get("sid") ?? "");
     const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
     if (!live) {
-      res.writeHead(404); res.end(); return;
+      res.writeHead(404);
+      res.end();
+      return;
     }
     try {
       const abs = resolveInWorkspace(live.workspace, String(url.searchParams.get("path") ?? ""));
       const st = fs.statSync(abs);
       const ext = path.extname(abs).toLowerCase();
       const allowed: Record<string, string> = {
-        ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
-        ".gif": "image/gif", ".webp": "image/webp", ".svg": "image/svg+xml",
-        ".ico": "image/x-icon", ".bmp": "image/bmp",
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".gif": "image/gif",
+        ".webp": "image/webp",
+        ".svg": "image/svg+xml",
+        ".ico": "image/x-icon",
+        ".bmp": "image/bmp",
       };
       const mime = allowed[ext];
       if (!st.isFile() || !mime || st.size > 8 * 1024 * 1024) throw new Error("image must be a supported file under 8 MB");
-      res.writeHead(200, { "content-type": mime, "content-length": st.size, "cache-control": "no-store", "x-content-type-options": "nosniff" });
+      res.writeHead(200, {
+        "content-type": mime,
+        "content-length": st.size,
+        "cache-control": "no-store",
+        "x-content-type-options": "nosniff",
+      });
       fs.createReadStream(abs).pipe(res);
     } catch (err: any) {
       res.writeHead(400, { "content-type": "application/json" });

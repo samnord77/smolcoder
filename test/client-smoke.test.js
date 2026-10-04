@@ -8,12 +8,16 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 const { CLIENT_JS } = require("../dist/web/client");
+const { PAGE_HTML } = require("../dist/web/page");
 
 function makeEl(all) {
   const el = {
     children: [],
+    listeners: {},
+    attributes: {},
     style: {},
     dataset: {},
+    scrollTop: 0,
     hidden: false,
     value: "",
     textContent: "",
@@ -59,11 +63,21 @@ function makeEl(all) {
       if (i >= 0) p.children.splice(i, 1);
       el.parent = null;
     },
-    addEventListener() {},
-    removeEventListener() {},
-    setAttribute() {},
-    getAttribute() {
-      return null;
+    addEventListener(name, callback) {
+      if (!el.listeners[name]) el.listeners[name] = [];
+      el.listeners[name].push(callback);
+    },
+    removeEventListener(name, callback) {
+      el.listeners[name] = (el.listeners[name] || []).filter((listener) => listener !== callback);
+    },
+    setAttribute(name, value) {
+      el.attributes[name] = String(value);
+    },
+    getAttribute(name) {
+      return el.attributes[name] ?? null;
+    },
+    removeAttribute(name) {
+      delete el.attributes[name];
     },
     querySelector() {
       return null;
@@ -78,16 +92,25 @@ function makeEl(all) {
     dispatchEvent() {},
     click() {},
     scrollIntoView() {},
+    getBoundingClientRect() {
+      return { top: 0, left: 0, width: 600, height: 400, right: 600, bottom: 400 };
+    },
     classList: { add() {}, remove() {}, toggle() {}, contains: () => false },
   };
   Object.defineProperty(el, "innerHTML", {
-    get() { return el._innerHTML || ""; },
+    get() {
+      return el._innerHTML || "";
+    },
     set(value) {
       el._innerHTML = String(value);
       if (value === "") el.replaceChildren();
     },
   });
-  Object.defineProperty(el, "childNodes", { get() { return el.children; } });
+  Object.defineProperty(el, "childNodes", {
+    get() {
+      return el.children;
+    },
+  });
   all.push(el);
   return new Proxy(el, {
     get(t, p) {
@@ -204,8 +227,29 @@ function boot(treeEntries, diffPayload, shellItems = []) {
         body = { ok: true, taskId: "t3", deadline: Date.now() + 90000 };
       } else if (u.includes("/workspace/tree")) body = { path: ".", entries: treeEntries, workspace: "/ws" };
       else if (u.includes("/workspace/file") && opts?.method !== "POST") body = { path: "a.ts", content: "const x = 1;\n", mtimeMs: 1 };
-      else if (u.includes("/code/diff") && !u.includes("/hunk")) body = diffPayload;
-      else if (u.includes("/status")) body = { state: { mode: "edit" }, workItems: [{ id: "w_test", title: "Shared project task", area: "IDE", priority: "high", status: "open", notes: "", due: null }] };
+      else if (u.includes("/msg") && opts?.method === "POST") {
+        posts.push({ url: u, body: opts.body ? JSON.parse(opts.body) : {} });
+        body = { queued: true };
+      } else if (u.includes("/code/diff") && !u.includes("/hunk")) body = diffPayload;
+      else if (u.includes("/git/status"))
+        body = { sync: { branch: "feature/live-status", upstream: "origin/feature/live-status", ahead: 2, behind: 1 } };
+      else if (u.includes("/git/blame")) body = { result: "abc123 Ada Lovelace 2026-10-01 | const x = 1;" };
+      else if (u.includes("/status"))
+        body = {
+          state: { mode: "edit" },
+          workItems: [
+            {
+              id: "w_test",
+              title: "Shared project task",
+              area: "IDE",
+              priority: "high",
+              status: "open",
+              notes: "",
+              due: null,
+              acceptanceCriteria: "Project tests pass",
+            },
+          ],
+        };
       else if (u.includes("/plan")) body = { exists: false, steps: [], current: -1, done: 0, total: 0 };
       else if (u.includes("/code/")) body = { result: "", diagnostics: [] };
       return { ok: true, status: 200, json: async () => body };
@@ -249,7 +293,7 @@ function boot(treeEntries, diffPayload, shellItems = []) {
 
 const TREE = [
   { name: "src", path: "src", dir: true },
-  { name: "a.ts", path: "a.ts", dir: false },
+  { name: "a.ts", path: "a.ts", dir: false, status: "M" },
 ];
 const DIFF = {
   files: [{ file: "a.ts", hunks: [{ index: 0, header: "@@ -1 +1 @@", lines: ["-old", "+new", " same"] }] }],
@@ -301,6 +345,44 @@ test("client template contains no bare backticks", () => {
   assert.deepEqual(bad, [], "bare backticks terminate the String.raw template");
 });
 
+test("workspace summary cards are outside the chat composer", () => {
+  const sideAt = PAGE_HTML.indexOf('id="side"');
+  const workspacesAt = PAGE_HTML.indexOf('id="wslist"');
+  const summaryAt = PAGE_HTML.indexOf('id="sessionstats"');
+  const mainAt = PAGE_HTML.indexOf('id="main"');
+  const activityAt = PAGE_HTML.indexOf('id="activitybar"');
+  const composerAt = PAGE_HTML.indexOf('id="inputbox"');
+  assert.ok(
+    sideAt < workspacesAt && workspacesAt < summaryAt && summaryAt < mainAt,
+    "cards are in the sidebar after workspaces, not the header or chat"
+  );
+  assert.ok(activityAt < composerAt, "the transcript remains separate from the composer");
+  assert.match(PAGE_HTML.slice(summaryAt, mainAt), /sessionstat-changes[\s\S]*sessionstat-background[\s\S]*sessionstat-artifacts/);
+  assert.match(PAGE_HTML, /\.sysmetric\[data-health="good"\][^{]*\{[^}]*#3fb950/);
+  assert.match(PAGE_HTML, /\.sysmetric\[data-health="warn"\][^{]*\{[^}]*#f0883e/);
+  assert.match(PAGE_HTML, /\.sysmetric\[data-health="high"\][^{]*\{[^}]*#f85149/);
+});
+
+test("messages can be marked and unmarked with a persistent bookmark", async () => {
+  const c = boot(TREE, DIFF);
+  emitHub(c);
+  await c.flush();
+  c.es().onmessage({ data: JSON.stringify({ t: "user", sid: "s1", s: "Keep this decision" }) });
+  c.es().onmessage({ data: JSON.stringify({ t: "token", sid: "s1", s: "Keep this answer" }) });
+  const markers = c.allElements().filter((element) => element.className.includes("msgbookmark"));
+  assert.equal(markers.length, 2, "user and assistant messages both have a marker");
+  const [userMarker, assistantMarker] = markers;
+  assert.equal(userMarker.getAttribute("aria-pressed"), "false");
+  userMarker.onclick({ stopPropagation() {} });
+  assert.match(userMarker.className, /marked/);
+  assert.equal(userMarker.getAttribute("aria-pressed"), "true");
+  assert.ok(c.context.localStorage.getItem("smolcoder.bookmarks:s1"), "marker state is saved for this conversation");
+  userMarker.onclick({ stopPropagation() {} });
+  assert.doesNotMatch(userMarker.className, /marked/);
+  assistantMarker.onclick({ stopPropagation() {} });
+  assert.match(assistantMarker.className, /marked/);
+});
+
 test("files tab builds, fetches the tree and renders rows", async () => {
   const c = boot(TREE, DIFF);
   emitHub(c);
@@ -316,6 +398,82 @@ test("files tab builds, fetches the tree and renders rows", async () => {
   const cls = c.classes();
   assert.ok(cls.has("treetoggle"), "folder toggles rendered");
   assert.ok(cls.has("fileitem"), "file rows rendered");
+});
+
+test("status bar reads the active branch, cached upstream delta, and real line blame", async () => {
+  const c = boot(TREE, DIFF);
+  emitHub(c);
+  await c.flush();
+  assert.ok(
+    c.urls.some((url) => url.includes("/git/status")),
+    "active session requests Git status"
+  );
+  assert.equal(c.els["sb-branch-name"].textContent, "feature/live-status");
+  assert.equal(c.els["sb-sync-text"].textContent, "1↓ 2↑");
+  assert.doesNotMatch(c.els["sb-branch"].title, /main/);
+  assert.doesNotMatch(c.els["sb-sync"].title, /41 sortants/);
+
+  c.els.btnfiles.onclick();
+  await c.flush(200);
+  const file = c.allElements().find((element) => String(element.className).includes("fileitem") && element.title === "a.ts");
+  assert.ok(file, "project file row is available");
+  const badge = c.allElements().find((element) => String(element.className).includes("fileitem-badge") && element.textContent === "M");
+  assert.ok(badge, "Git status badge is visible");
+  const filenameButton = badge.parent.children.find((child) => child.className === "fileitem");
+  assert.ok(filenameButton, "the status badge shares a row with the file name");
+  const rowClasses = badge.parent.children.map((child) => child.className);
+  assert.ok(
+    rowClasses.indexOf("fileitem-badge status-m") > rowClasses.indexOf("fileitem"),
+    "Git status badge is placed after the file name"
+  );
+  assert.match(PAGE_HTML, /\.fileitem-badge::before\s*\{[^}]*border-radius:\s*50%/);
+  file.onclick();
+  await c.flush(200);
+  assert.ok(
+    c.urls.some((url) => url.includes("/workspace/file") && url.includes("path=a.ts")),
+    c.urls.join("\n")
+  );
+  c.els["sb-blame"].onclick();
+  await c.flush(200);
+  assert.ok(
+    c.urls.some((url) => url.includes("/git/blame") && url.includes("path=a.ts")),
+    "blame API receives active file path"
+  );
+  assert.match(c.els["sb-blame-text"].textContent, /Ada Lovelace/);
+});
+
+test("line hover opens a compact prompt and sends file, line and code context to the agent", async () => {
+  const c = boot(TREE, DIFF);
+  emitHub(c);
+  await c.flush();
+  c.els.btnfiles.onclick();
+  await c.flush(200);
+  const file = c.allElements().find((element) => String(element.className).includes("fileitem") && element.title === "a.ts");
+  assert.ok(file);
+  await file.onclick();
+  await c.flush(200);
+  assert.ok(
+    c.urls.some((url) => url.includes("/workspace/file") && url.includes("path=a.ts")),
+    c.urls.join("\n")
+  );
+  const editor = c.allElements().find((element) => element.className === "fileeditor");
+  editor.value = "const x = 1;\n";
+  const move = editor.listeners.pointermove?.[0];
+  assert.equal(typeof move, "function", "editor tracks hovered code lines");
+  move({ clientY: 40 });
+  const plus = c.allElements().find((element) => element.className === "fileline-plus");
+  assert.ok(plus && !plus.hidden);
+  assert.match(plus.title, /ligne 2/);
+  plus.onclick();
+  const form = c.allElements().find((element) => element.className === "fileline-popup");
+  form.children[0].value = "Explique cette ligne sans modifier le code.";
+  form.onsubmit({ preventDefault() {} });
+  await c.flush(50);
+  const sent = c.posts.find((entry) => entry.url.includes("/msg"));
+  assert.ok(sent, "the instruction is sent to the active agent");
+  assert.match(sent.body.text, /fichier a\.ts, traite la ligne 2/);
+  assert.match(sent.body.text, /Contexte du code \(lignes 1 à 2\)/);
+  assert.match(sent.body.text, /const x = 1;/);
 });
 
 test("review tab builds and renders colored hunks", async () => {
@@ -417,14 +575,31 @@ test("control centre exposes the shared Cowork board and project tasks", async (
   c.els.cc.hidden = true;
   c.els.btnstatus.onclick();
   await c.flush(150);
-  const tab = c.allElements().find((e) => e.className === "cc-tab on" && e.textContent === "Cowork")
-    || c.allElements().find((e) => e.className === "cc-tab" && e.textContent === "Cowork");
+  const tab =
+    c.allElements().find((e) => e.className === "cc-tab on" && e.textContent === "Cowork") ||
+    c.allElements().find((e) => e.className === "cc-tab" && e.textContent === "Cowork");
   assert.ok(tab, "Cowork control-centre tab exists");
   tab.onclick();
   await c.flush(500);
   assert.ok(c.classes().has("cc-workitem"), "shared work item renders in the board");
-  assert.ok(c.allElements().some((e) => e.textContent === "Shared project task"), "project task title is visible");
-  assert.ok(c.allElements().some((e) => e.placeholder === "Nouvelle tâche cowork…"), "new work item form is available");
+  assert.ok(
+    c.allElements().some((e) => e.textContent === "Shared project task"),
+    "project task title is visible"
+  );
+  assert.ok(
+    c.allElements().some((e) => e.placeholder === "Nouvelle tâche cowork…"),
+    "new work item form is available"
+  );
+  const execute = c.allElements().find((element) => element.textContent === "Exécuter avec l’agent");
+  assert.ok(execute, "each open work item offers a direct execution action");
+  execute.onclick();
+  await c.flush(150);
+  const dispatched = c.posts.find((post) => post.url.includes("/msg"));
+  assert.match(dispatched.body.text, /w_test/);
+  assert.equal(dispatched.body.workItemId, "w_test", "the actual session turn is correlated with this work item");
+  assert.match(dispatched.body.text, /Critères d'acceptation/);
+  assert.match(dispatched.body.text, /rapport factuel via l'outil work/);
+  assert.match(dispatched.body.text, /statut et la complétion sont mis à jour par le runtime/);
 });
 
 test("agent file activity shows live and refreshes review", async () => {
@@ -433,6 +608,12 @@ test("agent file activity shows live and refreshes review", async () => {
   await c.flush();
   c.els.btnfiles.onclick();
   await c.flush(200);
+  const file = c.allElements().find((element) => String(element.className).includes("fileitem") && element.title === "a.ts");
+  assert.ok(file, "project file row is available");
+  file.onclick();
+  await c.flush(200);
+  const initialFileReads = c.urls.filter((url) => url.includes("/workspace/file") && url.includes("path=a.ts")).length;
+  assert.equal(initialFileReads, 1, "the file is open in a clean editor buffer");
   c.es().onmessage({ data: JSON.stringify({ t: "tool", sid: "s1", name: "write_file", summary: "a.ts" }) });
   await c.flush(120);
   const texts = [];
@@ -449,6 +630,10 @@ test("agent file activity shows live and refreshes review", async () => {
   c.es().onmessage({ data: JSON.stringify({ t: "result", sid: "s1", line: "done", body: "done" }) });
   await c.flush(1500);
   assert.ok(beforeTree() > atStart, "the tree reloads when the write finishes");
+  assert.ok(
+    c.urls.filter((url) => url.includes("/workspace/file") && url.includes("path=a.ts")).length > initialFileReads,
+    "the open file is fetched again after the agent writes it"
+  );
 
   // A move through the new shape tool follows the same path.
   const afterWrite = beforeTree();
@@ -456,6 +641,183 @@ test("agent file activity shows live and refreshes review", async () => {
   c.es().onmessage({ data: JSON.stringify({ t: "result", sid: "s1", line: "Moved file a.ts", body: "Moved file a.ts" }) });
   await c.flush(1500);
   assert.ok(beforeTree() > afterWrite, "a move also reloads the tree");
+});
+
+test("file tree marks live agent operations and keeps the marker until concurrent work finishes", async () => {
+  const c = boot(TREE, DIFF);
+  emitHub(c);
+  await c.flush();
+  c.els.btnfiles.onclick();
+  await c.flush(200);
+  c.es().onmessage({ data: JSON.stringify({ t: "tool", sid: "s1", executionId: "read-one", name: "read_file", summary: "a.ts" }) });
+  await c.flush(250);
+  const badges = () => c.allElements().filter((element) => element.className === "fileitem-agent-badge");
+  assert.ok(badges().length >= 1, "active tool creates a live workspace-file marker");
+  assert.match(badges().at(-1).title, /read_file/);
+  const activityLine = () => c.allElements().find((element) => element.className === "filemeta" && element.textContent.startsWith("🤖"));
+  assert.match(activityLine().textContent, /a\.ts/);
+
+  c.es().onmessage({ data: JSON.stringify({ t: "tool", sid: "s1", executionId: "read-two", name: "read_file", summary: "a.ts" }) });
+  c.es().onmessage({ data: JSON.stringify({ t: "result", sid: "s1", executionId: "read-one", line: "source", body: "source" }) });
+  await c.flush(250);
+  assert.match(
+    activityLine().textContent,
+    /1 opération\(s\) fichier en cours/,
+    "finishing one overlapping operation does not clear the other"
+  );
+  c.es().onmessage({ data: JSON.stringify({ t: "result", sid: "s1", executionId: "read-two", line: "source", body: "source" }) });
+  await c.flush(250);
+  assert.match(
+    c.allElements().find((element) => element.className === "filemeta" && element.textContent.includes("terminé")).textContent,
+    /read_file terminé/
+  );
+  assert.equal(c.errors(), "", "the live tree refresh remains error-free");
+});
+
+test("tool cards and activity results stay paired across nested sub-agent calls", async () => {
+  const c = boot(TREE, DIFF);
+  emitHub(c);
+  await c.flush();
+  c.es().onmessage({
+    data: JSON.stringify({ t: "tool", sid: "s1", executionId: "parent-1", name: "run_command", command: "npm test", summary: "npm test" }),
+  });
+  c.es().onmessage({
+    data: JSON.stringify({
+      t: "tool",
+      sid: "s1",
+      executionId: "child-1",
+      name: "read_file",
+      category: "observation",
+      summary: "src/app.ts",
+    }),
+  });
+  c.es().onmessage({
+    data: JSON.stringify({
+      t: "tool",
+      sid: "s1",
+      executionId: "verify-1",
+      name: "verification",
+      category: "verification",
+      summary: "npm test",
+    }),
+  });
+  c.es().onmessage({
+    data: JSON.stringify({
+      t: "result",
+      sid: "s1",
+      executionId: "parent-1",
+      line: "Error: test failed",
+      body: "Error: test failed\n[exit code 1 in 10ms]",
+      err: true,
+    }),
+  });
+  c.es().onmessage({ data: JSON.stringify({ t: "result", sid: "s1", executionId: "child-1", line: "source", body: "source" }) });
+  c.es().onmessage({
+    data: JSON.stringify({
+      t: "result",
+      sid: "s1",
+      executionId: "verify-1",
+      line: "tests failed",
+      body: "tests failed\n[exit code 1 in 10ms]",
+    }),
+  });
+  await c.flush();
+
+  const parent = c.allElements().find((element) => element._toolMeta?.executionId === "parent-1");
+  const child = c.allElements().find((element) => element._toolMeta?.executionId === "child-1");
+  const verification = c.allElements().find((element) => element._toolMeta?.executionId === "verify-1");
+  assert.ok(parent && child && verification, "independently identified tool cards are retained");
+  assert.equal(parent._toolOutcome.textContent, "Échec", "parent error result closes the parent tool");
+  assert.equal(child._toolOutcome.textContent, "Terminé", "child success result closes the child tool");
+  assert.equal(verification._toolOutcome.textContent, "Échec", "non-zero verification exit is not reported as success");
+  assert.notEqual(parent.open, true, "failed command output stays collapsed until the user opens it");
+  assert.ok(
+    parent.children.some((element) => element.className.includes("result")),
+    "parent result is attached to parent card"
+  );
+  assert.ok(
+    child.children.some((element) => element.className.includes("result")),
+    "child result is attached to child card"
+  );
+  assert.ok(
+    parent.children[0].children.some((element) => element.className.includes("cmd-badge")),
+    "command exit badge stays on the parent command card"
+  );
+  assert.ok(
+    !verification.children[0].children.some((element) => element.className.includes("cmd-badge")),
+    "nested verification card does not receive another command's exit badge"
+  );
+  assert.equal(c.errors(), "", "nested tool lifecycle causes no client errors");
+});
+
+test("sub-agent halo reports live tool work and renders its factual completion report", async () => {
+  const c = boot(TREE, DIFF);
+  emitHub(c);
+  await c.flush();
+  c.es().onmessage({ data: JSON.stringify({ t: "sub", sid: "s1", phase: "start", label: "implementer: Fix login flow" }) });
+  const card = c.allElements().find((element) => element.className === "subagent");
+  assert.ok(card?.open, "the live sub-agent card is visible and expanded");
+  assert.ok(
+    card.children[0].children.some((element) => element.className === "subagent-halo"),
+    "the card includes an animated halo"
+  );
+
+  c.es().onmessage({
+    data: JSON.stringify({ t: "tool", sid: "s1", executionId: "child-run-1", name: "read_file", summary: "src/login.ts" }),
+  });
+  assert.equal(card._progress.textContent, "1 action", "the live counter follows actual child tool calls");
+  c.es().onmessage({ data: JSON.stringify({ t: "result", sid: "s1", executionId: "child-run-1", line: "source", body: "source" }) });
+  c.es().onmessage({
+    data: JSON.stringify({
+      t: "sub",
+      sid: "s1",
+      phase: "done",
+      label: "completed: 1 action",
+      details: {
+        outcome: "completed",
+        verification: "passed",
+        report: "Updated the login guard and confirmed the regression test passes.",
+        filesTouched: ["src/login.ts", "test/login.test.js"],
+        toolCalls: 1,
+      },
+    }),
+  });
+  assert.match(card.className, /finished/);
+  assert.match(card._halo.textContent, /✓/);
+  const meta = card.children.find((element) => element.className === "subagent-meta");
+  assert.ok(meta, "completion metadata is appended");
+  assert.match(meta.textContent, /passed/, "verification result is visible in the completion metadata");
+  assert.ok(card.children.some((element) => element.className === "subagent-files" && /src\/login\.ts/.test(element.textContent)));
+  assert.ok(card.children.some((element) => element.className === "subagent-report" && /regression test passes/.test(element.textContent)));
+  assert.ok(
+    card.children.some((element) => element.className === "tool"),
+    "the detailed tool trace stays inside the sub-agent card"
+  );
+  assert.equal(c.errors(), "");
+});
+
+test("cancelling a turn closes pending tool cards and clears live file markers", async () => {
+  const c = boot(TREE, DIFF);
+  emitHub(c);
+  await c.flush();
+  c.els.btnfiles.onclick();
+  await c.flush(200);
+  c.es().onmessage({
+    data: JSON.stringify({ t: "tool", sid: "s1", executionId: "cancelled-write", name: "write_file", summary: "src/app.ts" }),
+  });
+  await c.flush(150);
+  c.es().onmessage({ data: JSON.stringify({ t: "turn_cancelled", sid: "s1" }) });
+  await c.flush(150);
+
+  const card = c.allElements().find((element) => element._toolMeta?.executionId === "cancelled-write");
+  assert.equal(card._toolOutcome.textContent, "Annulé");
+  assert.equal(card._toolOutcome.className, "tool-outcome cancelled");
+  assert.ok(!card.className.includes("pending"));
+  assert.match(
+    c.allElements().find((element) => element.className === "filemeta" && element.textContent.includes("annulée")).textContent,
+    /opération.*annulée/i
+  );
+  assert.equal(c.errors(), "");
 });
 
 test("side-by-side toggle renders paired columns", async () => {
@@ -593,4 +955,3 @@ test("unified activity center timeline exposes subagents, tools, skills, mcps, f
   assert.ok(CLIENT_JS.includes("startToolActivity"), "tool lifecycle starts activity tracking");
   assert.ok(CLIENT_JS.includes("finishToolActivity"), "tool lifecycle settles activity duration and status");
 });
-

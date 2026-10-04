@@ -97,7 +97,7 @@ test("lsp catalog: four languages, extensions, availability shape", () => {
   assert.equal(serverForFile("d.go").lang, "go");
   assert.equal(serverForFile("UPPER.PY").lang, "python");
   // Markdown is now supported
-assert.equal(serverForFile("x.md").lang, "markdown");
+  assert.equal(serverForFile("x.md").lang, "markdown");
   assert.equal(serverForFile("noext"), null);
   const exts = supportedLspExts();
   assert.ok(exts.includes(".ts") && exts.includes(".py") && exts.includes(".rs") && exts.includes(".go"));
@@ -220,7 +220,7 @@ test("symbols schema exposes the 10 pro actions; new tools are visible per mode"
     assert.ok(names("edit").includes(n), `${n} is offered in edit mode`);
     assert.ok(names("bypass").includes(n), `${n} is offered in bypass mode`);
   }
-  assert.equal(edit.length, 22);
+  assert.equal(edit.length, 23);
 });
 
 test("diagStructured returns panel rows through the mock server", async () => {

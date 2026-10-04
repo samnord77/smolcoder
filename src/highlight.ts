@@ -45,13 +45,29 @@ export function tokenizeCode(source: string, language = ""): SyntaxToken[] {
   ].includes(lang);
   const dashComments = ["sql", "lua", "haskell", "hs"].includes(lang);
   const controlKeywords = new Set([
-    "if", "else", "return", "switch", "case", "default", "break", "continue",
-    "for", "while", "do", "try", "catch", "finally", "throw", "yield", "await",
-    "elif", "except", "pass", "raise"
+    "if",
+    "else",
+    "return",
+    "switch",
+    "case",
+    "default",
+    "break",
+    "continue",
+    "for",
+    "while",
+    "do",
+    "try",
+    "catch",
+    "finally",
+    "throw",
+    "yield",
+    "await",
+    "elif",
+    "except",
+    "pass",
+    "raise",
   ]);
-  const boolKeywords = new Set([
-    "true", "false", "null", "undefined", "NaN", "Infinity", "True", "False", "None"
-  ]);
+  const boolKeywords = new Set(["true", "false", "null", "undefined", "NaN", "Infinity", "True", "False", "None"]);
   const keywords = new Set(
     (
       "async await break case catch class const continue debugger default delete do else export extends finally for from function get if import in instanceof let new of return set static super switch this throw try typeof var void while with yield " +
@@ -118,7 +134,11 @@ export function tokenizeCode(source: string, language = ""): SyntaxToken[] {
     // Expressions régulières (ex: /read-only/, /On branch|HEAD/)
     if (ch === "/" && (!lang || ["js", "jsx", "ts", "tsx", "javascript", "typescript"].includes(lang))) {
       const prevText = lastNonSpaceText;
-      const isRegexStart = !prevText || ["(", "[", "{", ",", "=", ":", ";", "!", "&", "|", "?", "+", "-", "*", "^", "%", "return", "case", "yield", "await"].includes(prevText);
+      const isRegexStart =
+        !prevText ||
+        ["(", "[", "{", ",", "=", ":", ";", "!", "&", "|", "?", "+", "-", "*", "^", "%", "return", "case", "yield", "await"].includes(
+          prevText
+        );
       if (isRegexStart) {
         let rIdx = i + 1;
         let inClass = false;

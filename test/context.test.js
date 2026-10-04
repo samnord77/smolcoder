@@ -343,3 +343,27 @@ test("describeStats formats a compact speed readout", () => {
     " · 1 tool · 50 tok"
   );
 });
+
+test("a window at its floor stops recompacting until the log actually grows", async () => {
+  const cm = new ContextManager(1024, 256);
+  const tools = [{ name: "t", description: "d".repeat(400), parameters: { type: "object", properties: {} } }];
+  const msgs = [
+    { role: "system", content: "s".repeat(3000) },
+    { role: "user", content: "build" },
+  ];
+  const provider = {
+    async chat() {
+      throw new Error("the summarizer must not run for a window that already hit its floor");
+    },
+  };
+  const state = { originalRequest: "build", filesTouched: new Set(), commandsRun: [] };
+  const first = await cm.manage(msgs, tools, provider, state, { force: true, deterministic: true });
+  assert.equal(first.report.action, "floor");
+  assert.equal(cm.needsAttention(first.messages, tools), false, "no futile compaction while the transcript is unchanged");
+  cm.resetAnchor(); // a turn boundary must not re-arm the floor
+  assert.equal(cm.needsAttention(first.messages, tools), false, "resetAnchor must not re-trigger compaction");
+  first.messages.push({ role: "user", content: "x".repeat(4000) });
+  assert.equal(cm.needsAttention(first.messages, tools), true, "a grown log is worth compacting again");
+  cm.setWindow(65536, 1024); // a bigger model may have room again
+  assert.equal(cm.needsAttention(first.messages, tools), false, "a new window starts from a healthy budget");
+});

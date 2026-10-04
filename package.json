@@ -47,7 +47,7 @@
     "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.js\" \"scripts/**/*.cjs\"",
     "typecheck": "tsc --noEmit",
     "qa": "npm run typecheck && npm run lint && npm run format:check",
-    "package-win": "npm run build && electron-packager . Smolcoder --platform=win32 --arch=x64 --out=release --overwrite && node scripts/patch-packaged-main.cjs"
+    "package-win": "npm run build && node scripts/package-win.cjs"
   },
   "engines": {
     "node": ">=18"

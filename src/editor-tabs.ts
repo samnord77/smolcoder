@@ -46,6 +46,14 @@ export function makeEditorTabStore() {
       if (Number.isFinite(Number(mtimeMs))) tab.mtimeMs = Number(mtimeMs);
       return { ...tab };
     },
+    reload(filePath: string, content: string, mtimeMs = 0): EditorTab | null {
+      const tab = tabs.get(filePath);
+      if (!tab || tab.dirty || typeof content !== "string") return null;
+      tab.content = content;
+      tab.savedContent = content;
+      tab.mtimeMs = Number(mtimeMs) || 0;
+      return { ...tab };
+    },
     close(filePath: string, discard = false): { closed: boolean; active: EditorTab | null } {
       const tab = tabs.get(filePath);
       if (!tab) return { closed: false, active: copy(tabs.get(activePath || "")) };

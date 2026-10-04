@@ -3,10 +3,12 @@ const assert = require("node:assert/strict");
 const { classifyTask, formatOrchestratorSummary } = require("../dist/orchestrator");
 
 test("orchestrator: classifies UI / design tasks correctly", () => {
-  const result = classifyTask("Créer une interface Electron impeccable avec un style sombre, boutons modernes et timeline d'activité fluide");
+  const result = classifyTask(
+    "Créer une interface Electron impeccable avec un style sombre, boutons modernes et timeline d'activité fluide"
+  );
   assert.equal(result.category, "ui_design");
   assert.equal(result.recommendedRole, "expert");
-  assert.ok(result.recommendedSkills.includes("impeccable"));
+  assert.ok(result.recommendedSkills.includes("impeccable-design"));
   assert.ok(result.recommendedMcp.includes("playwright"));
   assert.ok(result.planSteps.length >= 3);
 });
@@ -14,15 +16,15 @@ test("orchestrator: classifies UI / design tasks correctly", () => {
 test("orchestrator: classifies bugfix tasks correctly", () => {
   const result = classifyTask("Corriger le bug de crash sur la timeline et réparer l'erreur d'affichage");
   assert.equal(result.category, "bugfix");
-  assert.ok(result.recommendedSkills.includes("corriger-un-bug"));
-  assert.ok(result.planSteps.some(s => s.toLowerCase().includes("reproduire")));
+  assert.ok(result.recommendedSkills.includes("bugfix-workflow"));
+  assert.ok(result.planSteps.some((s) => s.toLowerCase().includes("reproduire")));
 });
 
 test("orchestrator: classifies audit and security tasks", () => {
   const result = classifyTask("Auditer la sécurité et la conformité du code, vérifier les vulnérabilités et lancer le linter");
   assert.equal(result.category, "audit_security");
   assert.equal(result.recommendedRole, "quality_reviewer");
-  assert.ok(result.recommendedSkills.includes("skillware"));
+  assert.ok(result.recommendedSkills.includes("code-review-workflow"));
 });
 
 test("orchestrator: classifies architecture / investigation tasks", () => {

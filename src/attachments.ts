@@ -23,6 +23,7 @@ export interface Attachment {
 export interface UserInput {
   text: string;
   attachments: Attachment[];
+  workItemId?: string;
 }
 
 /** Largest single upload the hub accepts. */

@@ -34,7 +34,7 @@ test("symbols tool exists in edit and bypass, hidden in read-only", () => {
   assert.ok(buildToolSpecs("edit").some((t) => t.name === "symbols"));
   assert.ok(buildToolSpecs("bypass").some((t) => t.name === "symbols"));
   assert.ok(!buildToolSpecs("ro").some((t) => t.name === "symbols"));
-  assert.equal(buildToolSpecs("edit").length, 22);
+  assert.equal(buildToolSpecs("edit").length, 23);
 });
 
 test("live hover, definition and diagnostics", async (t) => {

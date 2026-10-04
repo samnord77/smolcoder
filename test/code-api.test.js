@@ -3,6 +3,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
+const { spawnSync } = require("node:child_process");
 const http = require("node:http");
 const os = require("node:os");
 const path = require("node:path");
@@ -113,6 +114,47 @@ test("code api: availability, symbol search, and lsp coaching", async () => {
 
     const missing = await request(hub, "GET", `/code/symbols${k}&sid=deadbeef`);
     assert.equal(missing.status, 404);
+  } finally {
+    hub.close();
+  }
+});
+
+test("code api: Git status and blame report real workspace data", async () => {
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "smol-gitapi-"));
+  const ws = path.join(dataDir, "proj");
+  fs.mkdirSync(ws);
+  const git = (args) => {
+    const result = spawnSync("git", args, { cwd: ws, encoding: "utf8", timeout: 15000, windowsHide: true });
+    assert.equal(result.status, 0, `git ${args.join(" ")} failed: ${result.stderr}`);
+  };
+  git(["init", "-b", "main"]);
+  git(["config", "user.email", "test@smol.dev"]);
+  git(["config", "user.name", "Smol API Test"]);
+  fs.writeFileSync(path.join(ws, "tracked.txt"), "line one\nline two\n");
+  git(["add", "tracked.txt"]);
+  git(["commit", "-m", "initial"]);
+
+  const hub = new WebHub({
+    port: 0,
+    prefs: {},
+    help: "help",
+    version: "9.9.9",
+    dataDir,
+    factory: stubFactory([]),
+    quiet: true,
+  });
+  await hub.start();
+  const k = `?k=${hub.authToken}`;
+  try {
+    const { id } = JSON.parse((await request(hub, "POST", `/sessions/new${k}`, { workspace: ws })).body);
+    await until(() => hub.live.has(id), 2000, "Git API session");
+    const status = JSON.parse((await request(hub, "GET", `/git/status${k}&sid=${id}`)).body);
+    assert.equal(status.sync.branch, "main");
+    assert.equal(status.sync.upstream, null);
+    assert.equal(status.sync.ahead, null);
+    const blame = JSON.parse((await request(hub, "GET", `/git/blame${k}&sid=${id}&path=tracked.txt&line=2`)).body);
+    assert.match(blame.result, /Smol API Test.*line two/);
+    assert.match((await request(hub, "GET", `/git/blame${k}&sid=${id}&path=missing.txt&line=1`)).body, /git blame failed/);
   } finally {
     hub.close();
   }

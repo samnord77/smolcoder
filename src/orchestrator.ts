@@ -12,15 +12,7 @@
  * 8. Résumé final structuré avec fichiers touchés et validations
  */
 
-export type TaskCategory =
-  | "bugfix"
-  | "ui_design"
-  | "feature"
-  | "refactor"
-  | "audit_security"
-  | "investigation"
-  | "docs"
-  | "general";
+export type TaskCategory = "bugfix" | "ui_design" | "feature" | "refactor" | "audit_security" | "investigation" | "docs" | "general";
 
 export type TaskComplexity = "simple" | "moderate" | "complex";
 
@@ -94,7 +86,7 @@ export function classifyTask(request: string): TaskClassification {
   ) {
     category = "bugfix";
     recommendedRole = complexity === "complex" ? "expert" : "implementer";
-    recommendedSkills = ["corriger-un-bug", "revoir-du-code", "skillware"];
+    recommendedSkills = ["bugfix-workflow", "coding-workflow"];
     recommendedMcp = ["code-context-control", "memory"];
     planSteps = [
       "Reproduire et isoler la cause exacte de l'erreur sans supposer",
@@ -111,7 +103,7 @@ export function classifyTask(request: string): TaskClassification {
   ) {
     category = "ui_design";
     recommendedRole = "expert";
-    recommendedSkills = ["impeccable", "ui-ux-pro-max", "ecrire-du-code-propre"];
+    recommendedSkills = ["impeccable-design", "coding-workflow"];
     recommendedMcp = ["code-context-control", "memory", "playwright"];
     planSteps = [
       "Auditer l'interface actuelle et cadrer l'expérience utilisateur Impeccable",
@@ -122,14 +114,10 @@ export function classifyTask(request: string): TaskClassification {
     reasoning = "Demande axée sur l'expérience utilisateur et l'interface : application des standards Impeccable.";
   }
   // 3. Détection Audit / Sécurité / Qualité
-  else if (
-    /\b(audit|securite|security|vulnerabilite|faille|qualite|lint|revue|review|conformite|kpi|guard)\b/.test(
-      normalized
-    )
-  ) {
+  else if (/\b(audit|securite|security|vulnerabilite|faille|qualite|lint|revue|review|conformite|kpi|guard)\b/.test(normalized)) {
     category = "audit_security";
     recommendedRole = "quality_reviewer";
-    recommendedSkills = ["skillware", "revoir-du-code"];
+    recommendedSkills = ["code-review-workflow"];
     recommendedMcp = ["code-context-control", "memory"];
     planSteps = [
       "Cartographier le périmètre d'audit et analyser les surfaces d'attaque",
@@ -140,13 +128,11 @@ export function classifyTask(request: string): TaskClassification {
   }
   // 4. Détection Architecture / Investigation / Recherche
   else if (
-    /\b(architect|architecture|investig|explorer|analys|cherche|conception|recherche|pourquoi|comment|structure)\b/.test(
-      normalized
-    )
+    /\b(architect|architecture|investig|explorer|analys|cherche|conception|recherche|pourquoi|comment|structure)\b/.test(normalized)
   ) {
     category = "investigation";
     recommendedRole = "architect";
-    recommendedSkills = ["ecrire-du-code-propre", "revoir-du-code"];
+    recommendedSkills = ["workspace-investigation"];
     recommendedMcp = ["code-context-control", "context7", "memory"];
     planSteps = [
       "Explorer l'arborescence et cartographier les contrats d'interface existants",
@@ -156,14 +142,10 @@ export function classifyTask(request: string): TaskClassification {
     reasoning = "Demande d'exploration/architecture : modélisation et contrats solides.";
   }
   // 5. Détection Refactoring
-  else if (
-    /\b(refactor|refactoriser|nettoyer|simplifier|modulariser|optimiser|clean)\b/.test(
-      normalized
-    )
-  ) {
+  else if (/\b(refactor|refactoriser|nettoyer|simplifier|modulariser|optimiser|clean)\b/.test(normalized)) {
     category = "refactor";
     recommendedRole = "implementer";
-    recommendedSkills = ["ecrire-du-code-propre", "revoir-du-code"];
+    recommendedSkills = ["coding-workflow"];
     recommendedMcp = ["code-context-control", "memory"];
     planSteps = [
       "Identifier les duplications et responsabilités à clarifier",
@@ -173,14 +155,10 @@ export function classifyTask(request: string): TaskClassification {
     reasoning = "Refactorisation : simplification continue avec garantie de non-régression.";
   }
   // 6. Détection Nouvelle Fonctionnalité (Feature)
-  else if (
-    /\b(feature|ajouter|creer|nouvelle|nouveau|implementer|developper|build|enrichir)\b/.test(
-      normalized
-    )
-  ) {
+  else if (/\b(feature|ajouter|creer|nouvelle|nouveau|implementer|developper|build|enrichir)\b/.test(normalized)) {
     category = "feature";
     recommendedRole = "expert";
-    recommendedSkills = ["ecrire-du-code-propre", "finaliser-une-fonctionnalite"];
+    recommendedSkills = ["coding-workflow"];
     recommendedMcp = ["code-context-control", "memory"];
     planSteps = [
       "Spécifier le contrat d'interface et les types de données nécessaires",
@@ -191,14 +169,10 @@ export function classifyTask(request: string): TaskClassification {
     reasoning = "Création de fonctionnalité : conception typée, tests et finition complète.";
   }
   // 7. Détection Documentation
-  else if (
-    /\b(doc|documentation|readme|guide|manuel|spec|rediger)\b/.test(
-      normalized
-    )
-  ) {
+  else if (/\b(doc|documentation|readme|guide|manuel|spec|rediger)\b/.test(normalized)) {
     category = "docs";
     recommendedRole = "researcher";
-    recommendedSkills = ["markdown-mermaid-writing"];
+    recommendedSkills = ["documentation-workflow"];
     recommendedMcp = ["code-context-control", "memory"];
     planSteps = [
       "Recenser les fonctionnalités et points d'entrée à documenter",
@@ -209,7 +183,7 @@ export function classifyTask(request: string): TaskClassification {
   } else {
     // Général
     recommendedRole = "expert";
-    recommendedSkills = ["ecrire-du-code-propre", "finaliser-une-fonctionnalite"];
+    recommendedSkills = [];
     planSteps = [
       "Inspecter le contexte et identifier les leviers d'action",
       "Exécuter les modifications requises avec soin",
@@ -248,23 +222,15 @@ export function formatOrchestratorSummary(ctx: OrchestrationSummaryContext): str
   const sections: string[] = [];
 
   sections.push("### 🎯 Synthèse de l'Orchestrateur Automatique");
-  sections.push(
-    `- **Classification :** \`${classification.category}\` (Complexité : *${classification.complexity}*)`
-  );
+  sections.push(`- **Classification :** \`${classification.category}\` (Complexité : *${classification.complexity}*)`);
   sections.push(
     `- **Rôle expert mobilisé :** \`${classification.recommendedRole}\` (Délégation : ${classification.shouldDelegate ? "Oui" : "Directe"})`
   );
-  sections.push(
-    `- **Compétences (Skills) :** ${classification.recommendedSkills.map((s) => `\`${s}\``).join(", ") || "standards"}`
-  );
-  sections.push(
-    `- **Serveurs MCP :** ${classification.recommendedMcp.map((m) => `\`${m}\``).join(", ")}`
-  );
+  sections.push(`- **Compétences (Skills) :** ${classification.recommendedSkills.map((s) => `\`${s}\``).join(", ") || "standards"}`);
+  sections.push(`- **Serveurs MCP :** ${classification.recommendedMcp.map((m) => `\`${m}\``).join(", ")}`);
 
   if (stepsCompleted) {
-    sections.push(
-      `- **Plan de travail :** ${stepsCompleted.done}/${stepsCompleted.total} étape(s) complétée(s)`
-    );
+    sections.push(`- **Plan de travail :** ${stepsCompleted.done}/${stepsCompleted.total} étape(s) complétée(s)`);
   }
 
   if (filesList.length > 0) {

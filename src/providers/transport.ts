@@ -1,24 +1,67 @@
 import type { ChatOptions } from "./types";
 
+export type BackendTimeoutCode = "BACKEND_IDLE_TIMEOUT" | "BACKEND_REQUEST_TIMEOUT";
+
+export class BackendTimeoutError extends Error {
+  constructor(readonly code: BackendTimeoutCode) {
+    super(
+      code === "BACKEND_IDLE_TIMEOUT"
+        ? "Backend timed out waiting for data. Check the model server and available memory."
+        : "Backend request timed out. The model did not finish within the request deadline."
+    );
+    this.name = "BackendTimeoutError";
+  }
+}
+
+export function isBackendTimeoutError(error: unknown): boolean {
+  if (
+    error instanceof BackendTimeoutError ||
+    (typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      (error.code === "BACKEND_IDLE_TIMEOUT" || error.code === "BACKEND_REQUEST_TIMEOUT"))
+  )
+    return true;
+  const message = String((error as any)?.message ?? error ?? "");
+  return /Backend timed out waiting for data|Backend request timed out|backend timeout|timed out waiting for data/i.test(message);
+}
+
+/** A local CPU model can need minutes to prefill a prompt. Node's fetch gives up
+ * after ~300 s waiting for response headers (UND_ERR_HEADERS_TIMEOUT) long before
+ * our own deadline fires; it surfaces to users as a bare `fetch failed` and used to
+ * kill the turn. This separates "the server is still working" from a real drop. */
+export function isSlowPrefillError(error: unknown): boolean {
+  const e: any = error;
+  const code = String(e?.cause?.code ?? e?.code ?? "");
+  const causeMessage = String(e?.cause?.message ?? "");
+  return (
+    code === "UND_ERR_HEADERS_TIMEOUT" ||
+    code === "UND_ERR_BODY_TIMEOUT" ||
+    /headers timeout error|body timeout error/i.test(causeMessage) ||
+    /Headers Timeout Error|Body Timeout Error/i.test(String(e?.message ?? ""))
+  );
+}
+
 /** Fail visibly when a local server accepts a request but stops producing data. */
 export async function withDeadline<T>(opts: ChatOptions, run: (signal: AbortSignal, activity: () => void) => Promise<T>): Promise<T> {
   const controller = new AbortController();
   const cancel = () => controller.abort(opts.signal?.reason);
   let idle: NodeJS.Timeout;
-  const activity = () => {
+  // A local model legitimately sends nothing while it loads into memory and
+  // prefills a long prompt: that silence is not a stall. The strict idle
+  // window only starts once data has actually flowed.
+  const arm = (ms: number) => {
     clearTimeout(idle);
-    idle = setTimeout(
-      () => controller.abort(new Error("Backend timed out waiting for data. Check the model server and available memory.")),
-      opts.idleTimeoutMs ?? 180_000
-    );
+    idle = setTimeout(() => controller.abort(new BackendTimeoutError("BACKEND_IDLE_TIMEOUT")), ms);
   };
-  const total = setTimeout(
-    () => controller.abort(new Error("Backend request timed out. The model did not finish within the request deadline.")),
-    opts.timeoutMs ?? 900_000
-  );
+  const activity = () => arm(opts.idleTimeoutMs ?? 180_000);
+  const total = setTimeout(() => controller.abort(new BackendTimeoutError("BACKEND_REQUEST_TIMEOUT")), opts.timeoutMs ?? 1_800_000);
   opts.signal?.addEventListener("abort", cancel, { once: true });
   if (opts.signal?.aborted) cancel();
-  activity();
+  // Tests and callers that explicitly tune idleTimeoutMs expect the same
+  // deadline before the first byte. Keep a long local-model default only when
+  // no timeout was configured at all.
+  arm(opts.firstDataTimeoutMs ?? opts.idleTimeoutMs ?? 480_000);
   try {
     return await run(controller.signal, activity);
   } catch (error) {

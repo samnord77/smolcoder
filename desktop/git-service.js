@@ -46,6 +46,16 @@ async function status(workspace) {
   return { root, branch, files, stat };
 }
 
+async function syncStatus(workspace) {
+  const root = await repoRoot(workspace);
+  return require("../dist/git.js").gitSyncStatus(root);
+}
+
+async function blame(workspace, requestedPath, line) {
+  const root = await repoRoot(workspace);
+  return require("../dist/git.js").gitBlame(root, requestedPath, line);
+}
+
 async function diff(workspace, requestedPath) {
   if (typeof requestedPath !== "string" || !requestedPath.trim()) throw new Error("Choose a changed file first.");
   const root = await repoRoot(workspace);
@@ -67,4 +77,4 @@ async function commit(workspace, requestedPath, message) {
   return { summary: (await git(root, ["log", "-1", "--format=%h %s"])).trim() };
 }
 
-module.exports = { status, diff, commit };
+module.exports = { status, syncStatus, blame, diff, commit };
