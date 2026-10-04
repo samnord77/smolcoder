@@ -216,7 +216,7 @@ export function backendLabel(m: DetectedModel): string {
 }
 
 export function sessionLine(m: DetectedModel, mode: Mode): string {
-  return `${c.green("●")} ${backendLabel(m)} · ${c.bold(m.id)} · ctx ${m.contextWindow.toLocaleString()} · ${MODE_LABELS[mode]} mode`;
+  return `${c.green("●")} ${backendLabel(m)} · ${c.bold(m.id)} · ctx ${m.contextWindow.toLocaleString()} · ${m.id.endsWith(":free") ? c.green("GRATUIT") + " · " : ""}${MODE_LABELS[mode]} mode`;
 }
 
 /** Gros bandeau quand le mode YOLO est actif : rien ne demande avant d'agir. */
@@ -320,7 +320,8 @@ export function modelOptions(models: DetectedModel[], current?: DetectedModel): 
     label: m.id,
     hint:
       (m.backend === "ollama" ? "ollama" : `lm studio${m.loaded ? ` · ctx ${m.contextWindow.toLocaleString()}` : " · not loaded"}`) +
-      (m.host ? ` · ${m.host}` : ""),
+      (m.host ? ` · ${m.host}` : "") +
+      (m.id.endsWith(":free") ? " · GRATUIT" : ""),
     current: !!current && m.id === current.id && m.backend === current.backend && m.baseUrl === current.baseUrl,
   }));
 }

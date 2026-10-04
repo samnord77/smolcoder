@@ -663,7 +663,7 @@ function renderState(v) {
   const mode = el("button", "statusbtn mode " + s.mode, modeLabel);
   mode.title = s.yolo ? "YOLO ACTIF — aucune demande avant d'agir" : "Mode de l’agent — cliquer pour choisir"; mode.onclick = () => statusMenu(mode, modeMenuItems(s, command));
   st.appendChild(mode);
-  const model = el("button", "statusbtn modelpick", s.model + (s.host ? " @ " + s.host : "") + " ▾"); model.title = s.backend + (s.host ? " on " + s.host : "") + " · Switch model or find models on another machine"; model.onclick = () => command("models"); st.appendChild(model);
+  const model = el("button", "statusbtn modelpick", s.model + (s.model.endsWith(":free") ? " · gratuit" : "") + (s.host ? " @ " + s.host : "") + " ▾"); model.title = s.backend + (s.host ? " on " + s.host : "") + " · Switch model or find models on another machine"; model.onclick = () => command("models"); st.appendChild(model);
   const effort = el("button", "statusbtn eff", s.effort || "Auto"); effort.title = "Reasoning effort"; effort.onclick = () => command("effort"); st.appendChild(effort);
   const bell = el("button", "statusbtn bell", bellOn() ? "🔔" : "🔕"); bell.title = "Desktop notifications: approvals, finished turns, errors";
   bell.onclick = () => {
