@@ -1317,10 +1317,6 @@ export class Agent {
     for (let attempt = 1; attempt <= 6; attempt++) {
       let streamed = false;
       const requestStarted = Date.now();
-      const heartbeat = setInterval(() => {
-        const seconds = Math.round((Date.now() - requestStarted) / 1000);
-        if (seconds >= 15) this.ui.status(`· modèle local en préparation depuis ${seconds}s — patientez, le CPU charge le prompt`);
-      }, 15_000);
       try {
         return await this.provider.chat(this.messages, this.tools, {
           signal,
@@ -1370,8 +1366,6 @@ export class Agent {
             : `· backend error (${message.slice(0, 80)}) — nouvelle tentative ${attempt}/6 dans ${wait}s`
         );
         await abortableDelay(wait * 1000, signal);
-      } finally {
-        clearInterval(heartbeat);
       }
     }
     throw lastErr;
