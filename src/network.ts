@@ -8,7 +8,7 @@
 
 import { loadConfig, type SavedHost, updateConfig } from "./config";
 import { identifyServer, probeHosts, type ServerInfo } from "./detect";
-import { addHost, hostLabel, isPrivateHost, type ParsedAddress, parseAddress, removeHost, renameHost } from "./hosts";
+import { addHost, hostLabel, isPrivateHost, type ParsedAddress, parseAddress, removeHost, renameHost, setHostApiKey } from "./hosts";
 import { type FoundHost, localSubnets, type Subnet, scanSubnets } from "./netscan";
 import type { SelectOption } from "./ui";
 import { plural } from "./util";
@@ -68,7 +68,15 @@ async function enterAddress(ui: FlowUI, replace?: SavedHost): Promise<boolean> {
     return false;
   }
   ui.startSpinner(`checking ${parsed.hostname}`);
-  const found = (await Promise.all(parsed.urls.map((u) => identifyServer(u, 4000)))).filter((s): s is ServerInfo => !!s);
+  // A public host (OpenRouter, a gateway…) needs its bearer key before the
+  // model list will answer. Private/loopback hosts are never asked for one.
+  // Esc keeps whatever the replaced entry already stored; an empty line clears it.
+  let apiKey: string | undefined = replace?.apiKey;
+  if (!isPrivateHost(parsed.hostname)) {
+    const key = await ui.prompt(`API key for ${parsed.hostname} (optional — Enter for none)`);
+    if (key !== null) apiKey = key.trim() || undefined;
+  }
+  const found = (await Promise.all(parsed.urls.map((u) => identifyServer(u, 4000, apiKey)))).filter((s): s is ServerInfo => !!s);
   ui.stopSpinner();
   if (!found.length) {
     ui.warn(`Nothing answered at ${parsed.hostname} as Ollama or LM Studio.`);
@@ -78,7 +86,7 @@ async function enterAddress(ui: FlowUI, replace?: SavedHost): Promise<boolean> {
   if (!(await confirmOutsideNetwork(ui, parsed.hostname, found[0].baseUrl))) return false;
   let hosts = loadConfig().hosts ?? [];
   if (replace) hosts = removeHost(hosts, replace.address);
-  save(addHost(hosts, { address: parsed.address, ...(replace?.name ? { name: replace.name } : {}) }));
+  save(addHost(hosts, { address: parsed.address, ...(replace?.name ? { name: replace.name } : {}), ...(apiKey ? { apiKey } : {}) }));
   ui.status(
     `· added ${replace?.name ?? parsed.hostname} — ${describeServers(found.map((s) => ({ backend: s.backend, models: s.models.length })))}`
   );
@@ -182,8 +190,13 @@ export async function manageHosts(ui: FlowUI): Promise<boolean> {
     );
     if (pick === null) return changed;
     const { host, servers } = statuses[pick];
-    const actions: { label: string; hint?: string; run: "rename" | "remove" | "refind" }[] = [
+    const actions: { label: string; hint?: string; run: "rename" | "remove" | "refind" | "apikey" }[] = [
       { label: "Rename", run: "rename" },
+      {
+        label: "API key",
+        hint: host.apiKey ? "a key is set — paste to replace, empty to remove" : "for hosted gateways (OpenRouter…)",
+        run: "apikey",
+      },
       { label: "Remove", run: "remove" },
     ];
     if (!servers.length) actions.push({ label: "Look for it again", hint: "its address may have changed", run: "refind" });
@@ -196,6 +209,14 @@ export async function manageHosts(ui: FlowUI): Promise<boolean> {
       const name = await ui.prompt(`New name for ${hostLabel(host)}`, hostLabel(host));
       if (name) {
         save(renameHost(hosts, host.address, name));
+        changed = true;
+      }
+    } else if (actions[act].run === "apikey") {
+      const key = await ui.prompt(`API key for ${hostLabel(host)} — paste to replace, empty to remove`);
+      if (key !== null) {
+        const clean = key.trim();
+        save(setHostApiKey(hosts, host.address, clean || undefined));
+        ui.status(clean ? `· API key saved for ${hostLabel(host)}` : `· API key removed for ${hostLabel(host)}`);
         changed = true;
       }
     } else if (actions[act].run === "remove") {

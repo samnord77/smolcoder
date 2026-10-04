@@ -21,6 +21,9 @@ export interface SavedHost {
   address: string;
   /** Display name; defaults to the host part of the address. */
   name?: string;
+  /** Optional bearer key for hosted OpenAI-compatible servers (OpenRouter,
+   * hosted gateways…). Never sent to plain-http or private hosts. */
+  apiKey?: string;
 }
 
 export interface Config {
@@ -100,7 +103,11 @@ export function loadConfig(): Config {
   cfg.hosts = Array.isArray(cfg.hosts)
     ? cfg.hosts
         .filter((h: any) => h && typeof h.address === "string" && h.address.trim())
-        .map((h: any) => ({ address: h.address.trim(), ...(typeof h.name === "string" && h.name.trim() ? { name: h.name.trim() } : {}) }))
+        .map((h: any) => ({
+          address: h.address.trim(),
+          ...(typeof h.name === "string" && h.name.trim() ? { name: h.name.trim() } : {}),
+          ...(typeof h.apiKey === "string" && h.apiKey.trim() ? { apiKey: h.apiKey.trim() } : {}),
+        }))
     : [];
   return cfg;
 }

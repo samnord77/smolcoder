@@ -267,7 +267,7 @@ test("network hosts can be renamed and removed from the picker", async () => {
     assert.match(first[0].hint, /Ollama · 1 model$/);
     assert.match(first[1].hint, /not reachable right now/);
     const asleepActions = ui.shown.selects[3].options.map((o) => o.label);
-    assert.deepEqual(asleepActions, ["Rename", "Remove", "Look for it again"], "only an unreachable host offers a re-search");
+    assert.deepEqual(asleepActions, ["Rename", "API key", "Remove", "Look for it again"], "only an unreachable host offers a re-search");
   } finally {
     await server.close();
   }

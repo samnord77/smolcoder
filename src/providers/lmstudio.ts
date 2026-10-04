@@ -116,7 +116,9 @@ export class LmStudioProvider implements Provider {
     maxOutputTokens = MAX_OUTPUT_TOKENS,
     private reasoning?: ReasoningInfo,
     /** Whether the model accepts images (LM Studio lists such models as "vlm"). */
-    public readonly vision?: boolean
+    public readonly vision?: boolean,
+    /** Bearer key for hosted OpenAI-compatible gateways (OpenRouter…). */
+    private apiKey?: string
   ) {
     this.label = `lmstudio · ${modelId}`;
     this.maxOutputTokens = maxOutputTokens;
@@ -128,7 +130,8 @@ export class LmStudioProvider implements Provider {
   }
 
   async loadedContextWindow(): Promise<number | undefined> {
-    const data = await tryFetchJson(`${this.baseUrl}/api/v1/models`, undefined, 1500);
+    const auth = this.apiKey ? { authorization: `Bearer ${this.apiKey}` } : undefined;
+    const data = await tryFetchJson(`${this.baseUrl}/api/v1/models`, { ...(auth ? { headers: auth } : {}) }, 1500);
     for (const model of data?.models ?? []) {
       const instances = model.loaded_instances ?? [];
       const instance = instances.find((m: any) => m.id === this.modelId) ?? (model.key === this.modelId ? instances[0] : undefined);
@@ -224,7 +227,10 @@ export class LmStudioProvider implements Provider {
     const t0 = Date.now();
     const res = await fetch(`${this.baseUrl}/v1/chat/completions`, {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: {
+        "content-type": "application/json",
+        ...(this.apiKey ? { authorization: `Bearer ${this.apiKey}` } : {}),
+      },
       body: JSON.stringify(body),
       signal: opts.signal,
     });

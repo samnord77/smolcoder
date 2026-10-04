@@ -14,6 +14,7 @@ import { ContextManager } from "./context";
 import { type DetectedModel, detectAll, resolveContextWindow } from "./detect";
 import { EventBus } from "./events";
 import { formatReview } from "./git";
+import { hostUrls } from "./hosts";
 import { lspDoctor, setupLsp } from "./lsp-install";
 import { queryCode } from "./lsp-pro";
 import { createMcpBridge, setMcpEnabled } from "./mcp";
@@ -88,11 +89,22 @@ export function outputBudget(window: number): number {
   return Math.max(128, Math.min(8192, Math.floor(window / 4)));
 }
 
+/** Bearer key for this model's server: attached by detection when the host
+ * stores one, else looked up from the saved host serving the same address. */
+function apiKeyFor(m: DetectedModel): string | undefined {
+  if (m.apiKey) return m.apiKey;
+  const hosts = loadConfig().hosts ?? [];
+  for (const h of hosts) {
+    if (h.apiKey && hostUrls(h).includes(m.baseUrl)) return h.apiKey;
+  }
+  return undefined;
+}
+
 export function makeProvider(m: DetectedModel): Provider {
   const maxOut = outputBudget(m.contextWindow);
   return m.backend === "ollama"
     ? new OllamaProvider(m.baseUrl, m.id, m.contextWindow, m.numCtx, maxOut, m.vision)
-    : new LmStudioProvider(m.baseUrl, m.id, m.contextWindow, maxOut, m.reasoning, m.vision);
+    : new LmStudioProvider(m.baseUrl, m.id, m.contextWindow, maxOut, m.reasoning, m.vision, apiKeyFor(m));
 }
 
 /** One-line advice when the effective reasoning setting will be slow: LM

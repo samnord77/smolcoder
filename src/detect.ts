@@ -44,6 +44,8 @@ export interface DetectedModel {
   reasoning?: ReasoningInfo;
   /** Whether the model accepts image input; undefined when the backend did not say. */
   vision?: boolean;
+  /** Bearer key for this model's server (hosted gateways like OpenRouter). */
+  apiKey?: string;
   note?: string;
 }
 
@@ -277,44 +279,57 @@ export interface ServerInfo {
 /** Ask one address whether it is Ollama or LM Studio. null means neither (or
  * nothing there). Both native listings are requested together so a dead
  * address costs one timeout, not one per backend. */
-export async function identifyServer(base: string, timeoutMs = NETWORK_PROBE_TIMEOUT_MS): Promise<ServerInfo | null> {
+export async function identifyServer(
+  base: string,
+  timeoutMs = NETWORK_PROBE_TIMEOUT_MS,
+  apiKey?: string
+): Promise<ServerInfo | null> {
+  const auth = apiKey ? { authorization: `Bearer ${apiKey}` } : undefined;
   const [tags, v1, v0probe] = await Promise.all([
-    probeJson(`${base}/api/tags`, timeoutMs),
-    probeJson(`${base}/api/v1/models`, timeoutMs),
-    probeJson(`${base}/api/v0/models`, timeoutMs),
+    probeJson(`${base}/api/tags`, timeoutMs, auth),
+    probeJson(`${base}/api/v1/models`, timeoutMs, auth),
+    probeJson(`${base}/api/v0/models`, timeoutMs, auth),
   ]);
   if (!tags.reached && !v1.reached && !v0probe.reached) return null;
+  const withKey = (models: DetectedModel[]): DetectedModel[] =>
+    apiKey ? models.map((m) => ({ ...m, apiKey })) : models;
   // LM Studio first: its listing names models by "key", which nothing else does.
   const lmKeyed =
     Array.isArray(v1.data?.models) && v1.data.models.length > 0 && v1.data.models.every((m: any) => typeof m?.key === "string");
-  if (lmKeyed) return { backend: "lmstudio", baseUrl: base, models: parseLmStudioV1(v1.data, base) ?? [] };
+  if (lmKeyed) return { backend: "lmstudio", baseUrl: base, models: withKey(parseLmStudioV1(v1.data, base) ?? []) };
   const ollama = parseOllamaTags(tags.data, base);
-  if (ollama) return { backend: "ollama", baseUrl: base, models: ollama };
+  if (ollama) return { backend: "ollama", baseUrl: base, models: withKey(ollama) };
   const lmV1 = parseLmStudioV1(v1.data, base);
-  if (lmV1) return { backend: "lmstudio", baseUrl: base, models: lmV1 };
+  if (lmV1) return { backend: "lmstudio", baseUrl: base, models: withKey(lmV1) };
 
   if (v0probe.reached && v0probe.data) {
     const v0models = parseLmStudioV0(v0probe.data, base);
-    if (v0models) return { backend: "lmstudio", baseUrl: base, models: v0models };
+    if (v0models) return { backend: "lmstudio", baseUrl: base, models: withKey(v0models) };
   }
 
-  const v0 = parseLmStudioV0(await tryFetchJson(`${base}/api/v0/models`, undefined, timeoutMs), base);
-  if (v0) return { backend: "lmstudio", baseUrl: base, models: v0 };
+  const v0 = parseLmStudioV0(await tryFetchJson(`${base}/api/v0/models`, { ...(auth ? { headers: auth } : {}) }, timeoutMs), base);
+  if (v0) return { backend: "lmstudio", baseUrl: base, models: withKey(v0) };
   // OpenAI-compatible servers we can't identify (older LM Studio included): the
   // listing carries no context info, so we stay conservative and say only what
   // we actually know.
-  const compat = await tryFetchJson(`${base}/v1/models`, undefined, timeoutMs);
+  const compat = await tryFetchJson(`${base}/v1/models`, { ...(auth ? { headers: auth } : {}) }, timeoutMs);
   if (compat && Array.isArray(compat.data)) {
     const models = compat.data
       .filter((m: any) => !String(m.id).includes("embed"))
-      .map((m: any) => ({
-        id: m.id as string,
-        backend: "lmstudio" as const,
-        baseUrl: base,
-        contextWindow: LMSTUDIO_JIT_GUESS,
-        note: "context window unknown on this server (OpenAI-compatible) — assuming 4096 to be safe.",
-      }));
-    return { backend: "lmstudio", baseUrl: base, models };
+      .map((m: any) => {
+        const ctx = typeof m.context_length === "number" && Number.isFinite(m.context_length) && m.context_length > 0 ? m.context_length : undefined;
+        return {
+          id: m.id as string,
+          backend: "lmstudio" as const,
+          baseUrl: base,
+          contextWindow: ctx ?? LMSTUDIO_JIT_GUESS,
+          ...(ctx ? { maxContext: ctx } : {}),
+          note: ctx
+            ? undefined
+            : "context window unknown on this server (OpenAI-compatible) — assuming 4096 to be safe.",
+        };
+      });
+    return { backend: "lmstudio", baseUrl: base, models: withKey(models) };
   }
   return null;
 }
@@ -327,16 +342,17 @@ interface ServerGroup {
   urls: string[];
   timeoutMs: number;
   host?: string;
+  apiKey?: string;
 }
 
 /** Exported for tests. Loopback spellings of the same port are one server;
  * every other URL is its own. Order of first appearance is kept. */
-export function groupServers(urls: string[], timeoutMs: number, host?: string): ServerGroup[] {
+export function groupServers(urls: string[], timeoutMs: number, host?: string, apiKey?: string): ServerGroup[] {
   const groups = new Map<string, ServerGroup>();
   for (const url of urls) {
     const loop = url.match(LOOPBACK_RE);
     const key = loop ? `loopback${url.slice(loop[0].length)}` : url;
-    const group = groups.get(key) ?? { urls: [], timeoutMs, host };
+    const group = groups.get(key) ?? { urls: [], timeoutMs, host, ...(apiKey ? { apiKey } : {}) };
     if (!group.urls.includes(url)) group.urls.push(url);
     groups.set(key, group);
   }
@@ -345,7 +361,7 @@ export function groupServers(urls: string[], timeoutMs: number, host?: string): 
 
 async function probeGroup(group: ServerGroup): Promise<ServerInfo | null> {
   for (const url of group.urls) {
-    const info = await identifyServer(url, group.timeoutMs);
+    const info = await identifyServer(url, group.timeoutMs, group.apiKey);
     if (info) return { ...info, models: info.models.map((m) => ({ ...m, host: group.host })) };
   }
   return null;
@@ -370,7 +386,7 @@ export interface HostStatus {
 export async function probeHosts(hosts: SavedHost[]): Promise<HostStatus[]> {
   return Promise.all(
     hosts.map(async (host) => {
-      const found = await Promise.all(groupServers(hostUrls(host), NETWORK_PROBE_TIMEOUT_MS, hostLabel(host)).map(probeGroup));
+      const found = await Promise.all(groupServers(hostUrls(host), NETWORK_PROBE_TIMEOUT_MS, hostLabel(host), host.apiKey).map(probeGroup));
       return { host, servers: found.filter((s): s is ServerInfo => !!s) };
     })
   );
@@ -403,7 +419,7 @@ export async function detectAll(opts: DetectOptions = {}): Promise<DetectedModel
           }),
         ]),
     ...(!opts.fast ? (opts.hosts ?? []) : []).flatMap((host) =>
-      groupServers(hostUrls(host), NETWORK_PROBE_TIMEOUT_MS, hostLabel(host)).map((g) => probeGroup(g).then((s) => s?.models ?? []))
+      groupServers(hostUrls(host), NETWORK_PROBE_TIMEOUT_MS, hostLabel(host), host.apiKey).map((g) => probeGroup(g).then((s) => s?.models ?? []))
     ),
   ];
 

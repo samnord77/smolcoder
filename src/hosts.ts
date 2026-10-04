@@ -80,11 +80,34 @@ function sameAddress(a: string, b: string): boolean {
   return a.trim().toLowerCase() === b.trim().toLowerCase();
 }
 
-/** Add a host, or update the name of one that is already there. */
+/** Add a host, or update the name / API key of one that is already there.
+ * An omitted or empty apiKey keeps whatever the entry already stored, so a
+ * plain rename never wipes a saved key. */
 export function addHost(hosts: SavedHost[], host: SavedHost): SavedHost[] {
   const at = hosts.findIndex((h) => sameAddress(h.address, host.address));
   if (at < 0) return [...hosts, host];
-  return hosts.map((h, i) => (i === at ? { ...h, ...(host.name ? { name: host.name } : {}) } : h));
+  return hosts.map((h, i) =>
+    i === at
+      ? {
+          ...h,
+          ...(host.name ? { name: host.name } : {}),
+          ...(host.apiKey?.trim() ? { apiKey: host.apiKey.trim() } : {}),
+        }
+      : h
+  );
+}
+
+/** Set (non-empty) or clear (empty) a saved host's API key. */
+export function setHostApiKey(hosts: SavedHost[], address: string, key: string | undefined): SavedHost[] {
+  const clean = key?.trim();
+  return hosts.map((h) => {
+    if (!sameAddress(h.address, address)) return h;
+    if (!clean) {
+      const { apiKey: _gone, ...rest } = h;
+      return rest;
+    }
+    return { ...h, apiKey: clean };
+  });
 }
 
 export function removeHost(hosts: SavedHost[], address: string): SavedHost[] {
