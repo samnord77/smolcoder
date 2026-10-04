@@ -8,10 +8,12 @@
 // temp copy is locked), rcedit fails the whole run with
 // "Fatal error: Unable to commit changes" and no executable is produced.
 //
-// The application does not need that step. This script disables it by
-// pre-seeding require.cache with a no-op `rcedit`, so electron-packager keeps
-// the real Windows binary and skips only the cosmetic metadata rewrite.
-// Everything else (dist/, desktop/, the patched main entry) is unchanged.
+// The application does not need that step, so this script disables it by
+// pre-seeding require.cache with a no-op `rcedit`. The icon and the version
+// block are then written back with `resedit`, a pure-JavaScript PE resource
+// editor: no native binary, no shell-out, no admin rights, therefore nothing
+// for Defender to block. Everything else (dist/, desktop/, the patched main
+// entry) is unchanged.
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
@@ -60,6 +62,64 @@ function stageProject(stageDir) {
   };
   fs.writeFileSync(path.join(stageDir, "package.json"), JSON.stringify(staged, null, 2));
   return staged;
+}
+
+const iconPath = path.join(repoRoot, "build", "icon.ico");
+
+// Write the icon and the version block straight into the PE image. The result
+// is written to a sibling temp file first: a failed stamp can then never leave
+// a half-written executable behind.
+async function stampExe(exePath, version) {
+  if (!fs.existsSync(iconPath)) {
+    fail(`missing ${iconPath} - run: powershell -File scripts/make-icon.ps1`);
+  }
+
+  const PELibrary = require("pe-library");
+  const ResEdit = await require("resedit/cjs").load();
+
+  const exe = PELibrary.NtExecutable.from(fs.readFileSync(exePath));
+  const res = PELibrary.NtExecutableResource.from(exe);
+
+  const groups = ResEdit.Resource.IconGroupEntry.fromEntries(res.entries);
+  const iconFile = ResEdit.Data.IconFile.from(fs.readFileSync(iconPath));
+  ResEdit.Resource.IconGroupEntry.replaceIconsForResource(
+    res.entries,
+    groups[0]?.id ?? 1,
+    groups[0]?.lang ?? 1033,
+    iconFile.icons.map((item) => item.data)
+  );
+
+  const versionInfo = ResEdit.Resource.VersionInfo.fromEntries(res.entries)[0];
+  if (!versionInfo) fail(`no version resource found in ${exePath}`);
+  const lang = versionInfo.lang;
+  const langId = typeof lang === "number" ? lang : Number.parseInt(String(lang), 16) || 1033;
+
+  // `setFileVersion` expects a full a.b.c.d tuple; package.json carries "0.7.1".
+  const v = version.split(".").map((n) => Number.parseInt(n, 10) || 0);
+  const [major = 0, minor = 0, micro = 0, revision = 0] = [v[0], v[1], v[2], v[3]];
+  versionInfo.setFileVersion(major, minor, micro, revision, langId);
+  versionInfo.setProductVersion(major, minor, micro, revision, langId);
+  versionInfo.setStringValues(
+    { lang: langId, codepage: 1200 },
+    {
+      CompanyName: appName,
+      FileDescription: `${appName} - IDE et Auto Copilot`,
+      InternalName: `${appName}.exe`,
+      LegalCopyright: `Copyright (C) 2026 ${appName}`,
+      OriginalFilename: `${appName}.exe`,
+      ProductName: appName,
+    }
+  );
+  versionInfo.removeStringValue({ lang: langId, codepage: 1200 }, "SquirrelAwareVersion");
+  versionInfo.outputToResourceEntries(res.entries);
+
+  res.outputResource(exe);
+
+  const tmp = `${exePath}.stamp.tmp`;
+  fs.writeFileSync(tmp, Buffer.from(exe.generate()));
+  // Parse the temp copy back before replacing: guarantees a valid image.
+  PELibrary.NtExecutable.from(fs.readFileSync(tmp));
+  fs.renameSync(tmp, exePath);
 }
 
 // Replace `rcedit` with a no-op so packaging never shells out to the PE editor.
@@ -124,6 +184,9 @@ async function main() {
     const manifest = JSON.parse(fs.readFileSync(main, "utf8"));
     manifest.main = "desktop/main.js";
     fs.writeFileSync(main, JSON.stringify(manifest, null, 2));
+
+    await stampExe(exe, appVersion);
+    console.log(`package-win: icone et version ${appVersion} gravees dans ${path.basename(exe)}`);
 
     const bytes = fs.statSync(exe).size;
     console.log("package-win: OK ->", exe, `(${Math.round(bytes / 1048576)} Mo)`);
