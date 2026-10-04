@@ -1,9 +1,0 @@
-{
-  "original_tokens": 1084,
-  "compressed_tokens": 69,
-  "saved_tokens": 1015,
-  "savings_pct": 93.6,
-  "compressed": "# skills.test.js (.js) \u2014 95 lines\nconst test = require(\"node:test\");\nconst assert = require(\"node:assert/strict\");\nconst fs = require(\"node:fs\");\nconst os = require(\"node:os\");\nconst path = require(\"node:path\");\nconst skills = require(\"../dist/skills\");\nfunction scratch()",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\skills.test.js"
-}

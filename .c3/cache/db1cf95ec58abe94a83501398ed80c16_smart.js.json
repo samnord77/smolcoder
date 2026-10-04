@@ -1,9 +1,0 @@
-{
-  "original_tokens": 363,
-  "compressed_tokens": 32,
-  "saved_tokens": 331,
-  "savings_pct": 91.2,
-  "compressed": "# vram.test.js (.js) \u2014 27 lines\nconst test = require(\"node:test\");\nconst assert = require(\"node:assert/strict\");",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\vram.test.js"
-}

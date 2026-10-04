@@ -1,9 +1,0 @@
-{
-  "original_tokens": 5517,
-  "compressed_tokens": 400,
-  "saved_tokens": 5117,
-  "savings_pct": 92.7,
-  "compressed": "# editor.html (.html) \u2014 374 lines\n<div id=\"bar\"> <button id=\"bFolder\">\ud83d\udcc1 Dossier</button> <button id=\"bSave\">\ud83d\udcbe Enregistrer (Ctrl+S)</button>\n<button id=\"bFolder\">\ud83d\udcc1 Dossier</button>\n<button id=\"bSave\">\ud83d\udcbe Enregistrer (Ctrl+S)</button>\n<span id=\"root\">aucun dossier \u2014 cliquez \u00ab Dossier \u00bb</span>\n<div id=\"main\"> <div id=\"tree\"></div> <div id=\"editCol\">\n<div id=\"tree\"></div>\n<div id=\"editCol\"> <div id=\"tabs\" role=\"tablist\" aria-label=\"Fichiers ouverts\"></div> <div id=\"crumbs\" aria-label=\"Fil d'Ariane\"></div>\n<div id=\"tabs\" role=\"tablist\" aria-label=\"Fichiers ouverts\"></div>\n<div id=\"crumbs\" aria-label=\"Fil d'Ariane\"></div>\n<div id=\"edWrap\"> <pre id=\"hl\" aria-hidden=\"true\"><code id=\"hlCode\"></code></pre> <textarea id=\"ed\" spellcheck=\"false\" placeholder=\"Choisissez un dossier, puis un fichier\u2026\"></textarea>\n<pre id=\"hl\" aria-hidden=\"true\"><code id=\"hlCode\"></code></pre>\n<pre id=\"hl\" aria-hidden=\"true\"><code id=\"hlCode\"></code></pre>\n<textarea id=\"ed\" spellcheck=\"false\" placeholder=\"Choisissez un dossier, puis un fichier\u2026\"></textarea>\n<div id=\"err\"></div>\n<div id=\"status\"><span id=\"sFile\">\u2014</span><span id=\"sDirty\"></span><span id=\"sMsg\"></span></div>\n<div id=\"status\"><span id=\"sFile\">\u2014</span><span id=\"sDirty\"></span><span id=\"sMsg\"></span></div>",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\desktop\\editor.html"
-}

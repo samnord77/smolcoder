@@ -1,9 +1,0 @@
-{
-  "original_tokens": 4183,
-  "compressed_tokens": 239,
-  "saved_tokens": 3944,
-  "savings_pct": 94.3,
-  "compressed": "# attachments.test.js (.js) \u2014 282 lines\nconst test = require(\"node:test\");\nconst assert = require(\"node:assert/strict\");\nconst fs = require(\"fs\");\nconst http = require(\"http\");\nconst os = require(\"os\");\nconst path = require(\"path\");\nconst PNG = Buffer.from(\"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==\", \"base64\");\nconst tmp = (prefix) => fs.mkdtempSync(path.join(os.tmpdir(), prefix));\nconst rm = (dir) => fs.rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });\nconst sleep = (ms) => new Promise((r) => setTimeout(r, ms));\nasync function until(fn, ms = 4000, label = \"condition\")\nfunction request(hub, method, p, body, headers)\nfunction readEvents(hub, stopWhen)\nfunction fakeFactory(seen)",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\attachments.test.js"
-}

@@ -1,9 +1,0 @@
-{
-  "original_tokens": 728,
-  "compressed_tokens": 80,
-  "saved_tokens": 648,
-  "savings_pct": 89.0,
-  "compressed": "# skills-runner.js (.js) \u2014 103 lines\nconst fs = require(\"node:fs\");\nconst path = require(\"node:path\");\nconst SKILL_ROOTS = [ path.join(__dirname, \"skills\"), \"C:\\\\Users\\\\DELL\\\\AppData\\\\Roaming\\\\Python\\\\skills\",\nfunction findSkillFiles(dir)\nfunction listSkills(categoryFilter)\nfunction loadSkill(skillName)",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\extras\\secondary-agent-tools\\skills-runner.js"
-}

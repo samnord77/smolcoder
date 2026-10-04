@@ -1,9 +1,0 @@
-{
-  "original_tokens": 707,
-  "compressed_tokens": 49,
-  "saved_tokens": 658,
-  "savings_pct": 93.1,
-  "compressed": "# fetch.test.js (.js) \u2014 63 lines\nconst test = require(\"node:test\");\nconst assert = require(\"node:assert/strict\");\nconst http = require(\"node:http\");\nfunction serve(body, type = \"text/html\")",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\fetch.test.js"
-}

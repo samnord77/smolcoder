@@ -1,9 +1,0 @@
-{
-  "original_tokens": 958,
-  "compressed_tokens": 88,
-  "saved_tokens": 870,
-  "savings_pct": 90.8,
-  "compressed": "# voice-commander.js (.js) \u2014 138 lines\nconst fs = require(\"node:fs\");\nconst path = require(\"node:path\");\nconst WHISPER_EXE = \"E:\\\\voice-pro\\\\installer_files\\\\env\\\\Scripts\\\\whisper.exe\";\nfunction isWhisperInstalled()\nfunction buildWhisperArgs(audioPath, options = {})\nfunction cleanTranscription(rawText)\nfunction transcribeAudio(audioFilePath, options = {})",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\extras\\secondary-agent-tools\\voice-commander.js"
-}

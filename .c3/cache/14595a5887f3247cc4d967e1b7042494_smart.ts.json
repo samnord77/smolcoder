@@ -1,9 +1,0 @@
-{
-  "original_tokens": 4360,
-  "compressed_tokens": 384,
-  "saved_tokens": 3976,
-  "savings_pct": 91.2,
-  "compressed": "# fs-tools.ts (.ts) \u2014 393 lines\nimport * as fs from \"fs\";\nimport * as path from \"path\";\nimport { resolveInWorkspace, relPath, SandboxError } from \"../sandbox\";\nimport { truncateEnd } from \"../util\";\nimport { isHistoryPlaceholder } from \"../history\";\n\nconst READ_LINE_LIMIT = 250;\nconst READ_CHAR_LIMIT = 9000;\nconst LIST_ENTRY_LIMIT = 200;\nconst SEARCH_MATCH_LIMIT = 50;\nconst SEARCH_FILE_SIZE_LIMIT = 512 * 1024;\nconst IGNORED_DIRS = new Set([ \"node_modules\", \".git\", \"dist\", \"out\", \"build\", \".next\", \".nuxt\", \".cache\", \"coverage\", \"__pycache__\", \".venv\", \"venv\", \".idea\", \".vscode\", \"target\",\nconst BINARY_EXTS = new Set([ \".png\", \".jpg\", \".jpeg\", \".gif\", \".webp\", \".ico\", \".bmp\", \".pdf\", \".zip\", \".gz\", \".tar\", \".7z\", \".rar\", \".exe\", \".dll\", \".so\", \".dylib\", \".bin\",\nfunction isProbablyBinary(filePath: string): boolean\nfunction assertFinalInside(root: string, abs: string, userPath: string): void\nexport function readFile(root: string, args: any, maxChars = READ_CHAR_LIMIT): string\nexport function writeFile(root: string, args: any): string\nfunction findTrimmedMatch(fileLines: string[], oldLines: string[]): number[]\nfunction closestSnippet(fileLines: string[], oldText: string): { text: string; offset: number; limit: number } | null\nexport function editFile(root: string, args: any): string\nexport function listFiles(root: string, args: any): string\nexport function searchFiles(root: string, args: any): string",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\tools\\fs-tools.ts"
-}

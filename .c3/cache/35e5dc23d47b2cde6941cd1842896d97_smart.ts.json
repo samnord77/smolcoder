@@ -1,9 +1,0 @@
-{
-  "original_tokens": 40437,
-  "compressed_tokens": 79,
-  "saved_tokens": 40358,
-  "savings_pct": 99.8,
-  "compressed": "# client.ts (.ts) \u2014 2807 lines\nimport { editorTabStoreBrowserSource } from \"../editor-tabs\";\nimport { editorToolsBrowserSource } from \"../editor-tools\";\nimport { browserHighlighterSource } from \"../highlight\";\nimport { browserCrdtSource } from \"../crdt\";\n\nexport const CLIENT_JS = String.raw` \"use strict\"; ${browserHighlighterSource}",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\web\\client.ts"
-}

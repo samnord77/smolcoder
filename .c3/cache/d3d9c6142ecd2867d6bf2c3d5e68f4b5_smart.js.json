@@ -1,9 +1,0 @@
-{
-  "original_tokens": 1890,
-  "compressed_tokens": 83,
-  "saved_tokens": 1807,
-  "savings_pct": 95.6,
-  "compressed": "# mcp.test.js (.js) \u2014 136 lines\nconst test = require(\"node:test\");\nconst assert = require(\"node:assert/strict\");\nconst fs = require(\"node:fs\");\nconst os = require(\"node:os\");\nconst path = require(\"node:path\");\nconst FAKE_SERVER = ` let buf = \"\"; process.stdin.setEncoding(\"utf8\");\nfunction scratchWithServer(extra = [])",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\mcp.test.js"
-}

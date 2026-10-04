@@ -1,9 +1,0 @@
-{
-  "original_tokens": 505,
-  "compressed_tokens": 73,
-  "saved_tokens": 432,
-  "savings_pct": 85.5,
-  "compressed": "# add-kaggle-host.js (.js) \u2014 62 lines\nconst fs = require(\"node:fs\");\nconst os = require(\"node:os\");\nconst path = require(\"node:path\");\nconst CONFIG_PATH = path.join(os.homedir(), \".smolcoder.json\");\nfunction addRemoteHost(url, name = \"Kaggle Model Host\")",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\extras\\secondary-agent-tools\\add-kaggle-host.js"
-}

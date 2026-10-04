@@ -1,9 +1,0 @@
-{
-  "original_tokens": 466,
-  "compressed_tokens": 61,
-  "saved_tokens": 405,
-  "savings_pct": 86.9,
-  "compressed": "# format.test.js (.js) \u2014 50 lines\nconst test = require(\"node:test\");\nconst assert = require(\"node:assert/strict\");\nconst fs = require(\"node:fs\");\nconst os = require(\"node:os\");\nconst path = require(\"node:path\");\nfunction scratchWs()",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\format.test.js"
-}

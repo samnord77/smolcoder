@@ -1,9 +1,0 @@
-{
-  "original_tokens": 1514,
-  "compressed_tokens": 162,
-  "saved_tokens": 1352,
-  "savings_pct": 89.3,
-  "compressed": "# hosts.ts (.ts) \u2014 112 lines\nimport type { SavedHost } from \"./config\";\n\nexport const OLLAMA_PORT = 11434;\nexport const LMSTUDIO_PORT = 1234;\nexport interface ParsedAddress\nexport function parseAddress(input: string): ParsedAddress\nexport function hostUrls(host: SavedHost): string[]\nexport function hostLabel(host: SavedHost): string\nfunction sameAddress(a: string, b: string): boolean\nexport function addHost(hosts: SavedHost[], host: SavedHost): SavedHost[]\nexport function removeHost(hosts: SavedHost[], address: string): SavedHost[]\nexport function renameHost(hosts: SavedHost[], address: string, name: string): SavedHost[]\nexport function isPrivateHost(hostname: string): boolean",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\hosts.ts"
-}

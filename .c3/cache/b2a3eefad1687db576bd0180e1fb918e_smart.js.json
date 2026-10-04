@@ -1,9 +1,0 @@
-{
-  "original_tokens": 4881,
-  "compressed_tokens": 86,
-  "saved_tokens": 4795,
-  "savings_pct": 98.2,
-  "compressed": "# verification.test.js (.js) \u2014 312 lines\nconst test = require('node:test');\nconst assert = require('node:assert/strict');\nconst fs = require('node:fs');\nconst os = require('node:os');\nconst path = require('node:path');\nasync function removeWorkspace(dir)\nfunction setup(t, chat, verification)\nconst answer = () => ({content:'Done',toolCalls:[]});",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\verification.test.js"
-}

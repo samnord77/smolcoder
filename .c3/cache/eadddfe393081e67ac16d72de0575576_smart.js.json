@@ -1,9 +1,0 @@
-{
-  "original_tokens": 985,
-  "compressed_tokens": 63,
-  "saved_tokens": 922,
-  "savings_pct": 93.6,
-  "compressed": "# test-ast-indexer.js (.js) \u2014 120 lines\nconst assert = require(\"node:assert\");\nconst path = require(\"node:path\");\nconst astIndexer = require(\"./ast-indexer.js\");\nlet passed = 0;\nlet failed = 0;\nfunction runTest(name, fn)",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\extras\\secondary-agent-tools\\test-ast-indexer.js"
-}

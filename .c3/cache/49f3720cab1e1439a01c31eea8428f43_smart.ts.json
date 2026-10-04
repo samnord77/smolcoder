@@ -1,9 +1,0 @@
-{
-  "original_tokens": 1037,
-  "compressed_tokens": 161,
-  "saved_tokens": 876,
-  "savings_pct": 84.5,
-  "compressed": "# editor.ts (.ts) \u2014 141 lines\n\nexport class LineEditor\n  buffer = \"\";\n  cursor = 0;\n  insert(text: string): void\n  backspace(): void\n  del(): void\n  left(): void\n  right(): void\n  private lineStartIdx(): number\n  private lineEndIdx(): number\n  home(): void\n  end(): void\n  lineCol(): { line: number; col: number }\n  lineCount(): number\n  upLine(): boolean\n  downLine(): boolean\n  killToLineStart(): void\n  deleteWordBack(): void\n  clear(): void\n  set(text: string): void\nexport interface Layout\nexport function layoutBuffer(buffer: string, cursor: number, width: number): Layout",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\tui\\editor.ts"
-}

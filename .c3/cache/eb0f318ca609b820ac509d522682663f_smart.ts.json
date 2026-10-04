@@ -1,9 +1,0 @@
-{
-  "original_tokens": 3413,
-  "compressed_tokens": 340,
-  "saved_tokens": 3073,
-  "savings_pct": 90.0,
-  "compressed": "# lmstudio.ts (.ts) \u2014 342 lines\nimport { imageDataUrl } from \"../attachments\";\nimport { tryFetchJson } from \"../util\";\nimport { scheduleInference } from \"./scheduler\";\nimport { responseLines, streamJson, withDeadline } from \"./transport\";\nimport {\n\nexport interface ReasoningInfo\nexport function toWire(messages: Msg[]): any[]\nfunction toWireTools(tools: ToolSpec[]): any[]\nexport function mapEffort(effort: Effort | null, info: ReasoningInfo | undefined): string | undefined\n\nexport class LmStudioProvider implements Provider\n  readonly replaysThinking = false;\n  readonly label: string;\n  readonly maxOutputTokens: number;\n  private effort: Effort | null = null;\n  private effortUnsupported = false;\n  constructor( private baseUrl: string, public readonly modelId: string,\n  setEffort(effort: Effort | null): void\n  async loadedContextWindow(): Promise<number | undefined>\n  effortLabel(): string | null\n  async chat(messages: Msg[], tools: ToolSpec[], opts: ChatOptions = {}): Promise<ChatResult>\n  private async chatScheduled(messages: Msg[], tools: ToolSpec[], opts: ChatOptions): Promise<ChatResult>\n  private async chain(base: any, opts: ChatOptions, started: { streaming: boolean }): Promise<ChatResult>\n  private async request(body: any, opts: ChatOptions, started?: { streaming: boolean }): Promise<ChatResult>\n  private async readResponse(body: any, opts: ChatOptions, activity: () => void, started?: { streaming: boolean }): Promise<ChatResult>",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\providers\\lmstudio.ts"
-}

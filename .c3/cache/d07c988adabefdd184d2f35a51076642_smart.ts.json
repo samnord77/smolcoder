@@ -1,9 +1,0 @@
-{
-  "original_tokens": 1458,
-  "compressed_tokens": 147,
-  "saved_tokens": 1311,
-  "savings_pct": 89.9,
-  "compressed": "# format.ts (.ts) \u2014 151 lines\nimport { spawnSync } from \"child_process\";\nimport * as fs from \"fs\";\nimport * as path from \"path\";\nimport { resolveInWorkspace } from \"./sandbox\";\nimport { resolveCommand } from \"./mcp\";\n\nconst FORMAT_TIMEOUT_MS = 30_000;\nconst MAX_FILE_BYTES = 1024 * 1024;\nexport interface FormatAttempt\nfunction attemptsFor(ext: string): FormatAttempt[]\nfunction runFormatter(root: string, cmd: string[], abs: string): { code: number; out: string }\nexport interface FormatResult\nexport function formatFile(root: string, relPath: string): FormatResult\nexport function formattersStatus(): string",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\format.ts"
-}

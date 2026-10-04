@@ -1,9 +1,0 @@
-{
-  "original_tokens": 862,
-  "compressed_tokens": 221,
-  "saved_tokens": 641,
-  "savings_pct": 74.4,
-  "compressed": "# cleanup-decorative-modals.js (.js) \u2014 71 lines\nconst fs = require(\"fs\");\nconst path = require(\"path\");\nconst DESKTOP_DIR = \"C:\\\\Users\\\\DELL\\\\smolcoder-source\\\\desktop\";\nconst editorHtmlPath = path.join(DESKTOP_DIR, \"editor.html\");\nlet editorHtml = fs.readFileSync(editorHtmlPath, \"utf8\");\nconst clutteredBar = `<div id=\"bar\"> <button id=\"bFolder\">\ud83d\udcc1 Dossier</button> <button id=\"bSave\">\ud83d\udcbe Enregistrer (Ctrl+S)</button>\nconst cleanBar = `<div id=\"bar\"> <button id=\"bFolder\">\ud83d\udcc1 Dossier</button> <button id=\"bSave\">\ud83d\udcbe Enregistrer (Ctrl+S)</button>\nconst modalStart = '<div id=\"modalPillars\"';\nconst jsPillars = `// Modal 5 Piliers & Outils const bPillars = $(\"bPillars\"); const modalPillars = $(\"modalPillars\");",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\extras\\secondary-agent-tools\\cleanup-decorative-modals.js"
-}

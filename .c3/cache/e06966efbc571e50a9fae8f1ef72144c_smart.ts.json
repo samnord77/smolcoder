@@ -1,9 +1,0 @@
-{
-  "original_tokens": 1526,
-  "compressed_tokens": 152,
-  "saved_tokens": 1374,
-  "savings_pct": 90.0,
-  "compressed": "# plugins.ts (.ts) \u2014 182 lines\nimport * as fs from \"node:fs\";\nimport * as path from \"node:path\";\n\nexport type PluginBeforeTool = ( toolName: string, args: Record<string, any>\nexport type PluginAfterTool = ( toolName: string, result: string\nexport interface LoadedPlugin\nconst PLUGINS_DIR = \".smol/plugins\";\nexport function loadPlugins(workspace: string): LoadedPlugin[]\nexport interface PluginManifest\nexport function readPluginManifest(workspace: string, name: string): PluginManifest | null\nexport interface PluginInfo extends LoadedPlugin\nexport function listPluginInfos(workspace: string): PluginInfo[]\nconst PLUGIN_EXAMPLE = `module.exports =\nexport function describePlugins(workspace: string): string",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\plugins.ts"
-}

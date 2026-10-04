@@ -1,9 +1,0 @@
-{
-  "original_tokens": 1061,
-  "compressed_tokens": 269,
-  "saved_tokens": 792,
-  "savings_pct": 74.6,
-  "compressed": "# mcp.json (.json) \u2014 133 lines\n\"C:\\\\Users\\\\DELL\\\\AppData\\\\Roaming\\\\npm\\\\node_modules\\\\@modelcontextprotocol\\\\server-memory\\\\dist\\\\index.js\"\n\"C:\\\\Users\\\\DELL\\\\AppData\\\\Roaming\\\\npm\\\\node_modules\\\\@wonderwhy-er\\\\desktop-commander\\\\dist\\\\index.js\"\n\"C:\\\\Users\\\\DELL\\\\AppData\\\\Roaming\\\\npm\\\\node_modules\\\\@negokaz\\\\excel-mcp-server\\\\dist\\\\launcher.js\"\n\"C:\\\\Users\\\\DELL\\\\AppData\\\\Roaming\\\\npm\\\\node_modules\\\\@microsoft\\\\powerbi-modeling-mcp\\\\index.js\",\n\"C:\\\\Users\\\\DELL\\\\AppData\\\\Roaming\\\\npm\\\\node_modules\\\\firecrawl-mcp\\\\dist\\\\index.js\"\n\"C:\\\\Users\\\\DELL\\\\AppData\\\\Roaming\\\\npm\\\\node_modules\\\\duckduckgo-mcp-server\\\\build\\\\index.js\"\n\"C:\\\\Users\\\\DELL\\\\AppData\\\\Roaming\\\\npm\\\\node_modules\\\\@upstash\\\\context7-mcp\\\\dist\\\\index.js\"\n\"C:\\\\Users\\\\DELL\\\\AppData\\\\Roaming\\\\npm\\\\node_modules\\\\chrome-devtools-mcp\\\\build\\\\src\\\\bin\\\\chrome-devtools-mcp.js\"",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\extras\\secondary-agent-tools\\mcp.json"
-}

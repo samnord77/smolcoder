@@ -1,9 +1,0 @@
-{
-  "original_tokens": 4370,
-  "compressed_tokens": 84,
-  "saved_tokens": 4286,
-  "savings_pct": 98.1,
-  "compressed": "# agent.test.js (.js) \u2014 415 lines\nconst test = require(\"node:test\");\nconst assert = require(\"node:assert/strict\");\nconst fs = require(\"node:fs\");\nconst os = require(\"node:os\");\nconst path = require(\"node:path\");\nfunction fakeUi()\nfunction scriptedProvider(replies)\nfunction makeAgent(provider, ui, mode = \"bypass\", interactive = false)",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\agent.test.js"
-}

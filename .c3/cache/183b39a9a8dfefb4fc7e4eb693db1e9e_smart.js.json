@@ -1,9 +1,0 @@
-{
-  "original_tokens": 780,
-  "compressed_tokens": 55,
-  "saved_tokens": 725,
-  "savings_pct": 92.9,
-  "compressed": "# test-voice-commander.js (.js) \u2014 97 lines\nconst assert = require(\"node:assert\");\nconst voiceCommander = require(\"./voice-commander.js\");\nlet passed = 0;\nlet failed = 0;\nfunction runTest(name, fn)",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\extras\\secondary-agent-tools\\test-voice-commander.js"
-}

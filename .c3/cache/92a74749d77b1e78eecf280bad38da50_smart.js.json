@@ -1,9 +1,0 @@
-{
-  "original_tokens": 6519,
-  "compressed_tokens": 242,
-  "saved_tokens": 6277,
-  "savings_pct": 96.3,
-  "compressed": "# main.js (.js) \u2014 666 lines\nconst fs = require(\"fs\");\nconst path = require(\"path\");\nconst hub = require(\"./hub-client\");\nconst gitService = require(\"./git-service\");\nconst editorFileService = require(\"./editor-file-service\");\nconst ROOT = path.join(__dirname, \"..\"); // smolcoder-source\nconst DIST_INDEX = path.join(ROOT, \"dist\", \"index.js\");\nlet APP_VERSION = \"0.0.0\";\nfunction distState()\nfunction runBuild()\nlet hubRec = null;\nlet hubBase = \"\";\nlet activeSid = null;\nlet mainWin = null;\nlet editorWin = null;\nlet editorRoot = null;\nlet currentProjectDir = ROOT;\nlet hubWatchTimer = null;\nfunction hubMsg(text)\nfunction errBox(msg)\nfunction stopHubWatchdog()\nfunction startHubWatchdog(win)\nfunction openMainWindow()\nfunction openEditor()\nlet panelWin = null;\nlet gitWin = null;\nfunction openGit()\nfunction openPanel()\nasync function openShare()\nfunction buildMenu()\nfunction assertRoot()\nconst SKIP_DIRS = new Set([\"node_modules\", \".git\", \"dist\", \".smolcoder\"]);\nasync function activeWorkspace()",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\desktop\\main.js"
-}

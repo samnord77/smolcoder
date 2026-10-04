@@ -1,9 +1,0 @@
-{
-  "original_tokens": 3151,
-  "compressed_tokens": 111,
-  "saved_tokens": 3040,
-  "savings_pct": 96.5,
-  "compressed": "# orchestrator.ts (.ts) \u2014 301 lines\nexport type TaskCategory = | \"bugfix\" | \"ui_design\"\nexport type TaskComplexity = \"simple\" | \"moderate\" | \"complex\";\nexport interface TaskClassification\nexport interface OrchestrationSummaryContext\nfunction normalizeText(text: string): string\nfunction assessComplexity(raw: string, normalized: string): TaskComplexity\nexport function classifyTask(request: string): TaskClassification\nexport function formatOrchestratorSummary(ctx: OrchestrationSummaryContext): string",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\orchestrator.ts"
-}

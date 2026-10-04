@@ -1,9 +1,0 @@
-{
-  "original_tokens": 495,
-  "compressed_tokens": 71,
-  "saved_tokens": 424,
-  "savings_pct": 85.7,
-  "compressed": "# editor-file-service.js (.js) \u2014 40 lines\nconst fs = require(\"fs\");\nconst path = require(\"path\");\nconst MAX_EDITOR_FILE_BYTES = 1024 * 1024;\nfunction workspacePath(workspace, requested)\nfunction readWorkspaceFile(workspace, requested)\nfunction saveWorkspaceFile(workspace, requested, content, expectedMtimeMs)",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\desktop\\editor-file-service.js"
-}

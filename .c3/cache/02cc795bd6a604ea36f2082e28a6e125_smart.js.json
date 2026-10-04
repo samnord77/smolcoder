@@ -1,9 +1,0 @@
-{
-  "original_tokens": 7404,
-  "compressed_tokens": 125,
-  "saved_tokens": 7279,
-  "savings_pct": 98.3,
-  "compressed": "# code-api.test.js (.js) \u2014 600 lines\nconst test = require(\"node:test\");\nconst assert = require(\"node:assert/strict\");\nconst fs = require(\"node:fs\");\nconst http = require(\"node:http\");\nconst os = require(\"node:os\");\nconst path = require(\"node:path\");\nconst sleep = (ms) => new Promise((r) => setTimeout(r, ms));\nasync function until(fn, ms = 4000, label = \"condition\")\nfunction stubFactory(calls)\nfunction request(hub, method, p, body)\nfunction followShare(hub, path)",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\code-api.test.js"
-}

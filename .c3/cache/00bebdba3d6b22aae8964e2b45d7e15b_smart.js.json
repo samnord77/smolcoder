@@ -1,9 +1,0 @@
-{
-  "original_tokens": 980,
-  "compressed_tokens": 65,
-  "saved_tokens": 915,
-  "savings_pct": 93.4,
-  "compressed": "# git.test.js (.js) \u2014 71 lines\nconst test = require(\"node:test\");\nconst assert = require(\"node:assert/strict\");\nconst fs = require(\"node:fs\");\nconst os = require(\"node:os\");\nconst path = require(\"node:path\");\nfunction gitAvailable()\nfunction scratchRepo()",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\git.test.js"
-}

@@ -1,9 +1,0 @@
-{
-  "original_tokens": 1199,
-  "compressed_tokens": 83,
-  "saved_tokens": 1116,
-  "savings_pct": 93.1,
-  "compressed": "# keys.ts (.ts) \u2014 172 lines\nexport type KeyType = | \"char\" | \"text\" // multi-char printable run (fast typing or paste)\nexport interface Key\nconst CSI_MAP: Record<string, KeyType> =\nfunction normalizePaste(s: string): string\n\nexport class KeyDecoder\n  private pasteBuf: string | null = null;\n  decode(s: string): Key[]",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\tui\\keys.ts"
-}

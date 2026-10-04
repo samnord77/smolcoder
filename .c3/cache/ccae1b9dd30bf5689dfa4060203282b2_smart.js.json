@@ -1,9 +1,0 @@
-{
-  "original_tokens": 1306,
-  "compressed_tokens": 223,
-  "saved_tokens": 1083,
-  "savings_pct": 82.9,
-  "compressed": "# hub-client.js (.js) \u2014 141 lines\nconst fs = require(\"fs\");\nconst http = require(\"http\");\nconst os = require(\"os\");\nconst path = require(\"path\");\nfunction dataDir()\nfunction readHubRecord()\nfunction api(rec, method, p, body)\nfunction snapshot(rec)\nfunction sessionIdsByRecency(snap)\nasync function withLiveSid(rec, fn)\nconst sendSlash = (rec, text) => withLiveSid(rec, (sid) => api(rec, \"POST\", \"/msg\", { sid, text }));\nconst cycleMode = (rec) => withLiveSid(rec, (sid) => api(rec, \"POST\", \"/cycle\", { sid }));\nconst cancelTurn = (rec) => withLiveSid(rec, (sid) => api(rec, \"POST\", \"/cancel\", { sid }));\nconst openTerminal = (rec) => withLiveSid(rec, (sid) => api(rec, \"POST\", \"/term/open\", { sid }));\nasync function ping(rec)\nasync function ensureHub({ projectDir, distIndex })\nfunction hubUrl(rec)",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\desktop\\hub-client.js"
-}

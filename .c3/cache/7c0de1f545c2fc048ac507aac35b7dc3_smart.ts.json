@@ -1,9 +1,0 @@
-{
-  "original_tokens": 1312,
-  "compressed_tokens": 166,
-  "saved_tokens": 1146,
-  "savings_pct": 87.3,
-  "compressed": "# config.ts (.ts) \u2014 130 lines\nimport * as fs from \"fs\";\nimport * as os from \"os\";\nimport * as path from \"path\";\nimport { Effort } from \"./providers/types\";\nimport { Mode } from \"./tools/index\";\n\nexport const CONFIG_PATH = process.env.SMOLCODER_CONFIG || path.join(os.homedir(), \".smolcoder.json\");\nexport const DATA_DIR = path.join(os.homedir(), \".smolcoder\");\nexport interface SavedHost\nexport interface Config\nexport function effortForBackend(cfg: Config, backend: \"ollama\" | \"lmstudio\", override?: Effort | null): Effort | null\nexport function loadConfig(): Config\nexport function saveConfig(cfg: Config): void\nexport function updateConfig(patch: Partial<Config>): Config",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\config.ts"
-}

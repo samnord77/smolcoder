@@ -1,9 +1,0 @@
-{
-  "original_tokens": 850,
-  "compressed_tokens": 82,
-  "saved_tokens": 768,
-  "savings_pct": 90.4,
-  "compressed": "# check.test.js (.js) \u2014 62 lines\nconst test = require(\"node:test\");\nconst assert = require(\"node:assert/strict\");\nconst fs = require(\"node:fs\");\nconst os = require(\"node:os\");\nconst path = require(\"node:path\");\nconst dir = fs.mkdtempSync(path.join(os.tmpdir(), \"tc-check-\"));\nfunction file(name, content)",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\check.test.js"
-}

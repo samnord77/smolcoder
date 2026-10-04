@@ -1,9 +1,0 @@
-{
-  "original_tokens": 2158,
-  "compressed_tokens": 103,
-  "saved_tokens": 2055,
-  "savings_pct": 95.2,
-  "compressed": "# visual-tester.js (.js) \u2014 330 lines\nconst fs = require(\"node:fs\");\nconst http = require(\"node:http\");\nconst path = require(\"node:path\");\nconst PLAYWRIGHT_CMD = \"C:\\\\npm-global\\\\playwright-mcp.cmd\";\nasync function isPlaywrightAvailable()\nfunction serveLocalFile(filePath)\nfunction runPlaywrightSession(requests, timeoutMs = 12000)\nfunction fallbackStaticAudit(filePath)\nasync function auditWebPage(targetUrlOrFile, options = {})",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\extras\\secondary-agent-tools\\visual-tester.js"
-}

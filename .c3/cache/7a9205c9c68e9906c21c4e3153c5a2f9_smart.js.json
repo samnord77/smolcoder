@@ -1,9 +1,0 @@
-{
-  "original_tokens": 704,
-  "compressed_tokens": 30,
-  "saved_tokens": 674,
-  "savings_pct": 95.7,
-  "compressed": "# preload.js (.js) \u2014 45 lines\nconst editorTools = require(\"../dist/editor-tools.js\");\nconst tabs = makeEditorTabStore();",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\desktop\\preload.js"
-}

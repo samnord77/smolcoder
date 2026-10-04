@@ -1,9 +1,0 @@
-{
-  "original_tokens": 3983,
-  "compressed_tokens": 74,
-  "saved_tokens": 3909,
-  "savings_pct": 98.1,
-  "compressed": "# context.test.js (.js) \u2014 345 lines\nconst test = require(\"node:test\");\nconst assert = require(\"node:assert/strict\");\nconst tools = [{ name: \"t\", description: \"d\", parameters: { type: \"object\", properties: {} } }];\nfunction readCall(id, path)\nfunction toolResult(id, name, content)",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\context.test.js"
-}

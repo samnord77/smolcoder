@@ -1,9 +1,0 @@
-{
-  "original_tokens": 610,
-  "compressed_tokens": 58,
-  "saved_tokens": 552,
-  "savings_pct": 90.5,
-  "compressed": "# workspace-search.test.js (.js) \u2014 45 lines\nconst test = require(\"node:test\");\nconst assert = require(\"node:assert/strict\");\nconst fs = require(\"node:fs\");\nconst os = require(\"node:os\");\nconst path = require(\"node:path\");",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\workspace-search.test.js"
-}

@@ -1,9 +1,0 @@
-{
-  "original_tokens": 1448,
-  "compressed_tokens": 57,
-  "saved_tokens": 1391,
-  "savings_pct": 96.1,
-  "compressed": "# self-healing.js (.js) \u2014 184 lines\nconst path = require(\"node:path\");\nfunction getBaselineCommit(workspace = process.cwd())\nfunction parseStackTrace(error)\nfunction rollback(workspace = process.cwd(), baselineCommit)\nfunction runWithSelfHealing(taskFn, options = {})",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\extras\\secondary-agent-tools\\self-healing.js"
-}

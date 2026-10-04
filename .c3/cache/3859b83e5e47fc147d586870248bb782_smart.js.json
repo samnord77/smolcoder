@@ -1,9 +1,0 @@
-{
-  "original_tokens": 294,
-  "compressed_tokens": 26,
-  "saved_tokens": 268,
-  "savings_pct": 91.2,
-  "compressed": "# smoke.js (.js) \u2014 28 lines\nconst hub = require(\"./hub-client\");\nconst path = require(\"path\");",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\desktop\\smoke.js"
-}

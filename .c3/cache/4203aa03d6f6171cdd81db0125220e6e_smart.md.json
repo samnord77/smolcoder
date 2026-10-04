@@ -1,9 +1,0 @@
-{
-  "original_tokens": 913,
-  "compressed_tokens": 222,
-  "saved_tokens": 691,
-  "savings_pct": 75.7,
-  "compressed": "# SKILL.md (.md) \u2014 41 lines\n# Audit Smolcoder CLI/Web/Electron  ## Objectif\n## Objectif  Appliquer une v\u00e9rification de bout en bout sans perdre les donn\u00e9es runtime `.c3/`, `.smol/` ou les sessions. Garder un seul c\u0153ur compil\u00e9 (`dist/`) utilis\u00e9 par le CLI, le hub web et Electron, puis prouver le r\u00e9sultat par des tests et un paquet reconstruit.\n## Proc\u00e9dure  1. Se placer explicitement dans `C:\\Users\\DELL\\smolcoder-source`. Lire `AGENTS.md`, `package.json`, `git status --short` et les diff\u00e9rences des fichiers concern\u00e9s. Ne jamais ex\u00e9cuter `git reset --hard`, `git checkout --` ni supprimer `.c3/`, `.smol/` ou `C:\\Users\\DELL\\.smolcoder`.\n## R\u00e8gles d\u2019optimisation  * Utiliser des commandes PowerShell directes, sans pipelines Unix avec npm.",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\.skywork-local\\skills\\smolcoder-ide-audit\\SKILL.md"
-}

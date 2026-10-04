@@ -1,9 +1,0 @@
-{
-  "original_tokens": 2581,
-  "compressed_tokens": 337,
-  "saved_tokens": 2244,
-  "savings_pct": 86.9,
-  "compressed": "# editor-tools.ts (.ts) \u2014 304 lines\nexport interface TextEditResult\nexport interface TextMatch\nexport interface FindMatchesResult\nexport interface FindOptions\nexport interface ReplaceResult\nconst MAX_FIND_TEXT_CHARS = 4 * 1024 * 1024;\nconst MAX_FIND_RESULTS = 1000;\nconst MAX_REPLACED_CHARS = 1024 * 1024;\nconst MAX_REPLACEMENTS = 50_000;\nfunction literalPattern(query: string, caseSensitive: boolean): RegExp | null\nexport function findMatches( text: string, query: string,\nexport function findNextMatch( text: string, query: string,\nexport function replaceAllLiteral( text: string, query: string,\nexport function cursorPosition( text: string, offset: number,\nexport function offsetForPosition( text: string, line: number,\nexport function changeIndent( text: string, start: number,\nexport function insertNewlineWithIndent( text: string, start: number,\nexport const editorToolsBrowserSource = `(() => { const MAX_FIND_TEXT_CHARS=${MAX_FIND_TEXT_CHARS}, MAX_FIND_RESULTS=${MAX_FIND_RESULTS}, MAX_REPLACED_CHARS=${MAX_REPLACED_CHARS}, MAX_REPLACEMENTS=${MAX_REPLACEMENTS}; const literalPattern=${literalPattern.toString()}; return ({cursorPosition:${cursorPosition.toString()},offsetForPosition:${offsetForPosition.toString()},changeIndent:${changeIndent.toString()},insertNewlineWithIndent:${insertNewlineWithIndent.toString()},findMatches:${findMatches.toString()},findNextMatch:${findNextMatch.toString()},replaceAllLiteral:${replaceAllLiteral.toString()}}); })()`;",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\editor-tools.ts"
-}

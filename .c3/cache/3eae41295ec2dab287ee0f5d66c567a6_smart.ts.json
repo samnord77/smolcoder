@@ -1,9 +1,0 @@
-{
-  "original_tokens": 1644,
-  "compressed_tokens": 131,
-  "saved_tokens": 1513,
-  "savings_pct": 92.0,
-  "compressed": "# verification.ts (.ts) \u2014 159 lines\nimport * as fs from \"fs\";\nimport * as path from \"path\";\nimport { resolveInWorkspace } from \"./sandbox\";\n\nexport function failureSignature(output: string): string\nfunction workspaceEntry(workspace: string, relative: string, kind: \"file\" | \"directory\" = \"file\"): string | null\nfunction hasPythonTests(workspace: string, relative: string, depth = 2): boolean\nexport function projectVerification(workspace: string): string | undefined\nexport function splitVerification(command: string): string[]\nexport function mergeVerificationCommands(...cmds: (string | undefined)[]): string",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\verification.ts"
-}

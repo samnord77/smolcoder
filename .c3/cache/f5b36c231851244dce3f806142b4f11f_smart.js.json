@@ -1,9 +1,0 @@
-{
-  "original_tokens": 395,
-  "compressed_tokens": 123,
-  "saved_tokens": 272,
-  "savings_pct": 68.9,
-  "compressed": "# update-profile.js (.js) \u2014 39 lines\nconst fs = require(\"fs\");\nconst path = require(\"path\");\nconst smolSnippet = ` # >>> smolcoder (CLI & Web) >>> function smol\nconst ps7Path = path.join(\"C:\", \"Users\", \"DELL\", \"Documents\", \"PowerShell\", \"Microsoft.PowerShell_profile.ps1\");\nconst winPsDir = path.join(\"C:\", \"Users\", \"DELL\", \"Documents\", \"WindowsPowerShell\");\nconst winPsPath = path.join(winPsDir, \"Microsoft.PowerShell_profile.ps1\");",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\extras\\secondary-agent-tools\\update-profile.js"
-}

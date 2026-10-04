@@ -1,9 +1,0 @@
-{
-  "original_tokens": 313,
-  "compressed_tokens": 78,
-  "saved_tokens": 235,
-  "savings_pct": 75.1,
-  "compressed": "# sse-check.js (.js) \u2014 30 lines\nconst http = require(\"http\");\nconst token = process.argv[2];\nconst req = http.get( { host: \"127.0.0.1\", port: 7433, path: \"/events?k=\" + token, headers: { Accept: \"text/event-stream\" } }, (res) =>",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\desktop\\sse-check.js"
-}

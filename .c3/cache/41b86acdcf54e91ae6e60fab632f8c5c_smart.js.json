@@ -1,9 +1,0 @@
-{
-  "original_tokens": 1642,
-  "compressed_tokens": 96,
-  "saved_tokens": 1546,
-  "savings_pct": 94.2,
-  "compressed": "# debug.test.js (.js) \u2014 129 lines\nconst test = require(\"node:test\");\nconst assert = require(\"node:assert/strict\");\nconst fs = require(\"node:fs\");\nconst os = require(\"node:os\");\nconst path = require(\"node:path\");\nconst MOCK_LINES = [ '\"use strict\";', 'const SRC = process.argv[2] || \"prog.py\";',\nlet mockPath = null;\nfunction mockAdapter()\nfunction scratchWs()",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\debug.test.js"
-}

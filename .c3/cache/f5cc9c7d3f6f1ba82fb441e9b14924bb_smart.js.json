@@ -1,9 +1,0 @@
-{
-  "original_tokens": 304,
-  "compressed_tokens": 110,
-  "saved_tokens": 194,
-  "savings_pct": 63.8,
-  "compressed": "# hl-check.js (.js) \u2014 21 lines\nconst path = require(\"path\");\nconst sample = 'const x = 42; // compte\\nif (x > 1) { return \"fini <b>\"; }\\n# commentaire';\nconst out = highlightHtml(sample, \"js\");\nconst checks = [ [\"mot-cle const\", out.includes('<span class=\"tok-k\">const</span>')], [\"nombre 42\", out.includes('<span class=\"tok-n\">42</span>')],\nlet ok = true;",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\desktop\\hl-check.js"
-}

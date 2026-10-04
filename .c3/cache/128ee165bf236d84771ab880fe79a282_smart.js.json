@@ -1,9 +1,0 @@
-{
-  "original_tokens": 872,
-  "compressed_tokens": 63,
-  "saved_tokens": 809,
-  "savings_pct": 92.8,
-  "compressed": "# git-service.js (.js) \u2014 70 lines\nconst path = require(\"path\");\nconst run = promisify(execFile);\nasync function git(root, args)\nasync function repoRoot(workspace)\nasync function status(workspace)\nasync function diff(workspace, requestedPath)\nasync function commit(workspace, requestedPath, message)",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\desktop\\git-service.js"
-}

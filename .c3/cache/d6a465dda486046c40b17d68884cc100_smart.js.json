@@ -1,9 +1,0 @@
-{
-  "original_tokens": 416,
-  "compressed_tokens": 58,
-  "saved_tokens": 358,
-  "savings_pct": 86.1,
-  "compressed": "# read-budget.test.js (.js) \u2014 31 lines\nconst test = require(\"node:test\");\nconst assert = require(\"node:assert/strict\");\nconst fs = require(\"node:fs\");\nconst os = require(\"node:os\");\nconst path = require(\"node:path\");",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\read-budget.test.js"
-}

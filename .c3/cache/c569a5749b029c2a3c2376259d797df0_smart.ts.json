@@ -1,9 +1,0 @@
-{
-  "original_tokens": 862,
-  "compressed_tokens": 137,
-  "saved_tokens": 725,
-  "savings_pct": 84.1,
-  "compressed": "# build-check.ts (.ts) \u2014 102 lines\nimport { spawnSync } from \"child_process\";\nimport * as fs from \"fs\";\nimport * as path from \"path\";\n\nexport function repoRoot(fromDir = __dirname): string\nexport function distIndex(root: string): string\nexport function distState(root: string): \"missing\" | \"stale\" | \"ok\" | \"unknown\"\nfunction npmCandidates(): string[]\nexport function runBuild(root: string, log: (s: string) => void = () => {}): boolean\nexport function ensureBuilt(root: string, log: (s: string) => void = () => {}): boolean",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\build-check.ts"
-}

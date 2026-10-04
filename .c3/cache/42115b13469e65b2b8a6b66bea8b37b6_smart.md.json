@@ -1,9 +1,0 @@
-{
-  "original_tokens": 168,
-  "compressed_tokens": 40,
-  "saved_tokens": 128,
-  "savings_pct": 76.2,
-  "compressed": "# README.md (.md) \u2014 12 lines\n# Outils r\u00e9cup\u00e9r\u00e9s de la seconde copie Smolcoder  Ce dossier conserve les scripts et configurations pr\u00e9sents dans la copie",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\extras\\secondary-agent-tools\\README.md"
-}

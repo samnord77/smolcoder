@@ -1,9 +1,0 @@
-{
-  "original_tokens": 1925,
-  "compressed_tokens": 278,
-  "saved_tokens": 1647,
-  "savings_pct": 85.6,
-  "compressed": "# crdt.ts (.ts) \u2014 184 lines\nexport interface CrdtChar\nexport interface CrdOp\nconst BASE = 65536;\nexport function posBetween(a: number[] | null, b: number[] | null): number[]\nexport function comparePos(a: number[], b: number[]): number\nexport interface CrdtDoc\nexport function emptyDoc(site: string): CrdtDoc\nexport function docFromText(text: string): CrdtDoc\nexport function docText(doc: CrdtDoc): string\nfunction sortDoc(doc: CrdtDoc): void\nfunction liveChars(doc: CrdtDoc): CrdtChar[]\nexport function localInsert(doc: CrdtDoc, visibleIndex: number, text: string): CrdOp[]\nexport function localDelete(doc: CrdtDoc, visibleIndex: number, count: number): CrdOp[]\nexport function applyOp(doc: CrdtDoc, op: CrdOp): boolean\nexport function diffForSync(before: string, after: string): { at: number; del: number; ins: string }\nexport const browserCrdtSource = [ \"const BASE = 65536;\", ...[posBetween, comparePos, emptyDoc, docFromText, docText, sortDoc, liveChars, localInsert, localDelete, applyOp, diffForSync].map(",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\crdt.ts"
-}

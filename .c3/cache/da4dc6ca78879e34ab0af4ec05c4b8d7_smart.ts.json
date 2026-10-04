@@ -1,9 +1,0 @@
-{
-  "original_tokens": 918,
-  "compressed_tokens": 103,
-  "saved_tokens": 815,
-  "savings_pct": 88.8,
-  "compressed": "# diff.ts (.ts) \u2014 105 lines\nexport type DiffKind = \"same\" | \"del\" | \"add\" | \"skip\";\nexport interface DiffLine\nconst MAX_INPUT_LINES = 200;\nconst MAX_OUT_LINES = 80;\nconst COLLAPSE_AFTER = 3;\nexport function diffLines(oldText: string, newText: string): DiffLine[]\nfunction collapseRuns(lines: DiffLine[]): DiffLine[]\nexport function renderEditDiff(oldText: string, newText: string): string",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\web\\diff.ts"
-}

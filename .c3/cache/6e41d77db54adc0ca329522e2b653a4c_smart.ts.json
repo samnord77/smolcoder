@@ -1,9 +1,0 @@
-{
-  "original_tokens": 822,
-  "compressed_tokens": 135,
-  "saved_tokens": 687,
-  "savings_pct": 83.6,
-  "compressed": "# app.ts (.ts) \u2014 94 lines\nimport { spawn } from \"node:child_process\";\nimport * as fs from \"node:fs\";\nimport * as os from \"node:os\";\nimport * as path from \"node:path\";\n\nexport interface AppEnv\nexport function findAppBrowser(platform: string = process.platform, env: AppEnv = process.env): string | null\nexport function appProfileDir(): string\nexport function buildAppArgs(url: string): string[]\nexport function openUrl(url: string, platform: string = process.platform): boolean\nexport function launchApp(url: string): \"app\" | \"browser\" | \"printed\"",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\web\\app.ts"
-}

@@ -1,9 +1,0 @@
-{
-  "original_tokens": 412,
-  "compressed_tokens": 90,
-  "saved_tokens": 322,
-  "savings_pct": 78.2,
-  "compressed": "# run.sh (.sh) \u2014 25 lines\nlabel=\"$1\"; model=\"$2\"; effort=\"${3:-off}\"; shift 3 || shift $#\nroot=\"$(cd \"$(dirname \"$0\")/..\" && pwd)\"\nprompt=\"${BENCH_PROMPT:-$root/bench/minecraft-prompt.txt}\"\nws=\"$root/playground/$label\"\nlog=\"$root/bench/out/$label.log\"\nstart=$(date +%s)\ncode=$?",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\bench\\run.sh"
-}

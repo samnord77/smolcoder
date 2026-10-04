@@ -1,9 +1,0 @@
-{
-  "original_tokens": 2627,
-  "compressed_tokens": 83,
-  "saved_tokens": 2544,
-  "savings_pct": 96.8,
-  "compressed": "# test-all-tools.js (.js) \u2014 180 lines\nconst fs = require(\"node:fs\");\nconst path = require(\"node:path\");\nconst cp = require(\"node:child_process\");\nconst WORKSPACE = \"c:\\\\Users\\\\DELL\\\\.smolcoder\";\nconst ctx =\nlet passed = 0;\nlet failed = 0;\nfunction assert(condition, message)\nasync function runTestSuite()",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\extras\\secondary-agent-tools\\test-all-tools.js"
-}

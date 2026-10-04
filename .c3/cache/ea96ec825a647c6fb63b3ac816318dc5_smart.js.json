@@ -1,9 +1,0 @@
-{
-  "original_tokens": 1000,
-  "compressed_tokens": 41,
-  "saved_tokens": 959,
-  "savings_pct": 95.9,
-  "compressed": "# crdt.test.js (.js) \u2014 88 lines\nconst test = require(\"node:test\");\nconst assert = require(\"node:assert/strict\");\nconst vm = require(\"node:vm\");",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\crdt.test.js"
-}

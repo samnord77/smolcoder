@@ -1,9 +1,0 @@
-{
-  "original_tokens": 16462,
-  "compressed_tokens": 39,
-  "saved_tokens": 16423,
-  "savings_pct": 99.8,
-  "compressed": "# client.ts (.ts) \u2014 1188 lines\nexport const CLIENT_JS = String.raw` \"use strict\"; const k = new URLSearchParams(location.search).get(\"k\") || \"\";",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\web\\client.ts"
-}

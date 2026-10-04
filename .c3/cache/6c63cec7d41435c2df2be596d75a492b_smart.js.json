@@ -1,9 +1,0 @@
-{
-  "original_tokens": 2199,
-  "compressed_tokens": 81,
-  "saved_tokens": 2118,
-  "savings_pct": 96.3,
-  "compressed": "# ast-indexer.js (.js) \u2014 290 lines\nconst fs = require(\"node:fs\");\nconst path = require(\"node:path\");\nfunction getAstOutline(filePath)\nfunction lookupSymbol(symbolName, workspace = process.cwd())\nfunction findCallSites(symbolName, workspace = process.cwd())\nfunction searchSymbols(query, workspace = process.cwd())\nfunction queryC3Context(query, workspace = process.cwd())",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\extras\\secondary-agent-tools\\ast-indexer.js"
-}

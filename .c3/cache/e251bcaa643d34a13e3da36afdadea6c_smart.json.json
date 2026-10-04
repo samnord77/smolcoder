@@ -1,9 +1,0 @@
-{
-  "original_tokens": 496,
-  "compressed_tokens": 147,
-  "saved_tokens": 349,
-  "savings_pct": 70.4,
-  "compressed": "# package.json (.json) \u2014 59 lines\n\"name\": \"smolcoder\",\n\"version\": \"0.7.1\",\n\"description\": \"A smol, zero-config CLI coding agent for local models (Ollama & LM Studio). It just works.\",\n\"keywords\": [ \"cli\", \"coding-agent\",\n\"license\": \"MIT\",\n\"author\": \"Leon van Zyl\",\n\"homepage\": \"https://github.com/leonvanzyl/smolcoder#readme\",\n\"repository\":\n\"bugs\":\n\"bin\":\n\"main\": \"dist/index.js\",\n\"files\": [ \"dist\", \"README.md\",\n\"scripts\":\n\"engines\":\n\"devDependencies\":\n\"dependencies\":\n\"allowScripts\":",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\package.json"
-}

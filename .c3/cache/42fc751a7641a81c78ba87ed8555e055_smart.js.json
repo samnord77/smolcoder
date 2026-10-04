@@ -1,9 +1,0 @@
-{
-  "original_tokens": 797,
-  "compressed_tokens": 55,
-  "saved_tokens": 742,
-  "savings_pct": 93.1,
-  "compressed": "# branding.test.js (.js) \u2014 65 lines\nconst test = require(\"node:test\");\nconst assert = require(\"node:assert/strict\");\nconst strip = (s) => s.replace(/\\x1b\\[[0-9;]*m/g, \"\");",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\branding.test.js"
-}

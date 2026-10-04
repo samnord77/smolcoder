@@ -1,9 +1,0 @@
-{
-  "original_tokens": 1198,
-  "compressed_tokens": 106,
-  "saved_tokens": 1092,
-  "savings_pct": 91.2,
-  "compressed": "# plan.ts (.ts) \u2014 112 lines\nexport interface PlanStep\n\nexport class Plan\n  steps: PlanStep[] = [];\n  get exists(): boolean\n  get doneCount(): number\n  get currentIndex(): number\n  reset(): void\n  set(stepsText: string): string\n  markDone(stepNumber?: number): string\n  add(text: string): string\n  checkpoint(text: string): string\n  modelView(): string\n  compactLine(): string | null\n  pendingSummary(): string",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\plan.ts"
-}

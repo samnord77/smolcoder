@@ -1,9 +1,0 @@
-{
-  "original_tokens": 1609,
-  "compressed_tokens": 335,
-  "saved_tokens": 1274,
-  "savings_pct": 79.2,
-  "compressed": "# netscan.ts (.ts) \u2014 146 lines\nimport * as dns from \"node:dns\";\nimport * as net from \"node:net\";\nimport * as os from \"node:os\";\nimport { type BackendKind, identifyServer } from \"./detect\";\nimport { LMSTUDIO_PORT, OLLAMA_PORT } from \"./hosts\";\n\nexport interface Subnet\nexport interface FoundServer\nexport interface FoundHost\nconst CONNECT_TIMEOUT_MS = 350;\nconst CONCURRENCY = 64;\nconst MIN_PREFIX = 22;\nconst CLAMPED_PREFIX = 24;\nconst VIRTUAL_IFACE = /^(vEthernet \\((WSL|Default Switch)|docker\\d*$|br-[0-9a-f]+$|veth[0-9a-f]+$|virbr\\d*$)/i;\nconst toInt = (ip: string) => ip.split(\".\").reduce((n, part) => n * 256 + Number(part), 0);\nconst toIp = (n: number) => [24, 16, 8, 0].map((shift) => Math.floor(n / 2 ** shift) % 256).join(\".\");\nfunction isPrivateV4(ip: string): boolean\nexport function localSubnets(ifaces: NodeJS.Dict<os.NetworkInterfaceInfo[]> = os.networkInterfaces()): Subnet[]\nfunction canConnect(ip: string, port: number, timeoutMs: number): Promise<boolean>\nfunction stableName(ip: string): Promise<string | undefined>\nexport interface ScanOptions\nexport async function scanSubnets(subnets: Subnet[], opts: ScanOptions = {}): Promise<FoundHost[]>",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\netscan.ts"
-}

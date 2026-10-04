@@ -1,9 +1,0 @@
-{
-  "original_tokens": 1971,
-  "compressed_tokens": 151,
-  "saved_tokens": 1820,
-  "savings_pct": 92.3,
-  "compressed": "# status.ts (.ts) \u2014 158 lines\nimport { spawnSync } from \"node:child_process\";\nimport * as fs from \"node:fs\";\nimport * as os from \"node:os\";\nimport * as path from \"node:path\";\nimport { lspAvailability } from \"./lsp-pro\";\nimport { loadMcpConfig } from \"./mcp\";\nimport { loadSubagentRoles } from \"./subagents\";\nimport { projectVerification } from \"./verification\";\n\nexport interface StatusReport\nfunction isLocalModel(host: string, id: string): boolean\nfunction runBuildCheck(workspace: string): { command: string; state: string }\nexport async function buildStatusReport(opts:\nexport function renderStatusText(r: StatusReport): string",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\status.ts"
-}

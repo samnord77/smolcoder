@@ -1,9 +1,0 @@
-{
-  "original_tokens": 2304,
-  "compressed_tokens": 298,
-  "saved_tokens": 2006,
-  "savings_pct": 87.1,
-  "compressed": "# terminal.ts (.ts) \u2014 224 lines\nimport { type ChildProcess, spawn } from \"node:child_process\";\nimport { commandEscapesWorkspace } from \"../sandbox\";\nimport { killTree, pickShell, type ShellInfo, shellEnv } from \"../tools/shell\";\n\nconst RS = \"\\x1e\"; // record separator \u2014 never appears in normal output\nconst SENTINEL = /\\x1e(-?\\d+)\\x1e([^\\x1e]*)\\x1e\\r?\\n?/;\nconst BUFFER_CAP = 200_000;\nconst HOLD_CAP = 600; // a partial sentinel is held back at most this long\nexport interface TerminalHooks\n\nexport class Terminal\n  cwd: string;\n  buffer = \"\";\n  closed = false;\n  readonly shell: ShellInfo;\n  private workspaceRoot: string;\n  private proc: ChildProcess | null = null;\n  private acc = \"\";\n  private kind: \"posix\" | \"powershell\";\n  private interrupting = false;\n  private spawnedAt = 0;\n  private quickExits = 0;\n  constructor( readonly id: string, cwd: string,\n  private spawn(): void\n  write(line: string): void\n  interrupt(): void\n  close(): void\n  private ingest(text: string): void\n  private emit(text: string): void\nexport function toOsPath(p: string): string\nexport function stripControl(s: string): string",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\web\\terminal.ts"
-}

@@ -1,9 +1,0 @@
-{
-  "original_tokens": 3803,
-  "compressed_tokens": 102,
-  "saved_tokens": 3701,
-  "savings_pct": 97.3,
-  "compressed": "# git.test.js (.js) \u2014 259 lines\nconst test = require(\"node:test\");\nconst assert = require(\"node:assert/strict\");\nconst fs = require(\"node:fs\");\nconst os = require(\"node:os\");\nconst path = require(\"node:path\");\nfunction gitAvailable()\nfunction scratchRepo()\nconst DIFF_SAMPLE = `diff --git a/app.txt b/app.txt index 1111111..2222222 100644 --- a/app.txt\nfunction scratchHunkRepo()",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\test\\git.test.js"
-}

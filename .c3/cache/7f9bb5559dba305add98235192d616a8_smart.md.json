@@ -1,9 +1,0 @@
-{
-  "original_tokens": 2016,
-  "compressed_tokens": 197,
-  "saved_tokens": 1819,
-  "savings_pct": 90.2,
-  "compressed": "# backend-notes.md (.md) \u2014 118 lines\n# Backend notes and benchmarks  Measurements and tuning notes behind smolcoder's Ollama and LM Studio support. Numbers are from one machine and one model, so treat them as a guide rather than gospel.\n## Backend notes: Ollama vs LM Studio  Measured head-to-head with identical qwen3.8-27B Q4_K_M weights on one RTX 5090\n## End-to-end: the same Minecraft build on both backends  One headless run each (`smol -p \"<prompt>\" --mode bypass --effort off`), same\n### The same build with reasoning on (`--effort high`)  `high` resolves to `medium` on this LM Studio model (its levels are off/low/medium/xhigh;\n### Forcing compaction  The same build with the window capped at 12k tokens (`--ctx 12000`, output budget",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\docs\\backend-notes.md"
-}

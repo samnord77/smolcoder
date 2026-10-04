@@ -1,9 +1,0 @@
-{
-  "original_tokens": 161,
-  "compressed_tokens": 40,
-  "saved_tokens": 121,
-  "savings_pct": 75.2,
-  "compressed": "# tsconfig.json (.json) \u2014 31 lines\n\"compilerOptions\":\n\"include\": [ \"*.js\" ],\n\"exclude\": [ \"node_modules\", \".impeccable-repo\",",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\extras\\secondary-agent-tools\\tsconfig.json"
-}

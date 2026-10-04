@@ -1,9 +1,0 @@
-{
-  "original_tokens": 35980,
-  "compressed_tokens": 284,
-  "saved_tokens": 35696,
-  "savings_pct": 99.2,
-  "compressed": "# unattended-2026-09-13.json (.json) \u2014 5013 lines\n\"date\": \"2026-09-13\",\n\"method\": \"One fresh Agent.runTurn per trial, no resume, no supervisor-written game source, no follow-up repair prompt. Caller-owned acceptance runs automatically; screenshots also inspected by supervisor.\",\n\"scope\": \"Installed Qwen3.8 27B Q4_K_M models, 65,536-token context, reasoning off, sequential providers. Weight files not verified byte-identical. These selected successful trials follow failed development trials; they are not a completion-rate or competitor-superiority estimate.\",\n\"machine\":\n\"harnessTests\":\n\"meshObserverFixtures\":\n\"hudFixtures\":\n\"runs\": [\n\"rejectedEarlierArtifact\":\n\"rejectedHUDArtifact\":\n\"consoleDiagnosticRegression\":\n\"consoleFixtures\":\n\"directViewRegression\":\n\"renderedWorldRegression\":\n\"renderUpdateFixtures\":\n\"movementRegression\":\n\"movementFixtures\":\n\"diagnosticsRevision\": \"Ollama v9 completed with fourteen embedded-preview groups, then passed independent direct checks. LM v11 requires fifteen groups in both views within each acceptance attempt, including actual rendered edits, three movement headings and invalid saved data. Both final artifacts pass an independent repeat of the same combined 30-check gate. Original checker hashes differ; harness and prompt hashes match.\",\n\"installedCLI\":",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\docs\\evidence\\unattended-2026-09-13.json"
-}

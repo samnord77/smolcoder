@@ -1,9 +1,0 @@
-{
-  "original_tokens": 2262,
-  "compressed_tokens": 221,
-  "saved_tokens": 2041,
-  "savings_pct": 90.2,
-  "compressed": "# plan.ts (.ts) \u2014 220 lines\nimport { randomUUID } from \"node:crypto\";\nimport * as fs from \"node:fs\";\nimport { resolveInWorkspace } from \"./sandbox\";\n\nexport interface PlanStep\n\nexport class Plan\n  steps: PlanStep[] = [];\n  private readonly storage: { workspace: string; key: string } | null;\n  loadError: string | null = null;\n  constructor(workspace?: string, key = \"cli\")\n  private static validSteps(value: unknown): value is PlanStep[]\n  private storagePath(): string\n  private persist(steps: PlanStep[]): string | null\n  restoreSteps(steps: unknown): string | null\n  get exists(): boolean\n  get doneCount(): number\n  get currentIndex(): number\n  reset(): string | null\n  set(stepsText: string): string\n  markDone(stepNumber?: number): string\n  add(text: string): string\n  checkpoint(text: string): string\n  modelView(): string\n  compactLine(): string | null\n  pendingSummary(): string",
-  "mode": "smart",
-  "filepath": "C:\\Users\\DELL\\smolcoder-source\\src\\plan.ts"
-}
