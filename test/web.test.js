@@ -176,6 +176,35 @@ test("channel: the state event carries the busy label so a reconnecting page res
   assert.equal(ch.stateEvent().s.busy, null);
 });
 
+test("channel: a finished turn releases its autopilot phase so the status bar has no ghost chip", () => {
+  const { ch } = makeChannel();
+  ch.autopilotPhase("thinking", "raisonnement du modèle — étape 1/1000");
+  assert.equal(ch.stateEvent().s.autopilot.phase, "thinking");
+  ch.autopilotPhase("completed", "tâche terminée et résultat vérifié");
+  assert.equal(ch.autopilot, null, "the terminal phase is released");
+  assert.ok(!("autopilot" in ch.stateEvent().s), "the live state carries no phase once the turn is over");
+  assert.ok(ch.replay.some((e) => e.t === "autopilot" && e.phase === "completed"), "the phase still streams while it happens");
+});
+
+test("channel: a cancelled turn releases its autopilot phase too", () => {
+  const { ch } = makeChannel();
+  ch.autopilotPhase("thinking", "raisonnement du modèle");
+  ch.turnCancelled();
+  assert.equal(ch.autopilot, null, "cancel is terminal as well");
+  assert.ok(!("autopilot" in ch.stateEvent().s), "no phase survives the cancel");
+  assert.ok(ch.replay.some((e) => e.t === "turn_cancelled"));
+});
+
+test("channel: returning to idle drops a leftover error phase", async () => {
+  const { ch } = makeChannel();
+  ch.autopilotPhase("error", "provider down", { message: "provider down" });
+  assert.equal(ch.stateEvent().s.autopilot.phase, "error");
+  const p = ch.readInput();
+  assert.ok(!("autopilot" in ch.stateEvent().s), "no phase survives into the next wait for input");
+  ch.handleMessage("suite");
+  assert.equal(await p, "suite");
+});
+
 test("channel: the status view sees live sub-agents and auto-loaded skills", () => {
   const { ch, sent } = makeChannel();
   ch.subagent("start", "explore login flow");

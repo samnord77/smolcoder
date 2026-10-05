@@ -826,7 +826,6 @@ function renderState(v) {
         });
     };
     st.appendChild(resume);
-    if (s.outcome === "error" && s.lastError) showToast(s.lastError, "error");
   }
   if ($("topmodelname") && s.model) {
     const raw = s.model.split("/").pop().split(":").shift();
@@ -1277,6 +1276,9 @@ function handle(m) {
   const v = getView(m.sid);
   switch (m.t) {
     case "state":
+      // The server omits "autopilot" when no phase is active; a merge would keep
+      // the stale chip, so drop the local one first (replay may still carry it).
+      if (m.s && !("autopilot" in m.s)) delete v.state.autopilot;
       v.state = Object.assign(v.state, m.s);
       if (m.s && "busy" in m.s) setBusy(v, m.s.busy);
       renderState(v);
@@ -1294,6 +1296,7 @@ function handle(m) {
       v.state.outcome = "error";
       v.state.lastError = m.message || "Le tour Auto Copilot a échoué.";
       setBusy(v, null);
+      showToast(v.state.lastError, "error");
       renderState(v);
       break;
     case "user": endThought(v); v.curText = null; v.curTool = null; v.planEl = null; v.curSub = null; add(v, userBubble(m, v)); break;

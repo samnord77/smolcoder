@@ -205,6 +205,7 @@ export class SessionChannel implements SessionUI {
 
   readInput(): Promise<string | UserInput> {
     this.busyLabel = null;
+    this.autopilot = null;
     this.setStatus("idle");
     this.pushState();
     if (this.exitRequested || this.closed) return Promise.resolve("/exit");
@@ -312,6 +313,9 @@ export class SessionChannel implements SessionUI {
     else if (phase === "completed" || phase === "cancelled") this.setStatus("idle");
     else this.setStatus("busy");
     this.broadcast({ t: "autopilot", phase, label: this.autopilot.label, ...(details ? { details } : {}) });
+    // A terminal phase is streamed once, then released: the next state must not
+    // keep a finished chip in the status bar (replay still carries the event).
+    if (phase === "completed" || phase === "cancelled") this.autopilot = null;
     this.pushState();
   }
 
