@@ -100,11 +100,27 @@ function apiKeyFor(m: DetectedModel): string | undefined {
   return undefined;
 }
 
+/** Short name of the server behind a model, used in provider labels and
+ * error text. Blaming LM Studio for an OpenRouter quota 429 sends the user
+ * to the wrong machine. */
+function serverNameFor(baseUrl: string): string {
+  let host: string;
+  try {
+    host = new URL(baseUrl).hostname.toLowerCase();
+  } catch {
+    return "lmstudio";
+  }
+  if (host.endsWith("openrouter.ai")) return "OpenRouter";
+  if (host.endsWith("generativelanguage.googleapis.com")) return "Gemini";
+  if (host === "localhost" || host.startsWith("127.") || host === "::1") return "lmstudio";
+  return host;
+}
+
 export function makeProvider(m: DetectedModel): Provider {
   const maxOut = outputBudget(m.contextWindow);
   return m.backend === "ollama"
     ? new OllamaProvider(m.baseUrl, m.id, m.contextWindow, m.numCtx, maxOut, m.vision)
-    : new LmStudioProvider(m.baseUrl, m.id, m.contextWindow, maxOut, m.reasoning, m.vision, apiKeyFor(m));
+    : new LmStudioProvider(m.baseUrl, m.id, m.contextWindow, maxOut, m.reasoning, m.vision, apiKeyFor(m), serverNameFor(m.baseUrl));
 }
 
 /** One-line advice when the effective reasoning setting will be slow: LM
@@ -216,7 +232,7 @@ export function backendLabel(m: DetectedModel): string {
 }
 
 export function sessionLine(m: DetectedModel, mode: Mode): string {
-  return `${c.green("●")} ${backendLabel(m)} · ${c.bold(m.id)} · ctx ${m.contextWindow.toLocaleString()} · ${m.id.endsWith(":free") ? c.green("GRATUIT") + " · " : ""}${MODE_LABELS[mode]} mode`;
+  return `${c.green("●")} ${backendLabel(m)} · ${c.bold(m.id)} · ctx ${m.contextWindow.toLocaleString()} · ${m.id.endsWith(":free") ? `${c.green("GRATUIT")} · ` : ""}${MODE_LABELS[mode]} mode`;
 }
 
 /** Gros bandeau quand le mode YOLO est actif : rien ne demande avant d'agir. */

@@ -118,9 +118,12 @@ export class LmStudioProvider implements Provider {
     /** Whether the model accepts images (LM Studio lists such models as "vlm"). */
     public readonly vision?: boolean,
     /** Bearer key for hosted OpenAI-compatible gateways (OpenRouter…). */
-    private apiKey?: string
+    private apiKey?: string,
+    /** Short name of the server behind the model. Errors must blame the real
+     * backend: an OpenRouter quota 429 is not an LM Studio failure. */
+    private serverName = "lmstudio"
   ) {
-    this.label = `lmstudio · ${modelId}`;
+    this.label = `${serverName} · ${modelId}`;
     this.maxOutputTokens = maxOutputTokens;
   }
 
@@ -138,6 +141,13 @@ export class LmStudioProvider implements Provider {
       if (typeof instance?.config?.context_length === "number") return instance.config.context_length;
     }
     return undefined;
+  }
+
+  /** Chat completions URL. Google's OpenAI-compatible endpoint is served
+   * WITHOUT the /v1 segment every other host uses (.../v1beta/openai/chat/...). */
+  private get chatUrl(): string {
+    const seg = this.baseUrl.includes("generativelanguage.googleapis.com") ? "" : "/v1";
+    return `${this.baseUrl}${seg}/chat/completions`;
   }
 
   effortLabel(): string | null {
@@ -225,7 +235,7 @@ export class LmStudioProvider implements Provider {
 
   private async readResponse(body: any, opts: ChatOptions, activity: () => void, started?: { streaming: boolean }): Promise<ChatResult> {
     const t0 = Date.now();
-    const res = await fetch(`${this.baseUrl}/v1/chat/completions`, {
+    const res = await fetch(this.chatUrl, {
       method: "POST",
       headers: {
         "content-type": "application/json",
@@ -236,13 +246,13 @@ export class LmStudioProvider implements Provider {
     });
     if (!res.ok) {
       const text = await res.text().catch(() => "");
-      throw new Error(`LM Studio returned ${res.status}: ${text.slice(0, 300)}`);
+      throw new Error(`${this.serverName} returned ${res.status}: ${text.slice(0, 300)}`);
     }
 
     if (body.stream === false) {
       const data: any = await res.json();
       if (data.error || !data.choices?.[0]?.message)
-        throw new Error(`LM Studio returned an invalid completion: ${data.error?.message ?? "missing message"}`);
+        throw new Error(`${this.serverName} returned an invalid completion: ${data.error?.message ?? "missing message"}`);
       const msg = data.choices?.[0]?.message ?? {};
       const toolCalls: ToolCall[] = (msg.tool_calls ?? []).map((tc: any) => ({
         id: tc.id || nextCallId(),

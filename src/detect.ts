@@ -197,6 +197,32 @@ const NOT_LOADED_NOTE =
 const LMSTUDIO_JIT_GUESS = 4096; // LM Studio's usual default when a model is JIT-loaded
 const DEFAULT_LMSTUDIO_BASE = `http://127.0.0.1:${LMSTUDIO_PORT}`;
 
+/** Google's OpenAI-compatible /models listing carries no context metadata.
+ * The Gemini 2.5 flash/pro family all share a 1,048,576-token input window;
+ * output stays bounded separately by outputBudget(). */
+export function googleContextWindow(id: string): number | undefined {
+  return /^gemini-2\.5-(flash|pro)/.test(stripGooglePrefix(id)) ? 1_048_576 : undefined;
+}
+
+/** Google's OpenAI-compatible listing prefixes every id with "models/"
+ * ("models/gemini-2.5-flash"); the bare id is what chat/completions expects. */
+export function stripGooglePrefix(id: string): string {
+  return id.startsWith("models/") ? id.slice("models/".length) : id;
+}
+
+/** Path of the OpenAI-compatible model listing for a base URL. Google is the
+ * one host WITHOUT the /v1 segment: .../v1beta/openai/models, not .../openai/v1/models. */
+export function compatModelsPath(base: string): string {
+  return base.includes("generativelanguage.googleapis.com") ? "/models" : "/v1/models";
+}
+
+/** Google's listing also carries imagen/veo/embed/gemma entries that cannot chat:
+ * keep only the chat-capable Gemini 2.5 flash/pro family. */
+export function isChatGemini25(id: string): boolean {
+  const bare = stripGooglePrefix(id);
+  return /^gemini-2\.5-(flash|pro)/.test(bare) && !/image|embed/i.test(bare);
+}
+
 /** LM Studio labels vision models "vlm" and text-only ones "llm". */
 function visionOf(type: unknown): boolean | undefined {
   return type === "vlm" ? true : type === "llm" ? false : undefined;
@@ -312,14 +338,27 @@ export async function identifyServer(
   // OpenAI-compatible servers we can't identify (older LM Studio included): the
   // listing carries no context info, so we stay conservative and say only what
   // we actually know.
-  const compat = await tryFetchJson(`${base}/v1/models`, { ...(auth ? { headers: auth } : {}) }, timeoutMs);
+  const isGoogle = base.includes("generativelanguage.googleapis.com");
+  const compat = await tryFetchJson(`${base}${compatModelsPath(base)}`, { ...(auth ? { headers: auth } : {}) }, timeoutMs);
   if (compat && Array.isArray(compat.data)) {
+    const isOpenRouter = base.includes("openrouter.ai");
     const models = compat.data
-      .filter((m: any) => !String(m.id).includes("embed"))
+      // "embed" models have no chat endpoint; OpenRouter's ":batch" variants
+      // are deferred-batch only and answer 404 on /chat/completions.
+      .filter((m: any) => !String(m.id).includes("embed") && !String(m.id).includes(":batch"))
+      // OpenRouter: keep ONLY the ":free" models — paid models are hidden
+      // entirely (they cost money and share the same selection list).
+      .filter((m: any) => !isOpenRouter || String(m.id).includes(":free"))
+      // Google: surface only chat-capable Gemini 2.5 flash/pro entries — the
+      // full listing also carries imagen/veo/embed/gemma that cannot chat.
+      .filter((m: any) => !isGoogle || isChatGemini25(String(m.id)))
       .map((m: any) => {
-        const ctx = typeof m.context_length === "number" && Number.isFinite(m.context_length) && m.context_length > 0 ? m.context_length : undefined;
+        const listed =
+          typeof m.context_length === "number" && Number.isFinite(m.context_length) && m.context_length > 0 ? m.context_length : undefined;
+        const ctx = listed ?? (isGoogle ? googleContextWindow(String(m.id)) : undefined);
         return {
-          id: m.id as string,
+          // Google lists "models/<id>"; the chat endpoint wants the bare id.
+          id: (isGoogle ? stripGooglePrefix(String(m.id)) : m.id) as string,
           backend: "lmstudio" as const,
           baseUrl: base,
           contextWindow: ctx ?? LMSTUDIO_JIT_GUESS,

@@ -5,9 +5,12 @@ const http = require("node:http");
 const os = require("node:os");
 const path = require("node:path");
 const {
+  compatModelsPath,
   detectAll,
   groupServers,
   identifyServer,
+  isChatGemini25,
+  googleContextWindow,
   lmStudioBaseUrls,
   ollamaBaseUrls,
   parseDefaultGateway,
@@ -247,4 +250,27 @@ test("startup stops looking once the remembered model turns up", async () => {
     hung.closeAllConnections?.();
     await Promise.all([fast.close(), new Promise((resolve) => hung.close(resolve))]);
   }
+});
+
+test("Google's OpenAI-compatible listing lives without the /v1 segment", () => {
+  assert.equal(compatModelsPath("https://generativelanguage.googleapis.com/v1beta/openai"), "/models");
+  assert.equal(compatModelsPath("http://127.0.0.1:1234"), "/v1/models");
+  assert.equal(compatModelsPath("https://openrouter.ai/api"), "/v1/models");
+});
+
+test("only chat-capable Gemini 2.5 flash/pro models are surfaced, with a 1M window", () => {
+  assert.ok(isChatGemini25("gemini-2.5-flash"));
+  assert.ok(isChatGemini25("models/gemini-2.5-flash"), "Google's listing prefixes ids with models/");
+  assert.ok(!isChatGemini25("models/gemini-2.5-flash-image"), "the models/ prefix hides nothing");
+  assert.ok(isChatGemini25("gemini-2.5-flash-lite"));
+  assert.ok(isChatGemini25("gemini-2.5-pro"));
+  assert.ok(!isChatGemini25("gemini-2.5-flash-image"), "image variants cannot chat");
+  assert.ok(!isChatGemini25("imagen-3.0-generate-002"));
+  assert.ok(!isChatGemini25("gemma-3-12b-it"), "gemma is not a Gemini 2.5 model");
+  assert.ok(!isChatGemini25("gemini-1.5-pro"), "older generations stay hidden");
+
+  assert.equal(googleContextWindow("gemini-2.5-flash"), 1048576);
+  assert.equal(googleContextWindow("gemini-2.5-pro"), 1048576);
+  assert.equal(googleContextWindow("models/gemini-2.5-flash"), 1048576);
+  assert.equal(googleContextWindow("some-other-model"), undefined);
 });
