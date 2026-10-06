@@ -4,6 +4,8 @@
  * dans smolcode :
  *   skills  → <workspace>/.smol/skills/<name>.md   (frontmatter minimal, ≤ 3900 octets)
  *   agents  → <workspace>/.smol/agents/<name>.json (SubagentRole, ≤ 2000 car. instructions)
+ *   commandes → <workspace>/.smol/ecc-commands/<name>.md ET ~/.smolcoder/ecc-commands/<name>.md
+ *            (le dossier partagé rend /commande disponible dans tous les dossiers)
  *
  * Usage : node scripts/ecc-smol-install.cjs [--dry-run] [--uninstall] [--ecc <chemin>]
  * Idempotent : seul ce qui figure au manifeste .smol/ecc-install.json est écrasé/supprimé.
@@ -101,10 +103,36 @@ const BUILTIN_ROLE_NAMES = [
 /** Commandes slash intégrées (le switch de src/session.ts) - jamais
  * écrasées : une commande ECC du même nom est installée sous ecc-<nom>. */
 const BUILTIN_SLASH_NAMES = [
-  "build", "clear", "compact", "context", "copy", "diag", "doctor", "editor",
-  "effort", "exit", "export", "fetch", "help", "logs", "mcp", "mode", "model",
-  "models", "plan", "q", "quit", "redo", "review", "route", "skills", "status",
-  "stop", "tasks", "todo", "undo",
+  "build",
+  "clear",
+  "compact",
+  "context",
+  "copy",
+  "diag",
+  "doctor",
+  "editor",
+  "effort",
+  "exit",
+  "export",
+  "fetch",
+  "help",
+  "logs",
+  "mcp",
+  "mode",
+  "model",
+  "models",
+  "plan",
+  "q",
+  "quit",
+  "redo",
+  "review",
+  "route",
+  "skills",
+  "status",
+  "stop",
+  "tasks",
+  "todo",
+  "undo",
 ];
 
 /** Outils ECC (frontmatter Claude) → outils smolcode. Inconnus = ignorés. */
@@ -258,11 +286,14 @@ function countFiles(dir, ext) {
   }
 }
 
-/** Copie toutes les commandes ECC en bibliothèque de référence.
- * smolcode n'a pas de système de commandes : ces fichiers restent consultables
- * par le modèle (read_file) mais ne s'exécutent pas en slash-command. */
+/** Copie les commandes ECC en slash-command : dossier du projet
+ * (.smol/ecc-commands) puis dossier partagé (~/.smolcoder/ecc-commands),
+ * que smolcode cherche comme repli — /ecc-guide marche donc partout.
+ * Le dossier partagé est purgé des commandes retirées d'ECC. */
 function installCommands(eccRoot, manifest, dryRun, report) {
   const owned = new Set(manifest.files.map((f) => f.path));
+  const sharedDir = path.join(os.homedir(), ".smolcoder", "ecc-commands");
+  const written = new Set();
   for (const file of listEccCommands(eccRoot)) {
     const base = file.slice(0, -3);
     const finalName = BUILTIN_SLASH_NAMES.includes(base) ? `ecc-${base}` : base;
@@ -276,9 +307,24 @@ function installCommands(eccRoot, manifest, dryRun, report) {
     if (!dryRun) {
       fs.mkdirSync(path.dirname(target), { recursive: true });
       fs.writeFileSync(target, content);
+      fs.mkdirSync(sharedDir, { recursive: true });
+      fs.writeFileSync(path.join(sharedDir, `${finalName}.md`), content);
     }
+    written.add(`${finalName}.md`);
     report.commands.push(finalName);
     report.files.push({ path: rel, bytes: content.length });
+  }
+  if (dryRun) return;
+  // Repurge du partagé : il reproduit exactement la liste ECC courante.
+  let stale = [];
+  try {
+    stale = fs.readdirSync(sharedDir).filter((f) => f.endsWith(".md") && !written.has(f));
+  } catch {
+    return;
+  }
+  for (const f of stale) {
+    fs.unlinkSync(path.join(sharedDir, f));
+    report.skipped.push(`commande partagée retirée ${f} (absente d'ECC)`);
   }
 }
 
@@ -417,7 +463,7 @@ function main() {
   console.log(`${args.dryRun ? "[dry-run] " : ""}ECC → smolcode (${eccRoot}, commit ${manifest.eccCommit})`);
   console.log(`  skills : ${report.skills.length} installé(s) — workspace total ${report.skillTotal}/${MAX_WORKSPACE_SKILLS}`);
   console.log(`  agents : ${report.agents.length} installé(s) — rôles total ${report.roleTotal}/${MAX_TOTAL_ROLES}`);
-  console.log(`  commandes : ${report.commands.length} copiée(s) en référence (.smol/ecc-commands)`);
+  console.log(`  commandes : ${report.commands.length} slash-command(s) (.smol/ecc-commands + ~/.smolcoder/ecc-commands)`);
   const shown = (arr, n) => (arr.length > n ? `${arr.slice(0, n).join(", ")} … (+${arr.length - n})` : arr.join(", "));
   if (report.skills.length) console.log(`  skills : ${shown(report.skills, 25)}`);
   if (report.agents.length) console.log(`  agents : ${shown(report.agents, 25)}`);

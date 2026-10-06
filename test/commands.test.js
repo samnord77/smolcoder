@@ -7,6 +7,11 @@ const os = require("node:os");
 const path = require("node:path");
 const { listCustomCommands, loadCustomCommand, resolveSlashPrompt, split } = require("../dist/commands");
 
+// Isolation: default to a temp data dir so the real ~/.smolcoder
+// (global ecc-commands fallback) never leaks into these tests.
+const DATA_SCRATCH = fs.mkdtempSync(path.join(os.tmpdir(), "smol-data-"));
+process.env.SMOLCODER_DATA_DIR = DATA_SCRATCH;
+
 function scratch() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "smol-commands-"));
 }
@@ -77,4 +82,44 @@ test("resolveSlashPrompt routes -p slash lines and passes the rest through", () 
   assert.equal(resolveSlashPrompt(ws, "/unknown-x"), "/unknown-x");
   assert.match(resolveSlashPrompt(ws, "/ship now"), /^SHIP IT/);
   assert.equal(resolveSlashPrompt(ws, "/ship now").includes("now"), true);
+});
+
+test("command names are matched case-insensitively after the exact name", () => {
+  const ws = scratch();
+  write(ws, ".smol/ecc-commands", "ecc-guide.md", "GUIDE");
+  assert.equal(loadCustomCommand(ws, "ECC-GUIDE"), "GUIDE");
+  assert.equal(loadCustomCommand(ws, "Ecc-Guide"), "GUIDE");
+  assert.equal(loadCustomCommand(ws, "NOPE"), null);
+});
+
+test("commands in the shared data directory work from any workspace", () => {
+  const ws = scratch();
+  const shared = scratch();
+  const prev = process.env.SMOLCODER_DATA_DIR;
+  process.env.SMOLCODER_DATA_DIR = shared;
+  try {
+    write(shared, "ecc-commands", "shared-only.md", "SHARED\n");
+    assert.match(loadCustomCommand(ws, "shared-only"), /^SHARED/);
+    assert.ok(listCustomCommands(ws).some((c) => c.name === "shared-only"));
+    assert.match(resolveSlashPrompt(ws, "/shared-only now"), /^SHARED/);
+  } finally {
+    if (prev === undefined) delete process.env.SMOLCODER_DATA_DIR;
+    else process.env.SMOLCODER_DATA_DIR = prev;
+  }
+});
+
+test("the workspace copy wins over the shared copy", () => {
+  const ws = scratch();
+  const shared = scratch();
+  const prev = process.env.SMOLCODER_DATA_DIR;
+  process.env.SMOLCODER_DATA_DIR = shared;
+  try {
+    write(ws, ".smol/ecc-commands", "twin.md", "PROJECT\n");
+    write(shared, "ecc-commands", "twin.md", "SHARED\n");
+    assert.match(loadCustomCommand(ws, "twin"), /^PROJECT/);
+    assert.equal(listCustomCommands(ws).length, 1);
+  } finally {
+    if (prev === undefined) delete process.env.SMOLCODER_DATA_DIR;
+    else process.env.SMOLCODER_DATA_DIR = prev;
+  }
 });
