@@ -1,0 +1,119 @@
+- generic [ref=f2e1]:
+  - complementary [ref=f2e3]:
+    - generic [ref=f2e4]:
+      - img "smolcoder" [ref=f2e5]: ███████╗ ███╗ ███╗ ██████╗ ██╗ ██╔════╝ ████╗ ████║ ██╔═══██╗ ██║ ███████╗ ██╔████╔██║ ██║ ██║ ██║ ╚════██║ ██║╚██╔╝██║ ██║ ██║ ██║ ███████║ ██║ ╚═╝ ██║ ╚██████╔╝ ███████╗ ╚══════╝ ╚═╝ ╚═╝ ╚═════╝ ╚══════╝
+      - button "«" [ref=f2e6] [cursor=pointer]
+    - button "+ Ouvrir un dossier…" [ref=f2e7] [cursor=pointer]
+    - generic [ref=f2e8]:
+      - generic [ref=f2e159]:
+        - generic "E:\\TOUS LES PROJET" [ref=f2e160]: TOUS LES PROJET
+        - generic "Crée un fichier AUTO_PILOT_TEST.md dans la racine du workspa · hf.co/empero-ai/Qwen3.8-4B-Distill-GGUF:latest · busy" [ref=f2e163] [cursor=pointer]: Crée un fichier AUTO_PILOT_TEST.md dans la racine du workspa
+      - generic [ref=f2e166]:
+        - generic "C:\\Users\\DELL" [ref=f2e167]: DELL
+        - generic "AlphaForge 2026 · hf.co/empero-ai/Qwen3.8-2B-Distill-GGUF:latest · saved — click to resume" [ref=f2e170] [cursor=pointer]: AlphaForge 2026
+    - group "Résumé du workspace" [ref=f2e23]:
+      - button "Changes Git N/D" [ref=f2e24] [cursor=pointer]:
+        - generic [ref=f2e25]: Changes
+        - generic [ref=f2e26]: Git N/D
+      - button "Background 0" [ref=f2e27] [cursor=pointer]:
+        - generic [ref=f2e28]: Background
+        - generic [ref=f2e29]: "0"
+      - button "Artifacts 1" [ref=f2e30] [cursor=pointer]:
+        - generic [ref=f2e31]: Artifacts
+        - generic [ref=f2e32]: "1"
+    - generic [ref=f2e33]:
+      - generic [ref=f2e34]:
+        - generic "Moteur actif" [ref=f2e35]
+        - generic "Hub started 05/10/2026 18:42:33 — if this predates your latest npm run build, stop the old hub (Ctrl+C in its terminal) and start it again, then reload this page" [ref=f2e36]: v0.7.1 · hub 18:42
+      - button "Raccourcis clavier" [ref=f2e37] [cursor=pointer]: "?"
+  - main [ref=f2e39]:
+    - toolbar "Barre d'outils IDE" [ref=f2e40]:
+      - button "Masquer le panneau latéral (Ctrl+B)" [expanded] [ref=f2e41] [cursor=pointer]
+      - generic "E:\\TOUS LES PROJET" [ref=f2e44]: TOUS LES PROJET›Crée un fichier AUTO_PILOT_TEST.md dans la racine du workspa
+      - button "Qwen3.8-4B-Dis…" [ref=f2e45] [cursor=pointer]
+      - button "Fichiers du projet et éditeur" [ref=f2e48] [cursor=pointer]
+      - 'button "Navigateur intégré : aperçu live" [ref=f2e51] [cursor=pointer]'
+      - button "⚠" [ref=f2e55] [cursor=pointer]
+      - 'button "Terminal & Dock Pro (Ctrl+`)" [ref=f2e56] [cursor=pointer]'
+      - button "Δ" [ref=f2e59] [cursor=pointer]
+      - button "Centre de Contrôle Pro" [ref=f2e60] [cursor=pointer]
+    - group "Utilisation du système" [ref=f2e65]:
+      - generic "30% · 30%" [ref=f2e173]:
+        - generic [ref=f2e67]: CPU
+        - generic [ref=f2e68]: 30%
+      - generic "94% · 29.6 GB · 94%" [ref=f2e174]:
+        - generic [ref=f2e72]: RAM
+        - generic [ref=f2e73]: 94% · 29.6 GB
+      - generic "N/D" [ref=f2e76]: GPU
+      - generic "N/D" [ref=f2e80]: VRAM
+      - generic "75% · 75%" [ref=f2e84]:
+        - generic [ref=f2e85]: Disque
+        - generic [ref=f2e86]: 75%
+    - generic [ref=f2e90]:
+      - 'generic "Skills chargées : workspace-investigation" [ref=f2e175]': ⚡ workspace-investigation
+      - generic [ref=f2e92]: thinking
+      - button "⚡ Timeline (0)" [ref=f2e93] [cursor=pointer]
+    - region "Historique des échanges" [ref=f2e94]:
+      - generic [ref=f2e176]:
+        - text: Crée un fichier AUTO_PILOT_TEST.md dans la racine du workspace contenant uniquement la ligne "test autopilot". N'écris rien d'autre.
+        - generic [ref=f2e177]:
+          - generic "05/10/2026 18:48:52" [ref=f2e178]: 18:48
+          - button "⧉" [ref=f2e179] [cursor=pointer]
+          - button "↺" [ref=f2e180] [cursor=pointer]
+          - button "Marquer ce message" [ref=f2e181] [cursor=pointer]: ⚑
+      - generic [ref=f2e97]: thinking… 1s
+    - generic [ref=f2e100]:
+      - generic [ref=f2e101]:
+        - textbox "Message" [active] [ref=f2e102]:
+          - /placeholder: Décrivez votre demande ou modification…
+        - button "Joindre un fichier" [ref=f2e103] [cursor=pointer]
+        - button "■ stop" [ref=f2e191] [cursor=pointer]
+      - status [ref=f2e107]:
+        - button "edit" [ref=f2e192] [cursor=pointer]
+        - button "hf.co/empero-ai/Qwen3.8-4B-Distill-GGUF:latest ▾" [ref=f2e193] [cursor=pointer]
+        - button "high → thinking on" [ref=f2e194] [cursor=pointer]
+        - button "🔕" [ref=f2e195] [cursor=pointer]
+        - button "15 15%" [ref=f2e112] [cursor=pointer]:
+          - meter "Context used" [ref=f2e113]
+          - generic [ref=f2e115]: 15%
+        - button "fichiers 0" [ref=f2e196] [cursor=pointer]
+        - 'generic "raisonnement du modèle — étape 1/1000 étape : 1/1000" [ref=f2e197]': · raisonnement du modèle — étape 1/1000
+        - button "vérifier le code" [ref=f2e198] [cursor=pointer]
+        - group "Taille du texte de l'interface" [ref=f2e119]:
+          - generic [ref=f2e120]: Texte
+          - button "Reduire la taille du texte" [ref=f2e121] [cursor=pointer]: "-"
+          - slider "Taille du texte en pourcentage" [ref=f2e124] [cursor=pointer]: "25"
+          - button "Agrandir la taille du texte" [ref=f2e125] [cursor=pointer]: +
+          - generic [ref=f2e126]: 100%
+        - 'generic "Skills chargées automatiquement pour ce tour : workspace-investigation" [ref=f2e200]': skills 1
+  - status "Barre d'état" [ref=f2e127]:
+    - generic [ref=f2e128]:
+      - button "⎇ Git ?" [ref=f2e129] [cursor=pointer]:
+        - generic [ref=f2e130]: ⎇
+        - generic [ref=f2e131]: Git ?
+      - button "↻ —" [ref=f2e132] [cursor=pointer]:
+        - generic [ref=f2e133]: ↻
+        - generic [ref=f2e134]: —
+      - button "⊗ 0 ⚠ 0" [ref=f2e135] [cursor=pointer]:
+        - generic [ref=f2e136]: ⊗
+        - generic [ref=f2e137]: "0"
+        - generic [ref=f2e138]: ⚠
+        - generic [ref=f2e139]: "0"
+    - generic [ref=f2e140]:
+      - button "⌖ Git blame" [ref=f2e141] [cursor=pointer]:
+        - generic [ref=f2e142]: ⌖
+        - generic [ref=f2e143]: Git blame
+      - button "Ln 1, Col 1" [ref=f2e144] [cursor=pointer]
+      - 'button "Spaces: 2" [ref=f2e146] [cursor=pointer]'
+      - button "UTF-8" [ref=f2e148] [cursor=pointer]
+      - button "LF" [ref=f2e149] [cursor=pointer]
+      - 'button "{ } JavaScript" [ref=f2e150] [cursor=pointer]':
+        - generic [ref=f2e151]: "{ }"
+        - generic [ref=f2e152]: JavaScript
+      - button "△ Formateur —" [ref=f2e153] [cursor=pointer]:
+        - generic [ref=f2e154]: △
+        - text: Formateur —
+      - button "⚙ Paramètres" [ref=f2e155] [cursor=pointer]:
+        - generic [ref=f2e156]: ⚙
+        - text: Paramètres
+      - button "🔔" [ref=f2e157] [cursor=pointer]
