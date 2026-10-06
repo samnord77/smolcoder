@@ -20,6 +20,37 @@ test("tokenizer colors PascalCase types and decorators", () => {
   assert.ok(kinds("MAX_SIZE = 1", "py").includes("plain:MAX_SIZE"), "SCREAMING stays plain");
 });
 
+test("tokenizer colors Markdown headings, links, fences and keeps prose plain", () => {
+  const { tokenizeCode } = require("../dist/highlight");
+  const kinds = (src, lang) => tokenizeCode(src, lang).map((t) => `${t.kind}:${t.text}`);
+  const heading = kinds("# Titre\n", "md");
+  assert.ok(heading.includes("tok-k:#"), JSON.stringify(heading));
+  assert.ok(
+    heading.some((k) => k.startsWith("tok-t:") && k.includes("Titre")),
+    JSON.stringify(heading)
+  );
+  const link = kinds("[texte](https://x.fr)", "markdown");
+  assert.ok(link.includes("tok-t:[texte]"), JSON.stringify(link));
+  assert.ok(
+    link.some((k) => k.startsWith("tok-v:(")),
+    JSON.stringify(link)
+  );
+  const list = kinds("- item\n", "md");
+  assert.ok(list.includes("tok-o:- "), JSON.stringify(list));
+  const code = kinds("`inline`", "md");
+  assert.ok(code.includes("tok-s:`inline`"), JSON.stringify(code));
+  const prose = kinds("je suis le if de la maison", "md");
+  assert.ok(!prose.some((k) => k.startsWith("tok-")), JSON.stringify(prose));
+  const fenced = kinds("```html\n<b>x</b>\n```\n", "md");
+  assert.ok(
+    fenced.some((k) => k.startsWith("tok-tag:")),
+    JSON.stringify(fenced)
+  );
+  assert.ok(fenced.filter((k) => k.startsWith("tok-c:")).length >= 2, JSON.stringify(fenced));
+  const ts = kinds("const x: Agent = new Agent();", "ts");
+  assert.ok(ts.includes("tok-k:const"), JSON.stringify(ts));
+});
+
 test("colorizeResultBlock colors fences, errors and exit codes", () => {
   const src = "```js\nconst x = 1;\n```\n[exit code 0 in 0.2s]";
   const colored = colorizeResultBlock(src, true);

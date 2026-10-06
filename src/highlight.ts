@@ -27,6 +27,7 @@ export interface SyntaxToken {
 export function tokenizeCode(source: string, language = ""): SyntaxToken[] {
   const lang = language.toLowerCase().replace(/^language-/, "");
   const html = ["html", "xml", "svg", "vue", "svelte"].includes(lang);
+  const markdown = ["md", "markdown", "mdown", "mkd", "commonmark"].includes(lang);
   const hashComments = [
     "py",
     "python",
@@ -107,6 +108,138 @@ export function tokenizeCode(source: string, language = ""): SyntaxToken[] {
       add("tok-d", source.slice(start, i));
       continue;
     }
+    // Markdown : blocs et marqueurs de ligne, puis inline. Jamais multi-ligne
+    // sauf fence (les tokens fence sont refermés par splitHighlightedByLine).
+    if (markdown) {
+      const atLineStart = i === 0 || source[i - 1] === "\n";
+      if (atLineStart) {
+        const lineRest = source.slice(i).replace(/\r?\n$/, "");
+        const fence = /^( {0,3})(```+|~~~+)[ \t]*([^\s`]*)/.exec(lineRest);
+        if (fence) {
+          const nl = source.indexOf("\n", i);
+          const lineEnd = nl < 0 ? source.length : nl;
+          add("tok-c", source.slice(i, lineEnd));
+          i = lineEnd;
+          const fenceLang = fence[3];
+          if (fenceLang && !["md", "markdown", "mdown", "mkd", "commonmark"].includes(fenceLang.toLowerCase())) {
+            let c = i;
+            let bodyEnd = source.length;
+            let closeStart = -1;
+            let closeEnd = -1;
+            while (c < source.length) {
+              const nl2 = source.indexOf("\n", c);
+              const rowEnd = nl2 < 0 ? source.length : nl2;
+              if (/^( {0,3})(```+|~~~+)/.test(source.slice(c, rowEnd))) {
+                closeStart = c;
+                closeEnd = rowEnd;
+                bodyEnd = c;
+                break;
+              }
+              if (nl2 < 0) break;
+              c = nl2 + 1;
+            }
+            const body = source.slice(i, bodyEnd);
+            if (body) {
+              for (const t of tokenizeCode(body, fenceLang)) add(t.kind, t.text);
+            }
+            if (closeStart >= 0) {
+              add("tok-c", source.slice(closeStart, closeEnd));
+              i = closeEnd;
+            } else {
+              i = source.length;
+            }
+          }
+          continue;
+        }
+        const heading = /^#{1,6}(?=\s|$)/.exec(lineRest);
+        if (heading) {
+          add("tok-k", heading[0]);
+          i += heading[0].length;
+          const nl = source.indexOf("\n", i);
+          const end = nl < 0 ? source.length : nl;
+          if (end > i) {
+            add("tok-t", source.slice(i, end));
+            i = end;
+          }
+          continue;
+        }
+        const list = /^(\s*)([-*+]|\d+[.)])([ \t]+)/.exec(lineRest);
+        if (list) {
+          if (list[1]) add("plain", list[1]);
+          add("tok-o", list[2] + list[3]);
+          i += list[0].length;
+          continue;
+        }
+        const quote = /^( {0,3}>+[ \t]?)/.exec(lineRest);
+        if (quote) {
+          add("tok-c", quote[0]);
+          i += quote[0].length;
+          continue;
+        }
+        if (/^ {0,3}(-{3,}|\*{3,}|_{3,})[ \t]*$/.test(lineRest)) {
+          const nl = source.indexOf("\n", i);
+          const end = nl < 0 ? source.length : nl;
+          add("tok-o", source.slice(i, end));
+          i = end;
+          continue;
+        }
+      }
+      if (ch === "`") {
+        let ticks = 0;
+        while (i + ticks < source.length && source[i + ticks] === "`") ticks++;
+        const close = source.indexOf("`".repeat(ticks), i + ticks);
+        const nl = source.indexOf("\n", i);
+        if (close > i && (nl < 0 || close < nl)) {
+          i = close + ticks;
+          add("tok-s", source.slice(start, i));
+          continue;
+        }
+        i += ticks;
+        add("plain", source.slice(start, i));
+        continue;
+      }
+      if ((source.startsWith("**", i) || source.startsWith("__", i)) && source[i + 1] !== " ") {
+        const marker = source.slice(i, i + 2);
+        const close = source.indexOf(marker, i + 2);
+        const nl = source.indexOf("\n", i);
+        if (close > i + 1 && (nl < 0 || close < nl)) {
+          add("tok-const", source.slice(i, close + 2));
+          i = close + 2;
+          continue;
+        }
+      }
+      if (ch === "*" && source[i + 1] && source[i + 1] !== "*" && /\S/.test(source[i + 1])) {
+        const close = source.indexOf("*", i + 1);
+        const nl = source.indexOf("\n", i);
+        if (close > i && (nl < 0 || close < nl)) {
+          add("tok-prop", source.slice(i, close + 1));
+          i = close + 1;
+          continue;
+        }
+      }
+      if (ch === "[" || (ch === "!" && source[i + 1] === "[")) {
+        const openB = ch === "!" ? i + 1 : i;
+        const closeB = source.indexOf("]", openB);
+        if (closeB > openB && source[closeB + 1] === "(") {
+          const closeP = source.indexOf(")", closeB + 1);
+          const nl = source.indexOf("\n", i);
+          if (closeP > closeB && (nl < 0 || closeP < nl)) {
+            add("tok-t", source.slice(i, closeB + 1));
+            add("tok-v", source.slice(closeB + 1, closeP + 1));
+            i = closeP + 1;
+            continue;
+          }
+        }
+        i = openB + 1;
+        add("plain", source.slice(start, i));
+        continue;
+      }
+      if (ch === "\\" && i + 1 < source.length) {
+        i += 2;
+        add("tok-o", source.slice(start, i));
+        continue;
+      }
+    }
     if (html && ch === "<") {
       const end = source.indexOf(">", i + 1);
       if (end >= 0 && /^<\/?[A-Za-z!/?]/.test(source.slice(i, end + 1))) {
@@ -116,10 +249,11 @@ export function tokenizeCode(source: string, language = ""): SyntaxToken[] {
       }
     }
     if (
-      source.startsWith("/*", i) ||
-      (hashComments && ch === "#") ||
-      (dashComments && source.startsWith("--", i)) ||
-      (!hashComments && !dashComments && source.startsWith("//", i))
+      !markdown &&
+      (source.startsWith("/*", i) ||
+        (hashComments && ch === "#") ||
+        (dashComments && source.startsWith("--", i)) ||
+        (!hashComments && !dashComments && source.startsWith("//", i)))
     ) {
       if (source.startsWith("/*", i)) {
         const end = source.indexOf("*/", i + 2);
@@ -167,7 +301,7 @@ export function tokenizeCode(source: string, language = ""): SyntaxToken[] {
         }
       }
     }
-    if (ch === "'" || ch === '"' || (ch === "`" && ["js", "jsx", "ts", "tsx", "javascript", "typescript"].includes(lang))) {
+    if ((ch === "'" || ch === '"' || (ch === "`" && ["js", "jsx", "ts", "tsx", "javascript", "typescript"].includes(lang))) && !markdown) {
       const quote = ch;
       i++;
       while (i < source.length) {
@@ -180,7 +314,7 @@ export function tokenizeCode(source: string, language = ""): SyntaxToken[] {
       add("tok-s", source.slice(start, i));
       continue;
     }
-    if (/\d/.test(ch) && (i === 0 || !/[\w$]/.test(source[i - 1]))) {
+    if (!markdown && /\d/.test(ch) && (i === 0 || !/[\w$]/.test(source[i - 1]))) {
       i++;
       while (i < source.length && /[\w.]/.test(source[i])) i++;
       add("tok-n", source.slice(start, i));
@@ -194,6 +328,14 @@ export function tokenizeCode(source: string, language = ""): SyntaxToken[] {
       while (next < source.length && /\s/.test(source[next])) next++;
       const isCall = source[next] === "(";
 
+      if (markdown) {
+        add("plain", word);
+        continue;
+      }
+      if (html && source[next] === "=" && source[next + 1] !== "=") {
+        add("tok-prop", word);
+        continue;
+      }
       if (lastNonSpaceText === ".") {
         if (isCall) add("tok-f", word);
         else add("tok-prop", word);
@@ -219,14 +361,14 @@ export function tokenizeCode(source: string, language = ""): SyntaxToken[] {
       continue;
     }
     // Parenthèses, accolades et crochets : Bracket pair colorization
-    if (ch === "(" || ch === "{" || ch === "[") {
+    if ((ch === "(" || ch === "{" || ch === "[") && !markdown) {
       const bKind = (["tok-b1", "tok-b2", "tok-b3"] as const)[bracketDepth % 3];
       bracketDepth++;
       add(bKind, ch);
       i++;
       continue;
     }
-    if (ch === ")" || ch === "}" || ch === "]") {
+    if ((ch === ")" || ch === "}" || ch === "]") && !markdown) {
       bracketDepth = Math.max(0, bracketDepth - 1);
       const bKind = (["tok-b1", "tok-b2", "tok-b3"] as const)[bracketDepth % 3];
       add(bKind, ch);
