@@ -70,7 +70,7 @@ export function listSkills(root: string): string {
   const valid = names
     .filter((n) => NAME_RE.test(n))
     .sort()
-    .slice(0, 50);
+    .slice(0, 400);
   const builtins = Object.keys(BUILTIN_SKILLS).filter((n) => !valid.includes(n));
   const all = [...valid, ...builtins.map((n) => `${n} (built-in)`)];
   if (!all.length) return "No skills saved yet.";
@@ -217,7 +217,7 @@ export function describeSkills(root: string): SkillInfo[] {
     out.push({ name, builtin: true, auto: false, description: skillMeta(text).description ?? "", bytes: text.length, updatedAt: 0 });
   }
   out.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0) || a.name.localeCompare(b.name));
-  return out.slice(0, 200);
+  return out.slice(0, 400);
 }
 
 /** Skills whose name or declared description overlaps the request, best match first.

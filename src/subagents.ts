@@ -20,7 +20,7 @@ export interface SubagentRole {
 }
 
 const ROLE_NAME_RE = /^[A-Za-z0-9_-]{1,40}$/;
-const MAX_ROLES = 30;
+const MAX_ROLES = 100;
 
 /** Shipped specialist recipes. Their tool lists are enforced by the harness. */
 export const BUILTIN_ROLES: SubagentRole[] = [
