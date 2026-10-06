@@ -201,6 +201,7 @@ ${c.bold("Slash commands:")}
     /copy       copy last reply      /exit         quit
     /fetch <url> read a web page, no key
     /build      run npm run build in a terminal
+    /<name>     custom commands from .smol/commands + .smol/ecc-commands
 
  ${c.bold("Input tricks:")}
    @path       inline a file (e.g. @src/app.js, max 9000 chars)

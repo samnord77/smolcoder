@@ -9,6 +9,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { Agent } from "./agent";
 import { type Attachment, MAX_UPLOAD_BYTES, mimeForExt } from "./attachments";
+import { listCustomCommands, loadCustomCommand } from "./commands";
 import { type Config, effortForBackend, loadConfig, updateConfig } from "./config";
 import { ContextManager } from "./context";
 import { type DetectedModel, detectAll, resolveContextWindow } from "./detect";
@@ -527,6 +528,8 @@ export class Session {
   private readonly prefs: SessionPrefs;
   private readonly help: string;
   private readonly hubRec: any;
+  /** Built-in + custom slash commands: menu, /help and the web status view. */
+  private readonly allSlash: SlashCommand[];
   private ended = false;
 
   constructor(
@@ -587,7 +590,11 @@ export class Session {
     // is the user's real kill switch, so set it far above any legitimate task.
     this.agent = new Agent(provider, mode0, this.sysPrompt(mode0), this.toolCtx, this.ctxMgr, this.bus, ui, true, 1000);
 
-    ui.slashCommands = SLASH_COMMANDS;
+    const custom = listCustomCommands(workspace).filter(
+      (c) => !SLASH_COMMANDS.some((s) => s.name === c.name)
+    );
+    this.allSlash = [...SLASH_COMMANDS, ...custom];
+    ui.slashCommands = this.allSlash;
     ui.hintLeft = workspace.replace(os.homedir(), "~");
     ui.getStatus = () => this.statusLine();
     ui.onModeCycle = () => {
@@ -684,7 +691,7 @@ export class Session {
       filesTouchedCount: this.toolCtx.filesTouched.size,
       commandsRun: this.toolCtx.commandsRun.slice(-20),
       workspace: this.workspace,
-      commands: SLASH_COMMANDS,
+      commands: this.allSlash,
       urls: this.taskManager.recentUrls(),
     };
   }
@@ -1043,6 +1050,13 @@ export class Session {
               return;
             case "help":
               ui.println(this.help);
+              {
+                const n = this.allSlash.length - SLASH_COMMANDS.length;
+                if (n > 0)
+                  ui.println(
+                    `\n${n} custom command(s) from .smol/commands and .smol/ecc-commands — type / to see them.`
+                  );
+              }
               break;
             case "models":
             case "model":
@@ -1271,8 +1285,11 @@ export class Session {
             case "copy":
               this.copyLastReply();
               break;
-            default:
-              ui.warn(`Unknown command /${cmd} — try /help`);
+            default: {
+              const body = loadCustomCommand(this.workspace, cmd, rest.join(" "));
+              if (body !== null) await this.handleUserMessage(body, []);
+              else ui.warn(`Unknown command /${cmd} — try /help`);
+            }
           }
         } catch (err: any) {
           ui.error(`\n${err?.message ?? err}`);
