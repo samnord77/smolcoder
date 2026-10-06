@@ -98,6 +98,15 @@ const BUILTIN_ROLE_NAMES = [
   "docs_writer",
 ];
 
+/** Commandes slash intégrées (le switch de src/session.ts) - jamais
+ * écrasées : une commande ECC du même nom est installée sous ecc-<nom>. */
+const BUILTIN_SLASH_NAMES = [
+  "build", "clear", "compact", "context", "copy", "diag", "doctor", "editor",
+  "effort", "exit", "export", "fetch", "help", "logs", "mcp", "mode", "model",
+  "models", "plan", "q", "quit", "redo", "review", "route", "skills", "status",
+  "stop", "tasks", "todo", "undo",
+];
+
 /** Outils ECC (frontmatter Claude) → outils smolcode. Inconnus = ignorés. */
 const TOOL_MAP = {
   Read: "read_file",
@@ -255,7 +264,9 @@ function countFiles(dir, ext) {
 function installCommands(eccRoot, manifest, dryRun, report) {
   const owned = new Set(manifest.files.map((f) => f.path));
   for (const file of listEccCommands(eccRoot)) {
-    const rel = `.smol/ecc-commands/${file}`;
+    const base = file.slice(0, -3);
+    const finalName = BUILTIN_SLASH_NAMES.includes(base) ? `ecc-${base}` : base;
+    const rel = `.smol/ecc-commands/${finalName}.md`;
     const target = path.join(ROOT, rel);
     if (fs.existsSync(target) && !owned.has(rel)) {
       report.skipped.push(`commande ${file} (fichier existant non géré, conservé)`);
@@ -266,7 +277,7 @@ function installCommands(eccRoot, manifest, dryRun, report) {
       fs.mkdirSync(path.dirname(target), { recursive: true });
       fs.writeFileSync(target, content);
     }
-    report.commands.push(file.slice(0, -3));
+    report.commands.push(finalName);
     report.files.push({ path: rel, bytes: content.length });
   }
 }

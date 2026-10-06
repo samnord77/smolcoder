@@ -13,6 +13,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { Agent } from "./agent";
 import { ensureBuilt } from "./build-check";
+import { resolveSlashPrompt } from "./commands";
 import { effortForBackend, loadConfig } from "./config";
 import { ContextManager } from "./context";
 import { detectAll } from "./detect";
@@ -359,7 +360,7 @@ async function runHeadless(args: CliArgs): Promise<void> {
   const advice = effortAdvice(chosen, effortSetting);
   if (advice) ui.warn(`  ${advice}`);
   try {
-    await agent.runTurn(args.print!);
+    await agent.runTurn(resolveSlashPrompt(args.workspace, args.print!));
     if (agent.outcome !== "completed") process.exitCode = 1;
   } catch (err: any) {
     ui.error(`\n${err?.message ?? err}`);

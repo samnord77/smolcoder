@@ -89,3 +89,12 @@ export function loadCustomCommand(workspace: string, name: string, args = ""): s
   }
   return null;
 }
+
+/** Resolve one raw user line for the headless `-p` path: a "/name ..." the
+ * built-in loop would route becomes the command body, anything else passes
+ * through untouched. */
+export function resolveSlashPrompt(workspace: string, input: string): string {
+  if (!input.startsWith("/")) return input;
+  const [cmd, ...rest] = input.slice(1).split(/\s+/);
+  return loadCustomCommand(workspace, cmd, rest.join(" ")) ?? input;
+}

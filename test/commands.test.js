@@ -5,7 +5,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { listCustomCommands, loadCustomCommand, split } = require("../dist/commands");
+const { listCustomCommands, loadCustomCommand, resolveSlashPrompt, split } = require("../dist/commands");
 
 function scratch() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "smol-commands-"));
@@ -68,4 +68,13 @@ test("split strips frontmatter, BOM and caps the description", () => {
   const { desc, body } = split(`﻿---\ndescription: "${"x".repeat(300)}"\n---\nBody`);
   assert.equal(desc.length, 100);
   assert.equal(body, "Body");
+});
+
+test("resolveSlashPrompt routes -p slash lines and passes the rest through", () => {
+  const ws = scratch();
+  write(ws, ".smol/commands", "ship.md", "SHIP IT");
+  assert.equal(resolveSlashPrompt(ws, "plain prompt"), "plain prompt");
+  assert.equal(resolveSlashPrompt(ws, "/unknown-x"), "/unknown-x");
+  assert.match(resolveSlashPrompt(ws, "/ship now"), /^SHIP IT/);
+  assert.equal(resolveSlashPrompt(ws, "/ship now").includes("now"), true);
 });
