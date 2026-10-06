@@ -126,6 +126,7 @@ export const PAGE_HTML = `<!doctype html>
         <textarea id="input" aria-label="Message" rows="2" placeholder="Décrivez votre demande ou modification…" title="Entrée pour envoyer · Maj+Entrée pour un saut de ligne · / pour les commandes · Glissez-déposez des fichiers"></textarea>
         <button type="button" id="attachbtn" class="iconbtn" title="Joindre un fichier ou une image" aria-label="Joindre un fichier">${ICON_ATTACH}</button>
         <input type="file" id="filepick" multiple hidden>
+        <button type="button" id="atbtn" class="iconbtn" title="Mentionner un fichier (@) : complétion des fichiers du projet" aria-label="Mentionner un fichier">@</button>
         <button type="button" id="actionbtn" title="Envoyer (Entrée)">Envoyer</button>
       </div>
       <div id="status" role="status">Connexion en cours…</div>

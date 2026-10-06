@@ -66,6 +66,10 @@ const SESSION_ID_RE = /^[a-z0-9_-]{1,64}$/i;
 const UPLOAD_ID_RE = /^[a-f0-9]{16}$/;
 const WEB_FILE_CAP = 512 * 1024;
 const WEB_TREE_CAP = 800;
+/** Limite du listing @fichier (mention composer). */
+const WEB_FILES_CAP = 4000;
+/** Sous-dossiers ignorés par le listing @fichier (blocage perf). */
+const AT_FILE_SKIP = /^(node_modules|dist|build|coverage|out|target|\.next|\.nuxt|\.turbo|\.cache|vendor)$/i;
 /** Budget d'une passe MCP rapide. Mesure locale : à 20 000 ms tout le monde
  * sauf « browse » (cold start uvx) répond, donc 30 000 ms laisse la marge aux
  * premiers lancements npx sans retarder l'affichage du Centre de Contrôle. */
@@ -290,6 +294,36 @@ export function browseDir(input: string | null | undefined): Record<string, any>
     });
   const parent = path.dirname(target);
   return { ...base, parent: parent === target ? null : parent, dirs, project: isProject(target) };
+}
+
+/** Flat list of workspace-relative paths for the "@file" composer mention.
+ * Read-only, depth-limited and capped so a huge monorepo cannot stall the
+ * browser; symlinks are never followed (readdir Dirent says isSymbolicLink). */
+export function listWorkspaceFiles(root: string): string[] {
+  const out: string[] = [];
+  const stack: Array<{ dir: string; rel: string; depth: number }> = [{ dir: root, rel: "", depth: 0 }];
+  while (stack.length && out.length < WEB_FILES_CAP) {
+    const cur = stack.pop();
+    if (!cur) break;
+    let entries: fs.Dirent[];
+    try {
+      entries = fs.readdirSync(cur.dir, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const e of entries) {
+      if (out.length >= WEB_FILES_CAP) break;
+      if (e.name.startsWith(".") || AT_FILE_SKIP.test(e.name)) continue;
+      if (e.isDirectory()) {
+        if (cur.depth >= 8) continue;
+        stack.push({ dir: path.join(cur.dir, e.name), rel: cur.rel ? `${cur.rel}/${e.name}` : e.name, depth: cur.depth + 1 });
+      } else if (e.isFile()) {
+        out.push(cur.rel ? `${cur.rel}/${e.name}` : e.name);
+      }
+    }
+  }
+  out.sort();
+  return out;
 }
 
 function defaultFactory(help: string): SessionFactory {
@@ -984,6 +1018,22 @@ export class WebHub {
             );
           } catch (err: any) {
             json(400, { error: String(err?.message ?? err) });
+          }
+          return;
+        }
+        case "/workspace/files": {
+          const sid = String(url.searchParams.get("sid") ?? "");
+          const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
+          const meta = this.metas.get(sid);
+          const ws = live?.workspace ?? meta?.workspace ?? this.workspaces.list()[0]?.path;
+          if (!ws) {
+            json(404, { error: "no such session or workspace" });
+            return;
+          }
+          try {
+            json(200, { files: listWorkspaceFiles(ws) });
+          } catch (err: any) {
+            json(200, { files: [], error: String(err?.message ?? err).slice(0, 300) });
           }
           return;
         }

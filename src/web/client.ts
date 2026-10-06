@@ -108,6 +108,124 @@ function inlineMd(s) {
   return s;
 }
 function highlightCode(code, language) { return highlightEscapedHtml(code, language); }
+
+// ---- pliage (commun chat + editeur) ---------------------------------------
+// Régions repliables detectees par indentation : une ligne qui se termine
+// par {, [ ou ( ouvre une region qui s'etend jusqu'a la derniere ligne
+// de niveau superieur. N'ecrit jamais dans le texte source.
+function foldableRanges(lines) {
+  const ranges = [];
+  const indentOf = (s) => { let n = 0; while (n < s.length && (s[n] === " " || s[n] === "\t")) n++; return n; };
+  for (let i = 0; i < lines.length; i++) {
+    const t = (lines[i] || "").replace(/\s+$/, "");
+    if (!/[{[(]\s*$/.test(t)) continue;
+    const ind = indentOf(lines[i]);
+    let last = -1;
+    for (let j = i + 1; j < lines.length; j++) {
+      if (!lines[j].trim()) continue;
+      if (indentOf(lines[j]) > ind) last = j;
+      else break;
+    }
+    if (last > i) ranges.push({ start: i, end: last });
+  }
+  return ranges;
+}
+
+// Decoupe le HTML de colorisation par ligne en refermant puis rouvrant les
+// <span> encore ouverts : un token multiligne (commentaire, chaine) reste
+// colore sur toutes ses lignes et le HTML de chaque ligne reste valide.
+function splitHighlightedByLine(html) {
+  const segs = String(html).split("\n");
+  const open = [];
+  const rows = [];
+  const re = /<span class="([^"]+)"|<\/span>/g;
+  for (let p = 0; p < segs.length; p++) {
+    let line = "";
+    for (let s = 0; s < open.length; s++) line += '<span class="' + open[s] + '">';
+    line += segs[p];
+    if (p < segs.length - 1) {
+      re.lastIndex = 0;
+      let m;
+      while ((m = re.exec(segs[p])) !== null) {
+        if (m[1]) open.push(m[1]);
+        else if (open.length) open.pop();
+      }
+      for (let s = open.length - 1; s >= 0; s--) line += "</span>";
+    }
+    rows.push(line);
+  }
+  return rows;
+}
+
+// Folds actifs par <pre> de chat. WeakMap : un re-render (streaming) cree un
+// nouveau <pre> et l'etat repart a zero, sans risque de rester bloque.
+const chatFoldState = new WeakMap();
+function applyChatFolds(pre) {
+  const folds = chatFoldState.get(pre) || [];
+  const rows = pre.querySelectorAll(".cb-row");
+  const old = pre.querySelectorAll(".cb-ph");
+  for (let i = 0; i < old.length; i++) old[i].remove();
+  for (let i = 0; i < rows.length; i++) rows[i].style.display = "";
+  folds.forEach((r) => {
+    const startRow = rows[r[0]];
+    if (!startRow) return;
+    for (let i = r[0] + 1; i <= r[1] && i < rows.length; i++) rows[i].style.display = "none";
+    const ph = document.createElement("span");
+    ph.className = "cb-ph";
+    ph.setAttribute("data-unfold", r[0] + ":" + r[1]);
+    ph.textContent = "⋯ " + (r[1] - r[0]) + " lignes repliées";
+    startRow.parentNode.insertBefore(ph, startRow.nextSibling);
+  });
+}
+function toggleChatFold(pre, start, end) {
+  let folds = chatFoldState.get(pre) || [];
+  if (folds.some((f) => f[0] === start && f[1] === end)) {
+    folds = folds.filter((f) => !(f[0] === start && f[1] === end));
+  } else {
+    folds = folds.filter((f) => !(f[0] < end && start < f[1]));
+    folds.push([start, end]);
+    folds.sort((a, b) => a[0] - b[0]);
+  }
+  chatFoldState.set(pre, folds);
+  applyChatFolds(pre);
+}
+// Un seul ecouteur pour toute la page : les blocs sont reconstruits par le
+// streaming, l' delegation survit aux re-renders.
+document.addEventListener("click", (e) => {
+  const f = e.target && e.target.closest ? e.target.closest(".cb-fold") : null;
+  if (f) {
+    const pre = f.closest("pre.cb");
+    const parts = String(f.getAttribute("data-fold") || "").split(":");
+    if (pre && parts.length === 2) toggleChatFold(pre, Number(parts[0]), Number(parts[1]));
+    return;
+  }
+  const u = e.target && e.target.closest ? e.target.closest(".cb-ph") : null;
+  if (u) {
+    const pre = u.closest("pre.cb");
+    const parts = String(u.getAttribute("data-unfold") || "").split(":");
+    if (pre && parts.length === 2) toggleChatFold(pre, Number(parts[0]), Number(parts[1]));
+  }
+});
+
+// Bloc <pre> du chat : numero de ligne sur chaque ligne + chevron de pliage
+// sur les lignes qui ouvrent une region. Le corps est deja echappe.
+function renderCodeBlock(escapedBody, lang) {
+  const lines = escapedBody.split("\n");
+  const rows = splitHighlightedByLine(highlightCode(escapedBody, lang));
+  const foldAt = new Map();
+  foldableRanges(lines).forEach((r) => foldAt.set(r.start, r));
+  let html = '<pre class="cb"><code class="lang-' + (lang || "txt") + '">';
+  for (let i = 0; i < rows.length; i++) {
+    const r = foldAt.get(i);
+    const chev = r
+      ? '<button type="button" class="cb-fold" data-fold="' + i + ":" + r.end + '" title="Replier ce bloc" aria-label="Replier les lignes ' + (i + 1) + " à " + (r.end + 1) + '">▾</button>'
+      : "";
+    html += '<span class="cb-row">' + chev +
+      '<b class="cb-n" aria-hidden="true">' + (i + 1) + "</b>" + rows[i] + "</span>";
+  }
+  return html + "</code></pre>";
+}
+
 function renderMarkdown(src) {
   const lines = esc(src).split("\n");
   let out = "", i = 0, listType = null;
@@ -121,7 +239,7 @@ function renderMarkdown(src) {
       const body = []; i++;
       while (i < lines.length && !/^\s*\`\`\`/.test(lines[i])) { body.push(lines[i]); i++; }
       i++;
-      out += '<pre><code class="lang-' + (fence[1] || "txt") + '">' + highlightCode(body.join("\n"), fence[1] || "") + "</code></pre>";
+      out += renderCodeBlock(body.join("\n"), fence[1] || "");
       continue;
     }
     if (/^\s*\|/.test(line) && i + 1 < lines.length && /^\s*\|?[\s:|-]+\|[\s:|-]*$/.test(lines[i + 1])) {
@@ -2983,7 +3101,7 @@ function buildFilesTab(v, t) {
   const editor = document.createElement("textarea");
   t.editor = editor;
   editor.className = "fileeditor"; editor.spellcheck = false; editor.placeholder = "Select a file…";
-  const gutter = document.createElement("div"); gutter.className = "filegutter"; gutter.setAttribute("aria-hidden", "true");
+  const gutter = document.createElement("div"); gutter.className = "filegutter";
   t.agentDiffBases = new Map();
   const minimap = document.createElement("div"); minimap.className = "fileminimap"; minimap.title = "Minimap — cliquer pour naviguer";
   minimap.setAttribute("role", "scrollbar"); minimap.setAttribute("aria-label", "Minimap du fichier");
@@ -2991,13 +3109,61 @@ function buildFilesTab(v, t) {
   const mmBox = document.createElement("div"); mmBox.className = "minimap-box";
   minimap.appendChild(mmBars); minimap.appendChild(mmBox);
   editor.addEventListener("scroll", () => { gutter.scrollTop = editor.scrollTop; });
-  /** Line numbers, kept in step with the editor's line count and scroll.
-   * Called from paint() and displayTab(), so it tracks every edit. */
+  // ---- pliage du code editeur ---------------------------------------------
+  // folds relie une ligne ouvrante (start) a la fin de sa region (end). Le
+  // textarea garde toujours le texte complet : tant qu'une region est pliee il
+  // passe en visibility:hidden + readOnly pendant que le <pre> affiche la vue
+  // pliee (.ed-row + placeholder .ed-ph). Jamais d'ecriture dans editor.value.
+  const folds = new Map();
+  let canWriteMode = true;
+  let scrollLock = 0;
+  const parseFoldData = (v) => {
+    const parts = String(v || "").split(":");
+    return [Number(parts[0]), Number(parts[1])];
+  };
+  // Les folds qui ne tiennent plus dans le texte (edition, changement d'onglet)
+  // sont purges avant chaque rendu : pas de region fantome ni de decalage.
+  const syncFolds = () => {
+    const count = editor.value.split("\n").length;
+    for (const s of Array.from(folds.keys())) {
+      const e = folds.get(s);
+      if (!(s >= 0 && s < count && e >= s && e < count)) folds.delete(s);
+    }
+    return folds;
+  };
+  const applyFoldVisibility = () => {
+    const folded = syncFolds().size > 0;
+    editor.style.visibility = folded ? "hidden" : "";
+    editor.readOnly = folded || !canWriteMode;
+    code.classList.toggle("folded", folded);
+  };
+  /** Line numbers + fold chevrons, kept in step with the editor's line count
+   * and scroll. Called from paint() and displayTab(), so it tracks every edit. */
   const updateGutter = () => {
     const flags = lineChangeFlags(editor.dataset.diffBase || editor.dataset.original || "", editor.value);
-    gutter.innerHTML = flags
-      .map((f, i) => '<div class="gutter-line' + (f.added ? " added" : "") + (f.removed ? " removed" : "") + '"><span>' + (i + 1) + "</span></div>")
-      .join("");
+    const lines = editor.value.split("\n");
+    const active = syncFolds();
+    const foldable = new Map();
+    foldableRanges(lines).forEach((r) => { if (!active.has(r.start)) foldable.set(r.start, r.end); });
+    const parts = [];
+    for (let i = 0; i < lines.length; i++) {
+      const f = flags[i] || { added: false, removed: false };
+      const cls = "gutter-line" + (f.added ? " added" : "") + (f.removed ? " removed" : "");
+      const num = String(i + 1);
+      if (active.has(i)) {
+        const e = active.get(i);
+        parts.push('<div class="' + cls + ' foldable"><button type="button" class="gutter-fold" data-fold="' + i + ":" + e + '" title="Déplier" aria-label="Déplier les lignes ' + num + ' à ' + (e + 1) + '">▸</button><span aria-hidden="true">' + num + "</span></div>");
+        parts.push('<div class="gutter-line gutter-folded" aria-hidden="true"><span>⋯</span></div>');
+        i = e;
+        continue;
+      }
+      if (foldable.has(i)) {
+        parts.push('<div class="' + cls + ' foldable"><button type="button" class="gutter-fold" data-fold="' + i + ":" + foldable.get(i) + '" title="Replier" aria-label="Replier les lignes ' + num + ' à ' + (foldable.get(i) + 1) + '">▾</button><span aria-hidden="true">' + num + "</span></div>");
+        continue;
+      }
+      parts.push('<div class="' + cls + '"><span aria-hidden="true">' + num + "</span></div>");
+    }
+    gutter.innerHTML = parts.join("");
     gutter.scrollTop = editor.scrollTop;
   };
   const meta = el("div", "filemeta", "workspace files");
@@ -3196,7 +3362,27 @@ function buildFilesTab(v, t) {
     let html = highlightEscapedHtml(esc(markDiags(editor.value)), t.filePath.split(".").pop()) || " ";
     html = html.split(SQE[0]).join('<span class="sq-err">').split(SQE[1]).join("</span>");
     html = html.split(SQW[0]).join('<span class="sq-warn">').split(SQW[1]).join("</span>");
-    code.innerHTML = html;
+    // Vue pliee : une ligne .ed-row par ligne visible, placeholder .ed-ph a la
+    // place des ranges repliees. Les spans referment/rouvrent les tokens
+    // multilignes (splitHighlightedByLine), donc la colorisation reste juste.
+    const active = syncFolds();
+    const rows = splitHighlightedByLine(html);
+    const count = rows.length;
+    const out = [];
+    let i = 0;
+    while (i < count) {
+      const e = active.has(i) ? active.get(i) : -1;
+      if (e >= i && e < count) {
+        out.push('<span class="ed-row">' + rows[i] + "</span>");
+        out.push('<span class="ed-ph" data-unfold="' + i + ":" + e + '" role="button" tabindex="0">⋯ ' + (e - i) + " lignes repliées ▸</span>");
+        i = e + 1;
+        continue;
+      }
+      out.push('<span class="ed-row">' + rows[i] + "</span>");
+      i++;
+    }
+    code.innerHTML = out.join("") || " ";
+    applyFoldVisibility();
     code.scrollTop = editor.scrollTop; code.scrollLeft = editor.scrollLeft;
     updateGutter();
     paintMinimap();
@@ -3497,6 +3683,8 @@ function buildFilesTab(v, t) {
     editor.dataset.original = tab ? tab.savedContent : "";
     if (tab && !t.agentDiffBases.has(tab.path)) t.agentDiffBases.set(tab.path, tab.savedContent);
     editor.dataset.diffBase = tab ? (t.agentDiffBases.get(tab.path) ?? tab.savedContent) : "";
+    folds.clear();
+    applyFoldVisibility();
     paint();
     updateGutter();
     editor.dataset.dirty = tab && tab.dirty ? "1" : "0";
@@ -3892,8 +4080,9 @@ function buildFilesTab(v, t) {
     return true;
   };
   t.refreshMode = (canWrite) => {
+    canWriteMode = canWrite;
     save.disabled = !canWrite || !t.filePath;
-    editor.readOnly = !canWrite;
+    applyFoldVisibility();
   };
   previewButton.onclick = () => {
     if (!t.filePath || !/\.(?:html?|HTML?)$/.test(t.filePath)) {
@@ -3956,7 +4145,53 @@ function buildFilesTab(v, t) {
     editor.dataset.dirty = tab && tab.dirty ? "1" : "0"; paint(); renderTabs();
     updatePosition(); updateCurrentFindCount();
   };
-  editor.onscroll = () => { code.scrollTop = editor.scrollTop; code.scrollLeft = editor.scrollLeft; };
+  // Scroll double sens : en mode plie le <pre> prend la souris, le textarea
+  // (caches) reste la source de verite du scroll. scrollLock evite la boucle
+  // d'echo entre les deux gestionnaires.
+  editor.onscroll = () => {
+    if (scrollLock) return;
+    scrollLock = 1;
+    code.scrollTop = editor.scrollTop; code.scrollLeft = editor.scrollLeft;
+    scrollLock = 0;
+  };
+  code.addEventListener("scroll", () => {
+    if (scrollLock) return;
+    scrollLock = 1;
+    editor.scrollTop = code.scrollTop; editor.scrollLeft = code.scrollLeft; gutter.scrollTop = code.scrollTop;
+    scrollLock = 0;
+  });
+  // Plier/deplier : chevron du gutter (clic) et placeholder .ed-ph (clic ou
+  // Entree/Espace). Le focus est rendu au chevron car paint() reconstruit le
+  // gutter — sans cela le clavier perdrait sa place.
+  editorWrap.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!target || typeof target.closest !== "function") return;
+    const btn = target.closest(".gutter-fold");
+    const ph = target.closest(".ed-ph");
+    if (!btn && !ph) return;
+    event.preventDefault();
+    const data = btn ? btn.getAttribute("data-fold") : ph.getAttribute("data-unfold");
+    const parsed = parseFoldData(data);
+    if (ph) folds.delete(parsed[0]);
+    else if (folds.has(parsed[0])) folds.delete(parsed[0]);
+    else folds.set(parsed[0], parsed[1]);
+    paint();
+    const back = editorWrap.querySelector((btn ? ".gutter-fold" : ".ed-ph") + '[data-' + (btn ? "fold" : "unfold") + '="' + data + '"]');
+    if (back && back.focus) back.focus();
+  });
+  editorWrap.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " " && event.key !== "Spacebar") return;
+    const target = event.target;
+    if (!target || typeof target.closest !== "function") return;
+    const ph = target.closest(".ed-ph");
+    if (!ph) return;
+    event.preventDefault();
+    const data = ph.getAttribute("data-unfold");
+    folds.delete(parseFoldData(data)[0]);
+    paint();
+    const back = editorWrap.querySelector('.gutter-fold[data-fold="' + data + '"]');
+    if (back && back.focus) back.focus();
+  });
   editor.onkeyup = editor.onclick = editor.onselect = updatePosition;
   editor.onkeydown = (e) => {
     if (editor.readOnly) return;
@@ -4591,20 +4826,77 @@ setSide(ls.get("smol.side") === "1" || (narrow() && !!location.hash));
 
 // ---- input + slash menu ---------------------------------------------------
 let menuIdx = 0;
+// ---- mention @fichier : complétion des fichiers du workspace --------------
+let atFiles = [];
+let atFilesSid = "";
+function mentionInfo() {
+  if (!active) return null;
+  const pos = typeof input.selectionStart === "number" ? input.selectionStart : input.value.length;
+  const before = input.value.slice(0, pos);
+  const m = /(^|\s)@([^\s@]*)$/.exec(before);
+  if (!m) return null;
+  return { start: m.index + (m[1] ? m[1].length : 0), query: m[2] };
+}
+function loadAtFiles() {
+  if (!active || atFilesSid === active.sid) return;
+  const sid = active.sid;
+  atFilesSid = sid;
+  fetch("/workspace/files?k=" + k + "&sid=" + encodeURIComponent(sid))
+    .then((r) => r.json())
+    .then((d) => {
+      atFiles = Array.isArray(d && d.files) ? d.files : [];
+      if (active && active.sid === sid) renderMenu();
+    })
+    .catch(() => { atFiles = []; });
+}
+function atItems() {
+  const hit = mentionInfo();
+  if (!hit || !active) return [];
+  if (atFilesSid !== active.sid) { loadAtFiles(); return []; }
+  const lower = hit.query.toLowerCase();
+  return atFiles
+    .filter((p) => p.toLowerCase().indexOf(lower) !== -1)
+    .slice(0, 12)
+    .map((p) => ({ kind: "file", name: p, desc: "" }));
+}
+function acceptAtItem(idx) {
+  const it = menuItems()[idx];
+  const hit = mentionInfo();
+  if (!it || it.kind !== "file" || !hit) return;
+  const pos = typeof input.selectionStart === "number" ? input.selectionStart : input.value.length;
+  const after = input.value.slice(pos);
+  input.value = input.value.slice(0, hit.start) + "@" + it.name + " " + after;
+  const caret = hit.start + it.name.length + 2;
+  if (typeof input.setSelectionRange === "function") input.setSelectionRange(caret, caret);
+  menuIdx = 0;
+  renderMenu();
+  autoGrow();
+  input.focus();
+}
 function menuItems() {
   const v = input.value;
-  if (!active || !v.startsWith("/") || v.includes(" ") || v.includes("\n")) return [];
-  return (active.state.commands || []).filter((c) => c.name.startsWith(v.slice(1)));
+  if (!active) return [];
+  if (!v.startsWith("/") || v.includes(" ") || v.includes("\n")) return atItems();
+  return (active.state.commands || [])
+    .filter((c) => c.name.startsWith(v.slice(1)))
+    .map((c) => ({ kind: "cmd", name: c.name, desc: c.desc }));
 }
 function renderMenu() {
   const items = menuItems();
   menu.style.display = items.length ? "block" : "none";
   menu.innerHTML = "";
   if (menuIdx >= items.length) menuIdx = 0;
-  items.forEach((c, i) => {
+  items.forEach((it, i) => {
     const d = el("div", "item" + (i === menuIdx ? " sel" : ""));
-    d.appendChild(el("span", "nm", "/" + c.name)); d.appendChild(el("span", "ds", c.desc));
-    d.onclick = () => { input.value = "/" + c.name; submit(); };
+    if (it.kind === "file") {
+      d.appendChild(el("span", "nm", "@" + it.name));
+      d.appendChild(el("span", "ds", "fichier"));
+      d.onclick = () => { acceptAtItem(i); };
+    } else {
+      d.appendChild(el("span", "nm", "/" + it.name));
+      d.appendChild(el("span", "ds", it.desc));
+      d.onclick = () => { input.value = "/" + it.name; submit(); };
+    }
     menu.appendChild(d);
   });
 }
@@ -4612,7 +4904,8 @@ function submit(options = {}) {
   if (!active) { showError("Aucune session ouverte. Choisissez une session dans la barre laterale."); return; }
   let v = input.value;
   const items = menuItems();
-  if (items.length) v = "/" + items[menuIdx].name;
+  const picked = items[menuIdx];
+  if (picked && picked.kind === "cmd") v = "/" + picked.name;
   v = v.trim();
   const pending = pendingOf(active);
   // A stuck upload used to swallow every message with no feedback at all,
@@ -4628,9 +4921,18 @@ function autoGrow() { input.rows = Math.min(12, Math.max(2, input.value.split("\
 input.addEventListener("input", () => { menuIdx = 0; renderMenu(); autoGrow(); });
 input.addEventListener("keydown", (e) => {
   const items = menuItems();
-  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); }
+  const picked = items[menuIdx];
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    if (picked && picked.kind === "file") { acceptAtItem(menuIdx); return; }
+    submit();
+  }
   else if (e.key === "Tab" && e.shiftKey) { e.preventDefault(); if (active) post("/cycle", { sid: active.sid }); }
-  else if (e.key === "Tab" && items.length) { e.preventDefault(); input.value = "/" + items[menuIdx].name + " "; renderMenu(); }
+  else if (e.key === "Tab" && items.length) {
+    e.preventDefault();
+    if (picked && picked.kind === "file") acceptAtItem(menuIdx);
+    else { input.value = "/" + items[menuIdx].name + " "; renderMenu(); }
+  }
   else if (e.key === "ArrowUp" && items.length) { e.preventDefault(); menuIdx = (menuIdx - 1 + items.length) % items.length; renderMenu(); }
   else if (e.key === "ArrowDown" && items.length) { e.preventDefault(); menuIdx = (menuIdx + 1) % items.length; renderMenu(); }
   else if (e.key === "Escape") {
@@ -4741,6 +5043,18 @@ function removeAttachment(a) {
   renderAttachments();
 }
 $("attachbtn").onclick = () => { if (active) filePick.click(); };
+const atBtn = $("atbtn");
+if (atBtn) atBtn.onclick = () => {
+  const pos = typeof input.selectionStart === "number" ? input.selectionStart : input.value.length;
+  input.value = input.value.slice(0, pos) + "@" + input.value.slice(pos);
+  const caret = pos + 1;
+  if (typeof input.setSelectionRange === "function") input.setSelectionRange(caret, caret);
+  input.focus();
+  menuIdx = 0;
+  loadAtFiles();
+  renderMenu();
+  autoGrow();
+};
 filePick.onchange = () => { addFiles([...filePick.files]); filePick.value = ""; };
 input.addEventListener("paste", (e) => {
   const files = e.clipboardData && e.clipboardData.files ? [...e.clipboardData.files] : [];
