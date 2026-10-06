@@ -3,26 +3,14 @@
   "default_agent": "build",
   "instructions": [
     "AGENTS.md",
-    "CONTRIBUTING.md",
-    "instructions/INSTRUCTIONS.md",
-    "skills/tdd-workflow/SKILL.md",
-    "skills/security-review/SKILL.md",
-    "skills/coding-standards/SKILL.md",
-    "skills/frontend-patterns/SKILL.md",
-    "skills/frontend-slides/SKILL.md",
-    "skills/backend-patterns/SKILL.md",
-    "skills/e2e-testing/SKILL.md",
-    "skills/verification-loop/SKILL.md",
-    "skills/api-design/SKILL.md",
-    "skills/strategic-compact/SKILL.md",
-    "skills/eval-harness/SKILL.md"
+    ".opencode/instructions/INSTRUCTIONS.md",
+    ".opencode/skills/tdd-workflow/SKILL.md",
+    ".opencode/skills/e2e-testing/SKILL.md",
+    ".opencode/skills/verification-loop/SKILL.md",
+    ".opencode/skills/strategic-compact/SKILL.md",
+    ".opencode/skills/eval-harness/SKILL.md"
   ],
   "plugin": [],
-  "skills": {
-    "paths": [
-      "../skills"
-    ]
-  },
   "agent": {
     "build": {
       "description": "Primary coding agent for development work",

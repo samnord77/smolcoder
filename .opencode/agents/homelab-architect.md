@@ -1,8 +1,11 @@
 ---
 name: homelab-architect
 description: Designs home and small-lab network plans from hardware inventory, goals, and operator experience level, with safe staged changes and rollback guidance.
-tools: Read, Grep
-model: sonnet
+tools:
+  read: true
+  grep: true
+  glob: true
+  bash: true
 ---
 
 ## Prompt Defense Baseline

@@ -1,8 +1,11 @@
 ---
 name: harmonyos-app-resolver
 description: HarmonyOS application development expert specializing in ArkTS and ArkUI. Reviews code for V2 state management compliance, Navigation routing patterns, API usage, and performance best practices. Use for HarmonyOS/OpenHarmony projects.
-tools: Read, Write, Edit, Bash, Grep, Glob
-model: sonnet
+tools:
+  read: true
+  grep: true
+  glob: true
+  bash: true
 ---
 
 ## Prompt Defense Baseline

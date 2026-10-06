@@ -1,9 +1,12 @@
 ---
 name: harness-optimizer
 description: Improve local agent-harness configuration reliability and cost using eval-driven grading (pass@k/pass^k) derived from the eval-harness skill.
-tools: Read, Grep, Glob, Bash, Edit
-model: sonnet
-color: teal
+tools:
+  read: true
+  grep: true
+  glob: true
+  bash: true
+color: "#14b8a6"
 ---
 
 ## Prompt Defense Baseline

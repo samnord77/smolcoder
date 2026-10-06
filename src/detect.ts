@@ -305,11 +305,7 @@ export interface ServerInfo {
 /** Ask one address whether it is Ollama or LM Studio. null means neither (or
  * nothing there). Both native listings are requested together so a dead
  * address costs one timeout, not one per backend. */
-export async function identifyServer(
-  base: string,
-  timeoutMs = NETWORK_PROBE_TIMEOUT_MS,
-  apiKey?: string
-): Promise<ServerInfo | null> {
+export async function identifyServer(base: string, timeoutMs = NETWORK_PROBE_TIMEOUT_MS, apiKey?: string): Promise<ServerInfo | null> {
   const auth = apiKey ? { authorization: `Bearer ${apiKey}` } : undefined;
   const [tags, v1, v0probe] = await Promise.all([
     probeJson(`${base}/api/tags`, timeoutMs, auth),
@@ -317,8 +313,7 @@ export async function identifyServer(
     probeJson(`${base}/api/v0/models`, timeoutMs, auth),
   ]);
   if (!tags.reached && !v1.reached && !v0probe.reached) return null;
-  const withKey = (models: DetectedModel[]): DetectedModel[] =>
-    apiKey ? models.map((m) => ({ ...m, apiKey })) : models;
+  const withKey = (models: DetectedModel[]): DetectedModel[] => (apiKey ? models.map((m) => ({ ...m, apiKey })) : models);
   // LM Studio first: its listing names models by "key", which nothing else does.
   const lmKeyed =
     Array.isArray(v1.data?.models) && v1.data.models.length > 0 && v1.data.models.every((m: any) => typeof m?.key === "string");
@@ -363,9 +358,7 @@ export async function identifyServer(
           baseUrl: base,
           contextWindow: ctx ?? LMSTUDIO_JIT_GUESS,
           ...(ctx ? { maxContext: ctx } : {}),
-          note: ctx
-            ? undefined
-            : "context window unknown on this server (OpenAI-compatible) — assuming 4096 to be safe.",
+          note: ctx ? undefined : "context window unknown on this server (OpenAI-compatible) — assuming 4096 to be safe.",
         };
       });
     return { backend: "lmstudio", baseUrl: base, models: withKey(models) };
@@ -458,7 +451,9 @@ export async function detectAll(opts: DetectOptions = {}): Promise<DetectedModel
           }),
         ]),
     ...(!opts.fast ? (opts.hosts ?? []) : []).flatMap((host) =>
-      groupServers(hostUrls(host), NETWORK_PROBE_TIMEOUT_MS, hostLabel(host), host.apiKey).map((g) => probeGroup(g).then((s) => s?.models ?? []))
+      groupServers(hostUrls(host), NETWORK_PROBE_TIMEOUT_MS, hostLabel(host), host.apiKey).map((g) =>
+        probeGroup(g).then((s) => s?.models ?? [])
+      )
     ),
   ];
 
