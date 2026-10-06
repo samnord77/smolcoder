@@ -540,7 +540,7 @@ ipcMain.handle("ed:askModel", async () => {
   }
 });
 
-// ---- panneau MCP / plugins / LSP : memes categories que l'IDE opencode ----
+// ---- panneau MCP / plugins / LSP : memes categories que l'IDE ----
 // Serveurs (nom, statut, transport, outils), plugins = skills (nom,
 // description courte, source), LSP (disponibilite de l'outil symbols).
 async function activeWorkspace() {

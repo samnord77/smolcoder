@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // smolcoder — a smol, zero-config CLI coding agent for local models.
 //
-// Interactive: an opencode-style inline TUI. No upfront questions — the last
+// Interactive: a modern inline TUI. No upfront questions — the last
 // (or first) detected model is picked automatically; switch with /models,
 // cycle modes with shift+tab, set reasoning effort with /effort.
 // Web: smol --web serves a browser UI with a workspace sidebar — many

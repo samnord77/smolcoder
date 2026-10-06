@@ -1,4 +1,4 @@
-// The inline TUI, styled after opencode: an accent-bar input block with the
+// The inline TUI: an accent-bar input block with the
 // session status (mode · model · effort · ctx) inside it, a slash-command menu
 // that opens above the input as you type "/", arrow-key pickers with
 // type-to-filter, and shift+tab mode cycling. Hand-rolled ANSI, zero deps.
@@ -292,7 +292,7 @@ export class Tui implements SessionUI {
     if (this.history[this.history.length - 1] !== text) this.history.push(text);
     this.hideFrame();
     this.state = "hidden";
-    // Echo the user's message as an accent-barred block, opencode-style.
+    // Echo the user's message as an accent-barred block.
     const block = text
       .split("\n")
       .map((l) => `${ACCENT}▌${RESET} ${c.bold(l)}`)
