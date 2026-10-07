@@ -945,6 +945,15 @@ export class WebHub {
     return crypto.createHmac("sha256", this.authToken).update("preview").digest("hex");
   }
 
+  /** Value of the HttpOnly cookie that re-authorizes the app after the client
+   * strips ?k= from the address bar. Without it F5 (and any clean bookmark)
+   * would come back as 403: the token is gone from the URL, and the page has
+   * not run yet to attach it to its requests. It carries an HMAC, never the
+   * token itself, and SameSite=Strict keeps other origins from sending it. */
+  private webGrant(): string {
+    return crypto.createHmac("sha256", this.authToken).update("web").digest("hex");
+  }
+
   private route(req: http.IncomingMessage, res: http.ServerResponse): void {
     res.setHeader("Referrer-Policy", "no-referrer");
     res.setHeader("X-Content-Type-Options", "nosniff");
@@ -975,20 +984,27 @@ export class WebHub {
     // Once the preview exchanged ?k= for its HttpOnly cookie, that cookie alone
     // re-authorizes /workspace/preview (Path-scoped: it never travels to any
     // other endpoint).
-    const previewAuth =
-      url.pathname === "/workspace/preview" &&
-      String(req.headers.cookie ?? "")
-        .split(/;\s*/)
-        .includes(`smpv=${this.previewGrant()}`);
-    if ((url.searchParams.get("k") !== this.authToken || !sameOrigin) && !previewAuth) {
+    const cookieList = String(req.headers.cookie ?? "")
+      .split(/;\s*/)
+      .filter(Boolean);
+    const previewAuth = url.pathname === "/workspace/preview" && cookieList.includes(`smpv=${this.previewGrant()}`);
+    // ?k= on this request, or the cookie minted by an earlier one: the client
+    // drops ?k= from the address bar right after boot, so a reload must still
+    // be able to get in. Cookie checks stay behind sameOrigin.
+    const kOk = url.searchParams.get("k") === this.authToken && sameOrigin;
+    const cookieAuth = sameOrigin && cookieList.includes(`smolk=${this.webGrant()}`);
+    if (!kOk && !cookieAuth && !previewAuth) {
       // Share links carry their own secret (the share token): viewers never
       // see the hub token. Every /shared endpoint re-validates it.
       const sharedPath = url.pathname === "/shared" || url.pathname === "/shared/ping";
       if (!sharedPath) {
-        res.writeHead(403, { "content-type": "text/plain" });
+        res.writeHead(403, { "content-type": "text/plain; charset=utf-8" });
         res.end("forbidden — open smolcoder's printed URL (it includes the session key)");
         return;
       }
+    }
+    if (kOk) {
+      res.setHeader("Set-Cookie", `smolk=${this.webGrant()}; Path=/; HttpOnly; SameSite=Strict`);
     }
     const json = (code: number, body: any) => {
       res.writeHead(code, { "content-type": "application/json" });
