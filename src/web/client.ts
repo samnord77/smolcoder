@@ -74,8 +74,18 @@ const uid = () => "u" + (++uidCounter) + "_" + Date.now().toString(36);
 function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
 function post(path, body) {
   return fetch(path + "?k=" + k, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body || {}) })
-    .then((r) => r.json()).catch(() => ({}));
+    .then((r) => r.json()).catch(() => ({ error: "Réseau indisponible — requête non envoyée" }));
 }
+// A reload (F5, hub restart, offline banner) used to eat whatever the user had
+// typed. sessionStorage keeps the draft across reloads of this tab.
+function persistDraft() {
+  try {
+    if (!active || !input) return;
+    if (input.value) sessionStorage.setItem("smol.draft." + active.sid, input.value);
+    else sessionStorage.removeItem("smol.draft." + active.sid);
+  } catch (e) {}
+}
+window.addEventListener("beforeunload", persistDraft);
 function rel(ts) {
   const d = Date.now() - (ts || 0);
   if (!ts || d < 60e3) return "now";
@@ -348,7 +358,7 @@ function getView(sid) {
   if (!v) {
     v = {
       sid, logEl: el("div", "log"), state: { commands: [] }, curText: null, curThought: null, thoughtBuf: "", thoughtStart: 0, messageMarkCounter: 0, messageBookmarks: null,
-      busyLabel: null, busyStart: 0, unread: false, draft: "", scrollTop: null, followBottom: true, asks: new Map(), curTool: null, toolCards: new Map(), toolActivities: new Map(), agentFileOps: new Map(), planEl: null, curSub: null, lastTool: null,
+      busyLabel: null, busyStart: 0, unread: false, draft: (() => { try { return sessionStorage.getItem("smol.draft." + sid) || ""; } catch (e) { return ""; } })(), scrollTop: null, followBottom: true, asks: new Map(), curTool: null, toolCards: new Map(), toolActivities: new Map(), agentFileOps: new Map(), planEl: null, curSub: null, lastTool: null,
       terms: new Map(), tabs: [], activeTab: null, panelOpen: false, panelEl: el("div", "panelview"),
     };
     v.logEl.hidden = true; logsEl.appendChild(v.logEl);
@@ -361,6 +371,14 @@ function getView(sid) {
 function dropView(sid) {
   const v = views.get(sid);
   if (!v) return;
+  // Kill everything the view left running: the offload card's interval and
+  // each tab's disk-poll / window listeners used to outlive the panel.
+  clearOffload(v);
+  for (const tab of v.tabs) {
+    if (tab && tab.agentPollTimer) clearInterval(tab.agentPollTimer);
+    if (tab && tab.winKeydown) window.removeEventListener("keydown", tab.winKeydown);
+    if (tab && tab.winMouseup) window.removeEventListener("mouseup", tab.winMouseup);
+  }
   v.logEl.remove(); v.panelEl.remove();
   views.delete(sid);
   if (active === v) show(null);
@@ -1078,7 +1096,9 @@ function notifyAgentFileActivity(v, m, completed) {
     if (filesTab.refreshFiles) {
       try { filesTab.refreshFiles(); } catch (e) {}
     }
-    if (m.name === "write_file" || m.name === "edit_file" || m.name === "read_file") {
+    // read_file deliberately does NOT switch tabs: the agent reading a file
+    // must never steal the buffer the user is typing into.
+    if (m.name === "write_file" || m.name === "edit_file") {
       if (filesTab.loadFile) {
         void filesTab.loadFile(targetFile).catch(() => {});
       }
@@ -1741,6 +1761,7 @@ function onHub(m) {
   $("ver").textContent = "v" + m.version;
   if (typeof hubStartedAt === "undefined" || hubStartedAt === null) hubStartedAt = m.startedAt || 0;
   else if (m.startedAt && m.startedAt !== hubStartedAt) {
+    persistDraft();
     location.reload();
     return;
   }
@@ -2733,6 +2754,8 @@ function closeTab(v, t) {
   const i = v.tabs.indexOf(t);
   if (t.kind === "term") { post("/term/close", { sid: v.sid, tid: t.tid }); removeTermTab(v, t.tid); return; }
   if (t.agentPollTimer) clearInterval(t.agentPollTimer);
+  if (t.winKeydown) window.removeEventListener("keydown", t.winKeydown);
+  if (t.winMouseup) window.removeEventListener("mouseup", t.winMouseup);
   if (i >= 0) v.tabs.splice(i, 1);
   if (t.el) t.el.remove();
   if (v.activeTab === t.id) v.activeTab = (v.tabs[i] || v.tabs[i - 1] || {}).id || null;
@@ -2976,6 +2999,9 @@ function buildFilesTab(v, t) {
   // NOTE: inserted into body below, next to the other appends — the
   // results element does not exist yet at this point (TDZ).
   let inlineRange = null;
+  // Bumped every time the bar closes or the file changes; a poll carrying an
+  // older generation is stale and must not write into the editor anymore.
+  let inlineGen = 0;
   const openInlineBar = () => {
     if (!t.filePath) { showError("Ouvrez d’abord un fichier."); return; }
     if (editor.selectionStart === editor.selectionEnd) {
@@ -2990,7 +3016,7 @@ function buildFilesTab(v, t) {
     inlineInput.value = "";
     inlineInput.focus();
   };
-  const closeInlineBar = () => { inlineBar.hidden = true; inlinePreview.hidden = true; inlineRange = null; editor.focus(); };
+  const closeInlineBar = () => { inlineBar.hidden = true; inlinePreview.hidden = true; inlineRange = null; inlineGen++; editor.focus(); };
   const paintInlineDiff = (text) => {
     inlineDiff.replaceChildren();
     let adds = 0, dels = 0;
@@ -3005,10 +3031,11 @@ function buildFilesTab(v, t) {
     }
     return { adds, dels };
   };
-  const pollInline = (op, left = 120) => {
+  const pollInline = (op, left = 120, gen = inlineGen) => {
     if (left <= 0) { inlineStatus.textContent = "Délai dépassé — réessayez."; inlineRange = null; return; }
     fetch("/code/inline/result?k=" + k + "&id=" + encodeURIComponent(op))
       .then((r) => r.json()).then((d) => {
+        if (gen !== inlineGen || !inlineRange) return;
         if (d.status === "done") {
           inlineRange.newText = d.newText;
           const stats = paintInlineDiff(d.diff || "");
@@ -3018,7 +3045,7 @@ function buildFilesTab(v, t) {
           inlineStatus.textContent = d.error || "Échec de génération.";
           inlineRange = null;
         } else {
-          setTimeout(() => pollInline(op, left - 1), 1500);
+          setTimeout(() => pollInline(op, left - 1, gen), 1500);
         }
       }).catch((e) => { inlineStatus.textContent = String((e && e.message) || e); inlineRange = null; });
   };
@@ -3058,7 +3085,7 @@ function buildFilesTab(v, t) {
     closeInlineBar();
   };
   inlineReject.onclick = closeInlineBar;
-  window.addEventListener("keydown", (e) => {
+  t.winKeydown = (e) => {
     if (!inlinePreview.hidden && inlineRange && typeof inlineRange.newText === "string") {
       if (e.key === "Enter" || (e.ctrlKey && e.key.toLowerCase() === "y") || e.key === "Tab") {
         e.preventDefault();
@@ -3068,7 +3095,8 @@ function buildFilesTab(v, t) {
         closeInlineBar();
       }
     }
-  });
+  };
+  window.addEventListener("keydown", t.winKeydown);
   const fileOp = (endpoint, body, after) => {
     fetch("/workspace/file/" + endpoint + "?k=" + k + "&sid=" + encodeURIComponent(v.sid), {
       method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body || {}),
@@ -3105,10 +3133,15 @@ function buildFilesTab(v, t) {
   deleteBtn.onclick = () => {
     if (!t.filePath) { showError("Ouvrez d’abord un fichier."); return; }
     const p = t.filePath;
-    if (!confirm("Supprimer " + p + " ?")) return;
+    const td = t.tabStore.list().find((x) => x.path === p);
+    const ask = td && td.dirty ? "Supprimer " + p + " ET ses modifications non enregistrées ?" : "Supprimer " + p + " ?";
+    if (!confirm(ask)) return;
     fileOp("delete", { path: p }, () => {
       const r = t.tabStore.close(p, true);
       displayTab(r ? r.active : null);
+      // An image has no tab entry: without this the preview of the deleted
+      // file stayed on screen.
+      if (!imagePreview.hidden && t.filePath === p) { t.filePath = ""; imagePreview.hidden = true; imageEl.removeAttribute("src"); renderTabs(); }
       t.loadDir(t.rel || ".");
     });
   };
@@ -3461,7 +3494,8 @@ function buildFilesTab(v, t) {
     e.preventDefault();
   });
   minimap.addEventListener("mousemove", (e) => { if (mmDragging) scrollFromMinimap(e.clientY); });
-  window.addEventListener("mouseup", () => { mmDragging = false; });
+  t.winMouseup = () => { mmDragging = false; };
+  window.addEventListener("mouseup", t.winMouseup);
   editor.addEventListener("scroll", paintMinimapViewport);
 
   const showError = (message) => {
@@ -3704,7 +3738,12 @@ function buildFilesTab(v, t) {
     }
   };
   const displayTab = (tab) => {
-    t.filePath = tab ? tab.path : ""; t.mtimeMs = tab ? tab.mtimeMs : 0;
+    const nextPath = tab ? tab.path : "";
+    // displayTab always reloads editor.value, so ANY inline range is stale —
+    // including same-path ones (agent reload). Kill the bar and in-flight
+    // results unconditionally so Enter can never splice into the wrong buffer.
+    inlineRange = null; inlineBar.hidden = true; inlinePreview.hidden = true; inlineGen++;
+    t.filePath = nextPath; t.mtimeMs = tab ? tab.mtimeMs : 0;
     imagePreview.hidden = true;
     imageEl.removeAttribute("src");
     editor.hidden = false; code.hidden = false; gutter.hidden = false; minimap.hidden = false;
@@ -4072,12 +4111,19 @@ function buildFilesTab(v, t) {
     if (existing) { displayTab(existing); return true; }
     if (/\.(?:png|jpe?g|gif|webp|svg|ico|bmp)$/i.test(String(rel))) {
       t.filePath = rel;
+      // No mtime for an image preview: the disk poll compares mtimeMs, and a
+      // stale value from the previous text file looped a reload every 5 s.
+      t.mtimeMs = 0;
+      // This branch bypasses displayTab: reset inline state here too, or the
+      // bar stays over the image and "Accepter" writes into a dead buffer.
+      inlineRange = null; inlineBar.hidden = true; inlinePreview.hidden = true; inlineGen++;
       imageEl.src = "/workspace/asset?k=" + encodeURIComponent(k) + "&sid=" + encodeURIComponent(v.sid) + "&path=" + encodeURIComponent(rel);
       imagePreview.hidden = false;
       editor.hidden = true; code.hidden = true; gutter.hidden = true; minimap.hidden = true;
       save.disabled = true; diagnosticsPanel.replaceChildren(el("div", "filediagnostic-note", "Aperçu image — fichier en lecture seule."));
       meta.textContent = rel + " · aperçu image";
       pathInput.value = rel;
+      renderTabs();
       return true;
     }
     try {
@@ -4111,7 +4157,9 @@ function buildFilesTab(v, t) {
   };
   t.refreshMode = (canWrite) => {
     canWriteMode = canWrite;
-    save.disabled = !canWrite || !t.filePath;
+    // The image preview has no buffer: re-enabling save here would push the
+    // previous text buffer over the picture file.
+    save.disabled = !canWrite || !t.filePath || !imagePreview.hidden;
     applyFoldVisibility();
   };
   previewButton.onclick = () => {
@@ -4248,6 +4296,7 @@ function buildFilesTab(v, t) {
   };
   save.onclick = () => {
     if (!t.filePath) return;
+    if (!imagePreview.hidden) return;
     const filePath = t.filePath, content = editor.value, expectedMtimeMs = t.mtimeMs;
     t.tabStore.update(filePath, content);
     save.disabled = true;
@@ -4943,9 +4992,20 @@ function submit(options = {}) {
   if (pending.some((a) => a.uploading)) { showError("Envoi d'une piece jointe en cours. Attendez, ou retirez-la avec la croix."); return; }
   const files = pending.filter((a) => a.id).map((a) => a.id);
   if (!v && !files.length) return;
+  const sentDraft = { text: v, pending };
   input.value = ""; active.draft = ""; active.pending = []; renderMenu(); autoGrow(); renderAttachments();
   scrollToBottom();
-  post("/msg", { sid: active.sid, text: v, attachments: files, ...(options.workItemId ? { workItemId: options.workItemId } : {}) }).then((r) => { if (r && r.error) alert(r.error); });
+  post("/msg", { sid: active.sid, text: v, attachments: files, ...(options.workItemId ? { workItemId: options.workItemId } : {}) })
+    .then((r) => {
+      if (!r || !r.error) return;
+      // A failed send must never eat the user's text: put the draft back
+      // (unless they already started typing something new).
+      if (!input.value) {
+        input.value = sentDraft.text; active.draft = sentDraft.text; active.pending = sentDraft.pending;
+        renderMenu(); autoGrow(); renderAttachments();
+      }
+      alert(r.error);
+    });
 }
 function autoGrow() { input.rows = Math.min(12, Math.max(2, input.value.split("\n").length)); }
 input.addEventListener("input", () => { menuIdx = 0; renderMenu(); autoGrow(); });
@@ -5935,7 +5995,7 @@ function showNetBanner() {
   bar.appendChild(document.createTextNode("Serveur injoignable — rechargez la page"));
   const btn = el("button", "ghost", "Recharger");
   btn.type = "button";
-  btn.onclick = () => location.reload();
+  btn.onclick = () => { persistDraft(); location.reload(); };
   bar.appendChild(btn);
   const hide = el("button", "iconbtn", "×");
   hide.type = "button";
