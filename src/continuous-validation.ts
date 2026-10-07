@@ -83,8 +83,27 @@ export function checkSyntax(filePath: string, content?: string): { ok: boolean; 
     }
   }
 
-  // 2. Contrôle JavaScript (node:vm Script parse sans exécution)
+  // 2. Contrôle JavaScript (TS parser covers ESM import/meta in .mjs too;
+  // vm.Script alone would flag every ESM file as invalid)
   if ([".js", ".mjs", ".cjs"].includes(ext)) {
+    if (tsCompiler) {
+      try {
+        const transpileRes = tsCompiler.transpileModule(code, {
+          compilerOptions: { module: tsCompiler.ModuleKind?.ESNext ?? 99 },
+          reportDiagnostics: true,
+        });
+        if (transpileRes.diagnostics && transpileRes.diagnostics.length > 0) {
+          const first = transpileRes.diagnostics[0];
+          const msg =
+            typeof first.messageText === "string" ? first.messageText : (first.messageText?.messageText ?? "Erreur syntaxique JavaScript");
+          const line = first.file && first.start !== undefined ? first.file.getLineAndCharacterOfPosition(first.start).line + 1 : undefined;
+          return { ok: false, error: `Erreur syntaxe JS: ${msg}`, line };
+        }
+        return { ok: true };
+      } catch (err: any) {
+        return { ok: false, error: `Erreur syntaxe JS: ${err?.message ?? err}` };
+      }
+    }
     try {
       new vm.Script(code, { filename: path.basename(filePath) });
       return { ok: true };

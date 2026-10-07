@@ -1456,6 +1456,7 @@ function handle(m) {
     case "turn_error":
       v.state.outcome = "error";
       v.state.lastError = m.message || "Le tour Auto Copilot a échoué.";
+      appendOutputLog("Hub Tasks", outStamp() + " [erreur] " + v.state.lastError);
       setBusy(v, null);
       showToast(v.state.lastError, "error");
       renderState(v);
@@ -1679,6 +1680,7 @@ function handle(m) {
       break;
     case "turnend":
       endThought(v); v.curText = null; v.curSub = null; add(v, el("div", "turnend", "■ " + m.label));
+      appendOutputLog("Hub Tasks", outStamp() + " Tour terminé : " + (m.label || ""));
       ping("smolcoder — turn finished", m.label);
       if (v !== active) { v.unread = true; renderSidebar(); }
       renderActivity(v);
@@ -2133,39 +2135,53 @@ let detectedPorts = [
   { port: 1234, protocol: "HTTP", service: "LM Studio API", status: "Prêt", openUrl: "http://127.0.0.1:1234" }
 ];
 
+let workspaceScanError = null;
+let workspaceScanMessage = null;
+let workspaceScanned = false;
+let problemsHideWarnings = false;
+function outStamp() {
+  const d = new Date();
+  return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0") + ":" + String(d.getSeconds()).padStart(2, "0");
+}
+
 function scanWorkspaceProblems(v) {
   if (!v) return;
-  fetch("/cv/status?k=" + k + "&sid=" + encodeURIComponent(v.sid))
-    .then((r) => r.json())
-    .then((d) => {
+  workspaceScanError = null;
+  fetch("/workspace/diagnostics?k=" + k + "&sid=" + encodeURIComponent(v.sid) + "&scope=all")
+    .then((r) => r.json().then((d) => ({ ok: r.ok, d })))
+    .then(({ ok, d }) => {
+      if (!ok || (d && d.error)) throw new Error((d && d.error) || "analyse impossible");
       workspaceDiagnostics = [];
-      if (d && Array.isArray(d.errors)) {
-        for (const e of d.errors) {
-          workspaceDiagnostics.push({
-            path: e.file || e.path || "workspace",
-            line: e.line || 1,
-            col: e.column || e.col || 1,
-            message: e.message || String(e),
-            severity: "error"
-          });
+      workspaceScanned = true;
+      workspaceScanMessage = (d && d.message) || null;
+      let errCnt = 0, warnCnt = 0;
+      const list = d && Array.isArray(d.diagnostics) ? d.diagnostics : [];
+      for (const e of list) {
+        const sev = e.severity === "warning" ? "warning" : e.severity === "info" ? "info" : "error";
+        if (sev === "error") errCnt++;
+        else if (sev === "warning") warnCnt++;
+        workspaceDiagnostics.push({
+          path: e.path || e.file || "workspace",
+          line: e.line || 1,
+          col: e.column || e.col || 1,
+          message: e.message || String(e),
+          severity: sev
+        });
+        if (/\bTS\d{3,}\b/.test(e.message || "")) {
+          appendOutputLog("TypeScript", outStamp() + " " + (e.path || "?") + ":" + (e.line || 1) + " " + e.message);
         }
       }
-      if (d && Array.isArray(d.warnings)) {
-        for (const w of d.warnings) {
-          workspaceDiagnostics.push({
-            path: w.file || w.path || "workspace",
-            line: w.line || 1,
-            col: w.column || w.col || 1,
-            message: w.message || String(w),
-            severity: "warning"
-          });
-        }
-      }
+      appendOutputLog("Continuous Validation", outStamp() + " Scan workspace (" + (d && typeof d.scanned === "number" ? d.scanned + " fichier(s)" : "ok") + ") : " + errCnt + " erreur(s), " + warnCnt + " avertissement(s)");
       const pt = v.tabs.find((x) => x.kind === "problems");
       if (pt && pt.render) pt.render();
       renderPanel();
     })
-    .catch(() => {});
+    .catch((err) => {
+      workspaceScanError = String(err && err.message ? err.message : err);
+      appendOutputLog("Continuous Validation", outStamp() + " Scan échoué : " + workspaceScanError);
+      const pt = v.tabs.find((x) => x.kind === "problems");
+      if (pt && pt.render) pt.render();
+    });
 }
 
 function ensureProblemsTab(v) {
@@ -2188,12 +2204,23 @@ function renderProblemsView(v, t) {
   content.innerHTML = "";
   const filter = (t.filter || "").toLowerCase().trim();
   const diags = workspaceDiagnostics.filter((d) => {
+    if (problemsHideWarnings && d.severity !== "error") return false;
     if (!filter) return true;
     return (d.path && d.path.toLowerCase().includes(filter)) || (d.message && d.message.toLowerCase().includes(filter));
   });
   if (!diags.length) {
-    const empty = el("div", "problems-empty", "No problems have been detected in the workspace.");
+    const empty = el("div", "problems-empty",
+      workspaceScanError ? "Scan impossible : " + workspaceScanError
+        : !workspaceScanned ? "Cliquez sur ↻ Re-scan pour analyser le workspace."
+        : workspaceScanMessage ? workspaceScanMessage
+        : "Aucun problème détecté dans le workspace.");
     content.appendChild(empty);
+    const emptyBar = el("div", "prob-action-bar");
+    const refreshEmptyBtn = el("button", "prob-btn ghost", "↻ Re-scan");
+    refreshEmptyBtn.title = "Analyser tous les fichiers TypeScript/JavaScript/JSON du workspace";
+    refreshEmptyBtn.onclick = () => { scanWorkspaceProblems(v); };
+    emptyBar.appendChild(refreshEmptyBtn);
+    content.appendChild(emptyBar);
     return;
   }
   const headBar = el("div", "prob-action-bar");
@@ -2307,6 +2334,18 @@ function appendOutputLog(channel, text) {
     if (t && t.render && activeOutputChannel === channel) t.render();
   }
 }
+// Mirror browser console errors/warnings into the Output "Console" channel
+// (keeps the original console intact).
+(function hookConsoleToOutput() {
+  const fmt = (a) => a.map((x) => {
+    try { return typeof x === "string" ? x : JSON.stringify(x); }
+    catch { return String(x); }
+  }).join(" ");
+  const origErr = console.error;
+  const origWarn = console.warn;
+  console.error = function (...a) { try { appendOutputLog("Console", outStamp() + " [error] " + fmt(a)); } catch {} return origErr.apply(console, a); };
+  console.warn = function (...a) { try { appendOutputLog("Console", outStamp() + " [warn] " + fmt(a)); } catch {} return origWarn.apply(console, a); };
+})();
 
 function ensureDebugConsoleTab(v) {
   let t = v.tabs.find((x) => x.kind === "debug");
@@ -2641,6 +2680,24 @@ function renderPanel() {
 
     const menuBtn = el("button", "vsc-tool-btn", "≡");
     menuBtn.title = "Options d'affichage";
+    menuBtn.onclick = (e) => {
+      e.stopPropagation();
+      statusMenu(menuBtn, [
+        { label: "Relancer le scan du workspace", run: () => scanWorkspaceProblems(v) },
+        {
+          label: problemsHideWarnings ? "Afficher les avertissements" : "Masquer les avertissements",
+          on: problemsHideWarnings,
+          run: () => { problemsHideWarnings = !problemsHideWarnings; if (cur.render) cur.render(); }
+        },
+        {
+          label: "Copier la liste des problèmes",
+          run: () => {
+            const txt = workspaceDiagnostics.map((d) => d.path + ":" + d.line + " [" + d.severity + "] " + d.message).join("\n");
+            navigator.clipboard.writeText(txt || "Aucun problème.").then(() => showToast("Problèmes copiés", "info")).catch(() => {});
+          }
+        }
+      ]);
+    };
     toolRight.appendChild(menuBtn);
   } else if (cur && cur.kind === "output") {
     const sel = document.createElement("select");
@@ -2773,6 +2830,7 @@ function togglePanelKind(kind) {
   if (existing) {
     v.activeTab = existing.id; v.panelOpen = true; savePanel(v); renderPanel();
     if (kind === "term" && existing.inp) existing.inp.focus();
+    if (kind === "problems") scanWorkspaceProblems(v);
   } else if (kind === "problems") {
     const pt = ensureProblemsTab(v);
     v.activeTab = pt.id; v.panelOpen = true; savePanel(v); renderPanel();

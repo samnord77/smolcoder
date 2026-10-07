@@ -20,6 +20,7 @@ import { type Attachment, classifyUpload, extOf, MAX_UPLOAD_BYTES, mimeForExt, s
 import { queryIndex } from "../codeindex";
 import { DATA_DIR, loadConfig } from "../config";
 import { ContextManager } from "../context";
+import { checkSyntax } from "../continuous-validation";
 import { applyOp, type CrdOp, docFromText } from "../crdt";
 import { EventBus } from "../events";
 import {
@@ -49,7 +50,7 @@ import type { ToolContext } from "../tools/index";
 import { findLiveShell, liveShellList } from "../tools/shell";
 import type { AgentUI } from "../ui";
 import { tryFetchJson } from "../util";
-import { workspaceDiagnostics } from "../workspace-diagnostics";
+import { type WorkspaceDiagnostic, workspaceDiagnostics } from "../workspace-diagnostics";
 import { searchWorkspace } from "../workspace-search";
 import { type Event, SessionChannel, uploadUrl } from "./channel";
 import { renderEditDiff } from "./diff";
@@ -332,6 +333,47 @@ export function listWorkspaceFiles(root: string): string[] {
   }
   out.sort();
   return out;
+}
+
+/** Workspace-wide syntax scan for the Problems panel: every readable
+ * TS/JS/JSON file (bounded) checked locally with checkSyntax — fast, no
+ * language server spawn. Returns the same shape as workspaceDiagnostics. */
+export function scanWorkspaceSyntax(
+  root: string,
+  maxFiles = 80
+): {
+  path: string;
+  diagnostics: WorkspaceDiagnostic[];
+  scanned: number;
+  message?: string;
+} {
+  const files = listWorkspaceFiles(root).filter((f) => /\.(ts|tsx|jsx|js|mjs|cjs|json)$/i.test(f));
+  const truncated = files.length > maxFiles;
+  const capped = truncated ? files.slice(0, maxFiles) : files;
+  const diagnostics: WorkspaceDiagnostic[] = [];
+  for (const rel of capped) {
+    const r = checkSyntax(path.join(root, rel));
+    if (r.ok) continue;
+    diagnostics.push({
+      path: rel,
+      line: Math.max(1, r.line || 1),
+      severity: "error",
+      message: String(r.error || "Erreur de syntaxe").slice(0, 300),
+    });
+    if (diagnostics.length >= 200) break;
+  }
+  return {
+    path: ".",
+    diagnostics,
+    scanned: capped.length,
+    message: diagnostics.length
+      ? undefined
+      : !capped.length
+        ? "Aucun fichier TypeScript/JavaScript/JSON à analyser."
+        : truncated
+          ? `Aucun problème dans les ${capped.length} premiers fichiers (scan borné, ${files.length} fichiers au total).`
+          : "Aucun problème détecté dans le workspace.",
+  };
 }
 
 function defaultFactory(help: string): SessionFactory {
@@ -1092,6 +1134,14 @@ export class WebHub {
           const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
           if (!live) {
             json(404, { error: "no such session" });
+            return;
+          }
+          if (url.searchParams.get("scope") === "all") {
+            try {
+              json(200, scanWorkspaceSyntax(live.workspace));
+            } catch (err: any) {
+              json(400, { error: String(err?.message ?? err).slice(0, 500) });
+            }
             return;
           }
           void workspaceDiagnostics(live.workspace, url.searchParams.get("path"))
