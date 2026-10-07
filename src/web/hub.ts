@@ -949,7 +949,16 @@ export class WebHub {
     res.setHeader("Referrer-Policy", "no-referrer");
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Cache-Control", "no-store");
-    const url = new URL(req.url ?? "/", `http://127.0.0.1:${this.port}`);
+    // req.url is attacker-controlled: forms like "//" throw here and, without
+    // this guard, took the whole hub process down with no token required.
+    let url: URL;
+    try {
+      url = new URL(req.url ?? "/", `http://127.0.0.1:${this.port}`);
+    } catch {
+      res.writeHead(400, { "content-type": "text/plain" });
+      res.end("bad request");
+      return;
+    }
     // The workspace HTML preview renders inside the app's iframe; nothing else
     // on this origin may be framed.
     res.setHeader("X-Frame-Options", url.pathname === "/workspace/preview" ? "SAMEORIGIN" : "DENY");
@@ -1050,7 +1059,7 @@ export class WebHub {
           const sid = String(url.searchParams.get("sid") ?? "");
           const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
           const meta = this.metas.get(sid);
-          const ws = live?.workspace ?? meta?.workspace ?? this.workspaces.list()[0]?.path;
+          const ws = live?.workspace ?? meta?.workspace;
           if (!ws) {
             json(404, { error: "no such session or workspace" });
             return;
@@ -1328,21 +1337,31 @@ export class WebHub {
       // multi-byte UTF-8 character that straddles a chunk boundary.
       const chunks: Buffer[] = [];
       let bodyBytes = 0;
+      let tooLarge = false;
       req.on("data", (d: Buffer) => {
         bodyBytes += d.length;
         if (bodyBytes > 1_000_000) {
-          req.destroy();
+          // Reply 413 once and keep draining: destroy() cut the socket before
+          // the response flushed, so the client only saw a connection reset.
+          if (!tooLarge) {
+            tooLarge = true;
+            chunks.length = 0;
+            res.writeHead(413, { "content-type": "application/json" });
+            res.end(JSON.stringify({ error: "request body too large (1 MB max)" }));
+          }
           return;
         }
         chunks.push(d);
       });
       req.on("end", async () => {
+        if (tooLarge) return;
         const body = Buffer.concat(chunks).toString("utf8");
         let data: any = {};
         try {
           data = body ? JSON.parse(body) : {};
         } catch {
-          /* ignore */
+          json(400, { error: "invalid JSON body" });
+          return;
         }
         try {
           json(200, (await this.handlePost(url.pathname, data)) ?? {});
@@ -1472,9 +1491,12 @@ export class WebHub {
       if (failed) return;
       size += d.length;
       if (size > MAX_UPLOAD_BYTES) {
-        failed = true;
-        reply(413, { error: `"${name}" is larger than the ${MAX_UPLOAD_BYTES / 1024 / 1024} MB upload limit.` });
-        req.destroy();
+        if (!failed) {
+          failed = true;
+          reply(413, { error: `"${name}" is larger than the ${MAX_UPLOAD_BYTES / 1024 / 1024} MB upload limit.` });
+          // No req.destroy(): destroying right after replying reset the socket
+          // before the 413 flushed. Drain the rest instead.
+        }
         return;
       }
       chunks.push(d);
@@ -1518,8 +1540,18 @@ export class WebHub {
       res.end();
       return;
     }
-    res.writeHead(200, { "content-type": mimeForExt(path.extname(file).slice(1)), "content-length": fs.statSync(file).size });
-    fs.createReadStream(file).pipe(res);
+    // The upload can be deleted between lookup and open (session removed
+    // mid-load): without try/error handlers either step killed the hub.
+    try {
+      res.writeHead(200, { "content-type": mimeForExt(path.extname(file).slice(1)), "content-length": fs.statSync(file).size });
+    } catch {
+      res.writeHead(404);
+      res.end();
+      return;
+    }
+    fs.createReadStream(file)
+      .on("error", () => res.destroy())
+      .pipe(res);
   }
 
   private findUpload(sid: string, id: string): string | null {
@@ -1840,7 +1872,7 @@ export class WebHub {
     const sid = String(sidRaw ?? "");
     const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
     const meta = this.metas.get(sid);
-    const ws = live?.workspace ?? meta?.workspace ?? this.workspaces.list()[0]?.path;
+    const ws = live?.workspace ?? meta?.workspace;
     if (!ws) throw new Error("no such session or workspace");
     const rel = String(relRaw ?? "").trim() || ".";
     let abs: string;
@@ -1886,7 +1918,7 @@ export class WebHub {
     const sid = String(url.searchParams.get("sid") ?? "");
     const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
     const meta = this.metas.get(sid);
-    const ws = live?.workspace ?? meta?.workspace ?? this.workspaces.list()[0]?.path;
+    const ws = live?.workspace ?? meta?.workspace;
     if (!ws) {
       res.writeHead(404, { "content-type": "application/json" });
       res.end(JSON.stringify({ error: "no such session or workspace" }));
@@ -1961,7 +1993,11 @@ export class WebHub {
         // read ?k= from location.search. No scripts, ever.
         "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; sandbox",
       });
-      fs.createReadStream(abs).pipe(res);
+      // The file can vanish between stat and open: an unhandled stream error
+      // here used to kill the whole hub process.
+      fs.createReadStream(abs)
+        .on("error", () => res.destroy())
+        .pipe(res);
     } catch (err: any) {
       res.writeHead(400, { "content-type": "application/json" });
       res.end(JSON.stringify({ error: err instanceof SandboxError ? err.message : String(err?.message ?? err) }));
@@ -1976,7 +2012,9 @@ export class WebHub {
     const rel = String(d.path ?? "").trim();
     const content = typeof d.content === "string" ? d.content : "";
     if (!rel) throw new Error("path is required");
-    if (content.length > WEB_FILE_CAP) throw new Error(`file is larger than ${WEB_FILE_CAP} bytes`);
+    // Compare in bytes, not UTF-16 units: 512 000 emoji would pass this check
+    // but be rejected on reopen by the byte-based read cap.
+    if (Buffer.byteLength(content, "utf8") > WEB_FILE_CAP) throw new Error(`file is larger than ${WEB_FILE_CAP} bytes`);
     let abs: string;
     try {
       abs = resolveInWorkspace(live.workspace, rel);
@@ -1986,10 +2024,14 @@ export class WebHub {
     if (d.expectedMtimeMs !== undefined) {
       const expected = Number(d.expectedMtimeMs);
       if (!Number.isFinite(expected)) throw new Error("invalid file version; reload it before saving");
-      if (!fs.existsSync(abs)) throw new Error("file was removed from disk; reload the folder before saving");
-      const current = fs.statSync(abs).mtimeMs;
-      if (Math.abs(current - expected) > 1) {
-        throw new Error("file changed on disk; reload it before saving");
+      // 0 means "no version known": comparing against epoch always failed and
+      // locked the user out of their own file.
+      if (expected > 0) {
+        if (!fs.existsSync(abs)) throw new Error("file was removed from disk; reload the folder before saving");
+        const current = fs.statSync(abs).mtimeMs;
+        if (Math.abs(current - expected) > 1) {
+          throw new Error("file changed on disk; reload it before saving");
+        }
       }
     }
     // Never let a text save replace a binary file or embed NUL bytes: the
@@ -1999,7 +2041,20 @@ export class WebHub {
       throw new Error("file is binary on disk - refusing to overwrite it as text");
     }
     fs.mkdirSync(path.dirname(abs), { recursive: true });
-    fs.writeFileSync(abs, content, "utf8");
+    // Write to a temp file then rename: a crash or full disk mid-write would
+    // otherwise leave the user's file truncated to zero.
+    const tmp = `${abs}.smol-tmp`;
+    try {
+      fs.writeFileSync(tmp, content, "utf8");
+      fs.renameSync(tmp, abs);
+    } catch (err) {
+      try {
+        fs.unlinkSync(tmp);
+      } catch {
+        /* keep the original error */
+      }
+      throw err;
+    }
     live.session.toolCtx.filesTouched.add(rel);
     const st = fs.statSync(abs);
     live.channel.status(`· saved ${rel}`);
