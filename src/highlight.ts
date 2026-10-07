@@ -505,7 +505,7 @@ export function createCodeStreamColorizer(write: (text: string) => void, enabled
   };
 }
 /** Plain JavaScript source injected into the standalone web page. */
-export const browserHighlighterSource = `const tokenizeCode = (${tokenizeCode.toString()});\nconst highlightEscapedHtml = (${highlightEscapedHtml.toString()});`;
+export const browserHighlighterSource = `const tokenizeCode = (${tokenizeCode.toString()});\nconst escapeHtml = (${escapeHtml.toString()});\nconst highlightEscapedHtml = (${highlightEscapedHtml.toString()});\nconst highlightHtml = (${highlightHtml.toString()});`;
 
 const ANSI_RE = /\x1b\[[0-9;]*[A-Za-z]|\x1b\][^\x07]*\x07|\r(?!\n)/g;
 

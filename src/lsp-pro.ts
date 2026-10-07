@@ -453,6 +453,18 @@ export function lspRootUri(root: string): string {
   return `file:///${root.replace(/\\/g, "/").replace(/^\//, "")}`;
 }
 
+/**
+ * JavaScript files must be opened as "javascript", never "typescript": the
+ * TypeScript server would otherwise type-check plain .js against the strict
+ * tsconfig and report bogus implicit-any / redeclare errors on legacy files.
+ */
+export function docLanguageId(def: LspServerDef, abs: string): string {
+  if (def.lang === "typescript") {
+    return /\.(?:js|jsx|mjs|cjs)$/i.test(abs) ? "javascript" : "typescript";
+  }
+  return def.languageId;
+}
+
 /** Loose URI compare: servers normalize drive case and escapes. */
 export function normLspUri(u: string): string {
   try {
@@ -946,8 +958,9 @@ export class LspManager {
     const known = this.docs.get(uri);
     live.client.watch(uri);
     if (!known) {
-      live.client.notify("textDocument/didOpen", { textDocument: { uri, languageId: def.languageId, version: 1, text } });
-      this.docs.set(uri, { version: 1, languageId: def.languageId });
+      const languageId = docLanguageId(def, abs);
+      live.client.notify("textDocument/didOpen", { textDocument: { uri, languageId, version: 1, text } });
+      this.docs.set(uri, { version: 1, languageId });
     } else {
       const version = known.version + 1;
       live.client.notify("textDocument/didChange", { textDocument: { uri, version }, contentChanges: [{ text }] });

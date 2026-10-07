@@ -3375,7 +3375,7 @@ function buildFilesTab(v, t) {
   const paint = () => {
     const marked = markDiags(editor.value);
     const markedLines = marked.split("\n");
-    let html = highlightEscapedHtml(esc(marked), t.filePath.split(".").pop()) || " ";
+    let html = highlightHtml(marked, t.filePath.split(".").pop()) || " ";
     html = html.split(SQE[0]).join('<span class="sq-err">').split(SQE[1]).join("</span>");
     html = html.split(SQW[0]).join('<span class="sq-warn">').split(SQW[1]).join("</span>");
     // Vue pliee : une ligne .ed-row par ligne visible, placeholder .ed-ph a la
