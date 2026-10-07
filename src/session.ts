@@ -12,7 +12,7 @@ import { type Attachment, MAX_UPLOAD_BYTES, mimeForExt } from "./attachments";
 import { listCustomCommands, loadCustomCommand } from "./commands";
 import { type Config, effortForBackend, loadConfig, updateConfig } from "./config";
 import { ContextManager } from "./context";
-import { type DetectedModel, detectAll, keyAllowed, resolveContextWindow } from "./detect";
+import { type DetectedModel, detectAll, envKeyFor, keyAllowed, resolveContextWindow } from "./detect";
 import { EventBus } from "./events";
 import { formatReview } from "./git";
 import { hostUrls } from "./hosts";
@@ -97,6 +97,8 @@ function apiKeyFor(m: DetectedModel): string | undefined {
   // chat request would carry the user's OpenRouter/Gemini key in clear text.
   if (!keyAllowed(m.baseUrl)) return undefined;
   if (m.apiKey) return m.apiKey;
+  const env = envKeyFor(m.baseUrl);
+  if (env) return env;
   const hosts = loadConfig().hosts ?? [];
   for (const h of hosts) {
     if (h.apiKey && hostUrls(h).includes(m.baseUrl)) return h.apiKey;

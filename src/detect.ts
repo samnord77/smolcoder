@@ -197,11 +197,15 @@ const NOT_LOADED_NOTE =
 const LMSTUDIO_JIT_GUESS = 4096; // LM Studio's usual default when a model is JIT-loaded
 const DEFAULT_LMSTUDIO_BASE = `http://127.0.0.1:${LMSTUDIO_PORT}`;
 
-/** Google's OpenAI-compatible /models listing carries no context metadata.
- * The Gemini 2.5 flash/pro family all share a 1,048,576-token input window;
- * output stays bounded separately by outputBudget(). */
+/** Google's OpenAI-compatible /models listing carries no context metadata
+ * at all (0 of 62 entries ship one), so every chat-capable Gemini family gets
+ * the 1,048,576-token window its current generations share; output stays
+ * bounded separately by outputBudget(). */
 export function googleContextWindow(id: string): number | undefined {
-  return /^gemini-2\.5-(flash|pro)/.test(stripGooglePrefix(id)) ? 1_048_576 : undefined;
+  const bare = stripGooglePrefix(id);
+  if (!/^gemini-(2\.5|[3-9])/.test(bare)) return undefined;
+  if (/image|tts|audio|embed/i.test(bare)) return undefined;
+  return 1_048_576;
 }
 
 /** Google's OpenAI-compatible listing prefixes every id with "models/"
@@ -216,11 +220,34 @@ export function compatModelsPath(base: string): string {
   return base.includes("generativelanguage.googleapis.com") ? "/models" : "/v1/models";
 }
 
-/** Google's listing also carries imagen/veo/embed/gemma entries that cannot chat:
- * keep only the chat-capable Gemini 2.5 flash/pro family. */
-export function isChatGemini25(id: string): boolean {
+/** Google's listing also carries imagen/veo/embed/gemma, image-only,
+ * tts/audio and other non-chat entries: keep the chat-capable Gemini
+ * generations a user can actually talk to (2.5 and the current 3.x/3.5
+ * families — the older 1.5/2.0 lines stay hidden as deprecated). */
+export function isChatGemini(id: string): boolean {
   const bare = stripGooglePrefix(id);
-  return /^gemini-2\.5-(flash|pro)/.test(bare) && !/image|embed/i.test(bare);
+  if (/image|tts|audio|embed|imagen|veo|aqa|gemma/i.test(bare)) return false;
+  return /^gemini-(2\.5|[3-9])/.test(bare);
+}
+
+/** Historical name kept exported: the tests and older callers use it. */
+export const isChatGemini25 = isChatGemini;
+
+/** API key from the environment for a hosted gateway that has none saved.
+ * Google answers 404 and OpenRouter 401 to an unauthenticated /models
+ * listing, so without this the picker shows nothing even though a key is
+ * already installed on the machine. Loopback and other hosts are untouched. */
+export function envKeyFor(base: string): string | undefined {
+  let host: string;
+  try {
+    host = new URL(base).hostname.toLowerCase();
+  } catch {
+    return undefined;
+  }
+  if (host.endsWith("generativelanguage.googleapis.com"))
+    return process.env.GEMINI_API_KEY?.trim() || process.env.GOOGLE_API_KEY?.trim() || undefined;
+  if (host.endsWith("openrouter.ai")) return process.env.OPENROUTER_API_KEY?.trim() || undefined;
+  return undefined;
 }
 
 /** LM Studio labels vision models "vlm" and text-only ones "llm". */
@@ -318,7 +345,8 @@ export function keyAllowed(base: string): boolean {
  * nothing there). Both native listings are requested together so a dead
  * address costs one timeout, not one per backend. */
 export async function identifyServer(base: string, timeoutMs = NETWORK_PROBE_TIMEOUT_MS, apiKey?: string): Promise<ServerInfo | null> {
-  const useKey = apiKey && keyAllowed(base) ? apiKey : undefined;
+  const candidate = apiKey || envKeyFor(base);
+  const useKey = candidate && keyAllowed(base) ? candidate : undefined;
   const auth = useKey ? { authorization: `Bearer ${useKey}` } : undefined;
   const [tags, v1, v0probe] = await Promise.all([
     probeJson(`${base}/api/tags`, timeoutMs, auth),
