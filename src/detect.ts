@@ -302,18 +302,31 @@ export interface ServerInfo {
   models: DetectedModel[];
 }
 
+/** A bearer key may only travel over TLS or back to this machine: a plain-http
+ * address on the LAN would otherwise receive the user's OpenRouter/Gemini key
+ * in clear text (and any machine answering on that address could harvest it). */
+export function keyAllowed(base: string): boolean {
+  if (LOOPBACK_RE.test(base)) return true;
+  try {
+    return new URL(base).protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 /** Ask one address whether it is Ollama or LM Studio. null means neither (or
  * nothing there). Both native listings are requested together so a dead
  * address costs one timeout, not one per backend. */
 export async function identifyServer(base: string, timeoutMs = NETWORK_PROBE_TIMEOUT_MS, apiKey?: string): Promise<ServerInfo | null> {
-  const auth = apiKey ? { authorization: `Bearer ${apiKey}` } : undefined;
+  const useKey = apiKey && keyAllowed(base) ? apiKey : undefined;
+  const auth = useKey ? { authorization: `Bearer ${useKey}` } : undefined;
   const [tags, v1, v0probe] = await Promise.all([
     probeJson(`${base}/api/tags`, timeoutMs, auth),
     probeJson(`${base}/api/v1/models`, timeoutMs, auth),
     probeJson(`${base}/api/v0/models`, timeoutMs, auth),
   ]);
   if (!tags.reached && !v1.reached && !v0probe.reached) return null;
-  const withKey = (models: DetectedModel[]): DetectedModel[] => (apiKey ? models.map((m) => ({ ...m, apiKey })) : models);
+  const withKey = (models: DetectedModel[]): DetectedModel[] => (useKey ? models.map((m) => ({ ...m, apiKey: useKey })) : models);
   // LM Studio first: its listing names models by "key", which nothing else does.
   const lmKeyed =
     Array.isArray(v1.data?.models) && v1.data.models.length > 0 && v1.data.models.every((m: any) => typeof m?.key === "string");

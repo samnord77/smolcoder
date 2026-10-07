@@ -12,7 +12,7 @@ import { type Attachment, MAX_UPLOAD_BYTES, mimeForExt } from "./attachments";
 import { listCustomCommands, loadCustomCommand } from "./commands";
 import { type Config, effortForBackend, loadConfig, updateConfig } from "./config";
 import { ContextManager } from "./context";
-import { type DetectedModel, detectAll, resolveContextWindow } from "./detect";
+import { type DetectedModel, detectAll, keyAllowed, resolveContextWindow } from "./detect";
 import { EventBus } from "./events";
 import { formatReview } from "./git";
 import { hostUrls } from "./hosts";
@@ -93,6 +93,9 @@ export function outputBudget(window: number): number {
 /** Bearer key for this model's server: attached by detection when the host
  * stores one, else looked up from the saved host serving the same address. */
 function apiKeyFor(m: DetectedModel): string | undefined {
+  // Never attach a key to a plain-http address outside this machine: every
+  // chat request would carry the user's OpenRouter/Gemini key in clear text.
+  if (!keyAllowed(m.baseUrl)) return undefined;
   if (m.apiKey) return m.apiKey;
   const hosts = loadConfig().hosts ?? [];
   for (const h of hosts) {
@@ -590,9 +593,7 @@ export class Session {
     // is the user's real kill switch, so set it far above any legitimate task.
     this.agent = new Agent(provider, mode0, this.sysPrompt(mode0), this.toolCtx, this.ctxMgr, this.bus, ui, true, 1000);
 
-    const custom = listCustomCommands(workspace).filter(
-      (c) => !SLASH_COMMANDS.some((s) => s.name === c.name)
-    );
+    const custom = listCustomCommands(workspace).filter((c) => !SLASH_COMMANDS.some((s) => s.name === c.name));
     this.allSlash = [...SLASH_COMMANDS, ...custom];
     ui.slashCommands = this.allSlash;
     ui.hintLeft = workspace.replace(os.homedir(), "~");
@@ -1052,10 +1053,7 @@ export class Session {
               ui.println(this.help);
               {
                 const n = this.allSlash.length - SLASH_COMMANDS.length;
-                if (n > 0)
-                  ui.println(
-                    `\n${n} custom command(s) from .smol/commands and .smol/ecc-commands — type / to see them.`
-                  );
+                if (n > 0) ui.println(`\n${n} custom command(s) from .smol/commands and .smol/ecc-commands — type / to see them.`);
               }
               break;
             case "models":

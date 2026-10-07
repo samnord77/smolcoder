@@ -24,6 +24,11 @@ export function parseAddress(input: string): ParsedAddress {
   let text = String(input ?? "").trim();
   if (!text) throw new Error("Type the address of the machine that runs your models.");
   if (/\s/.test(text)) throw new Error("An address cannot contain spaces.");
+  // \\server\share or //server/share is a file share, not a model server: URL
+  // parsing silently rewrites it to http://server/share and the app would then
+  // probe a machine the user never meant to add.
+  if (/^[\\/]{2}[^/\\]/.test(text) && !/^https?:/i.test(text))
+    throw new Error(`"${text.slice(0, 40)}" is a file share, not a server. Type an IP or name like 192.168.1.50 or gpu-box.local.`);
   const schemeMatch = /^([a-z][a-z0-9+.-]*):\/\//i.exec(text);
   if (schemeMatch && !/^https?$/i.test(schemeMatch[1])) throw new Error("Only http:// and https:// addresses work here.");
   if (schemeMatch && text.length === schemeMatch[0].length) throw new Error("The address needs a host name or IP.");
