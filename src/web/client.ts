@@ -207,6 +207,20 @@ document.addEventListener("click", (e) => {
   }
 });
 
+// Guides d'indentation : un trait vertical par niveau de 2 colonnes, comme
+// dans l'editeur de reference. offset = decalage du texte en ch.
+function indentGuides(raw, offset) {
+  let col = 0;
+  while (col < raw.length && (raw[col] === " " || raw[col] === "\t")) {
+    col += raw[col] === "\t" ? 2 : 1;
+  }
+  let out = "";
+  for (let g = 0; g + 2 <= col; g += 2) {
+    out += '<i class="ilg" aria-hidden="true" style="left:' + (g + (offset || 0)) + 'ch"></i>';
+  }
+  return out;
+}
+
 // Bloc <pre> du chat : numero de ligne sur chaque ligne + chevron de pliage
 // sur les lignes qui ouvrent une region. Le corps est deja echappe.
 function renderCodeBlock(escapedBody, lang) {
@@ -221,7 +235,7 @@ function renderCodeBlock(escapedBody, lang) {
       ? '<button type="button" class="cb-fold" data-fold="' + i + ":" + r.end + '" title="Replier ce bloc" aria-label="Replier les lignes ' + (i + 1) + " à " + (r.end + 1) + '">▾</button>'
       : "";
     html += '<span class="cb-row">' + chev +
-      '<b class="cb-n" aria-hidden="true">' + (i + 1) + "</b>" + rows[i] + "</span>";
+      '<b class="cb-n" aria-hidden="true">' + (i + 1) + "</b>" + indentGuides(lines[i] || "", 4.6) + rows[i] + "</span>";
   }
   return html + "</code></pre>";
 }
@@ -3359,7 +3373,9 @@ function buildFilesTab(v, t) {
   };
   let diagnosticRequest = 0;
   const paint = () => {
-    let html = highlightEscapedHtml(esc(markDiags(editor.value)), t.filePath.split(".").pop()) || " ";
+    const marked = markDiags(editor.value);
+    const markedLines = marked.split("\n");
+    let html = highlightEscapedHtml(esc(marked), t.filePath.split(".").pop()) || " ";
     html = html.split(SQE[0]).join('<span class="sq-err">').split(SQE[1]).join("</span>");
     html = html.split(SQW[0]).join('<span class="sq-warn">').split(SQW[1]).join("</span>");
     // Vue pliee : une ligne .ed-row par ligne visible, placeholder .ed-ph a la
@@ -3373,12 +3389,12 @@ function buildFilesTab(v, t) {
     while (i < count) {
       const e = active.has(i) ? active.get(i) : -1;
       if (e >= i && e < count) {
-        out.push('<span class="ed-row">' + rows[i] + "</span>");
+        out.push('<span class="ed-row">' + indentGuides(markedLines[i] || "", 0) + rows[i] + "</span>");
         out.push('<span class="ed-ph" data-unfold="' + i + ":" + e + '" role="button" tabindex="0">⋯ ' + (e - i) + " lignes repliées ▸</span>");
         i = e + 1;
         continue;
       }
-      out.push('<span class="ed-row">' + rows[i] + "</span>");
+      out.push('<span class="ed-row">' + indentGuides(markedLines[i] || "", 0) + rows[i] + "</span>");
       i++;
     }
     code.innerHTML = out.join("") || " ";
@@ -3589,6 +3605,11 @@ function buildFilesTab(v, t) {
       for (const item of kids) {
         const row = el("div", "treerow");
         row.style.paddingLeft = (depth * 14) + "px";
+        if (depth > 0) {
+          row.style.backgroundImage = "repeating-linear-gradient(to right, transparent 0 7px, rgba(255,255,255,.16) 7px 8px, transparent 8px 14px)";
+          row.style.backgroundSize = (depth * 14) + "px 100%";
+          row.style.backgroundRepeat = "no-repeat";
+        }
         if (item.dir) {
           const open = t.expanded.has(item.path);
           const tg = el("button", "treetoggle", open ? "▾" : "▸");

@@ -46,6 +46,12 @@ function installCommands(lang: string): string[][] {
       return [["rustup", "component", "add", "rust-analyzer"]];
     case "go":
       return [["go", "install", "golang.org/x/tools/gopls@latest"]];
+    case "html":
+    case "markdown":
+      // One package ships both servers: vscode-html-language-server and
+      // vscode-markdown-language-server. Installs user-level (-g), never
+      // into the project.
+      return [["npm", "i", "-g", "vscode-langservers-extracted"]];
     default:
       return [];
   }

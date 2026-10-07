@@ -259,6 +259,7 @@ export const STYLES = `
   .md pre.cb code { display: block; }
   .cb-row { display: block; position: relative; padding-left: 4.6ch; min-height: 1.5em; }
   .cb-n { position: absolute; left: 0; top: 0; width: 3.4ch; text-align: right; color: var(--dim); opacity: 0.6; font-weight: 400; user-select: none; -webkit-user-select: none; font-family: 'JetBrains Mono', Consolas, monospace; font-size: 12.5px; line-height: 1.5; }
+  .ilg { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(255, 255, 255, 0.16); pointer-events: none; }
   .cb-fold { position: absolute; left: -15px; top: 0; width: 14px; height: 1.5em; padding: 0; margin: 0; border: 0; background: #070a0e; color: var(--dim); opacity: 0.5; cursor: pointer; font: inherit; font-size: 11px; line-height: 1.5; pointer-events: auto; z-index: 1; }
   .cb-fold:hover, .cb-fold:focus-visible { opacity: 1; color: var(--accent); outline: none; }
   .cb-ph { display: block; padding-left: 4.6ch; color: var(--dim); opacity: 0.8; font-size: 11.5px; font-style: italic; cursor: pointer; user-select: none; -webkit-user-select: none; font-family: 'JetBrains Mono', Consolas, monospace; min-height: 1.5em; }
@@ -594,7 +595,7 @@ export const STYLES = `
   .minimap-box { position: absolute; left: 0; right: 0; top: 0; background: rgba(56,189,248,.14); border-top: 1px solid rgba(56,189,248,.5); border-bottom: 1px solid rgba(56,189,248,.5); pointer-events: none; }
   .filecode { pointer-events: none; color: #9cdcfe; }
   .filecode.folded { pointer-events: auto; }
-  .filecode .ed-row { display: block; min-height: 1.5em; }
+  .filecode .ed-row { display: block; position: relative; min-height: 1.5em; }
   .filecode .ed-ph { display: block; min-height: 1.5em; color: var(--dim); font-style: italic; cursor: pointer; user-select: none; -webkit-user-select: none; }
   .filecode .ed-ph:hover, .filecode .ed-ph:focus-visible { color: var(--accent); outline: none; }
   .fileeditor { resize: none; border: 0; outline: 0; background: transparent; color: transparent; caret-color: #fff; }

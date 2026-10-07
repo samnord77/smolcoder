@@ -314,8 +314,8 @@ export function serverDefForLang(lang: string): LspServerDef | null {
         lang,
         languageId: "markdown",
         exts: [".md", ".markdown", ".mdx"],
-        candidates: [...envCandidate("SMOLCODER_LSP_MARKDOWN"), ["markdown-language-server", "--stdio"]],
-        installHint: "Install markdown-language-server (npm i -g @microsoft/markdown-language-server)",
+        candidates: [...envCandidate("SMOLCODER_LSP_MARKDOWN"), ["vscode-markdown-language-server", "--stdio"]],
+        installHint: "Install vscode-langservers-extracted (npm i -g vscode-langservers-extracted)",
       };
     case "rst":
       return {
