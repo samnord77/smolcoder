@@ -68,6 +68,14 @@ const WEB_FILE_CAP = 512 * 1024;
 const WEB_TREE_CAP = 800;
 /** Limite du listing @fichier (mention composer). */
 const WEB_FILES_CAP = 4000;
+
+/** A NUL byte in the first 4 KB marks a binary file: treating it as text
+ * (read or write) would corrupt it. */
+function looksBinary(buf: Buffer): boolean {
+  const n = Math.min(buf.length, 4096);
+  for (let i = 0; i < n; i++) if (buf[i] === 0) return true;
+  return false;
+}
 /** Sous-dossiers ignorés par le listing @fichier (blocage perf). */
 const AT_FILE_SKIP = /^(node_modules|dist|build|coverage|out|target|\.next|\.nuxt|\.turbo|\.cache|vendor)$/i;
 /** Budget d'une passe MCP rapide. Mesure locale : à 20 000 ms tout le monde
@@ -930,12 +938,21 @@ export class WebHub {
 
   // ---- http ---------------------------------------------------------------------
 
+  /** Value of the HttpOnly cookie that keeps the HTML preview authorized after
+   * ?k= has been stripped from its URL. The previewed HTML runs on this
+   * origin, so it must never be able to read the hub token itself. */
+  private previewGrant(): string {
+    return crypto.createHmac("sha256", this.authToken).update("preview").digest("hex");
+  }
+
   private route(req: http.IncomingMessage, res: http.ServerResponse): void {
     res.setHeader("Referrer-Policy", "no-referrer");
     res.setHeader("X-Content-Type-Options", "nosniff");
-    res.setHeader("X-Frame-Options", "DENY");
     res.setHeader("Cache-Control", "no-store");
     const url = new URL(req.url ?? "/", `http://127.0.0.1:${this.port}`);
+    // The workspace HTML preview renders inside the app's iframe; nothing else
+    // on this origin may be framed.
+    res.setHeader("X-Frame-Options", url.pathname === "/workspace/preview" ? "SAMEORIGIN" : "DENY");
     const origin = req.headers.origin;
     // Same-machine spellings always pass; when listening on the LAN, the
     // browser's own host:port (Host header) passes too — the ?k= token
@@ -946,7 +963,15 @@ export class WebHub {
       origin === `http://127.0.0.1:${this.port}` ||
       origin === `http://localhost:${this.port}` ||
       (host !== "" && origin === `http://${host}`);
-    if (url.searchParams.get("k") !== this.authToken || !sameOrigin) {
+    // Once the preview exchanged ?k= for its HttpOnly cookie, that cookie alone
+    // re-authorizes /workspace/preview (Path-scoped: it never travels to any
+    // other endpoint).
+    const previewAuth =
+      url.pathname === "/workspace/preview" &&
+      String(req.headers.cookie ?? "")
+        .split(/;\s*/)
+        .includes(`smpv=${this.previewGrant()}`);
+    if ((url.searchParams.get("k") !== this.authToken || !sameOrigin) && !previewAuth) {
       // Share links carry their own secret (the share token): viewers never
       // see the hub token. Every /shared endpoint re-validates it.
       const sharedPath = url.pathname === "/shared" || url.pathname === "/shared/ping";
@@ -1239,13 +1264,32 @@ export class WebHub {
           return;
         case "/workspace/preview": {
           const sid = String(url.searchParams.get("sid") ?? "");
+          const rel = String(url.searchParams.get("path") ?? "");
+          const kOk = url.searchParams.get("k") === this.authToken && sameOrigin;
+          const cookieOk = String(req.headers.cookie ?? "")
+            .split(/;\s*/)
+            .includes(`smpv=${this.previewGrant()}`);
+          if (!kOk && !cookieOk) {
+            json(403, { error: "forbidden" });
+            return;
+          }
           const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
           if (!live) {
             json(404, { error: "no such session" });
             return;
           }
+          if (kOk) {
+            // Swap the hub token in the URL for an HttpOnly cookie: the page
+            // we are about to serve is user HTML running on this origin, and
+            // location.search would hand it the full hub key.
+            res.writeHead(302, {
+              "set-cookie": `smpv=${this.previewGrant()}; Path=/workspace/preview; HttpOnly; SameSite=Strict`,
+              location: `/workspace/preview?sid=${encodeURIComponent(sid)}&path=${encodeURIComponent(rel)}`,
+            });
+            res.end();
+            return;
+          }
           try {
-            const rel = String(url.searchParams.get("path") ?? "");
             const abs = resolveInWorkspace(live.workspace, rel);
             const st = fs.statSync(abs);
             if (!st.isFile() || st.size > 2 * 1024 * 1024) throw new Error("preview file must be a regular file under 2 MB");
@@ -1280,12 +1324,20 @@ export class WebHub {
         this.receiveUpload(req, res, url);
         return;
       }
-      let body = "";
-      req.on("data", (d) => {
-        body += d;
-        if (body.length > 1_000_000) req.destroy();
+      // Accumulate raw chunks: coercing Buffer→string per chunk would cut any
+      // multi-byte UTF-8 character that straddles a chunk boundary.
+      const chunks: Buffer[] = [];
+      let bodyBytes = 0;
+      req.on("data", (d: Buffer) => {
+        bodyBytes += d.length;
+        if (bodyBytes > 1_000_000) {
+          req.destroy();
+          return;
+        }
+        chunks.push(d);
       });
       req.on("end", async () => {
+        const body = Buffer.concat(chunks).toString("utf8");
         let data: any = {};
         try {
           data = body ? JSON.parse(body) : {};
@@ -1684,11 +1736,11 @@ export class WebHub {
       }
       case "/edit/open": {
         const l = live();
-        return this.openEditDoc(l.workspace, String(d.path ?? ""));
+        return this.openEditDoc(l.workspace, String(d.path ?? ""), l.id);
       }
       case "/edit/op": {
         const l = live();
-        return this.applyEditOps(l.workspace, String(d.path ?? ""), d.ops);
+        return this.applyEditOps(l.workspace, String(d.path ?? ""), d.ops, l.id);
       }
       case "/code/diff/hunk": {
         const l = this.editLive(sid);
@@ -1857,7 +1909,9 @@ export class WebHub {
         return;
       }
       if (st.size > WEB_FILE_CAP) throw new Error(`file is larger than ${WEB_FILE_CAP} bytes`);
-      const content = fs.readFileSync(abs, "utf8");
+      const buf = fs.readFileSync(abs);
+      if (looksBinary(buf)) throw new Error("binary file — it cannot be opened as text");
+      const content = buf.toString("utf8");
       res.writeHead(200, { "content-type": "application/json" });
       res.end(
         JSON.stringify({
@@ -1903,6 +1957,9 @@ export class WebHub {
         "content-length": st.size,
         "cache-control": "no-store",
         "x-content-type-options": "nosniff",
+        // SVGs are scripts in disguise: served on the hub origin they could
+        // read ?k= from location.search. No scripts, ever.
+        "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; sandbox",
       });
       fs.createReadStream(abs).pipe(res);
     } catch (err: any) {
@@ -1934,6 +1991,12 @@ export class WebHub {
       if (Math.abs(current - expected) > 1) {
         throw new Error("file changed on disk; reload it before saving");
       }
+    }
+    // Never let a text save replace a binary file or embed NUL bytes: the
+    // utf8 round-trip would silently destroy the original content.
+    if (content.includes(String.fromCharCode(0))) throw new Error("content contains NUL bytes - refusing to save it as text");
+    if (fs.existsSync(abs) && looksBinary(fs.readFileSync(abs))) {
+      throw new Error("file is binary on disk - refusing to overwrite it as text");
     }
     fs.mkdirSync(path.dirname(abs), { recursive: true });
     fs.writeFileSync(abs, content, "utf8");
@@ -2042,16 +2105,14 @@ export class WebHub {
     } catch {
       throw new Error(`could not read "${rel}"`);
     }
-    for (let i = 0; i < Math.min(buf.length, 4096); i++) {
-      if (buf[i] === 0) throw new Error(`"${rel}" looks binary — live collaboration needs text`);
-    }
+    if (looksBinary(buf)) throw new Error(`"${rel}" looks binary — live collaboration needs text`);
     return { abs, text: buf.toString("utf8") };
   }
 
   /** (Re)bootstrap the shared doc from disk. The file stays authoritative:
    * saves and agent writes converge everyone here. Never throws (route
    * translates Error strings). */
-  private openEditDoc(workspace: string, rel: string): { text: string; version: number } {
+  private openEditDoc(workspace: string, rel: string, sid: string): { text: string; version: number } {
     const { text } = this.readEditFile(workspace, rel);
     const key = this.editKey(workspace, rel);
     const prev = this.editDocs.get(key);
@@ -2062,13 +2123,15 @@ export class WebHub {
       if (!first.done) this.editDocs.delete(first.value);
     }
     const rec = this.editDocs.get(key)!;
-    this.send({ t: "editrebase", file: rel, version: rec.version });
+    // sid is mandatory: the client drops any event without one, so a
+    // rebase/op broadcast without it would never reach the editors.
+    this.send({ t: "editrebase", sid, file: rel, version: rec.version });
     return { text, version: rec.version };
   }
 
   /** Apply broadcast ops to the shared doc and relay the accepted ones.
    * Ops are order-independent (fractional positions), so no version gating. */
-  private applyEditOps(workspace: string, rel: string, rawOps: unknown): { version: number; applied: number } {
+  private applyEditOps(workspace: string, rel: string, rawOps: unknown, sid: string): { version: number; applied: number } {
     const key = this.editKey(workspace, rel);
     const rec = this.editDocs.get(key);
     if (!rec) throw new Error("open the file for collaboration first (open it in the editor)");
@@ -2087,7 +2150,7 @@ export class WebHub {
     rec.at = Date.now();
     if (!accepted.length) return { version: rec.version, applied: 0 };
     rec.version++;
-    this.send({ t: "editop", file: rel, ops: accepted, version: rec.version });
+    this.send({ t: "editop", sid, file: rel, ops: accepted, version: rec.version });
     return { version: rec.version, applied: accepted.length };
   }
 

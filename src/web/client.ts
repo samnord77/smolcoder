@@ -20,6 +20,15 @@ ${browserCrdtSource}
 const makeEditorTabStore = ${editorTabStoreBrowserSource};
 const editorTools = ${editorToolsBrowserSource};
 const k = new URLSearchParams(location.search).get("k") || "";
+// Drop ?k= from the address bar immediately after reading it: any page running
+// on this origin (a workspace HTML preview) must not find the hub token in
+// location.search or document.referrer.
+if (k) {
+  const cleanQ = new URLSearchParams(location.search);
+  cleanQ.delete("k");
+  const cleanS = cleanQ.toString();
+  history.replaceState(null, "", location.pathname + (cleanS ? "?" + cleanS : "") + location.hash);
+}
 const $ = (id) => document.getElementById(id);
 // Visible self-diagnosis: any page script error shows a red banner instead
 // of silently dead panels. Tells stale code apart from real bugs.
