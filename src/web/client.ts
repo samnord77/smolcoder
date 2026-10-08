@@ -1681,6 +1681,7 @@ function handle(m) {
     case "turnend":
       endThought(v); v.curText = null; v.curSub = null; add(v, el("div", "turnend", "■ " + m.label));
       appendOutputLog("Hub Tasks", outStamp() + " Tour terminé : " + (m.label || ""));
+      scheduleProblemsScan(v, 2000);
       ping("smolcoder — turn finished", m.label);
       if (v !== active) { v.unread = true; renderSidebar(); }
       renderActivity(v);
@@ -1829,6 +1830,7 @@ function show(sid) {
     $("status").textContent = "";
   }
   renderPanel(); renderSidebar(); renderCrumb(); renderTitle(); renderWelcome(); renderAttachments(); renderActivity(active); fetchReviewBadge();
+  if (active) scheduleProblemsScan(active, 600);
   stick();
 }
 function formatBytes(bytes) {
@@ -2183,6 +2185,17 @@ function scanWorkspaceProblems(v) {
       if (pt && pt.render) pt.render();
     });
 }
+// Automatic workspace scan (VS Code style): debounced, fired on session show,
+// after every agent turn and after every file save.
+let problemsScanTimer = null;
+function scheduleProblemsScan(v, delay = 1200) {
+  if (!v) return;
+  if (problemsScanTimer) clearTimeout(problemsScanTimer);
+  problemsScanTimer = setTimeout(() => {
+    problemsScanTimer = null;
+    scanWorkspaceProblems(views.get(v.sid) || v);
+  }, delay);
+}
 
 function ensureProblemsTab(v) {
   let t = v.tabs.find((x) => x.kind === "problems");
@@ -2224,12 +2237,12 @@ function renderProblemsView(v, t) {
     return;
   }
   const headBar = el("div", "prob-action-bar");
-  const sendAllBtn = el("button", "prob-btn primary", "⚡ Send to Agent");
-  sendAllBtn.title = "Envoyer tous les problèmes détectés à l'agent pour correction automatique";
+  const sendAllBtn = el("button", "prob-btn primary", "⚡ Tout envoyer à l'agent");
+  sendAllBtn.title = "Envoyer TOUS les problèmes détectés à l'agent pour correction automatique (comme Send to Copilot dans VS Code)";
   sendAllBtn.onclick = () => {
     const summary = diags.map((d) => "- " + d.path + ":" + (d.line || 1) + " [" + (d.severity || "error") + "] " + d.message).join("\n");
-    post("/msg", { sid: v.sid, text: "Corrige les problèmes détectés dans le workspace :\n" + summary });
-    showToast("Diagnostics envoyés à l'agent !", "info");
+    post("/msg", { sid: v.sid, text: "Corrige tous ces problèmes détectés dans le workspace, un par un, cause racine d'abord, puis relance une validation :\n" + summary });
+    showToast("Tous les problèmes envoyés à l'agent", "info");
   };
   const refreshBtn = el("button", "prob-btn ghost", "↻ Re-scan");
   refreshBtn.title = "Rafraîchir les diagnostics du workspace";
@@ -4373,6 +4386,7 @@ function buildFilesTab(v, t) {
       renderTabs();
       t.loadDir(t.rel || ".");
       if (!tab || !tab.dirty) void analyzeFile(filePath);
+      scheduleProblemsScan(v, 900);
       if (t.filePath === filePath && (!tab || !tab.dirty)) openCollab(filePath);
     }).catch((e) => showError(e.message)).finally(() => t.refreshMode(v.state.mode !== "ro"));
   };
