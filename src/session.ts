@@ -28,7 +28,7 @@ import { OllamaProvider } from "./providers/ollama";
 import type { Effort, Msg, Provider } from "./providers/types";
 import { RoutingProvider, routeProvider } from "./router";
 import { resolveInWorkspace } from "./sandbox";
-import { listSkills, readSkill } from "./skills";
+import { listSkills, readSkill, saveSkill } from "./skills";
 import { buildStatusReport, renderStatusText } from "./status";
 import { CoworkBoard } from "./tools/cowork";
 import { readFile } from "./tools/fs-tools";
@@ -69,7 +69,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { name: "mcp", desc: "MCP servers: green/red lights + tools" },
   { name: "status", desc: "One report: model, MCP, language servers, build, system" },
   { name: "skills", desc: "Saved skills, incl. built-ins" },
-  { name: "skill", desc: "Read a skill — /skill read <name>" },
+  { name: "skill", desc: "Read or save a skill — /skill read <name> · /skill save <name> <text>" },
   { name: "clear", desc: "Reset the conversation" },
   { name: "undo", desc: "Undo the last file write" },
   { name: "redo", desc: "Redo the undone file write" },
@@ -1225,6 +1225,17 @@ export class Session {
               const sub = (arg ?? "").toLowerCase();
               if (sub === "list") {
                 ui.println(listSkills(toolCtx.workspace));
+                break;
+              }
+              if (sub === "save") {
+                // From the raw line (not the whitespace split) so multi-line
+                // checklists keep their newlines and spacing intact.
+                const m = input.slice(1).match(/^skill\s+save\s+(\S+)\s+([\s\S]+)$/i);
+                if (!m) {
+                  ui.status("· usage: /skill save <name> <contenu — le corps de la skill>");
+                  break;
+                }
+                ui.println(saveSkill(toolCtx.workspace, m[1], m[2]));
                 break;
               }
               const name = sub === "read" || sub === "show" || sub === "view" ? rest.slice(1).join(" ").trim() : (arg ?? "").trim();

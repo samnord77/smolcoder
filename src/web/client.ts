@@ -3,6 +3,7 @@ import { editorTabStoreBrowserSource } from "../editor-tabs";
 import { editorToolsBrowserSource } from "../editor-tools";
 import { browserHighlighterSource } from "../highlight";
 import { browserLineChangeSource } from "./diff";
+import { browserNotifySource, NOTIFY_KEY } from "./notify";
 // The browser-side script for the web page. Plain JS in a raw template string
 // (no build step, no dependencies). Rules: no template literals in here, and
 // a literal backtick is written as \` — String.raw hands it through as-is.
@@ -19,6 +20,7 @@ ${browserLineChangeSource}
 ${browserCrdtSource}
 const makeEditorTabStore = ${editorTabStoreBrowserSource};
 const editorTools = ${editorToolsBrowserSource};
+${browserNotifySource}
 const k = new URLSearchParams(location.search).get("k") || "";
 // Drop ?k= from the address bar immediately after reading it: any page running
 // on this origin (a workspace HTML preview) must not find the hub token in
@@ -100,11 +102,14 @@ function shortPath(p) {
   if (home && p.slice(0, home.length).toLowerCase() === home.toLowerCase()) p = "~" + p.slice(home.length);
   return p.replace(/\\/g, "/");
 }
-function bellOn() { return ls.get("smol-notify") === "1"; }
-function ping(title, body) {
+function bellOn() { return ls.get(${JSON.stringify(NOTIFY_KEY)}) === "1"; }
+function ping(kind, text) {
+  // decideNotice (single source of truth, shared with the server-side tests)
+  // decides: bell off or page visible => silence, never spam.
   try {
-    if (!bellOn() || !document.hidden) return;
-    if (typeof Notification !== "undefined" && Notification.permission === "granted") new Notification(title, { body: String(body || "").slice(0, 160) });
+    const n = decideNotice({ kind: kind, enabled: bellOn(), visible: !document.hidden, text: text });
+    if (!n) return;
+    if (typeof Notification !== "undefined" && Notification.permission === "granted") new Notification(n.title, { body: n.body });
   } catch (e) {}
 }
 
@@ -1684,13 +1689,13 @@ function handle(m) {
       renderActivity(v);
       break;
     case "line": endThought(v); v.curText = null; subAdd(v, el("div", "line-" + m.kind, m.s));
-      if (m.kind === "error") ping("smolcoder — attention needed", m.s);
+      if (m.kind === "error") ping("error", m.s);
       break;
     case "turnend":
       endThought(v); v.curText = null; v.curSub = null; add(v, el("div", "turnend", "■ " + m.label));
       appendOutputLog("Hub Tasks", outStamp() + " Tour terminé : " + (m.label || ""));
       scheduleProblemsScan(v, 2000);
-      ping("smolcoder — turn finished", m.label);
+      ping("turnend", m.label);
       if (v !== active) { v.unread = true; renderSidebar(); }
       renderActivity(v);
       break;
@@ -1711,7 +1716,7 @@ function handle(m) {
         b.onclick = () => { post("/confirm", { sid: v.sid, id: m.id, answer: a }); box.remove(); };
         box.appendChild(b);
       });
-      ping("smolcoder — approval needed", m.command);
+      ping("confirm", m.command);
       v.asks.set(m.id, box);
       add(v, box); break;
     }
@@ -2141,7 +2146,8 @@ let outputChannels = {
   "TypeScript": [],
   "Biome": [],
   "Hub Tasks": [],
-  "Console": []
+  "Console": [],
+  "Logs": []
 };
 let activeOutputChannel = "Continuous Validation";
 let debugLogs = [
@@ -2344,7 +2350,24 @@ function ensureOutputTab(v) {
     navigator.clipboard.writeText((outputChannels[activeOutputChannel] || []).join("\n"));
     showToast("Sortie copiée dans le presse-papiers", "info");
   };
-  bar.append(sel, el("span", "grow"), clearBtn, copyBtn);
+  const logsBtn = el("button", "iconbtn", "📥"); logsBtn.title = "Charger les journaux smolcoder (200 dernières lignes)";
+  logsBtn.onclick = () => {
+    logsBtn.disabled = true;
+    fetch("/logs?k=" + encodeURIComponent(k))
+      .then((r) => r.json())
+      .then((d) => {
+        const lines = (d && d.logs) || [];
+        outputChannels["Logs"] = lines;
+        activeOutputChannel = "Logs";
+        // Sync any channel selector present in the DOM (tab sub-bar).
+        document.querySelectorAll(".vsc-channel-select").forEach((s) => { s.value = "Logs"; });
+        t.render();
+        showToast(lines.length ? lines.length + " ligne(s) de journal chargée(s)" : "Aucun journal disponible", lines.length ? "info" : "warn");
+      })
+      .catch(() => showToast("Lecture des journaux impossible", "error"))
+      .finally(() => { logsBtn.disabled = false; });
+  };
+  bar.append(sel, el("span", "grow"), logsBtn, clearBtn, copyBtn);
   const logPre = el("pre", "vsc-output-log");
   body.append(bar, logPre);
   v.panelEl.appendChild(body);
@@ -2738,26 +2761,6 @@ function renderPanel() {
       ]);
     };
     toolRight.appendChild(menuBtn);
-  } else if (cur && cur.kind === "output") {
-    const sel = document.createElement("select");
-    sel.className = "vsc-channel-select";
-    for (const ch of Object.keys(outputChannels)) {
-      const opt = document.createElement("option"); opt.value = ch; opt.textContent = ch; sel.appendChild(opt);
-    }
-    sel.value = activeOutputChannel;
-    sel.onchange = () => { activeOutputChannel = sel.value; cur.render(); };
-    toolRight.appendChild(sel);
-
-    const clr = el("button", "vsc-tool-btn", "🧹"); clr.title = "Effacer la sortie";
-    clr.onclick = () => { outputChannels[activeOutputChannel] = []; cur.render(); };
-    toolRight.appendChild(clr);
-
-    const cp = el("button", "vsc-tool-btn", "📋"); cp.title = "Copier";
-    cp.onclick = () => {
-      navigator.clipboard.writeText((outputChannels[activeOutputChannel] || []).join("\n"));
-      showToast("Copié !", "info");
-    };
-    toolRight.appendChild(cp);
   } else if (cur && cur.kind === "debug") {
     const clr = el("button", "vsc-tool-btn", "🧹"); clr.title = "Effacer la console";
     clr.onclick = () => { debugLogs = []; cur.render(); };
@@ -3058,6 +3061,73 @@ function buildFilesTab(v, t) {
     ]);
   };
   bar.appendChild(addBtn);
+  // Σ — code-symbol search (route /code/symbols, l'index du workspace).
+  const symbolsBtn = el("button", "iconbtn", "Σ"); symbolsBtn.type = "button";
+  symbolsBtn.title = "Rechercher un symbole (fonction, classe…) via l'index du code";
+  const symbolsBar = el("div", "fileinlinebar"); symbolsBar.hidden = true;
+  const symRow = el("div", "fileinline-row");
+  const symInput = document.createElement("input");
+  symInput.placeholder = "Symbole à trouver : ex. formatFile, scanWorkspaceProblems…";
+  symInput.setAttribute("aria-label", "Rechercher un symbole du code");
+  const symGo = el("button", "iconbtn", "Chercher"); symGo.type = "button";
+  const symClose = el("button", "iconbtn", "×"); symClose.type = "button"; symClose.title = "Fermer (Échap)";
+  symRow.append(symInput, symGo, symClose);
+  const symHint = el("div", "filemeta", "Tapez un nom de symbole (fonction, classe, méthode…).");
+  const symResults = el("div", "filesymresults");
+  symbolsBar.append(symRow, symHint, symResults);
+  let symSeq = 0;
+  const gotoLine = async (file, line) => {
+    if (file !== t.filePath && !(await t.loadFile(file))) return;
+    const offset = editorTools.offsetForPosition(editor.value, Math.max(1, line));
+    editor.focus(); editor.setSelectionRange(offset, offset); updatePosition();
+    symbolsBar.hidden = true;
+  };
+  const runSymbols = () => {
+    const q = symInput.value.trim();
+    if (!q) { symHint.textContent = "Tapez un nom de symbole (fonction, classe, méthode…)."; return; }
+    const seq = ++symSeq;
+    symHint.textContent = "Recherche dans l'index du code…";
+    symResults.replaceChildren();
+    fetch("/code/symbols?k=" + encodeURIComponent(k) + "&sid=" + encodeURIComponent(v.sid) + "&q=" + encodeURIComponent(q))
+      .then((r) => r.json())
+      .then((d) => {
+        if (seq !== symSeq) return;
+        if (d && d.error) { symHint.textContent = String(d.error); return; }
+        const out = String((d && d.result) || "");
+        const lines = out.split("\n").filter((x) => x.trim());
+        if (!lines.length || out.startsWith("Error:") || out.startsWith("No symbol")) {
+          symHint.textContent = out || "Aucun symbole trouvé.";
+          return;
+        }
+        symHint.textContent = lines.length + " résultat(s) — cliquez pour ouvrir à la ligne.";
+        for (const ln of lines) {
+          const mm = /^(.+?) \((.+?)\) — (.+?):(\d+)/.exec(ln);
+          const b = document.createElement("button");
+          b.type = "button"; b.className = "completeitem";
+          if (mm) {
+            b.appendChild(el("span", "", mm[1]));
+            b.appendChild(el("span", "kind", mm[2] + " — " + mm[3] + ":" + mm[4]));
+            const file = mm[3], line = Number(mm[4]) || 1;
+            b.onclick = () => { gotoLine(file, line); };
+          } else {
+            b.appendChild(el("span", "", ln));
+          }
+          symResults.appendChild(b);
+        }
+      })
+      .catch((e) => { if (seq === symSeq) symHint.textContent = "Index indisponible : " + String((e && e.message) || e); });
+  };
+  symGo.onclick = runSymbols;
+  symInput.onkeydown = (e) => {
+    if (e.key === "Enter") { e.preventDefault(); runSymbols(); }
+    else if (e.key === "Escape") symbolsBar.hidden = true;
+  };
+  symClose.onclick = () => { symbolsBar.hidden = true; };
+  symbolsBtn.onclick = () => {
+    symbolsBar.hidden = !symbolsBar.hidden;
+    if (!symbolsBar.hidden) { symInput.focus(); if (!symResults.children.length) symHint.textContent = "Tapez un nom de symbole (fonction, classe, méthode…)."; }
+  };
+  bar.appendChild(symbolsBtn);
   const inlineBar = el("div", "fileinlinebar"); inlineBar.hidden = true;
   const inlineRowTop = el("div", "fileinline-row");
   const inlineInput = document.createElement("input");
@@ -3487,6 +3557,7 @@ function buildFilesTab(v, t) {
   body.appendChild(bar); body.appendChild(results); body.appendChild(fileFindBar); body.appendChild(split); body.appendChild(diagnosticsPanel); body.appendChild(meta);
   body.insertBefore(inlinePreview, results);
   body.insertBefore(inlineBar, inlinePreview);
+  body.insertBefore(symbolsBar, fileFindBar);
   v.panelEl.appendChild(body);
   t.el = body; t.pathInput = pathInput; t.findInput = findInput; t.tree = tree; t.editor = editor; t.code = code; t.tabsBar = tabsBar; t.tabStore = makeEditorTabStore(); t.saveBtn = save; t.meta = meta;
   t.filePath = ""; t.mtimeMs = 0; t.rel = ".";
@@ -4986,8 +5057,6 @@ function toggleSide() {
   setSide(!sideEl.classList.contains("collapsed"));
 }
 function narrow() { return window.matchMedia("(max-width: 1000px)").matches; }
-const sideCollBtn = $("sidecollapse");
-if (sideCollBtn) sideCollBtn.onclick = () => setSide(true);
 const sideTogBtn = $("sidetoggle");
 if (sideTogBtn) sideTogBtn.onclick = () => toggleSide();
 window.addEventListener("keydown", (e) => {
@@ -5912,6 +5981,20 @@ function ccOptions(d) {
   grid.appendChild(ccCard("Barre latérale", "Afficher ou masquer la liste des espaces et sessions.", "Basculer", () => toggleSide()));
   grid.appendChild(ccCard("Serveurs MCP", "Liste, nombre d'outils et interrupteur par serveur.", "Ouvrir le panneau MCP", () => { openCC("mcp"); }));
   grid.appendChild(ccCard("Skills", d.skills ? (d.skills.length + " skills utilisables (projet + intégrées).") : "Lister, lire ou enregistrer une skill (/skill save).", "Lister (/skills)", () => { ccSend("/skills"); closeCC(); }));
+  grid.appendChild(ccCard("Formateurs", "Vérifier les formateurs installés : prettier, black, ruff, rustfmt, gofmt.", "Vérifier", () => {
+    fetch("/format/status?k=" + encodeURIComponent(k))
+      .then((r) => r.json())
+      .then((d) => {
+        const raw = String((d && d.status) || "");
+        if (raw.startsWith("(")) { showToast(raw.replace(/[()]/g, ""), "warn", 10000); return; }
+        const lines = raw.split("\n").filter(Boolean);
+        if (!lines.length) { showToast("Statut des formateurs indisponible", "error"); return; }
+        const okN = lines.filter((l) => l.indexOf("✓") === 0).length;
+        const missing = lines.filter((l) => l.indexOf("✗") === 0).map((l) => l.replace(/^✗\s*/, "").replace(/\s*\(.*\)$/, ""));
+        showToast(okN + "/" + lines.length + " formateur(s) prêt(s)" + (missing.length ? " — manquant : " + missing.join(", ") : " — tous installés"), okN === lines.length ? "success" : "warn", 8000);
+      })
+      .catch(() => showToast("Statut des formateurs indisponible", "error"));
+  }));
   wrap.appendChild(ccSection("Options de session", grid));
   return wrap;
 }

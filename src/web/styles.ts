@@ -61,7 +61,6 @@ export const STYLES = `
   .iconbtn.on, .iconbtn.active { color: var(--accent); border-color: rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.1); box-shadow: 0 0 12px var(--accent-glow); }
   #sidetoggle { display: inline-flex !important; align-items: center; justify-content: center; }
   #sidetoggle.active, #sidetoggle.on { color: var(--accent); border-color: rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.12); }
-  #sidecollapse { font-weight: 700; font-size: 14px; }
   .iconbtn svg { display: block; }
   #btnreview { position: relative; }
   .review-badge {
@@ -555,6 +554,7 @@ export const STYLES = `
   .fileinlinebar { display: flex; flex-direction: column; gap: 6px; padding: 7px 10px; border-bottom: 1px solid var(--accent); background: #151a1e; }
   .fileinlinebar[hidden] { display: none; }
   .fileinline-row { display: flex; gap: 6px; width: 100%; align-items: center; }
+  .filesymresults { display: flex; flex-direction: column; max-height: 200px; overflow: auto; }
   .fileinlinebar input { flex: 1; min-width: 0; background: var(--box); border: 1px solid var(--line); color: var(--fg); font: inherit; font-size: 12.5px; padding: 5px 8px; border-radius: 4px; outline: none; }
   .fileinlinebar input:focus { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
   .fileinlinechips { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0; }

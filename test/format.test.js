@@ -20,8 +20,8 @@ test("format: refuses unsupported languages and missing files", () => {
   assert.match(formatFile(ws, "../evil.ts").message, /outside|path/i);
 });
 
-test("format: status lists every toolchain", () => {
-  const lines = formattersStatus().split("\n");
+test("format: status lists every toolchain", async () => {
+  const lines = (await formattersStatus()).split("\n");
   assert.equal(lines.length, 5);
   for (const l of lines) assert.match(l, /^[✓✗] .+/);
 });

@@ -42,6 +42,19 @@ test("page wires bell, pings and sub lines", () => {
   const src = fs.readFileSync("dist/web/client.js", "utf8");
   assert.match(src, /smol-notify/);
   assert.match(src, /new Notification/);
-  assert.match(src, /ping\("smolcoder — approval needed"/);
+  // The decision moved into the shared module: ping(kind, text) delegates.
+  assert.match(src, /decideNotice\(/);
+  assert.match(src, /ping\("confirm"/);
+  assert.match(src, /ping\("turnend"/);
+  assert.match(src, /ping\("error"/);
   assert.match(src, /case "sub"/);
+});
+
+test("the injected browser source carries the titles and the key", () => {
+  const { CLIENT_JS } = require("../dist/web/client");
+  assert.match(CLIENT_JS, /approval needed/);
+  assert.match(CLIENT_JS, /turn finished/);
+  assert.match(CLIENT_JS, /attention needed/);
+  assert.match(CLIENT_JS, /const decideNotice = /);
+  assert.match(CLIENT_JS, /ls\.get\("smol-notify"\)/);
 });

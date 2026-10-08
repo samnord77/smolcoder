@@ -38,3 +38,10 @@ export function decideNotice(input: NoticeInput): Notice | null {
 
 /** localStorage key for the bell toggle. */
 export const NOTIFY_KEY = "smol-notify";
+
+/** Plain-JavaScript source injected into the web page (same pattern as the
+ * CRDT module): the decision logic stays single-sourced in the browser too. */
+export const browserNotifySource = [
+  `const NOTIFY_TITLE = ${JSON.stringify(TITLE)};`,
+  `const ${decideNotice.name} = (${decideNotice.toString().replace(/\bTITLE\b/g, "NOTIFY_TITLE")});`,
+].join("\n");

@@ -38,7 +38,6 @@ export const PAGE_HTML = `<!doctype html>
   <div class="sidehdr">
     <div class="brand" role="img" aria-label="smolcoder">${LOGO_TEXT}</div>
     <span class="grow"></span>
-    <button type="button" class="iconbtn" id="sidecollapse" title="Masquer le panneau latéral (Ctrl+B)">«</button>
   </div>
   <button type="button" id="openfolder" class="ghost">+ Ouvrir un dossier…</button>
   <div id="wslist"></div>

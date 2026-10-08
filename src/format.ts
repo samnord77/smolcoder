@@ -2,7 +2,7 @@
 // project already uses (prettier, black/ruff, rustfmt, gofmt). Never
 // reformats with guesses — if no formatter is installed, the answer is the
 // exact install command, not a half-formatted file. Never throws.
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { resolveCommand } from "./mcp";
@@ -135,7 +135,10 @@ export function formatFile(root: string, relPath: string): FormatResult {
   };
 }
 
-export function formattersStatus(): string {
+/** Sonde l'installation des formateurs. Asynchrone (spawn event-based) :
+ * spawnSync bloquait l'évent loop du hub jusqu'à ~17 s par appel, voire
+ * indéfiniment (pipe tenu par un petit-fils de cmd.exe sous Windows). */
+export function formattersStatus(): Promise<string> {
   const probes: Array<[string, string[]]> = [
     ["prettier (JS/TS/JSON)", ["prettier", "--version"]],
     ["black (Python)", ["black", "--version"]],
@@ -143,27 +146,49 @@ export function formattersStatus(): string {
     ["rustfmt (Rust)", ["rustfmt", "--version"]],
     ["gofmt (Go)", ["gofmt", "--help"]],
   ];
-  return probes
-    .map(([name, cmd]) => {
+  const quoteArg = (a: string) => (/[\s&|<>^"]/.test(a) ? `"${a.replace(/"/g, '""')}"` : a);
+  const probe = ([name, cmd]: [string, string[]]) =>
+    new Promise<string>((resolve) => {
+      let settled = false;
+      const done = (line: string) => {
+        if (!settled) {
+          settled = true;
+          resolve(line);
+        }
+      };
       try {
         const exe = resolveCommand(cmd[0]);
         const rest = cmd.slice(1);
-        // Same Windows EINVAL workaround as runFormatter: .cmd/.bat shims
-        // only run through the shell.
+        // Même contournement Windows EINVAL que runFormatter : les shims
+        // .cmd/.bat passent par le shell.
         const useShell = process.platform === "win32" && /\.(cmd|bat)$/i.test(exe);
-        const r = useShell
-          ? spawnSync([exe, ...rest].map((a) => (/[\s&|<>^"]/.test(a) ? `"${a.replace(/"/g, '""')}"` : a)).join(" "), {
-              encoding: "utf8",
-              timeout: 10_000,
-              windowsHide: true,
-              shell: true,
-            })
-          : spawnSync(exe, rest, { encoding: "utf8", timeout: 10_000, windowsHide: true });
-        if (r.status === 0 || (name.startsWith("gofmt") && (r.status ?? 1) <= 2)) return `✓ ${name}`;
-        return `✗ ${name} (failed to run)`;
+        const child = useShell
+          ? spawn([exe, ...rest].map(quoteArg).join(" "), { shell: true, windowsHide: true })
+          : spawn(exe, rest, { windowsHide: true });
+        const timer = setTimeout(() => {
+          try {
+            child.kill();
+          } catch {
+            /* déjà mort */
+          }
+          done(`✗ ${name} (timeout)`);
+        }, 10_000);
+        child.once("error", () => {
+          clearTimeout(timer);
+          done(`✗ ${name} (not installed)`);
+        });
+        child.once("close", (code) => {
+          clearTimeout(timer);
+          const c = code ?? 1;
+          const ok = c === 0 || (name.startsWith("gofmt") && c <= 2);
+          done(ok ? `✓ ${name}` : `✗ ${name} (failed to run)`);
+        });
+        // Vider les flux pour ne jamais saturer le buffer du pipe.
+        child.stdout?.resume();
+        child.stderr?.resume();
       } catch {
-        return `✗ ${name} (not installed)`;
+        done(`✗ ${name} (not installed)`);
       }
-    })
-    .join("\n");
+    });
+  return Promise.all(probes.map(probe)).then((rows) => rows.join("\n"));
 }

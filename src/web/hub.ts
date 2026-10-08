@@ -23,7 +23,7 @@ import { ContextManager } from "../context";
 import { checkSyntax } from "../continuous-validation";
 import { applyOp, type CrdOp, docFromText } from "../crdt";
 import { EventBus } from "../events";
-import { formatFile } from "../format";
+import { formatFile, formattersStatus } from "../format";
 import {
   gitApplyHunk,
   gitBlame,
@@ -87,6 +87,30 @@ const MCP_PROBE_MS = 30_000;
 
 /** Durée de validité d'une réponse MCP servie depuis le cache. */
 const MCP_TTL_MS = 60_000;
+
+/** formattersStatus() est async (spawn event-based) : la route répond
+ * instantanément depuis le cache et le rafraîchissement part en
+ * arrière-plan (stale-while-revalidate) sans jamais bloquer l'évent loop. */
+let formatStatusCache = "";
+let formatStatusAt = 0;
+let formatStatusBusy = false;
+function refreshFormatStatus(): void {
+  if (formatStatusBusy) return;
+  formatStatusBusy = true;
+  formattersStatus()
+    .then(
+      (text) => {
+        formatStatusCache = text;
+        formatStatusAt = Date.now();
+      },
+      () => {
+        /* garder le dernier résultat connu */
+      }
+    )
+    .finally(() => {
+      formatStatusBusy = false;
+    });
+}
 
 /** État transitoire des serveurs MCP : la configuration du dossier existe déjà,
  * mais la session (donc son pont MCP) n'est pas encore née. Sans ce repli, le
@@ -496,6 +520,7 @@ export class WebHub {
           { port: this.port, token: this.authToken, pid: process.pid, startedAt: this.bootedAt, version: this.opts.version },
           this.dataDir
         );
+        refreshFormatStatus();
         resolve();
       });
     });
@@ -1066,6 +1091,11 @@ export class WebHub {
         case "/logs":
           json(200, { logs: readRecentLogs(200, url.searchParams.get("workspace") || undefined) });
           return;
+        case "/format/status": {
+          if (!formatStatusCache || Date.now() - formatStatusAt > 300_000) refreshFormatStatus();
+          json(200, { status: formatStatusCache || "(vérification en cours — réessayez dans ~20 s)" });
+          return;
+        }
         case "/events":
           this.sse(req, res);
           return;
