@@ -86,3 +86,18 @@ test("renderPlan prints the checkbox checklist for terminals", () => {
   assert.match(text, /☑ alpha/);
   assert.match(text, /◉ beta/);
 });
+
+test("setDone toggles a step both ways so the task rail can uncheck", () => {
+  const plan = new Plan();
+  plan.set("first step\nsecond step");
+  assert.match(plan.setDone(1, true), /Step 1 done/);
+  assert.equal(plan.steps[0].done, true);
+  assert.equal(plan.doneCount, 1);
+  assert.match(plan.setDone(1, false), /Step 1 reopened/);
+  assert.equal(plan.steps[0].done, false);
+  assert.equal(plan.doneCount, 0);
+  assert.match(plan.setDone(1, false), /already open/);
+  assert.match(plan.setDone(9, true), /^Error/);
+  assert.match(plan.setDone("x", true), /^Error/);
+  assert.match(new Plan().setDone(1, true), /^Error/);
+});

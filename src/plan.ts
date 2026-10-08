@@ -168,6 +168,24 @@ export class Plan {
       : `Done: ${idx + 1}. Next: ${next + 1}. ${this.steps[next].text}`;
   }
 
+  /** Force one step to an explicit state (check or uncheck from the UI).
+   *  markDone can only move a step forward; the task rail needs to toggle. */
+  setDone(stepNumber: unknown, done: boolean): string {
+    if (!this.exists) return 'Error: no plan yet. Create one first with {"action": "set", "steps": "..."}';
+    const idx = typeof stepNumber === "number" && Number.isFinite(stepNumber) ? Math.floor(stepNumber) - 1 : -1;
+    if (!Number.isSafeInteger(idx) || idx < 0 || idx >= this.steps.length) {
+      return `Error: step must be a number between 1 and ${this.steps.length}.`;
+    }
+    if (!!this.steps[idx].done === !!done) {
+      return `Step ${idx + 1} is already ${done ? "done" : "open"}.`;
+    }
+    const nextSteps = this.steps.map((step, i) => (i === idx ? { ...step, done: !!done } : step));
+    const failure = this.persist(nextSteps);
+    if (failure) return failure;
+    this.steps = nextSteps;
+    return `Step ${idx + 1} ${done ? "done" : "reopened"}.`;
+  }
+
   add(text: string): string {
     if (typeof text !== "string" || !text.trim()) {
       return 'Error: text is required. Example: {"action": "add", "text": "fix the collision bug"}';

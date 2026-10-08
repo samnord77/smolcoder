@@ -1969,8 +1969,20 @@ function renderTaskRail() {
     cb.checked = !!step.done;
     cb.title = step.done ? "marquer comme non terminée" : "marquer comme terminée";
     cb.onchange = () => {
-      step.done = cb.checked;
+      const want = cb.checked;
+      step.done = want; // optimistic — the server answer re-syncs below
       renderTaskRail();
+      if (!active) return;
+      const sid = active.sid, state = active.state;
+      post("/plan/done", { sid, step: i + 1, done: want }).then((r) => {
+        if (r && r.error) { step.done = !want; renderTaskRail(); showToast(r.error, "error"); return; }
+        if (r && r.plan && state && state.plan) {
+          state.plan.steps = r.plan.steps;
+          state.plan.current = r.plan.current;
+          renderTaskRail();
+          renderState(active);
+        }
+      }).catch(() => { step.done = !want; renderTaskRail(); });
     };
     const text = el("span", "taskrail-text", step.text);
     item.title = step.note ? step.text + " — " + step.note : step.text;
@@ -5868,19 +5880,24 @@ function ccC3(d) {
 function ccOptions(d) {
   const wrap = el("div", "cc-anim");
   const s = d.state || {};
+  const command = (name) => post("/msg", { sid: active ? active.sid : "", text: "/" + name });
   const grid = el("div", "cc-grid");
   grid.appendChild(ccCard("Mode de permission", "Lecture seule, édition, puis YOLO (aucune confirmation avant d'agir).", "Changer : " + (s.modeLabel || "—"), () => { ccSend("/mode"); closeCC(); }));
-  grid.appendChild(ccCard("Modèle", "Choisir un modèle local ou en découvrir un sur une autre machine.", "Choisir (/models)", () => { ccSend("/models"); closeCC(); }));
+  grid.appendChild(ccCard("Modèle", "Actif : " + (s.model || "—") + (s.host ? " @ " + s.host : "") + " — choisir un modèle local ou en découvrir un sur une autre machine.", "Choisir (/models)", () => { ccSend("/models"); closeCC(); }));
   grid.appendChild(ccCard("Raisonnement", "Régler l'effort de réflexion envoyé au modèle.", "Régler (/effort)", () => { ccSend("/effort"); closeCC(); }));
-  grid.appendChild(ccCard("Contexte", "Voir le budget de contexte et compacter la conversation si besoin.", "Ouvrir le menu du jauge", () => { openCC("options"); closeCC(); }));
+  const ctxPct = Math.max(0, Math.min(100, Math.round(Number(s.ctxPct) || 0)));
+  grid.appendChild(ccCard("Contexte", ctxPct + "% utilisé · voir le budget détaillé et compacter la conversation si besoin.", "Ouvrir le menu de la jauge", () => {
+    closeCC();
+    if (ctxChip) statusMenu(ctxChip, contextMenuItems(s, command));
+  }));
   grid.appendChild(ccCard("Notifications", bellOn() ? "Actives : fin de tour, erreurs, approbations." : "Inactives.", bellOn() ? "Désactiver" : "Activer", () => {
     ls.set("smol-notify", bellOn() ? "0" : "1");
     if (active) renderState(active);
     renderCC();
   }));
-  grid.appendChild(ccCard("Barre latérale", "Afficher ou masquer la liste des espaces et sessions.", "Basculer", () => setSide(sideEl.classList.contains("collapsed"))));
+  grid.appendChild(ccCard("Barre latérale", "Afficher ou masquer la liste des espaces et sessions.", "Basculer", () => toggleSide()));
   grid.appendChild(ccCard("Serveurs MCP", "Liste, nombre d'outils et interrupteur par serveur.", "Ouvrir le panneau MCP", () => { openCC("mcp"); }));
-  grid.appendChild(ccCard("Skills", "Lister, lire ou enregistrer une skill (/skill save).", "Lister (/skills)", () => { ccSend("/skills"); closeCC(); }));
+  grid.appendChild(ccCard("Skills", d.skills ? (d.skills.length + " skills utilisables (projet + intégrées).") : "Lister, lire ou enregistrer une skill (/skill save).", "Lister (/skills)", () => { ccSend("/skills"); closeCC(); }));
   wrap.appendChild(ccSection("Options de session", grid));
   return wrap;
 }

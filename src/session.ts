@@ -28,7 +28,7 @@ import { OllamaProvider } from "./providers/ollama";
 import type { Effort, Msg, Provider } from "./providers/types";
 import { RoutingProvider, routeProvider } from "./router";
 import { resolveInWorkspace } from "./sandbox";
-import { listSkills } from "./skills";
+import { listSkills, readSkill } from "./skills";
 import { buildStatusReport, renderStatusText } from "./status";
 import { CoworkBoard } from "./tools/cowork";
 import { readFile } from "./tools/fs-tools";
@@ -52,6 +52,7 @@ export interface SessionPrefs {
 
 export const SLASH_COMMANDS: SlashCommand[] = [
   { name: "models", desc: "Switch model · add models from other machines" },
+  { name: "model", desc: "Switch directly — /model <id>" },
   { name: "mode", desc: "Set mode (ro / edit / bypass)" },
   { name: "effort", desc: "Set reasoning effort" },
   { name: "plan", desc: "Show the agent's plan" },
@@ -68,6 +69,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { name: "mcp", desc: "MCP servers: green/red lights + tools" },
   { name: "status", desc: "One report: model, MCP, language servers, build, system" },
   { name: "skills", desc: "Saved skills, incl. built-ins" },
+  { name: "skill", desc: "Read a skill — /skill read <name>" },
   { name: "clear", desc: "Reset the conversation" },
   { name: "undo", desc: "Undo the last file write" },
   { name: "redo", desc: "Redo the undone file write" },
@@ -684,6 +686,14 @@ export class Session {
       context: this.agent.contextBudget(),
       outcome: this.agent.outcome,
       lastError: this.agent.lastError,
+      autopilot:
+        this.agent.autopilotPhase === "completed" || this.agent.autopilotPhase === "cancelled"
+          ? null
+          : {
+              phase: this.agent.autopilotPhase,
+              label: this.agent.autopilotLabel,
+              ...(this.agent.autopilotDetails ? { details: this.agent.autopilotDetails } : {}),
+            },
       verification: this.agent.verificationResult
         ? { attempts: this.agent.verificationResult.attempts, passed: this.agent.verificationResult.passed }
         : null,
@@ -1060,7 +1070,7 @@ export class Session {
               break;
             case "models":
             case "model":
-              await this.switchModel();
+              await this.switchModel(arg);
               break;
             case "mode":
               await this.setMode(arg);
@@ -1211,6 +1221,20 @@ export class Session {
             case "skills":
               ui.println(listSkills(toolCtx.workspace));
               break;
+            case "skill": {
+              const sub = (arg ?? "").toLowerCase();
+              if (sub === "list") {
+                ui.println(listSkills(toolCtx.workspace));
+                break;
+              }
+              const name = sub === "read" || sub === "show" || sub === "view" ? rest.slice(1).join(" ").trim() : (arg ?? "").trim();
+              if (!name) {
+                ui.status("· usage: /skill read <name> — try /skills to list them");
+                break;
+              }
+              ui.println(readSkill(toolCtx.workspace, name));
+              break;
+            }
             case "compact":
               ui.startSpinner("compacting");
               try {
@@ -1323,8 +1347,12 @@ export class Session {
     this.onExit?.();
   }
 
-  private async switchModel(): Promise<void> {
+  /** Open the model picker; with `requested` set (from `/model <id>`), match a
+   *  detected model directly and load it without showing the picker — an
+   *  unknown name falls back to the picker with a warning. */
+  private async switchModel(requested?: string): Promise<void> {
     const { ui, agent } = this;
+    const wanted = (requested ?? "").trim().toLowerCase();
     let fresh: DetectedModel[];
     let idx: number | null;
     // The picker is also where other machines are added and managed; after
@@ -1340,6 +1368,26 @@ export class Session {
         ui.stopSpinner();
       }
       if (!fresh.length) ui.warn("No model server is answering right now.");
+      if (wanted) {
+        // Local cards send display names ("llama-3-8b.Q4") while detection
+        // reports ids ("llama-3-8b"): try exact, normalized and both directions
+        // of containment before falling back to the interactive picker.
+        const base = (x: string) =>
+          x
+            .split(/[\\/]/)
+            .pop()!
+            .replace(/\.(gguf|safetensors|bin)$/i, "")
+            .toLowerCase();
+        const hit =
+          fresh.find((m) => m.id === requested) ||
+          fresh.find((m) => base(m.id) === wanted) ||
+          fresh.find((m) => base(m.id).includes(wanted) || wanted.includes(base(m.id)));
+        if (hit) {
+          idx = fresh.indexOf(hit);
+          break;
+        }
+        ui.warn(`Model "${requested}" not found — opening the picker instead.`);
+      }
       const rows = [...modelOptions(fresh, this.chosen), FIND_ROW, ...(hosts.length ? [HOSTS_ROW] : [])];
       idx = await ui.select("Select model", rows);
       if (idx === null) return;

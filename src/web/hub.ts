@@ -1807,7 +1807,9 @@ export class WebHub {
         const plan = (l.session as any)?.toolCtx?.plan;
         if (!plan || typeof plan.markDone !== "function") throw new Error("no plan in this session");
         const step = d.step === undefined || d.step === null ? undefined : Number(d.step);
-        const message = plan.markDone(step);
+        // `done` present = explicit check/uncheck from the task rail; absent =
+        // legacy mark-done (the agent's own flow).
+        const message = d.done === undefined || d.done === null ? plan.markDone(step) : plan.setDone(step, !!d.done);
         if (typeof message === "string" && message.startsWith("Error")) throw new Error(message);
         this.changed();
         return { message, plan: this.planView(l) };
