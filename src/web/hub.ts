@@ -23,6 +23,7 @@ import { ContextManager } from "../context";
 import { checkSyntax } from "../continuous-validation";
 import { applyOp, type CrdOp, docFromText } from "../crdt";
 import { EventBus } from "../events";
+import { formatFile } from "../format";
 import {
   gitApplyHunk,
   gitBlame,
@@ -1890,6 +1891,12 @@ export class WebHub {
       case "/code/commit": {
         const l = this.editLive(sid);
         return { message: gitCommit(l.workspace, String(d.message ?? "")) };
+      }
+      case "/code/format": {
+        const l = this.editLive(sid);
+        const fp = String(d.path ?? "");
+        if (!fp) throw new Error("path is required");
+        return formatFile(l.workspace, fp);
       }
       case "/shell": {
         const command = String(d.command ?? "");

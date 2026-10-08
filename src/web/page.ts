@@ -173,7 +173,7 @@ export const PAGE_HTML = `<!doctype html>
     <button type="button" class="vsc-sb-item" id="sb-encoding" title="Encodage du fichier">UTF-8</button>
     <button type="button" class="vsc-sb-item" id="sb-eol" title="Fin de ligne">LF</button>
     <button type="button" class="vsc-sb-item" id="sb-lang" title="Sélectionner le mode de langage"><span class="vsc-sb-ico">{ }</span> <span id="sb-lang-text">JavaScript</span></button>
-    <button type="button" class="vsc-sb-item" id="sb-formatter" title="Formatage depuis l'éditeur non disponible"><span class="vsc-sb-ico">△</span> Formateur —</button>
+    <button type="button" class="vsc-sb-item" id="sb-formatter" title="Formater le fichier actif (prettier, black, rustfmt, gofmt)"><span class="vsc-sb-ico">△</span> Formateur —</button>
     <button type="button" class="vsc-sb-item" id="sb-settings" title="Paramètres et options"><span class="vsc-sb-ico">⚙</span> Paramètres</button>
     <button type="button" class="vsc-sb-item" id="sb-bell" title="Notifications"><span class="vsc-sb-ico">🔔</span></button>
   </div>

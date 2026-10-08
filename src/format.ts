@@ -47,13 +47,20 @@ function attemptsFor(ext: string): FormatAttempt[] {
 
 function runFormatter(root: string, cmd: string[], abs: string): { code: number; out: string } {
   const exe = resolveCommand(cmd[0]);
-  const res = spawnSync(exe, [...cmd.slice(1), abs], {
+  const args = [...cmd.slice(1), abs];
+  // Windows: .cmd/.bat shims (npx, prettier…) are rejected by spawnSync with
+  // EINVAL — run them through the shell with each argument safely quoted.
+  const useShell = process.platform === "win32" && /\.(cmd|bat)$/i.test(exe);
+  const opts = {
     cwd: root,
     encoding: "utf8",
     timeout: FORMAT_TIMEOUT_MS,
     windowsHide: true,
     maxBuffer: 1024 * 1024,
-  });
+  } as const;
+  const res = useShell
+    ? spawnSync([exe, ...args].map((a) => (/[\s&|<>^"]/.test(a) ? `"${a.replace(/"/g, '""')}"` : a)).join(" "), { ...opts, shell: true })
+    : spawnSync(exe, args, opts);
   if (res.error) throw res.error;
   return { code: res.status ?? 1, out: `${res.stdout ?? ""}${res.stderr ?? ""}`.trim() };
 }
@@ -140,7 +147,18 @@ export function formattersStatus(): string {
     .map(([name, cmd]) => {
       try {
         const exe = resolveCommand(cmd[0]);
-        const r = spawnSync(exe, cmd.slice(1), { encoding: "utf8", timeout: 10_000, windowsHide: true });
+        const rest = cmd.slice(1);
+        // Same Windows EINVAL workaround as runFormatter: .cmd/.bat shims
+        // only run through the shell.
+        const useShell = process.platform === "win32" && /\.(cmd|bat)$/i.test(exe);
+        const r = useShell
+          ? spawnSync([exe, ...rest].map((a) => (/[\s&|<>^"]/.test(a) ? `"${a.replace(/"/g, '""')}"` : a)).join(" "), {
+              encoding: "utf8",
+              timeout: 10_000,
+              windowsHide: true,
+              shell: true,
+            })
+          : spawnSync(exe, rest, { encoding: "utf8", timeout: 10_000, windowsHide: true });
         if (r.status === 0 || (name.startsWith("gofmt") && (r.status ?? 1) <= 2)) return `✓ ${name}`;
         return `✗ ${name} (failed to run)`;
       } catch {

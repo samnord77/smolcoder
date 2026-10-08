@@ -1196,6 +1196,8 @@ function renderActivity(v) {
   }
 
   if (actTool) {
+    actTool.title = "Outil en cours — cliquer pour ouvrir l'onglet Outils";
+    actTool.onclick = () => openCC("tools");
     if (cur && cur.type === "tool" && !cur.isMcp) {
       actTool.textContent = "🛠 " + cur.name.replace(/_/g, " ");
       actTool.hidden = false;
@@ -1205,6 +1207,8 @@ function renderActivity(v) {
   }
 
   if (actMcp) {
+    actMcp.title = "Serveur MCP en cours — cliquer pour ouvrir l'onglet MCP";
+    actMcp.onclick = () => openCC("mcp");
     if (cur && (cur.isMcp || cur.type === "mcp")) {
       actMcp.textContent = "🔌 " + cur.name.replace(/^mcp_/, "");
       actMcp.hidden = false;
@@ -1215,17 +1219,21 @@ function renderActivity(v) {
 
   if (actFile) {
     const f = cur?.file || v.lastTouchedFile;
+    actFile.title = f ? "Fichier : " + f + " — cliquer pour ouvrir l'éditeur" : "Fichier en cours — cliquer pour ouvrir l'éditeur";
+    actFile.onclick = () => togglePanelKind("files");
     if (f) {
       const shortF = f.split(/[\\/]/).slice(-2).join("/");
       actFile.textContent = "📝 " + shortF;
       actFile.hidden = false;
-      actFile.title = "Fichier : " + f;
+      actFile.title = "Fichier : " + f + " — cliquer pour ouvrir l'éditeur";
     } else {
       actFile.hidden = true;
     }
   }
 
   if (actCheck) {
+    actCheck.title = "Validation continue — cliquer pour ouvrir Problems";
+    actCheck.onclick = () => togglePanelKind("problems");
     if (v.validationActive) {
       actCheck.textContent = "⧖ validation...";
       actCheck.className = "act-check badge";
@@ -2143,10 +2151,11 @@ let debugLogs = [
 let debugHistory = [];
 let debugHistIdx = 0;
 let termSidebarMode = false;
+let hubPort = Number(location.port) || (location.protocol === "https:" ? 443 : 80);
 let detectedPorts = [
-  { port: 7433, protocol: "HTTP", service: "Smolcoder Web Hub", status: "En écoute", openUrl: "http://127.0.0.1:7433" },
-  { port: 11434, protocol: "HTTP", service: "Ollama LLM Engine", status: "Détecté", openUrl: "http://127.0.0.1:11434" },
-  { port: 1234, protocol: "HTTP", service: "LM Studio API", status: "Prêt", openUrl: "http://127.0.0.1:1234" }
+  { port: hubPort, protocol: "HTTP", service: "Smolcoder Web Hub", status: "En écoute", openUrl: location.origin },
+  { port: 11434, protocol: "HTTP", service: "Ollama LLM Engine", status: "Inactif", openUrl: "http://127.0.0.1:11434" },
+  { port: 1234, protocol: "HTTP", service: "LM Studio API", status: "Inactif", openUrl: "http://127.0.0.1:1234" }
 ];
 
 let workspaceScanError = null;
@@ -2463,11 +2472,16 @@ function ensurePortsTab(v) {
     }
   };
   t.scan = () => {
-    fetch("http://127.0.0.1:11434/api/tags").then(() => {
-      const o = detectedPorts.find(x => x.port === 11434);
-      if (o) o.status = "En écoute";
-      t.render();
-    }).catch(() => {});
+    const probe = (port, okStatus) => {
+      const ctl = typeof AbortController !== "undefined" ? new AbortController() : null;
+      const timer = ctl ? setTimeout(() => ctl.abort(), 1200) : null;
+      fetch("http://127.0.0.1:" + port + "/", { mode: "no-cors", cache: "no-store", signal: ctl ? ctl.signal : undefined })
+        .then(() => { const row = detectedPorts.find((x) => x.port === port); if (row) row.status = okStatus; })
+        .catch(() => { const row = detectedPorts.find((x) => x.port === port); if (row) row.status = "Inactif"; })
+        .finally(() => { if (timer) clearTimeout(timer); t.render(); });
+    };
+    probe(11434, "En écoute");
+    probe(1234, "Prêt");
     t.render();
   };
   v.tabs.push(t);
@@ -6011,11 +6025,57 @@ if (sbEncoding) {
   };
 }
 const sbFormatter = $("sb-formatter");
-if (sbFormatter) sbFormatter.onclick = () => showToast("Le formatage depuis la barre d’état n’est pas encore relié à l’éditeur.", "warn");
+if (sbFormatter) sbFormatter.onclick = async () => {
+  if (!active) { showToast("Ouvrez une session pour formater un fichier.", "warn"); return; }
+  const ft = active.tabs.find((tb) => tb.kind === "files");
+  if (!ft || !ft.filePath) { showToast("Ouvrez d'abord un fichier dans l'éditeur.", "warn"); return; }
+  const rel = ft.filePath;
+  const cur = ft.tabStore && ft.tabStore.active ? ft.tabStore.active() : null;
+  if (cur && cur.dirty) {
+    if (ft.saveBtn) ft.saveBtn.click();
+    let savedNow = false;
+    for (let i = 0; i < 40; i++) {
+      const check = ft.tabStore.active();
+      if (!check || !check.dirty) { savedNow = true; break; }
+      await new Promise((res) => setTimeout(res, 50));
+    }
+    if (!savedNow) { showToast("Enregistrez le fichier avant de le formater (Ctrl+S).", "warn"); return; }
+  }
+  const r = await post("/code/format", { sid: active.sid, path: rel }).catch(() => null);
+  if (r && r.ok) {
+    sbFormatter.innerHTML = '<span class="vsc-sb-ico">△</span> Formateur ✓';
+    sbFormatter.title = rel + " : " + r.message;
+    showToast(r.message, "info");
+    if (typeof ft.loadFile === "function") { try { await ft.loadFile(rel); } catch (e) {} }
+  } else {
+    showToast((r && r.message) || "Aucun formateur disponible pour ce type de fichier.", "warn");
+  }
+};
 const sbLangBtn = $("sb-lang");
 if (sbLangBtn) {
-  sbLangBtn.title = "Mode déterminé par l’extension; remplacement manuel non disponible.";
-  sbLangBtn.onclick = () => showToast("Le mode de langage est déterminé par l’extension du fichier; le remplacement manuel n’est pas encore disponible.", "warn");
+  sbLangBtn.title = "Langage déduit de l'extension du fichier — cliquer pour le détail";
+  sbLangBtn.onclick = () => {
+    const lang = ($("sb-lang-text") && $("sb-lang-text").textContent) || "—";
+    const ft = active && active.tabs ? active.tabs.find((tb) => tb.kind === "files") : null;
+    const name = ft && ft.filePath ? ft.filePath.split(/[\\/]/).pop() : null;
+    showToast(name ? "Langage : " + lang + " — déduit de l'extension de « " + name + " » (le mode suit toujours le fichier)." : "Langage : " + lang + " — déduit de l'extension du fichier ouvert.", "info");
+  };
+}
+const sbBell = $("sb-bell");
+if (sbBell) {
+  const paintBell = () => { const ico = sbBell.querySelector(".vsc-sb-ico"); if (ico) ico.textContent = bellOn() ? "🔔" : "🔕"; sbBell.title = "Notifications desktop : " + (bellOn() ? "actives (fin de tour, erreurs, approbations)" : "inactives"); };
+  paintBell();
+  sbBell.onclick = () => {
+    if (!bellOn()) {
+      ls.set("smol-notify", "1");
+      try { if (typeof Notification !== "undefined" && Notification.permission === "default") Notification.requestPermission(); } catch (e) {}
+      showToast("Notifications desktop activées : fin de tour, erreurs, approbations.", "info");
+    } else {
+      ls.set("smol-notify", "0");
+      showToast("Notifications desktop désactivées.", "info");
+    }
+    paintBell();
+  };
 }
 const sbBlame = $("sb-blame");
 if (sbBlame) sbBlame.onclick = async () => {
