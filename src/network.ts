@@ -11,7 +11,6 @@ import { identifyServer, probeHosts, type ServerInfo } from "./detect";
 import { addHost, hostLabel, isPrivateHost, type ParsedAddress, parseAddress, removeHost, renameHost, setHostApiKey } from "./hosts";
 import { type FoundHost, localSubnets, type Subnet, scanSubnets } from "./netscan";
 import type { SelectOption } from "./ui";
-import { plural } from "./util";
 
 /** The slice of a UI these flows need — the TUI and the web channel both fit. */
 export interface FlowUI {
@@ -28,21 +27,21 @@ export interface FlowUI {
 const BACKEND_NAMES = { ollama: "Ollama", lmstudio: "LM Studio" } as const;
 
 function describeServers(servers: { backend: keyof typeof BACKEND_NAMES; models: number }[]): string {
-  return servers.map((s) => `${BACKEND_NAMES[s.backend]} · ${plural(s.models, "model")}`).join(" + ");
+  return servers.map((s) => `${BACKEND_NAMES[s.backend]} · ${s.models} modèle${s.models > 1 ? "s" : ""}`).join(" + ");
 }
 
 /** Why a search or an address can come up empty. Both servers only listen to
  * their own machine until told otherwise, which is the usual reason. */
 export function notFoundHelp(platform: NodeJS.Platform = process.platform): string {
   return (
-    "A model server only answers other machines once it is told to. On the machine that runs the models:\n" +
-    '  · Ollama: turn on "Expose Ollama to the network" in its settings (Linux or headless: set OLLAMA_HOST=0.0.0.0 and restart it).\n' +
-    '  · LM Studio: Developer tab → Local Server → turn on "Serve on Local Network".\n' +
-    "  · Windows: allow the server through the firewall for Private networks when it asks.\n" +
+    "Un serveur de modèles ne répond aux autres machines que si on l'y autorise. Sur la machine qui héberge les modèles :\n" +
+    "  · Ollama : activez « Expose Ollama to the network » dans ses réglages (Linux ou sans interface : définissez OLLAMA_HOST=0.0.0.0 et redémarrez-le).\n" +
+    "  · LM Studio : onglet Developer → Local Server → activez « Serve on Local Network ».\n" +
+    "  · Windows : autorisez le serveur dans le pare-feu pour les réseaux privés quand on vous le demande.\n" +
     (platform === "darwin"
-      ? "On this Mac: System Settings → Privacy & Security → Local Network must allow your terminal app, or nothing on the network is visible.\n"
+      ? "Sur ce Mac : Réglages Système → Confidentialité et sécurité → Réseau local doit autoriser votre application de terminal, sinon rien n'est visible sur le réseau.\n"
       : "") +
-    'Machines on a VPN or another network are not searched — use "Enter an address" for those.'
+    "Les machines sur un VPN ou un autre réseau ne sont pas analysées — utilisez « Saisir une adresse » pour celles-ci."
   );
 }
 
@@ -52,13 +51,15 @@ function save(hosts: SavedHost[]): SavedHost[] {
 
 async function confirmOutsideNetwork(ui: FlowUI, hostname: string, url: string): Promise<boolean> {
   if (url.startsWith("https://") || isPrivateHost(hostname)) return true;
-  ui.warn(`${hostname} is outside your own network and the connection is plain http: your code and prompts would travel unencrypted.`);
-  return (await ui.select(`Add ${hostname} anyway?`, [{ label: "Cancel" }, { label: "Add it anyway" }])) === 1;
+  ui.warn(
+    `${hostname} est hors de votre réseau et la connexion est en http non chiffré : votre code et vos prompts voyageraient en clair.`
+  );
+  return (await ui.select(`Ajouter ${hostname} quand même ?`, [{ label: "Annuler" }, { label: "L'ajouter quand même" }])) === 1;
 }
 
 /** "Enter an address": returns true when a host was added. */
 async function enterAddress(ui: FlowUI, replace?: SavedHost): Promise<boolean> {
-  const typed = await ui.prompt("Address of the machine", "192.168.1.50, gpu-box.local or https://…");
+  const typed = await ui.prompt("Adresse de la machine", "192.168.1.50, gpu-box.local ou https://…");
   if (!typed) return false;
   let parsed: ParsedAddress;
   try {
@@ -67,19 +68,19 @@ async function enterAddress(ui: FlowUI, replace?: SavedHost): Promise<boolean> {
     ui.warn(String(err?.message ?? err));
     return false;
   }
-  ui.startSpinner(`checking ${parsed.hostname}`);
+  ui.startSpinner(`vérification de ${parsed.hostname}`);
   // A public host (OpenRouter, a gateway…) needs its bearer key before the
   // model list will answer. Private/loopback hosts are never asked for one.
   // Esc keeps whatever the replaced entry already stored; an empty line clears it.
   let apiKey: string | undefined = replace?.apiKey;
   if (!isPrivateHost(parsed.hostname)) {
-    const key = await ui.prompt(`API key for ${parsed.hostname} (optional — Enter for none)`);
+    const key = await ui.prompt(`Clé API pour ${parsed.hostname} (facultatif — Entrée pour aucune)`);
     if (key !== null) apiKey = key.trim() || undefined;
   }
   const found = (await Promise.all(parsed.urls.map((u) => identifyServer(u, 4000, apiKey)))).filter((s): s is ServerInfo => !!s);
   ui.stopSpinner();
   if (!found.length) {
-    ui.warn(`Nothing answered at ${parsed.hostname} as Ollama or LM Studio.`);
+    ui.warn(`Rien n'a répondu sur ${parsed.hostname} en tant qu'Ollama ou LM Studio.`);
     ui.status(notFoundHelp());
     return false;
   }
@@ -88,7 +89,7 @@ async function enterAddress(ui: FlowUI, replace?: SavedHost): Promise<boolean> {
   if (replace) hosts = removeHost(hosts, replace.address);
   save(addHost(hosts, { address: parsed.address, ...(replace?.name ? { name: replace.name } : {}), ...(apiKey ? { apiKey } : {}) }));
   ui.status(
-    `· added ${replace?.name ?? parsed.hostname} — ${describeServers(found.map((s) => ({ backend: s.backend, models: s.models.length })))}`
+    `· ajouté ${replace?.name ?? parsed.hostname} — ${describeServers(found.map((s) => ({ backend: s.backend, models: s.models.length })))}`
   );
   return true;
 }
@@ -100,20 +101,20 @@ function savedAddressesOf(found: FoundHost, hosts: SavedHost[]): boolean {
 
 /** "Search my network": returns true when at least one host was added. */
 async function searchNetwork(ui: FlowUI, subnets: Subnet[], replace?: SavedHost): Promise<boolean> {
-  const range = subnets.map((s) => s.cidr).join(" and ");
+  const range = subnets.map((s) => s.cidr).join(" et ");
   let lastTenth = -1;
-  ui.startSpinner(`searching ${range}`);
+  ui.startSpinner(`recherche sur ${range}`);
   const found = await scanSubnets(subnets, {
     onProgress: (done, total) => {
       const tenth = Math.floor((done / total) * 10);
       if (tenth === lastTenth || tenth >= 10) return;
       lastTenth = tenth;
-      ui.startSpinner(`searching ${range} · ${tenth * 10}%`);
+      ui.startSpinner(`recherche sur ${range} · ${tenth * 10}%`);
     },
   });
   ui.stopSpinner();
   if (!found.length) {
-    ui.warn(`No Ollama or LM Studio found on ${range}.`);
+    ui.warn(`Aucun Ollama ou LM Studio trouvé sur ${range}.`);
     ui.status(notFoundHelp());
     return false;
   }
@@ -125,22 +126,22 @@ async function searchNetwork(ui: FlowUI, subnets: Subnet[], replace?: SavedHost)
       const known = savedAddressesOf(f, hosts);
       return {
         label: f.name ? `${f.name} (${f.ip})` : f.ip,
-        hint: describeServers(f.servers) + (known ? " · already added" : ""),
+        hint: describeServers(f.servers) + (known ? " · déjà ajouté" : ""),
         current: known,
       };
     });
-    if (added) options.push({ label: "Done" });
-    const pick = await ui.select(added ? "Add another machine?" : "Found on your network — pick one to use", options);
+    if (added) options.push({ label: "Terminé" });
+    const pick = await ui.select(added ? "Ajouter une autre machine ?" : "Trouvé sur votre réseau — choisissez-en un à utiliser", options);
     if (pick === null || pick >= found.length) return added;
     const f = found[pick];
     if (savedAddressesOf(f, hosts)) {
-      ui.status(`· ${f.name ?? f.ip} is already added`);
+      ui.status(`· ${f.name ?? f.ip} est déjà ajouté`);
       continue;
     }
     // The name survives the router handing out a new IP; fall back to the IP.
     const base = replace ? removeHost(hosts, replace.address) : hosts;
     save(addHost(base, { address: f.name ?? f.ip, ...(replace?.name ? { name: replace.name } : {}) }));
-    ui.status(`· added ${replace?.name ?? f.name ?? f.ip} — ${describeServers(f.servers)}`);
+    ui.status(`· ajouté ${replace?.name ?? f.name ?? f.ip} — ${describeServers(f.servers)}`);
     added = true;
     if (replace || found.every((x) => savedAddressesOf(x, loadConfig().hosts ?? []))) return true;
   }
@@ -153,14 +154,14 @@ export async function findModelsOnNetwork(ui: FlowUI, replace?: SavedHost): Prom
   const subnets = localSubnets();
   const options: SelectOption[] = [
     ...(subnets.length
-      ? [{ label: "Search my network", hint: `${subnets.map((s) => s.cidr).join(", ")} — looks for Ollama and LM Studio` }]
+      ? [{ label: "Rechercher sur mon réseau", hint: `${subnets.map((s) => s.cidr).join(", ")} — cherche Ollama et LM Studio` }]
       : []),
-    { label: "Enter an address", hint: "IP, name or URL — also for VPNs and other networks" },
+    { label: "Saisir une adresse", hint: "IP, nom ou URL — aussi pour les VPN et autres réseaux" },
   ];
-  if (!subnets.length) ui.status("· this computer is not on a home or office network I can search — you can still enter an address");
-  const pick = await ui.select("Find models on another machine", options);
+  if (!subnets.length) ui.status("· cet ordinateur n'est sur aucun réseau local analysable — vous pouvez quand même saisir une adresse");
+  const pick = await ui.select("Trouver des modèles sur un autre ordinateur", options);
   if (pick === null) return false;
-  return options[pick].label === "Search my network" ? searchNetwork(ui, subnets, replace) : enterAddress(ui, replace);
+  return subnets.length && pick === 0 ? searchNetwork(ui, subnets, replace) : enterAddress(ui, replace);
 }
 
 /** "Network hosts…": see what each added machine serves, rename or remove
@@ -171,57 +172,59 @@ export async function manageHosts(ui: FlowUI): Promise<boolean> {
   for (;;) {
     const hosts = loadConfig().hosts ?? [];
     if (!hosts.length) {
-      if (!changed) ui.status("· no network hosts added yet");
+      if (!changed) ui.status("· aucun hôte réseau ajouté pour l'instant");
       return changed;
     }
-    ui.startSpinner("checking hosts");
+    ui.startSpinner("vérification des hôtes");
     const statuses = await probeHosts(hosts);
     ui.stopSpinner();
     const pick = await ui.select(
-      "Network hosts",
+      "Hôtes réseau",
       statuses.map((s) => ({
         label: hostLabel(s.host),
         hint:
           (s.host.name ? `${s.host.address} · ` : "") +
           (s.servers.length
             ? describeServers(s.servers.map((x) => ({ backend: x.backend, models: x.models.length })))
-            : "not reachable right now"),
+            : "injoignable pour l'instant"),
       }))
     );
     if (pick === null) return changed;
     const { host, servers } = statuses[pick];
     const actions: { label: string; hint?: string; run: "rename" | "remove" | "refind" | "apikey" }[] = [
-      { label: "Rename", run: "rename" },
+      { label: "Renommer", run: "rename" },
       {
-        label: "API key",
-        hint: host.apiKey ? "a key is set — paste to replace, empty to remove" : "for hosted gateways (OpenRouter…)",
+        label: "Clé API",
+        hint: host.apiKey
+          ? "une clé est définie — collez pour la remplacer, vide pour la retirer"
+          : "pour les passerelles hébergées (OpenRouter…)",
         run: "apikey",
       },
-      { label: "Remove", run: "remove" },
+      { label: "Retirer", run: "remove" },
     ];
-    if (!servers.length) actions.push({ label: "Look for it again", hint: "its address may have changed", run: "refind" });
+    if (!servers.length) actions.push({ label: "Le rechercher à nouveau", hint: "son adresse a peut-être changé", run: "refind" });
     const act = await ui.select(
       hostLabel(host),
       actions.map(({ label, hint }) => ({ label, hint }))
     );
     if (act === null) continue;
     if (actions[act].run === "rename") {
-      const name = await ui.prompt(`New name for ${hostLabel(host)}`, hostLabel(host));
+      const name = await ui.prompt(`Nouveau nom pour ${hostLabel(host)}`, hostLabel(host));
       if (name) {
         save(renameHost(hosts, host.address, name));
         changed = true;
       }
     } else if (actions[act].run === "apikey") {
-      const key = await ui.prompt(`API key for ${hostLabel(host)} — paste to replace, empty to remove`);
+      const key = await ui.prompt(`Clé API pour ${hostLabel(host)} — collez pour remplacer, vide pour retirer`);
       if (key !== null) {
         const clean = key.trim();
         save(setHostApiKey(hosts, host.address, clean || undefined));
-        ui.status(clean ? `· API key saved for ${hostLabel(host)}` : `· API key removed for ${hostLabel(host)}`);
+        ui.status(clean ? `· clé API enregistrée pour ${hostLabel(host)}` : `· clé API retirée pour ${hostLabel(host)}`);
         changed = true;
       }
     } else if (actions[act].run === "remove") {
       save(removeHost(hosts, host.address));
-      ui.status(`· removed ${hostLabel(host)}`);
+      ui.status(`· retiré ${hostLabel(host)}`);
       changed = true;
     } else if (await findModelsOnNetwork(ui, host)) {
       changed = true;

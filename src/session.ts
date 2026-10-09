@@ -317,7 +317,7 @@ export async function resolveWithHint(
   }
 }
 
-export const LOAD_CANCELLED_MSG = "load cancelled — pick the model again once its server is ready";
+export const LOAD_CANCELLED_MSG = "chargement annulé — rechoisissez le modèle une fois son serveur prêt";
 
 /** Load a model with esc wired to THIS wait (not to quitting, not to killing
  * the turn): the previous onCancel is parked and restored by the caller. */
@@ -350,33 +350,36 @@ export function modelOptions(models: DetectedModel[], current?: DetectedModel): 
   }));
 }
 
-export const FIND_ROW: SelectOption = { label: "+ Find models on another machine…", hint: "search my network or enter an address" };
-export const HOSTS_ROW: SelectOption = { label: "Network hosts…", hint: "rename, remove or re-find added machines" };
+export const FIND_ROW: SelectOption = {
+  label: "+ Trouver des modèles sur un autre ordinateur…",
+  hint: "chercher sur mon réseau ou saisir une adresse",
+};
+export const HOSTS_ROW: SelectOption = { label: "Hôtes réseau…", hint: "renommer, retirer ou rechercher les machines ajoutées" };
 
 /** Nothing answered on this computer. Rather than giving up, offer to look on
  * the network — with both UIs' own pickers, before a session exists. Returns
  * a ready model, or null when the user backs out. */
 export async function setupWithoutLocalModels(ui: FlowUI, prefs: SessionPrefs): Promise<DetectedModel | null> {
   for (;;) {
-    const pick = await ui.select("No model server found on this computer", [
-      { label: "Find models on another machine", hint: "search my network or enter an address" },
-      { label: "Look again", hint: "after starting Ollama or LM Studio here" },
+    const pick = await ui.select("Aucun serveur de modèles trouvé sur cet ordinateur", [
+      { label: "Trouver des modèles sur un autre ordinateur", hint: "chercher sur mon réseau ou saisir une adresse" },
+      { label: "Réessayer", hint: "après avoir démarré Ollama ou LM Studio ici" },
     ]);
     if (pick === null) return null;
     if (pick === 0 && !(await findModelsOnNetwork(ui))) continue;
-    ui.startSpinner("looking for Ollama and LM Studio");
+    ui.startSpinner("recherche d'Ollama et de LM Studio");
     const cfg = loadConfig();
     const models = (await detectAll({ hosts: cfg.hosts })).filter((m) => !prefs.backend || m.backend === prefs.backend);
     ui.stopSpinner();
     if (!models.length) {
-      ui.warn("Still no model server answering.");
+      ui.warn("Toujours aucun serveur de modèles qui répond.");
       continue;
     }
     // A machine was just added by hand: let the user say which of its models
     // to load instead of pulling the first one into its memory.
-    const idx = models.length === 1 ? 0 : await ui.select("Select model", modelOptions(models));
+    const idx = models.length === 1 ? 0 : await ui.select("Choisir un modèle", modelOptions(models));
     if (idx === null) continue;
-    ui.startSpinner(`loading ${models[idx].id}`);
+    ui.startSpinner(`chargement de ${models[idx].id}`);
     try {
       return await loadModelCancellable(ui, models[idx], prefs.ctx, (label) => ui.startSpinner(label));
     } catch (err: any) {
@@ -1397,17 +1400,17 @@ export class Session {
           idx = fresh.indexOf(hit);
           break;
         }
-        ui.warn(`Model "${requested}" not found — opening the picker instead.`);
+        ui.warn(`Modèle « ${requested} » introuvable — ouverture du sélecteur à la place.`);
       }
       const rows = [...modelOptions(fresh, this.chosen), FIND_ROW, ...(hosts.length ? [HOSTS_ROW] : [])];
-      idx = await ui.select("Select model", rows);
+      idx = await ui.select("Choisir un modèle", rows);
       if (idx === null) return;
       if (idx < fresh.length) break;
       if (rows[idx] === FIND_ROW) await findModelsOnNetwork(ui);
       else await manageHosts(ui);
     }
     let next: DetectedModel;
-    ui.startSpinner(`loading ${fresh[idx].id}`);
+    ui.startSpinner(`chargement de ${fresh[idx].id}`);
     try {
       next = await loadModelCancellable(ui, fresh[idx], this.prefs.ctx, (label) => ui.startSpinner(label));
     } catch (err: any) {

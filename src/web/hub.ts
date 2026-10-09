@@ -15,6 +15,7 @@ import * as fs from "node:fs";
 import * as http from "node:http";
 import * as os from "node:os";
 import * as path from "node:path";
+import * as zlib from "node:zlib";
 import { Agent } from "../agent";
 import { type Attachment, classifyUpload, extOf, MAX_UPLOAD_BYTES, mimeForExt, safeName } from "../attachments";
 import { queryIndex } from "../codeindex";
@@ -67,6 +68,8 @@ export type SessionFactory = (ui: SessionChannel, workspace: string, prefs: Sess
 const SESSION_ID_RE = /^[a-z0-9_-]{1,64}$/i;
 const UPLOAD_ID_RE = /^[a-f0-9]{16}$/;
 const WEB_FILE_CAP = 512 * 1024;
+/** Limite d'un fichier .gz une fois décompressé (lecture seule). */
+const WEB_GZ_CAP = 8 * 1024 * 1024;
 const WEB_TREE_CAP = 800;
 /** Limite du listing @fichier (mention composer). */
 const WEB_FILES_CAP = 4000;
@@ -2045,14 +2048,29 @@ export class WebHub {
         );
         return;
       }
-      if (st.size > WEB_FILE_CAP) throw new Error(`file is larger than ${WEB_FILE_CAP} bytes`);
-      const buf = fs.readFileSync(abs);
-      if (looksBinary(buf)) throw new Error("binary file — it cannot be opened as text");
+      const rel = path.relative(ws, abs).split(path.sep).join("/");
+      let buf: Buffer;
+      if (/\.(?:gz|gzip)$/i.test(rel)) {
+        // Une archive .gz est du binaire compressé : on la décompresse pour
+        // afficher le texte qu'elle contient, en lecture seule.
+        try {
+          buf = zlib.gunzipSync(fs.readFileSync(abs), { maxOutputLength: WEB_GZ_CAP });
+        } catch {
+          throw new Error(`« ${rel} » est une archive .gz illisible ou dépassant ${WEB_GZ_CAP} octets une fois décompressée.`);
+        }
+      } else {
+        if (st.size > WEB_FILE_CAP) throw new Error(`fichier plus grand que ${WEB_FILE_CAP} octets`);
+        buf = fs.readFileSync(abs);
+      }
+      if (looksBinary(buf))
+        throw new Error(
+          `« ${rel} » est un fichier binaire (image, archive, exécutable, police, base de données…) : il ne peut pas s'ouvrir comme du texte.`
+        );
       const content = buf.toString("utf8");
       res.writeHead(200, { "content-type": "application/json" });
       res.end(
         JSON.stringify({
-          path: path.relative(ws, abs).split(path.sep).join("/"),
+          path: rel,
           content,
           size: st.size,
           mtimeMs: st.mtimeMs,
@@ -2116,10 +2134,15 @@ export class WebHub {
     if (mode === "ro") throw new Error("workspace is read-only; switch the session to edit mode first");
     const rel = String(d.path ?? "").trim();
     const content = typeof d.content === "string" ? d.content : "";
-    if (!rel) throw new Error("path is required");
+    if (!rel) throw new Error("chemin requis");
+    // L'éditeur texte n'écrit jamais une archive : remplacer un .gz par du
+    // texte détruirait l'archive sans aucune chance de récupération.
+    if (/\.(?:gz|gzip)$/i.test(rel)) {
+      throw new Error(`« ${rel} » est une archive .gz : l'éditeur ne peut pas l'écraser avec du texte.`);
+    }
     // Compare in bytes, not UTF-16 units: 512 000 emoji would pass this check
     // but be rejected on reopen by the byte-based read cap.
-    if (Buffer.byteLength(content, "utf8") > WEB_FILE_CAP) throw new Error(`file is larger than ${WEB_FILE_CAP} bytes`);
+    if (Buffer.byteLength(content, "utf8") > WEB_FILE_CAP) throw new Error(`fichier plus grand que ${WEB_FILE_CAP} octets`);
     let abs: string;
     try {
       abs = resolveInWorkspace(live.workspace, rel);
@@ -2141,9 +2164,10 @@ export class WebHub {
     }
     // Never let a text save replace a binary file or embed NUL bytes: the
     // utf8 round-trip would silently destroy the original content.
-    if (content.includes(String.fromCharCode(0))) throw new Error("content contains NUL bytes - refusing to save it as text");
+    if (content.includes(String.fromCharCode(0)))
+      throw new Error("le contenu contient des octets nuls — refus de l'enregistrer comme du texte");
     if (fs.existsSync(abs) && looksBinary(fs.readFileSync(abs))) {
-      throw new Error("file is binary on disk - refusing to overwrite it as text");
+      throw new Error("ce fichier est binaire sur le disque — refus de l'écraser comme du texte");
     }
     fs.mkdirSync(path.dirname(abs), { recursive: true });
     // Write to a temp file then rename: a crash or full disk mid-write would
@@ -2265,7 +2289,7 @@ export class WebHub {
     } catch {
       throw new Error(`could not read "${rel}"`);
     }
-    if (looksBinary(buf)) throw new Error(`"${rel}" looks binary — live collaboration needs text`);
+    if (looksBinary(buf)) throw new Error(`« ${rel} » est un fichier binaire — la collaboration en direct a besoin de texte`);
     return { abs, text: buf.toString("utf8") };
   }
 

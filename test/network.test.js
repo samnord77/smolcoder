@@ -221,12 +221,12 @@ test("entering an address checks it, saves it, and says what it found", async ()
   saveConfig({ lastModel: "keep-me" });
   const server = await serveOllama(["a", "b", "c"]);
   try {
-    const ui = scriptedUI({ picks: ["Enter an address"], texts: [`127.0.0.1:${server.port}`] });
+    const ui = scriptedUI({ picks: ["Saisir une adresse"], texts: [`127.0.0.1:${server.port}`] });
     assert.equal(await findModelsOnNetwork(ui), true);
     assert.deepEqual(loadConfig().hosts, [{ address: `http://127.0.0.1:${server.port}` }]);
     assert.equal(loadConfig().lastModel, "keep-me");
     assert.ok(
-      ui.shown.lines.some((l) => /added 127\.0\.0\.1 — Ollama · 3 models/.test(l)),
+      ui.shown.lines.some((l) => /ajouté 127\.0\.0\.1 — Ollama · 3 modèles/.test(l)),
       ui.shown.lines.join("\n")
     );
   } finally {
@@ -238,17 +238,17 @@ test("an address where nothing answers is not saved, and the help names the serv
   saveConfig({});
   const gone = await serveOllama();
   await gone.close();
-  const ui = scriptedUI({ picks: ["Enter an address"], texts: [`127.0.0.1:${gone.port}`] });
+  const ui = scriptedUI({ picks: ["Saisir une adresse"], texts: [`127.0.0.1:${gone.port}`] });
   assert.equal(await findModelsOnNetwork(ui), false);
   assert.deepEqual(loadConfig().hosts, []);
   const said = ui.shown.lines.join("\n");
-  assert.match(said, /Nothing answered/);
+  assert.match(said, /Rien n'a répondu/);
   assert.match(said, /Expose Ollama to the network/);
   assert.match(said, /Serve on Local Network/);
-  assert.match(notFoundHelp("darwin"), /Local Network must allow your terminal/);
-  assert.doesNotMatch(notFoundHelp("win32"), /this Mac/);
+  assert.match(notFoundHelp("darwin"), /Réseau local doit autoriser votre application/);
+  assert.doesNotMatch(notFoundHelp("win32"), /Sur ce Mac/);
 
-  const typo = scriptedUI({ picks: ["Enter an address"], texts: ["ftp://box"] });
+  const typo = scriptedUI({ picks: ["Saisir une adresse"], texts: ["ftp://box"] });
   assert.equal(await findModelsOnNetwork(typo), false);
   assert.match(typo.shown.lines.join("\n"), /Only http/);
   const cancelled = scriptedUI({ picks: [null] });
@@ -260,14 +260,18 @@ test("network hosts can be renamed and removed from the picker", async () => {
   const address = `http://127.0.0.1:${server.port}`;
   saveConfig({ hosts: [{ address }, { address: "http://127.0.0.1:9", name: "asleep" }] });
   try {
-    const ui = scriptedUI({ picks: ["127.0.0.1", "Rename", "asleep", "Remove", null], texts: ["Attic"] });
+    const ui = scriptedUI({ picks: ["127.0.0.1", "Renommer", "asleep", "Retirer", null], texts: ["Attic"] });
     assert.equal(await manageHosts(ui), true);
     assert.deepEqual(loadConfig().hosts, [{ address, name: "Attic" }]);
     const first = ui.shown.selects[0].options;
-    assert.match(first[0].hint, /Ollama · 1 model$/);
-    assert.match(first[1].hint, /not reachable right now/);
+    assert.match(first[0].hint, /Ollama · 1 modèle$/);
+    assert.match(first[1].hint, /injoignable pour l'instant/);
     const asleepActions = ui.shown.selects[3].options.map((o) => o.label);
-    assert.deepEqual(asleepActions, ["Rename", "API key", "Remove", "Look for it again"], "only an unreachable host offers a re-search");
+    assert.deepEqual(
+      asleepActions,
+      ["Renommer", "Clé API", "Retirer", "Le rechercher à nouveau"],
+      "only an unreachable host offers a re-search"
+    );
   } finally {
     await server.close();
   }
@@ -296,18 +300,18 @@ test("with nothing on this computer, startup offers the network instead of givin
   try {
     saveConfig({});
     // "zzz" matches no backend, which stands in for a computer with no servers.
-    const none = scriptedUI({ picks: ["Look again", null] });
+    const none = scriptedUI({ picks: ["Réessayer", null] });
     assert.equal(await setupWithoutLocalModels(none, { backend: "zzz" }), null);
-    assert.match(none.shown.lines.join("\n"), /Still no model server answering/);
+    assert.match(none.shown.lines.join("\n"), /Toujours aucun serveur de modèles qui répond/);
     assert.deepEqual(
       none.shown.selects[0].options.map((o) => o.label),
-      ["Find models on another machine", "Look again"]
+      ["Trouver des modèles sur un autre ordinateur", "Réessayer"]
     );
 
     // Add the machine by address; a dev box may also run a real LM Studio, in
     // which case the model picker appears and the remote one is chosen.
     const ui = scriptedUI({
-      picks: ["Find models on another machine", "Enter an address", /^remote-qwen$/],
+      picks: ["Trouver des modèles sur un autre ordinateur", "Saisir une adresse", /^remote-qwen$/],
       texts: [`127.0.0.1:${server.address().port}`],
     });
     const chosen = await setupWithoutLocalModels(ui, { backend: "lmstudio" });
@@ -333,7 +337,7 @@ test("esc during a startup model load cancels the wait, not the app", async () =
     saveConfig({});
     // A dev box may run its own model server, which also shows up: pick ours
     // by name when there is a choice, and tolerate there being none.
-    const picks = ["Find models on another machine", "Enter an address", /^late:7b$/, null];
+    const picks = ["Trouver des modèles sur un autre ordinateur", "Saisir une adresse", /^late:7b$/, null];
     const texts = [`127.0.0.1:${server.address().port}`];
     const ui = {
       shown: { lines: [] },
@@ -351,13 +355,13 @@ test("esc during a startup model load cancels the wait, not the app", async () =
       stopSpinner() {},
       onCancel: null,
       startSpinner(label) {
-        if (/^loading /.test(label)) setTimeout(() => ui.onCancel?.(), 30);
+        if (/^(loading|chargement) /.test(label)) setTimeout(() => ui.onCancel?.(), 30);
       },
     };
     const chosen = await setupWithoutLocalModels(ui, {});
     assert.equal(chosen, null); // cancelled → back to the picker → backed out
     assert.ok(
-      ui.shown.lines.some((l) => /load cancelled — pick the model again/.test(l)),
+      ui.shown.lines.some((l) => /chargement annulé — rechoisissez le modèle/.test(l)),
       ui.shown.lines.join(" | ")
     );
   } finally {

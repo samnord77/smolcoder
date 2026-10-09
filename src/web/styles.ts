@@ -808,7 +808,7 @@ export const STYLES = `
   .user .filechip { display: inline-block; border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; font-size: 12px; color: var(--fg); text-decoration: none; background: #141a1d; }
   .user .filechip:hover { border-color: var(--accent); }
   @media (max-width: 600px) {
-    #systemmonitor { gap: 5px; padding: 5px 8px; }
+    #systemmonitor { gap: 5px; padding: 5px 8px; flex-wrap: wrap; overflow-x: visible; }
     .sysmetric { min-width: 76px; }
     #sessionstats { gap: 4px; padding: 6px 5px; }
     .sessionstat { padding: 6px 4px; gap: 4px; }

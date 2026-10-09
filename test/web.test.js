@@ -8,6 +8,7 @@ const fs = require("node:fs");
 const http = require("node:http");
 const os = require("node:os");
 const path = require("node:path");
+const zlib = require("node:zlib");
 const { SessionChannel } = require("../dist/web/channel");
 const { SessionStore, WorkspaceStore, workspaceKey } = require("../dist/web/store");
 const { Terminal, stripControl, toOsPath } = require("../dist/web/terminal");
@@ -384,9 +385,9 @@ function fakeFactory(log) {
           }
           if (input === "/models") {
             const options = [{ label: "fake-model" }, { label: "late:7b" }];
-            const index = await ui.select("Select model", options);
+            const index = await ui.select("Choisir un modèle", options);
             if (index === null) {
-              ui.warn("load cancelled — pick the model again once its server is ready");
+              ui.warn("chargement annulé — rechoisissez le modèle une fois son serveur prêt");
               continue;
             }
             session.chosen = { id: options[index].label, backend: "ollama" };
@@ -631,7 +632,7 @@ test("hub: the /models picker reaches the page, backing out keeps the session al
     await request(hub, "POST", `/msg${k}`, { sid: id, text: "/models" });
     const picks = await readEvents(hub, (e) => e.t === "select" && e.sid === id);
     const pick = picks.find((e) => e.t === "select" && e.sid === id);
-    assert.equal(pick.title, "Select model");
+    assert.equal(pick.title, "Choisir un modèle");
     assert.deepEqual(
       pick.options.map((o) => o.label),
       ["fake-model", "late:7b"]
@@ -643,7 +644,7 @@ test("hub: the /models picker reaches the page, backing out keeps the session al
     await sleep(80); // let the event stream connect before the answer arrives
     await request(hub, "POST", `/select${k}`, { sid: id, id: pick.id, index: null });
     assert.ok(
-      (await cancelledSeen).some((e) => e.t === "line" && e.kind === "warn" && /load cancelled — pick the model again/.test(e.s)),
+      (await cancelledSeen).some((e) => e.t === "line" && e.kind === "warn" && /chargement annulé — rechoisissez le modèle/.test(e.s)),
       "the cancel is reported in the transcript"
     );
     await until(() => hub.snapshot().workspaces[0].sessions[0].status === "idle", 2000, "idle after backing out");
@@ -801,6 +802,46 @@ test("hub: workspace file explorer lists, reads and safely saves files", async (
       expectedMtimeMs: fs.statSync(path.join(ws, "src")).mtimeMs,
     });
     assert.match(removed.body, /removed from disk/i);
+  } finally {
+    hub.close();
+  }
+});
+
+test("hub: a .gz archive opens decompressed, read-only, and binaries say why", async () => {
+  const dataDir = tmpdir("smol-hub-gz-");
+  const ws = path.join(dataDir, "proj");
+  fs.mkdirSync(ws, { recursive: true });
+  fs.writeFileSync(path.join(ws, "run.jsonl.gz"), zlib.gzipSync(Buffer.from('{"n":1}\n{"n":2}\n')));
+  fs.writeFileSync(path.join(ws, "blob.bin"), Buffer.from([0x00, 0x01, 0x02, 0x03]));
+  fs.writeFileSync(path.join(ws, "broken.gz"), Buffer.from("not gzip at all"));
+  const hub = new WebHub({ port: 0, prefs: {}, help: "help", version: "9.9.9", dataDir, factory: fakeFactory([]), quiet: true });
+  await hub.start();
+  const k = `?k=${hub.authToken}`;
+  try {
+    const { id } = JSON.parse((await request(hub, "POST", `/sessions/new${k}`, { workspace: ws })).body);
+    await until(() => hub.snapshot().workspaces[0].sessions[0].status === "idle", 2000, "idle");
+
+    // Le .gz s'ouvre décompressé : le texte du dedans est lisible.
+    const gz = JSON.parse((await request(hub, "GET", `/workspace/file${k}&sid=${id}&path=run.jsonl.gz`)).body);
+    assert.match(gz.content, /"n":1/);
+    assert.match(gz.content, /"n":2/);
+
+    // L'éditeur ne peut jamais écraser une archive avec du texte.
+    const overwrite = await request(hub, "POST", `/workspace/file${k}`, {
+      sid: id,
+      path: "run.jsonl.gz",
+      content: "must not replace the archive",
+      expectedMtimeMs: gz.mtimeMs,
+    });
+    assert.match(overwrite.body, /archive \.gz/);
+
+    // Un vrai binaire nomme le fichier et explique pourquoi.
+    const bin = await request(hub, "GET", `/workspace/file${k}&sid=${id}&path=blob.bin`);
+    assert.match(bin.body, /« blob\.bin » est un fichier binaire/);
+
+    // Une archive cassée donne une erreur .gz dédiée, pas une erreur binaire.
+    const broken = await request(hub, "GET", `/workspace/file${k}&sid=${id}&path=broken.gz`);
+    assert.match(broken.body, /\.gz illisible/);
   } finally {
     hub.close();
   }

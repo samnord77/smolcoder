@@ -3560,7 +3560,7 @@ function buildFilesTab(v, t) {
   body.insertBefore(symbolsBar, fileFindBar);
   v.panelEl.appendChild(body);
   t.el = body; t.pathInput = pathInput; t.findInput = findInput; t.tree = tree; t.editor = editor; t.code = code; t.tabsBar = tabsBar; t.tabStore = makeEditorTabStore(); t.saveBtn = save; t.meta = meta;
-  t.filePath = ""; t.mtimeMs = 0; t.rel = ".";
+  t.filePath = ""; t.mtimeMs = 0; t.rel = "."; t.decompressed = false;
   t.diags = [];
   const SQE = ["\u0001", "\u0002"], SQW = ["\u0003", "\u0004"];
   const markDiags = (source) => {
@@ -3913,6 +3913,8 @@ function buildFilesTab(v, t) {
     inlineRange = null; inlineBar.hidden = true; inlinePreview.hidden = true; inlineGen++;
     t.filePath = nextPath; t.mtimeMs = tab ? tab.mtimeMs : 0;
     imagePreview.hidden = true;
+    // Un .gz affiché par le hub l'est forcément décompressé : lecture seule.
+    t.decompressed = /\.(?:gz|gzip)$/i.test(nextPath);
     imageEl.removeAttribute("src");
     editor.hidden = false; code.hidden = false; gutter.hidden = false; minimap.hidden = false;
     t.diags = [];
@@ -3925,7 +3927,7 @@ function buildFilesTab(v, t) {
     paint();
     updateGutter();
     editor.dataset.dirty = tab && tab.dirty ? "1" : "0";
-    save.disabled = v.state.mode === "ro" || !tab;
+    save.disabled = v.state.mode === "ro" || !tab || t.decompressed;
     const ext = tab && tab.path ? (tab.path.split(".").pop() || "").toLowerCase() : "";
     const langNames = {
       ts: "TypeScript", js: "JavaScript", tsx: "TypeScript JSX", jsx: "JavaScript JSX",
@@ -3940,7 +3942,9 @@ function buildFilesTab(v, t) {
     const sbEol = $("sb-eol");
     if (sbEol) sbEol.textContent = isCrlf ? "CRLF" : "LF";
     updatePosition();
-    meta.classList.remove("error"); pathInput.value = tab ? tab.path : (t.rel || ".");
+    meta.classList.remove("error");
+    if (t.decompressed) meta.textContent = nextPath + " · .gz décompressé (lecture seule)";
+    pathInput.value = tab ? tab.path : (t.rel || ".");
     renderTabs();
     void analyzeFile(t.filePath);
     openCollab(tab && !tab.dirty ? tab.path : "");
@@ -3953,6 +3957,9 @@ function buildFilesTab(v, t) {
   const openCollab = (rel) => {
     t.collab = null;
     if (!rel) return;
+    // Un .gz affiché décompressé est lecture seule : pas de doc partagée,
+    // et cela évite un appel /edit/open que le hub refuse (400).
+    if (t.decompressed) return;
     const cur = t.tabStore.active();
     if (!cur || cur.path !== rel || cur.dirty) return;
     post("/edit/open", { sid: v.sid, path: rel }).then((r) => {
@@ -4279,6 +4286,7 @@ function buildFilesTab(v, t) {
     if (existing) { displayTab(existing); return true; }
     if (/\.(?:png|jpe?g|gif|webp|svg|ico|bmp)$/i.test(String(rel))) {
       t.filePath = rel;
+      t.decompressed = false;
       // No mtime for an image preview: the disk poll compares mtimeMs, and a
       // stale value from the previous text file looped a reload every 5 s.
       t.mtimeMs = 0;
@@ -4327,7 +4335,7 @@ function buildFilesTab(v, t) {
     canWriteMode = canWrite;
     // The image preview has no buffer: re-enabling save here would push the
     // previous text buffer over the picture file.
-    save.disabled = !canWrite || !t.filePath || !imagePreview.hidden;
+    save.disabled = !canWrite || !t.filePath || !imagePreview.hidden || t.decompressed;
     applyFoldVisibility();
   };
   previewButton.onclick = () => {
@@ -4465,6 +4473,7 @@ function buildFilesTab(v, t) {
   save.onclick = () => {
     if (!t.filePath) return;
     if (!imagePreview.hidden) return;
+    if (t.decompressed) { showError("Ce fichier .gz est affiché décompressé en lecture seule : enregistrer écraserait l'archive."); return; }
     const filePath = t.filePath, content = editor.value, expectedMtimeMs = t.mtimeMs;
     t.tabStore.update(filePath, content);
     save.disabled = true;
@@ -5352,9 +5361,20 @@ document.addEventListener("keydown", (e) => {
     if (ccOpenNow()) closeCC();
     else if (!$("modal").hidden) closeDialog();
     else if (active && !(document.activeElement && document.activeElement.closest && document.activeElement.closest(".tabbody.term"))) post("/cancel", { sid: active.sid });
-  } else if (e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey && e.key.toLowerCase() === "b") { e.preventDefault(); setSide(!sideEl.classList.contains("collapsed")); }
+  }
   else if (e.ctrlKey && e.key === "\`") { e.preventDefault(); togglePanelKind("term"); }
 });
+
+// Indicateur Ln/Col de la barre d'état : le clic ouvre « Aller à la ligne »,
+// le même geste que Ctrl+G (aucun fichier ouvert = message discret).
+const sbPosBtn = $("sb-pos");
+if (sbPosBtn) {
+  sbPosBtn.onclick = () => {
+    const files = active && active.tabs.find((tab) => tab.kind === "files");
+    if (files && files.filePath && files.goToLine) files.goToLine();
+    else showToast("Ouvrez d’abord un fichier pour y aller à une ligne", "warn");
+  };
+}
 
 // ---- centre de contrôle ----------------------------------------------------
 // Le statut complet d'une session — modèle, contexte, plan, tâches,
