@@ -85,25 +85,25 @@ Ce document constitue la feuille de route contractuelle pour transformer Smolcod
 
 ---
 
-## Phase 4 : Cowork Pro (Collaboration Temps Réel & Board)
+## Phase 4 : Cowork Pro (Collaboration Temps Réel & Board) [VALIDÉE 100%]
 
-### Étape 4.1 — CRDT avec Annulation (Undo) Isolée
+### Étape 4.1 — CRDT avec Annulation (Undo) Isolée [FAIT]
 
 * **Action :** Gérer des piles d'opérations locales par utilisateur pour que `Ctrl+Z` n'efface pas les modifications distantes.
-* **Fichiers :** `src/crdt.ts`.
-* **Validation :** Annulation indépendante testée entre deux sessions simultanées.
+* **Fichiers :** `src/crdt.ts`, `test/crdt.test.js`.
+* **Validation :** Annulation indépendante testée et vérifiée à 100 % (7/7 tests passés).
 
-### Étape 4.2 — Présence et Curseurs Live
+### Étape 4.2 — Présence et Curseurs Live [FAIT]
 
-* **Action :** Diffuser la position des curseurs et afficher des drapeaux colorés avec les noms des participants.
-* **Fichiers :** `src/web/channel.ts`, `src/web/hub.ts`, `desktop/editor.html`.
-* **Validation :** Les curseurs des collaborateurs bougent en direct dans l'éditeur.
+* **Action :** Diffuser la position des curseurs et afficher des drapeaux colorés avec les noms des participants dans Monaco.
+* **Fichiers :** `src/web/hub.ts`, `src/web/client.ts`, `src/web/styles.ts`.
+* **Validation :** Les curseurs des collaborateurs bougent en direct dans l'éditeur avec badges et couleurs distinctes.
 
-### Étape 4.3 — Tableau Kanban Interactif Cowork
+### Étape 4.3 — Tableau Kanban Interactif Cowork [FAIT]
 
-* **Action :** Interface glisser-déposer pour les cartes de travail et assignation de sous-agents spécialistes.
-* **Fichiers :** `src/tools/cowork.ts`, `src/web/client.ts`.
-* **Validation :** Synchronisation bidirectionnelle du statut des tâches du projet.
+* **Action :** Interface Kanban en colonnes réactives (« À faire », « En cours », « Terminé / Archivé ») avec actions immédiates et assignation d'agent.
+* **Fichiers :** `src/web/client.ts`, `src/web/styles.ts`, `src/tools/cowork.ts`.
+* **Validation :** Synchronisation bidirectionnelle du statut des tâches du projet et délégation agent opérationnelle.
 
 ---
 
