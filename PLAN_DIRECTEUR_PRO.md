@@ -136,4 +136,3 @@ Ce document constitue la feuille de route contractuelle pour transformer Smolcod
 3. **Phase 3 (Intelligence & Validation Continue)** : 100 % FAIT (LSP persistant, validation différentielle, Ghost Text).
 4. **Phase 4 (Cowork Pro)** : 100 % FAIT (CRDT Undo/Redo isolé, curseurs live, Kanban réactif).
 5. **Phase 5 (Terminal, Palette & Packaging)** : 100 % FAIT (terminal interactif, palette `Ctrl+P`, packaging vérifié 5/5).
-
