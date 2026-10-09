@@ -6068,7 +6068,7 @@ function ccWork(d) {
 
     const cardsEl = el("div", "cc-kanban-cards");
     for (const item of col.items) {
-      const card = el("div", "cc-kanban-card");
+      const card = el("div", "cc-kanban-card cc-workitem");
       card.appendChild(el("div", "cc-kanban-card-title", item.title));
 
       const tags = el("div", "cc-kanban-tags");
@@ -6081,15 +6081,15 @@ function ccWork(d) {
       }
       card.appendChild(tags);
 
-      if (item.acceptanceCriteria) card.appendChild(el("span", "hint", "Critères : " + item.acceptanceCriteria));
+      if (item.acceptanceCriteria) card.appendChild(el("span", "hint", "Critères d'acceptation : " + item.acceptanceCriteria));
       if (item.notes) card.appendChild(el("span", "cc-worknotes", item.notes));
       if (item.lastReport) card.appendChild(el("span", "cc-worknotes", "Rapport : " + item.lastReport.slice(0, 140) + (item.lastReport.length > 140 ? "…" : "")));
 
       const acts = el("div", "cc-kanban-actions");
       if (item.status === "open" || col.id === "inprogress") {
-        const delegateBtn = el("button", "cc-act primary", "Lancer avec l’agent");
+        const delegateBtn = el("button", "cc-act primary", "Exécuter avec l’agent");
         delegateBtn.type = "button";
-        delegateBtn.title = "Envoyer cette tâche à l’agent pour exécution et vérification";
+        delegateBtn.title = "Envoyer cette tâche à l’agent de la session pour qu’il l’exécute et vérifie le résultat";
         delegateBtn.onclick = () => {
           const targetRole = item.assignedRole || "expert";
           const promptText =
@@ -6814,5 +6814,218 @@ function connectSSE() {
   es.onmessage = (e) => { sseClearRetry(); hideNetBanner(); handle(JSON.parse(e.data)); };
   es.onerror = () => { sseFailed(); };
 }
+
+// ---- Palette de Commandes Web Hub (Ctrl+P / Ctrl+Shift+P / Ctrl+Tilde) ----
+let webPaletteEl = null;
+let webPaletteInput = null;
+let webPaletteList = null;
+let webPaletteCount = null;
+let webPaletteIcon = null;
+let webPaletteItems = [];
+let webPaletteIdx = 0;
+
+function ensureWebPalette() {
+  if (webPaletteEl) return;
+  webPaletteEl = el("div", "");
+  webPaletteEl.id = "webPaletteOverlay";
+  webPaletteEl.hidden = true;
+  webPaletteEl.setAttribute("role", "dialog");
+  webPaletteEl.setAttribute("aria-modal", "true");
+
+  const box = el("div", "");
+  box.id = "webPaletteBox";
+
+  const header = el("div", "");
+  header.id = "webPaletteHeader";
+
+  webPaletteIcon = el("span", "", ">");
+  webPaletteIcon.id = "webPalettePromptIcon";
+
+  webPaletteInput = document.createElement("input");
+  webPaletteInput.id = "webPaletteInput";
+  webPaletteInput.type = "text";
+  webPaletteInput.placeholder = "Tapez '>' pour des commandes ou le nom d'un onglet / fichier...";
+  webPaletteInput.autocomplete = "off";
+  webPaletteInput.spellcheck = false;
+
+  webPaletteCount = el("span", "", "0 résultat");
+  webPaletteCount.id = "webPaletteCount";
+
+  header.append(webPaletteIcon, webPaletteInput, webPaletteCount);
+
+  webPaletteList = el("div", "");
+  webPaletteList.id = "webPaletteList";
+  webPaletteList.setAttribute("role", "listbox");
+
+  box.append(header, webPaletteList);
+  webPaletteEl.appendChild(box);
+  document.body.appendChild(webPaletteEl);
+
+  webPaletteEl.onclick = (e) => {
+    if (e.target === webPaletteEl) closeWebPalette();
+  };
+
+  webPaletteInput.oninput = filterWebPalette;
+  webPaletteInput.onkeydown = (e) => {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      closeWebPalette();
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (webPaletteItems.length > 0) {
+        webPaletteIdx = (webPaletteIdx + 1) % webPaletteItems.length;
+        updateWebPaletteSelection();
+      }
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (webPaletteItems.length > 0) {
+        webPaletteIdx = (webPaletteIdx - 1 + webPaletteItems.length) % webPaletteItems.length;
+        updateWebPaletteSelection();
+      }
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (webPaletteItems.length > 0) {
+        executeWebPaletteItem(webPaletteItems[webPaletteIdx]);
+      }
+    }
+  };
+}
+
+function updateWebPaletteSelection() {
+  if (!webPaletteList) return;
+  const children = webPaletteList.querySelectorAll(".hub-palette-item");
+  children.forEach((elem, i) => {
+    elem.classList.toggle("active", i === webPaletteIdx);
+    elem.setAttribute("aria-selected", String(i === webPaletteIdx));
+  });
+  const act = webPaletteList.querySelector(".hub-palette-item.active");
+  if (act) act.scrollIntoView({ block: "nearest" });
+}
+
+function renderWebPaletteItems() {
+  if (!webPaletteList) return;
+  webPaletteList.replaceChildren();
+  if (!webPaletteItems.length) {
+    const empty = el("div", "", "Aucun résultat correspondant.");
+    empty.style.padding = "10px 14px";
+    empty.style.color = "#858585";
+    empty.style.fontSize = "12px";
+    webPaletteList.appendChild(empty);
+    if (webPaletteCount) webPaletteCount.textContent = "0 résultat";
+    return;
+  }
+  if (webPaletteCount) webPaletteCount.textContent = webPaletteItems.length + " résultat(s)";
+
+  webPaletteItems.forEach((it, idx) => {
+    const b = el("button", "hub-palette-item" + (idx === webPaletteIdx ? " active" : ""));
+    b.type = "button";
+    b.setAttribute("role", "option");
+    b.setAttribute("aria-selected", String(idx === webPaletteIdx));
+
+    const iconSpan = el("span", "", it.icon || "📄");
+    iconSpan.style.width = "18px";
+    iconSpan.style.textAlign = "center";
+
+    const labelSpan = el("span", "palette-label", it.label);
+    const detailSpan = el("span", "palette-detail", it.detail || "");
+
+    b.append(iconSpan, labelSpan, detailSpan);
+    b.onclick = () => {
+      webPaletteIdx = idx;
+      executeWebPaletteItem(it);
+    };
+    b.onmouseenter = () => {
+      webPaletteIdx = idx;
+      updateWebPaletteSelection();
+    };
+    webPaletteList.appendChild(b);
+  });
+  updateWebPaletteSelection();
+}
+
+function executeWebPaletteItem(it) {
+  closeWebPalette();
+  if (!it) return;
+  if (it.run) it.run();
+}
+
+function filterWebPalette() {
+  const q = (webPaletteInput ? webPaletteInput.value : "").trim();
+  const isCmd = q.startsWith(">");
+  if (webPaletteIcon) webPaletteIcon.textContent = isCmd ? ">" : "📄";
+
+  const v = active;
+  const commands = [
+    { label: "Basculer le Terminal & Dock Pro", detail: "Ctrl+Tilde", icon: "💻", run: () => togglePanelKind("term") },
+    { label: "Fichiers & Explorateur de projet", detail: "Onglet fichiers", icon: "📁", run: () => togglePanelKind("files") },
+    { label: "Navigateur Web intégré", detail: "Aperçu local", icon: "🌐", run: () => togglePanelKind("browser") },
+    { label: "Ouvrir le Centre de Contrôle", detail: "Skills, rôles, MCP", icon: "⚙", run: () => openCC() },
+    { label: "Problèmes & Diagnostics du projet", detail: "LSP en temps réel", icon: "✓", run: () => togglePanelKind("problems") },
+    { label: "Révision des changements Git", detail: "Diff non committé", icon: "Δ", run: () => togglePanelKind("review") },
+    { label: "Modèles d'IA disponibles (/models)", detail: "Ollama / LM Studio", icon: "🤖", run: () => { if (v) post("/msg", { sid: v.sid, text: "/models" }); } },
+    { label: "État et Diagnostic du Hub (/status)", detail: "Ressources & charge", icon: "📊", run: () => { if (v) post("/msg", { sid: v.sid, text: "/status" }); } },
+    { label: "Nettoyer la conversation (/clean)", detail: "Purge visuelle", icon: "🧹", run: () => { if (v) post("/msg", { sid: v.sid, text: "/clean" }); } },
+    { label: "Interrompre la réponse en cours", detail: "Stop agent", icon: "⏹", run: () => { if (v) post("/stop", { sid: v.sid }); } },
+  ];
+
+  if (isCmd) {
+    const s = q.slice(1).trim().toLowerCase();
+    webPaletteItems = commands.filter((c) => !s || c.label.toLowerCase().includes(s) || (c.detail && c.detail.toLowerCase().includes(s)));
+  } else {
+    const s = q.toLowerCase();
+    const tabItems = (v ? v.tabs : []).map((t) => {
+      let lbl = t.kind;
+      if (t.kind === "files") lbl = "Fichiers (" + (t.filePath || t.rel || ".") + ")";
+      else if (t.kind === "browser") lbl = "Navigateur (" + (t.url || "vide") + ")";
+      else if (t.kind === "term") lbl = "Terminal (" + (t.tid || "actif") + ")";
+      else if (t.kind === "problems") lbl = "Problèmes LSP";
+      return {
+        label: lbl,
+        detail: "Onglet ouvert",
+        icon: t.kind === "term" ? "💻" : t.kind === "browser" ? "🌐" : "📄",
+        run: () => { v.activeTab = t.id; v.panelOpen = true; savePanel(v); renderPanel(); }
+      };
+    });
+
+    const fileMatches = (workspaceDiagnostics || []).map((d) => ({
+      label: d.path + ":" + d.line,
+      detail: d.message,
+      icon: d.severity === "error" ? "❌" : "⚠",
+      run: () => { togglePanelKind("problems"); }
+    }));
+
+    const combined = tabItems.concat(commands).concat(fileMatches);
+    webPaletteItems = combined.filter((c) => !s || c.label.toLowerCase().includes(s) || (c.detail && c.detail.toLowerCase().includes(s)));
+  }
+  webPaletteIdx = 0;
+  renderWebPaletteItems();
+}
+
+function openWebPalette(cmdMode) {
+  ensureWebPalette();
+  webPaletteEl.hidden = false;
+  if (webPaletteInput) {
+    webPaletteInput.value = cmdMode ? "> " : "";
+    webPaletteInput.focus();
+    webPaletteInput.select();
+  }
+  filterWebPalette();
+}
+
+function closeWebPalette() {
+  if (webPaletteEl) webPaletteEl.hidden = true;
+  if (input) input.focus();
+}
+
+window.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && (e.keyCode === 192 || e.key === "~" || e.key === String.fromCharCode(96))) {
+    e.preventDefault();
+    togglePanelKind("term");
+  } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "p") {
+    e.preventDefault();
+    openWebPalette(e.shiftKey);
+  }
+});
+
 connectSSE();
 `;

@@ -198,6 +198,161 @@
     #ed { min-height: 40vh; }
     #diagPanel { left: 8px; }
   }
+  /* ---- Tiroir Terminal Intégré (Ctrl+`) ---- */
+  #termDrawer {
+    display: none;
+    flex-direction: column;
+    height: 220px;
+    min-height: 120px;
+    max-height: 60vh;
+    border-top: 1px solid #3c3c3c;
+    background: #181818;
+    flex: none;
+    position: relative;
+    z-index: 8;
+  }
+  #termDrawer.open { display: flex; }
+  #termHeader {
+    display: flex;
+    align-items: center;
+    padding: 6px 10px;
+    background: #252526;
+    border-bottom: 1px solid #333333;
+    font-size: 11.5px;
+    user-select: none;
+    gap: 8px;
+  }
+  .term-title { font-weight: 700; color: #9cdcfe; display: flex; align-items: center; gap: 5px; }
+  #termCwd { color: #858585; font-size: 11px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .term-btn {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.15);
+    color: #cccccc;
+    padding: 2px 7px;
+    cursor: pointer;
+    font-size: 11px;
+    border-radius: 3px;
+    line-height: 1.2;
+  }
+  .term-btn:hover { background: rgba(255,255,255,0.12); color: #ffffff; }
+  #termOut {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 12px;
+    font-family: Consolas, monospace;
+    font-size: 12.5px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-all;
+    color: #d4d4d4;
+    user-select: text;
+  }
+  #termForm {
+    display: flex;
+    align-items: center;
+    border-top: 1px solid #2d2d2d;
+    padding: 5px 10px;
+    background: #1e1e1e;
+    gap: 8px;
+  }
+  .term-prompt { color: #4ec9b0; font-weight: 700; font-size: 13px; font-family: Consolas, monospace; }
+  #termInput {
+    flex: 1;
+    background: transparent;
+    border: 0;
+    outline: none;
+    color: #ffffff;
+    font-family: Consolas, monospace;
+    font-size: 12.5px;
+  }
+  #bTermSend {
+    background: #0e639c;
+    color: #ffffff;
+    border: 0;
+    border-radius: 4px;
+    padding: 3px 10px;
+    font-size: 11.5px;
+    cursor: pointer;
+  }
+  #bTermSend:hover { background: #1177bb; }
+
+  /* ---- Palette de Commandes & Fichiers (Ctrl+P / Ctrl+Shift+P) ---- */
+  #paletteOverlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 10000;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 10vh;
+    backdrop-filter: blur(2px);
+  }
+  #paletteOverlay.open { display: flex; }
+  #paletteBox {
+    width: 600px;
+    max-width: 92vw;
+    background: #252526;
+    border: 1px solid #007acc;
+    border-radius: 6px;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.75);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  #paletteHeader {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid #3c3c3c;
+    gap: 8px;
+    background: #1f1f1f;
+  }
+  #palettePromptIcon { color: #007acc; font-weight: bold; font-size: 14px; }
+  #paletteInput {
+    flex: 1;
+    background: transparent;
+    border: 0;
+    outline: none;
+    color: #ffffff;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 13px;
+  }
+  #paletteCount { color: #858585; font-size: 11px; flex: none; }
+  #paletteList { max-height: 320px; overflow-y: auto; padding: 4px 0; }
+  .palette-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 6px 14px;
+    background: transparent;
+    border: 0;
+    color: #cccccc;
+    cursor: pointer;
+    text-align: left;
+    font-family: Consolas, monospace;
+    font-size: 12.5px;
+    outline: none;
+  }
+  .palette-item:hover, .palette-item.active {
+    background: #094771;
+    color: #ffffff;
+  }
+  .palette-item .palette-label {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .palette-item .palette-detail {
+    color: #858585;
+    font-size: 11px;
+    flex: none;
+  }
+  .palette-item.active .palette-detail {
+    color: #9cdcfe;
+  }
 </style>
 </head>
 <body>
@@ -206,6 +361,8 @@
   <button type="button" id="bSave">💾 Enregistrer (Ctrl+S)</button>
   <button type="button" id="bDiag" title="Analyser le fichier avec le serveur de langage">✓ Problèmes</button>
   <button type="button" id="bInline" title="Modifier la sélection avec l'IA (Ctrl+K)">✨ Inline</button>
+  <button type="button" id="bTerminal" title="Terminal intégré interactif (Ctrl+`)">💻 Terminal</button>
+  <button type="button" id="bPalette" title="Palette de commandes et recherche de fichiers (Ctrl+P / Ctrl+Maj+P)">⌘ Palette</button>
   <button type="button" id="bNewFile" title="Nouveau fichier">+F</button>
   <button type="button" id="bNewFolder" title="Nouveau dossier">+D</button>
   <button type="button" id="bRename" title="Renommer le fichier ouvert">✎</button>
@@ -217,7 +374,7 @@
 <div id="main">
   <div id="side"><div id="searchBox"><input id="searchInput" placeholder="Rechercher dans le projet…" aria-label="Rechercher dans le projet"><button type="button" id="searchButton" title="Rechercher">⌕</button></div><div id="results" hidden></div><div id="tree"></div></div>
         <div id="sidegrip" title="Glisser pour redimensionner" aria-hidden="true"></div>
-      <div id="editorPane"><div id="tabs" role="tablist" aria-label="Fichiers ouverts"></div><search id="findBar"><input id="findInput" aria-label="Rechercher dans le fichier" placeholder="Rechercher dans le fichier"><button id="findPrev" type="button" title="Occurrence précédente (Maj+F3)">↑</button><button id="findNext" type="button" title="Occurrence suivante (F3)">↓</button><span id="findCount" aria-live="polite"></span><div id="replaceWrap"><input id="replaceInput" aria-label="Remplacer par" placeholder="Remplacer par"><button id="replaceOne" type="button">Remplacer</button><button id="replaceAll" type="button">Tout remplacer</button></div><button id="findClose" type="button" aria-label="Fermer la recherche">×</button></search><div id="editorWrap"><div id="monacoHost" style="position:absolute;inset:0;width:100%;height:100%;"></div><pre id="codeLayer" aria-hidden="true" style="display:none;"></pre><textarea id="ed" spellcheck="false" placeholder="Choisissez un dossier, puis un fichier…" style="display:none;"></textarea><div id="imagePreview" hidden><img id="previewImg" alt="Aperçu visuel du fichier"><span id="imageMeta"></span></div><div id="completePop" role="listbox" aria-label="Complétions"></div></div></div>
+      <div id="editorPane"><div id="tabs" role="tablist" aria-label="Fichiers ouverts"></div><search id="findBar"><input id="findInput" aria-label="Rechercher dans le fichier" placeholder="Rechercher dans le fichier"><button id="findPrev" type="button" title="Occurrence précédente (Maj+F3)">↑</button><button id="findNext" type="button" title="Occurrence suivante (F3)">↓</button><span id="findCount" aria-live="polite"></span><div id="replaceWrap"><input id="replaceInput" aria-label="Remplacer par" placeholder="Remplacer par"><button id="replaceOne" type="button">Remplacer</button><button id="replaceAll" type="button">Tout remplacer</button></div><button id="findClose" type="button" aria-label="Fermer la recherche">×</button></search><div id="editorWrap"><div id="monacoHost" style="position:absolute;inset:0;width:100%;height:100%;"></div><pre id="codeLayer" aria-hidden="true" style="display:none;"></pre><textarea id="ed" spellcheck="false" placeholder="Choisissez un dossier, puis un fichier…" style="display:none;"></textarea><div id="imagePreview" hidden><img id="previewImg" alt="Aperçu visuel du fichier"><span id="imageMeta"></span></div><div id="completePop" role="listbox" aria-label="Complétions"></div></div><div id="termDrawer" aria-label="Terminal intégré"><div id="termHeader"><span class="term-title">💻 Terminal</span><span id="termCwd">—</span><button type="button" class="term-btn" id="bTermClear" title="Effacer l'affichage">Effacer</button><button type="button" class="term-btn" id="bTermClose" title="Fermer le tiroir terminal">✕</button></div><div id="termOut" role="log" aria-live="polite"></div><form id="termForm" autocomplete="off"><span class="term-prompt">❯</span><input id="termInput" type="text" placeholder="Entrez une commande (ex: git status, npm test, dir)..." aria-label="Commande shell" spellcheck="false"><button type="submit" id="bTermSend">Exécuter</button></form></div></div>
 </div>
 <div id="err"></div>
 <section id="diagPanel" aria-label="Problèmes du fichier"></section>
@@ -1288,7 +1445,11 @@ document.addEventListener("keydown", (e) => {
     if (Number.isFinite(line) && line > 0) { const pos = window.smolEd.editorTools.offsetForPosition(ed.value, line); ed.focus(); ed.setSelectionRange(pos, pos); updateCursor(); }
   }
   if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "k") { e.preventDefault(); openInlineBar(); }
+  if ((e.ctrlKey || e.metaKey) && (e.key === "`" || e.key === "~")) { e.preventDefault(); toggleTerminalDrawer(); }
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "p") { e.preventDefault(); openCommandPalette(false); }
+  if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "p") { e.preventDefault(); openCommandPalette(true); }
   if (e.key === "Escape" && $("inlineBar").classList.contains("open")) closeInlineBar();
+  if (e.key === "Escape" && $("paletteOverlay").classList.contains("open")) closePalette();
 });
 
 (async () => {
@@ -1402,6 +1563,314 @@ if ($("sb-backend")) {
     alert(`=== Diagnostic Moteurs Locaux & VRAM ===\n\n${engines}\n\n${vram}\n\nModèles résidents :\n${models}`);
   };
 }
+// ---- Terminal Tiroir Interactif (Ctrl+`) ----
+const termDrawer = $("termDrawer");
+const termOut = $("termOut");
+const termInput = $("termInput");
+const termForm = $("termForm");
+const termCwd = $("termCwd");
+let termHistory = [];
+let termHistoryIdx = -1;
+
+function updateTermCwd() {
+  if (termCwd) termCwd.textContent = root || "aucun dossier sélectionné";
+}
+
+function termAppend(text, isErr = false) {
+  if (!termOut) return;
+  const line = document.createElement("div");
+  if (isErr) line.style.color = "#f85149";
+  line.textContent = text;
+  termOut.appendChild(line);
+  termOut.scrollTop = termOut.scrollHeight;
+}
+
+function termClear() {
+  if (termOut) termOut.replaceChildren();
+  termAppend(`[Terminal Smolcoder prêt · ${root || "aucun dossier"}]`);
+}
+
+function toggleTerminalDrawer() {
+  if (!termDrawer) return;
+  const isOpen = termDrawer.classList.toggle("open");
+  if (isOpen) {
+    updateTermCwd();
+    if (!termOut.hasChildNodes()) termClear();
+    if (termInput) termInput.focus();
+    if (monacoInstance) monacoInstance.layout();
+  } else {
+    if (monacoInstance) monacoInstance.focus();
+  }
+}
+
+if ($("bTerminal")) $("bTerminal").onclick = toggleTerminalDrawer;
+if ($("bTermClose")) $("bTermClose").onclick = toggleTerminalDrawer;
+if ($("bTermClear")) $("bTermClear").onclick = termClear;
+
+if (termForm) {
+  termForm.onsubmit = async (e) => {
+    e.preventDefault();
+    const rawCmd = (termInput ? termInput.value : "").trim();
+    if (!rawCmd) return;
+    if (termInput) termInput.value = "";
+    termHistory.push(rawCmd);
+    termHistoryIdx = termHistory.length;
+
+    termAppend(`❯ ${rawCmd}`);
+    if (rawCmd === "clear" || rawCmd === "cls") {
+      termClear();
+      return;
+    }
+    if (!root) {
+      termAppend("Erreur : Aucun dossier de projet ouvert. Cliquez sur 'Dossier'.", true);
+      return;
+    }
+
+    try {
+      const res = await window.smolEd.runCommand(rawCmd);
+      if (res.ok) {
+        if (res.output) termAppend(res.output);
+        else termAppend("[Terminé avec succès sans sortie]");
+      } else {
+        if (res.output) termAppend(res.output, true);
+        if (res.error) termAppend(`Erreur : ${res.error}`, true);
+      }
+    } catch (err) {
+      termAppend(`Échec d'exécution : ${err?.message || err}`, true);
+    }
+  };
+}
+
+if (termInput) {
+  termInput.onkeydown = (e) => {
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (termHistoryIdx > 0) {
+        termHistoryIdx--;
+        termInput.value = termHistory[termHistoryIdx] || "";
+      }
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (termHistoryIdx < termHistory.length - 1) {
+        termHistoryIdx++;
+        termInput.value = termHistory[termHistoryIdx] || "";
+      } else {
+        termHistoryIdx = termHistory.length;
+        termInput.value = "";
+      }
+    } else if (e.key === "Escape") {
+      toggleTerminalDrawer();
+    }
+  };
+}
+
+// ---- Palette de Commandes & QuickOpen (Ctrl+P / Ctrl+Shift+P) ----
+const paletteOverlay = $("paletteOverlay");
+const paletteInput = $("paletteInput");
+const paletteList = $("paletteList");
+const paletteCount = $("paletteCount");
+const palettePromptIcon = $("palettePromptIcon");
+
+let paletteItems = [];
+let paletteSelectedIndex = 0;
+let cachedProjectFiles = [];
+
+async function collectAllProjectFiles() {
+  if (!root) return [];
+  const files = [];
+  async function scan(rel) {
+    try {
+      const items = await window.smolEd.list(rel);
+      for (const it of items) {
+        const p = join(rel, it.name);
+        if (it.dir) {
+          if (it.name !== ".git" && it.name !== "node_modules" && it.name !== "dist" && it.name !== ".c3") {
+            await scan(p);
+          }
+        } else {
+          files.push(p);
+        }
+      }
+    } catch {}
+  }
+  await scan(".");
+  cachedProjectFiles = files;
+  return files;
+}
+
+const GLOBAL_COMMANDS = [
+  { label: "Enregistrer le fichier actuel", detail: "Ctrl+S", icon: "💾", run: () => save() },
+  { label: "Analyser avec le serveur de langage (LSP)", detail: "Vérifier erreurs & types", icon: "✓", run: () => analyzeCurrent() },
+  { label: "Éditer avec l'IA en ligne (Inline Edit)", detail: "Ctrl+K", icon: "✨", run: () => openInlineBar() },
+  { label: "Basculer le terminal intégré", detail: "Ctrl+`", icon: "💻", run: () => toggleTerminalDrawer() },
+  { label: "Rechercher dans tout le projet", detail: "Ctrl+Maj+F", icon: "⌕", run: () => { searchInput.focus(); searchInput.select(); } },
+  { label: "Aller à la ligne...", detail: "Ctrl+G", icon: "🔀", run: () => {
+    const line = Number(prompt("Aller à la ligne :", String(window.smolEd.editorTools.cursorPosition(ed.value, ed.selectionStart).line)));
+    if (Number.isFinite(line) && line > 0) { const pos = window.smolEd.editorTools.offsetForPosition(ed.value, line); ed.focus(); ed.setSelectionRange(pos, pos); updateCursor(); }
+  }},
+  { label: "Nouveau fichier...", detail: "+F", icon: "📄", run: () => $("bNewFile").click() },
+  { label: "Nouveau dossier...", detail: "+D", icon: "📁", run: () => $("bNewFolder").click() },
+  { label: "Renommer le fichier ouvert...", detail: "✎", icon: "✎", run: () => $("bRename").click() },
+  { label: "Supprimer le fichier ouvert...", detail: "🗑", icon: "🗑", run: () => $("bDelete").click() },
+  { label: "Ouvrir un autre dossier de travail...", detail: "📁", icon: "📂", run: () => $("bFolder").click() },
+  { label: "Actualiser le statut Git", detail: "Branch & sync", icon: "⎇", run: () => refreshDesktopGitStatus() },
+  { label: "Effacer l'affichage du terminal", detail: "Terminal cls", icon: "🧹", run: () => termClear() },
+  { label: "Zoom avant (+)", detail: "Agrandir interface", icon: "🔍", run: () => applyZoom(zoomNow + ZOOM_STEP) },
+  { label: "Zoom arrière (-)", detail: "Réduire interface", icon: "🔍", run: () => applyZoom(zoomNow - ZOOM_STEP) },
+];
+
+function renderPaletteList() {
+  if (!paletteList) return;
+  paletteList.replaceChildren();
+  if (!paletteItems.length) {
+    const empty = document.createElement("div");
+    empty.style.padding = "10px 14px";
+    empty.style.color = "#858585";
+    empty.style.fontSize = "12px";
+    empty.textContent = "Aucun élément correspondant.";
+    paletteList.appendChild(empty);
+    if (paletteCount) paletteCount.textContent = "0 résultat";
+    return;
+  }
+  if (paletteCount) paletteCount.textContent = `${paletteItems.length} résultat(s)`;
+
+  paletteItems.forEach((it, idx) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = `palette-item${idx === paletteSelectedIndex ? " active" : ""}`;
+    b.setAttribute("role", "option");
+    b.setAttribute("aria-selected", String(idx === paletteSelectedIndex));
+
+    const iconSpan = document.createElement("span");
+    iconSpan.style.width = "18px";
+    iconSpan.style.textAlign = "center";
+    iconSpan.textContent = it.icon || "📄";
+
+    const labelSpan = document.createElement("span");
+    labelSpan.className = "palette-label";
+    labelSpan.textContent = it.label;
+
+    const detailSpan = document.createElement("span");
+    detailSpan.className = "palette-detail";
+    detailSpan.textContent = it.detail || "";
+
+    b.append(iconSpan, labelSpan, detailSpan);
+    b.onclick = () => {
+      paletteSelectedIndex = idx;
+      executePaletteItem(it);
+    };
+    b.onmouseenter = () => {
+      paletteSelectedIndex = idx;
+      updatePaletteActive();
+    };
+    paletteList.appendChild(b);
+  });
+  ensurePaletteVisible();
+}
+
+function updatePaletteActive() {
+  const children = paletteList.querySelectorAll(".palette-item");
+  children.forEach((el, i) => {
+    el.classList.toggle("active", i === paletteSelectedIndex);
+    el.setAttribute("aria-selected", String(i === paletteSelectedIndex));
+  });
+  ensurePaletteVisible();
+}
+
+function ensurePaletteVisible() {
+  const activeEl = paletteList.querySelector(".palette-item.active");
+  if (activeEl) {
+    activeEl.scrollIntoView({ block: "nearest" });
+  }
+}
+
+function executePaletteItem(it) {
+  closePalette();
+  if (!it) return;
+  if (it.run) {
+    it.run();
+  } else if (it.filePath) {
+    void openFile(it.filePath);
+  }
+}
+
+function filterPalette() {
+  const q = (paletteInput ? paletteInput.value : "").trim();
+  const isCmd = q.startsWith(">");
+  if (palettePromptIcon) palettePromptIcon.textContent = isCmd ? ">" : "📄";
+
+  if (isCmd) {
+    const search = q.slice(1).trim().toLowerCase();
+    paletteItems = GLOBAL_COMMANDS.filter((c) =>
+      !search || c.label.toLowerCase().includes(search) || (c.detail && c.detail.toLowerCase().includes(search))
+    );
+  } else {
+    const search = q.toLowerCase();
+    paletteItems = cachedProjectFiles
+      .filter((p) => !search || p.toLowerCase().includes(search))
+      .map((p) => ({
+        label: p.split("/").pop() || p,
+        detail: p,
+        icon: "📄",
+        filePath: p,
+      }));
+  }
+  paletteSelectedIndex = 0;
+  renderPaletteList();
+}
+
+async function openCommandPalette(cmdMode = false) {
+  if (!paletteOverlay) return;
+  paletteOverlay.classList.add("open");
+  if (paletteInput) {
+    paletteInput.value = cmdMode ? "> " : "";
+    paletteInput.focus();
+    paletteInput.select();
+  }
+  await collectAllProjectFiles();
+  filterPalette();
+}
+
+function closePalette() {
+  if (paletteOverlay) paletteOverlay.classList.remove("open");
+  if (monacoInstance) monacoInstance.focus();
+  else if (ed) ed.focus();
+}
+
+if ($("bPalette")) $("bPalette").onclick = () => openCommandPalette(true);
+if (paletteOverlay) {
+  paletteOverlay.onclick = (e) => {
+    if (e.target === paletteOverlay) closePalette();
+  };
+}
+
+if (paletteInput) {
+  paletteInput.oninput = filterPalette;
+  paletteInput.onkeydown = (e) => {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      closePalette();
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (paletteItems.length > 0) {
+        paletteSelectedIndex = (paletteSelectedIndex + 1) % paletteItems.length;
+        updatePaletteActive();
+      }
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (paletteItems.length > 0) {
+        paletteSelectedIndex = (paletteSelectedIndex - 1 + paletteItems.length) % paletteItems.length;
+        updatePaletteActive();
+      }
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (paletteItems.length > 0) {
+        executePaletteItem(paletteItems[paletteSelectedIndex]);
+      }
+    }
+  };
+}
+
 void refreshBackendStatus();
 setInterval(() => { void refreshBackendStatus(); }, 8000);
 void initMonaco();
@@ -1409,5 +1878,15 @@ window.addEventListener("resize", () => {
   if (monacoInstance) monacoInstance.layout();
 });
 </script>
+<div id="paletteOverlay" role="dialog" aria-modal="true" aria-label="Palette de commandes">
+  <div id="paletteBox">
+    <div id="paletteHeader">
+      <span id="palettePromptIcon">></span>
+      <input id="paletteInput" type="text" placeholder="Tapez '>' pour des commandes ou le nom d'un fichier..." aria-label="Recherche de commandes ou fichiers" autocomplete="off" spellcheck="false">
+      <span id="paletteCount">0 résultat</span>
+    </div>
+    <div id="paletteList" role="listbox"></div>
+  </div>
+</div>
 </body>
 </html>

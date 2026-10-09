@@ -1801,4 +1801,96 @@ export const STYLES = `
     padding-bottom: 22px;
   }
 
+  /* ---- Palette de Commandes Web Hub (Ctrl+P / Ctrl+Shift+P) ---- */
+  #webPaletteOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 10000;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 10vh;
+    backdrop-filter: blur(2px);
+  }
+  #webPaletteOverlay[hidden] {
+    display: none;
+  }
+  #webPaletteBox {
+    width: 600px;
+    max-width: 92vw;
+    background: #252526;
+    border: 1px solid #007acc;
+    border-radius: 6px;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.75);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  #webPaletteHeader {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid #3c3c3c;
+    gap: 8px;
+    background: #1f1f1f;
+  }
+  #webPalettePromptIcon {
+    color: #007acc;
+    font-weight: bold;
+    font-size: 14px;
+  }
+  #webPaletteInput {
+    flex: 1;
+    background: transparent;
+    border: 0;
+    outline: none;
+    color: #ffffff;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 13px;
+  }
+  #webPaletteCount {
+    color: #858585;
+    font-size: 11px;
+    flex: none;
+  }
+  #webPaletteList {
+    max-height: 320px;
+    overflow-y: auto;
+    padding: 4px 0;
+  }
+  .hub-palette-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 6px 14px;
+    background: transparent;
+    border: 0;
+    color: #cccccc;
+    cursor: pointer;
+    text-align: left;
+    font-family: Consolas, monospace;
+    font-size: 12.5px;
+    outline: none;
+  }
+  .hub-palette-item:hover, .hub-palette-item.active {
+    background: #094771;
+    color: #ffffff;
+  }
+  .hub-palette-item .palette-label {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .hub-palette-item .palette-detail {
+    color: #858585;
+    font-size: 11px;
+    flex: none;
+  }
+  .hub-palette-item.active .palette-detail {
+    color: #9cdcfe;
+  }
+
 `;

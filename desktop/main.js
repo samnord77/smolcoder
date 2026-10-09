@@ -560,6 +560,17 @@ ipcMain.handle("ed:hover", async (_e, rel, line, col) => {
   }
 });
 
+ipcMain.handle("ed:runCommand", async (_e, cmd) => {
+  const root = assertRoot();
+  const { execSync } = require("child_process");
+  try {
+    const output = execSync(cmd, { cwd: root, timeout: 30000, maxBuffer: 1024 * 1024, encoding: "utf8" });
+    return { ok: true, output };
+  } catch (err) {
+    return { ok: false, error: err?.message || String(err), output: (err.stdout || "") + (err.stderr || "") };
+  }
+});
+
 ipcMain.handle("ed:inlineStart", async (_e, payload) => {
   const root = assertRoot();
   if (!hubRec) throw new Error("Hub Smolcoder requis (fenêtre principale).");
