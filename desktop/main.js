@@ -548,6 +548,18 @@ ipcMain.handle("ed:completion", async (_e, rel, line, col) => {
   return { items };
 });
 
+ipcMain.handle("ed:hover", async (_e, rel, line, col) => {
+  const root = assertRoot();
+  const { queryCode } = require(path.join(ROOT, "dist", "lsp-pro.js"));
+  try {
+    const out = await queryCode(root, { action: "hover", path: rel, line, col });
+    if (typeof out === "string" && out.startsWith("Error")) return { text: "" };
+    return { text: String(out) };
+  } catch {
+    return { text: "" };
+  }
+});
+
 ipcMain.handle("ed:inlineStart", async (_e, payload) => {
   const root = assertRoot();
   if (!hubRec) throw new Error("Hub Smolcoder requis (fenêtre principale).");

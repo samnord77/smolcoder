@@ -329,6 +329,66 @@ function initMonaco() {
           openInlineBar();
         });
 
+        const supportedLangs = [
+          "typescript", "javascript", "python", "rust", "go",
+          "json", "html", "css", "markdown", "shell", "c", "cpp", "java", "sql", "yaml", "ini", "plaintext"
+        ];
+        for (const langId of supportedLangs) {
+          window.monaco.languages.registerCompletionItemProvider(langId, {
+            triggerCharacters: [".", "(", "{", ":", "/", "@", " "],
+            provideCompletionItems: async function (model, position) {
+              if (!cur || !window.smolEd?.completion) return { suggestions: [] };
+              const word = model.getWordUntilPosition(position);
+              const range = {
+                startLineNumber: position.lineNumber,
+                endLineNumber: position.lineNumber,
+                startColumn: word.startColumn,
+                endColumn: word.endColumn,
+              };
+              try {
+                const res = await window.smolEd.completion(cur, position.lineNumber, position.column);
+                const suggestions = (res?.items || []).map((it) => {
+                  let kind = window.monaco.languages.CompletionItemKind.Property;
+                  const kStr = String(it.kind || "").toLowerCase();
+                  if (kStr.includes("func") || kStr.includes("method")) kind = window.monaco.languages.CompletionItemKind.Function;
+                  else if (kStr.includes("var") || kStr.includes("const")) kind = window.monaco.languages.CompletionItemKind.Variable;
+                  else if (kStr.includes("class")) kind = window.monaco.languages.CompletionItemKind.Class;
+                  else if (kStr.includes("interface")) kind = window.monaco.languages.CompletionItemKind.Interface;
+                  else if (kStr.includes("keyword")) kind = window.monaco.languages.CompletionItemKind.Keyword;
+                  return {
+                    label: it.label,
+                    kind,
+                    detail: it.detail || it.kind || "",
+                    insertText: it.label,
+                    range,
+                  };
+                });
+                return { suggestions };
+              } catch {
+                return { suggestions: [] };
+              }
+            },
+          });
+
+          window.monaco.languages.registerHoverProvider(langId, {
+            provideHover: async function (model, position) {
+              if (!cur || !window.smolEd?.hover) return null;
+              const word = model.getWordAtPosition(position);
+              if (!word) return null;
+              try {
+                const res = await window.smolEd.hover(cur, position.lineNumber, position.column);
+                if (!res || !res.text || res.text.startsWith("Error")) return null;
+                return {
+                  range: new window.monaco.Range(position.lineNumber, word.startColumn, position.lineNumber, word.endColumn),
+                  contents: [{ value: res.text }],
+                };
+              } catch {
+                return null;
+              }
+            },
+          });
+        }
+
         if (tabs.active()) {
           showTab(tabs.active());
         }

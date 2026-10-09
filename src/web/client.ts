@@ -3426,6 +3426,78 @@ function buildFilesTab(v, t) {
       window.addEventListener("resize", () => {
         if (monacoEditorInstance) monacoEditorInstance.layout();
       });
+
+      if (!window.__monacoProvidersRegistered) {
+        window.__monacoProvidersRegistered = true;
+        const supportedLangs = [
+          "typescript", "javascript", "python", "rust", "go",
+          "json", "html", "css", "markdown", "shell", "c", "cpp", "java", "sql", "yaml", "ini", "plaintext"
+        ];
+        for (const langId of supportedLangs) {
+          window.monaco.languages.registerCompletionItemProvider(langId, {
+            triggerCharacters: [".", "(", "{", ":", "/", "@", " "],
+            provideCompletionItems: async function (model, position) {
+              if (!t.filePath) return { suggestions: [] };
+              const word = model.getWordUntilPosition(position);
+              const range = {
+                startLineNumber: position.lineNumber,
+                endLineNumber: position.lineNumber,
+                startColumn: word.startColumn,
+                endColumn: word.endColumn,
+              };
+              try {
+                const res = await fetch("/code/lsp?k=" + k + "&sid=" + encodeURIComponent(v.sid) + "&action=completion&path=" + encodeURIComponent(t.filePath) + "&line=" + position.lineNumber + "&col=" + position.column);
+                const d = await res.json();
+                const suggestions = [];
+                for (const ln of String((d && d.result) || "").split("\n")) {
+                  if (!ln.startsWith("- ")) continue;
+                  const body = ln.slice(2);
+                  const mm = /^(.+?)(?: \(([^)]*)\))?(?: — (.*))?$/.exec(body);
+                  const label = (mm ? mm[1] : body).trim();
+                  const kStr = String((mm && mm[2]) || "").toLowerCase();
+                  let kind = window.monaco.languages.CompletionItemKind.Property;
+                  if (kStr.includes("func") || kStr.includes("method")) kind = window.monaco.languages.CompletionItemKind.Function;
+                  else if (kStr.includes("var") || kStr.includes("const")) kind = window.monaco.languages.CompletionItemKind.Variable;
+                  else if (kStr.includes("class")) kind = window.monaco.languages.CompletionItemKind.Class;
+                  else if (kStr.includes("interface")) kind = window.monaco.languages.CompletionItemKind.Interface;
+                  else if (kStr.includes("keyword")) kind = window.monaco.languages.CompletionItemKind.Keyword;
+                  suggestions.push({
+                    label: label,
+                    kind: kind,
+                    detail: (mm && mm[3]) || (mm && mm[2]) || "",
+                    insertText: label,
+                    range: range,
+                  });
+                  if (suggestions.length >= 20) break;
+                }
+                return { suggestions: suggestions };
+              } catch {
+                return { suggestions: [] };
+              }
+            },
+          });
+
+          window.monaco.languages.registerHoverProvider(langId, {
+            provideHover: async function (model, position) {
+              if (!t.filePath) return null;
+              const word = model.getWordAtPosition(position);
+              if (!word) return null;
+              try {
+                const res = await fetch("/code/lsp?k=" + k + "&sid=" + encodeURIComponent(v.sid) + "&action=hover&path=" + encodeURIComponent(t.filePath) + "&line=" + position.lineNumber + "&col=" + position.column);
+                const d = await res.json();
+                const text = String((d && d.result) || "");
+                if (!text || text.startsWith("Error")) return null;
+                return {
+                  range: new window.monaco.Range(position.lineNumber, word.startColumn, position.lineNumber, word.endColumn),
+                  contents: [{ value: text }],
+                };
+              } catch {
+                return null;
+              }
+            },
+          });
+        }
+      }
     } catch (e) {
       console.warn("Échec création éditeur Monaco web:", e);
     }
