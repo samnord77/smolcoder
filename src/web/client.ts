@@ -1676,6 +1676,11 @@ function handle(m) {
         try { ft.refreshEditor(); } catch (e) {}
         break;
       }
+      case "cursor": {
+        const ft = v.tabs.find((x) => x.kind === "files");
+        if (ft && ft.onRemoteCursor) ft.onRemoteCursor(m);
+        break;
+      }
       case "editrebase": {
         const ft = v.tabs.find((x) => x.kind === "files");
         if (!ft || !ft.collab || ft.collab.path !== m.file) break;
@@ -3412,7 +3417,49 @@ function buildFilesTab(v, t) {
         if (model && sel && typeof origSetSelectionRange === "function") {
           origSetSelectionRange(model.getOffsetAt(sel.getStartPosition()), model.getOffsetAt(sel.getEndPosition()));
         }
-        if (typeof broadcastCursor === "function") broadcastCursor(line);
+        if (typeof broadcastCursor === "function") broadcastCursor(line, col);
+      });
+
+      monacoEditorInstance.addCommand(window.monaco.KeyMod.CtrlCmd | window.monaco.KeyCode.KeyZ, () => {
+        if (t.collab && t.collab.doc && t.collab.path === t.filePath && canUndo(t.collab.doc)) {
+          const ops = localUndo(t.collab.doc);
+          if (ops.length) {
+            editor.value = docText(t.collab.doc);
+            t.collab.shadow = editor.value;
+            post("/edit/op", { sid: v.sid, path: t.collab.path, ops }).catch(() => {});
+            try { t.refreshEditor(); } catch (err) {}
+          }
+          return;
+        }
+        monacoEditorInstance.trigger("keyboard", "undo", null);
+      });
+
+      monacoEditorInstance.addCommand(window.monaco.KeyMod.CtrlCmd | window.monaco.KeyMod.Shift | window.monaco.KeyCode.KeyZ, () => {
+        if (t.collab && t.collab.doc && t.collab.path === t.filePath && canRedo(t.collab.doc)) {
+          const ops = localRedo(t.collab.doc);
+          if (ops.length) {
+            editor.value = docText(t.collab.doc);
+            t.collab.shadow = editor.value;
+            post("/edit/op", { sid: v.sid, path: t.collab.path, ops }).catch(() => {});
+            try { t.refreshEditor(); } catch (err) {}
+          }
+          return;
+        }
+        monacoEditorInstance.trigger("keyboard", "redo", null);
+      });
+
+      monacoEditorInstance.addCommand(window.monaco.KeyMod.CtrlCmd | window.monaco.KeyCode.KeyY, () => {
+        if (t.collab && t.collab.doc && t.collab.path === t.filePath && canRedo(t.collab.doc)) {
+          const ops = localRedo(t.collab.doc);
+          if (ops.length) {
+            editor.value = docText(t.collab.doc);
+            t.collab.shadow = editor.value;
+            post("/edit/op", { sid: v.sid, path: t.collab.path, ops }).catch(() => {});
+            try { t.refreshEditor(); } catch (err) {}
+          }
+          return;
+        }
+        monacoEditorInstance.trigger("keyboard", "redo", null);
       });
 
       monacoEditorInstance.addCommand(window.monaco.KeyMod.CtrlCmd | window.monaco.KeyCode.KeyS, () => {
@@ -4342,17 +4389,50 @@ function buildFilesTab(v, t) {
   });
   let lastCursorKey = "";
   let lastCursorAt = 0;
-  const broadcastCursor = (line) => {
+  const broadcastCursor = (line, col) => {
     if (!t.filePath) return;
-    const key = t.filePath + ":" + line;
+    const c = col || 1;
+    const key = t.filePath + ":" + line + ":" + c;
     const now = Date.now();
-    if (key === lastCursorKey && now - lastCursorAt < 5000) return;
+    if (key === lastCursorKey && now - lastCursorAt < 2000) return;
     lastCursorKey = key;
     lastCursorAt = now;
     fetch("/cursor?k=" + k, {
       method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ sid: v.sid, path: t.filePath, line, name: ls.get("smol-viewer") || "owner" }),
+      body: JSON.stringify({ sid: v.sid, path: t.filePath, line, col: c, name: ls.get("smol-viewer") || "owner" }),
     }).catch(() => {});
+  };
+  t.remoteCursors = new Map();
+  t.monacoCursorDecs = [];
+  t.onRemoteCursor = (msg) => {
+    if (!msg || !msg.name || msg.name === (ls.get("smol-viewer") || "owner")) return;
+    if (msg.path !== t.filePath) {
+      t.remoteCursors.delete(msg.name);
+    } else if (msg.line > 0) {
+      t.remoteCursors.set(msg.name, { line: msg.line, col: msg.col || 1, at: Date.now() });
+    } else {
+      t.remoteCursors.delete(msg.name);
+    }
+    if (t.monacoEditor && window.monaco) {
+      const decs = [];
+      const now = Date.now();
+      t.remoteCursors.forEach((cur, cname) => {
+        if (now - cur.at > 35000) return;
+        const colorIdx = Math.abs(cname.split("").reduce((acc, ch) => acc + ch.charCodeAt(0), 0)) % 5;
+        decs.push({
+          range: new window.monaco.Range(cur.line, cur.col, cur.line, cur.col + 1),
+          options: {
+            className: "remote-cursor remote-cursor-" + colorIdx,
+            hoverMessage: { value: "**" + cname + "** (collaborateur)" },
+            after: {
+              content: " " + cname,
+              inlineClassName: "remote-cursor-flag remote-cursor-" + colorIdx,
+            },
+          },
+        });
+      });
+      t.monacoCursorDecs = t.monacoEditor.deltaDecorations(t.monacoCursorDecs || [], decs);
+    }
   };
   const updatePosition = () => {
     const position = editorTools.cursorPosition(editor.value, editor.selectionStart);
@@ -4360,7 +4440,7 @@ function buildFilesTab(v, t) {
     meta.textContent = (t.filePath ? t.filePath + " · " : "") + "Ln " + position.line + ", Col " + position.column + (tab && tab.dirty ? " · modifié" : "");
     const sbPos = $("sb-pos-text");
     if (sbPos) sbPos.textContent = "Ln " + position.line + ", Col " + position.column;
-    broadcastCursor(position.line);
+    broadcastCursor(position.line, position.column);
   };
   // Which extensions a pro language server can own. Asked of the hub rather
   // than hardcoded: the catalogue has 37 languages, and a regex here silently
@@ -4761,6 +4841,32 @@ function buildFilesTab(v, t) {
   editor.onkeyup = editor.onclick = editor.onselect = updatePosition;
   editor.onkeydown = (e) => {
     if (editor.readOnly) return;
+    if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === "y" || (e.key.toLowerCase() === "z" && e.shiftKey))) {
+      if (t.collab && t.collab.doc && t.collab.path === t.filePath && canRedo(t.collab.doc)) {
+        e.preventDefault();
+        const ops = localRedo(t.collab.doc);
+        if (ops.length) {
+          editor.value = docText(t.collab.doc);
+          t.collab.shadow = editor.value;
+          post("/edit/op", { sid: v.sid, path: t.collab.path, ops }).catch(() => {});
+          try { t.refreshEditor(); } catch (err) {}
+        }
+        return;
+      }
+    }
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "z") {
+      if (t.collab && t.collab.doc && t.collab.path === t.filePath && canUndo(t.collab.doc)) {
+        e.preventDefault();
+        const ops = localUndo(t.collab.doc);
+        if (ops.length) {
+          editor.value = docText(t.collab.doc);
+          t.collab.shadow = editor.value;
+          post("/edit/op", { sid: v.sid, path: t.collab.path, ops }).catch(() => {});
+          try { t.refreshEditor(); } catch (err) {}
+        }
+        return;
+      }
+    }
     if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "k") { e.preventDefault(); openInlineBar(); return; }
     if (e.key === "Escape" && !inlineBar.hidden) { closeInlineBar(); return; }
     if (!completePop.hidden) {
@@ -5944,58 +6050,118 @@ function ccWork(d) {
   if (!writable) form.title = "Passez en mode édition pour modifier les tâches.";
   wrap.appendChild(ccSection("Ajouter au tableau partagé", form));
   if (d.workItemsError) wrap.appendChild(el("div", "cc-empty", "Tableau cowork indisponible : " + d.workItemsError));
-  const list = el("div", "cc-list");
-  const items = Array.isArray(d.workItems) ? d.workItems : [];
-  for (const item of items) {
-    const row = el("div", "cc-workitem");
-    const details = el("div", "cc-workdetails");
-    details.appendChild(el("strong", "", item.title));
-    details.appendChild(el("span", "cc-tag", item.area + " · " + item.priority + (item.due ? " · " + item.due : "")));
-    if (item.assignedRole) details.appendChild(el("span", "cc-tag ok", "rôle : " + item.assignedRole));
-    if (item.executionStatus && item.executionStatus !== "idle") {
-      details.appendChild(el("span", "cc-tag " + (item.executionStatus === "verified" ? "ok" : "warn"), item.executionStatus));
-    }
-    if (item.acceptanceCriteria) details.appendChild(el("span", "hint", "Critères : " + item.acceptanceCriteria));
-    if (item.notes) details.appendChild(el("span", "cc-worknotes", item.notes));
-    if (item.lastReport) details.appendChild(el("span", "cc-worknotes", "Rapport : " + item.lastReport.slice(0, 160) + (item.lastReport.length > 160 ? "…" : "")));
-    row.appendChild(details);
-    row.appendChild(el("span", "cc-tag", item.status));
-    if (item.status === "open") {
-      const delegateBtn = el("button", "cc-act primary", "Exécuter avec l’agent");
-      delegateBtn.type = "button";
-      delegateBtn.title = "Envoyer cette tâche à l’agent de la session pour qu’il l’exécute et vérifie le résultat";
-      delegateBtn.onclick = () => {
-        const targetRole = item.assignedRole || "expert";
-        const promptText =
-          "Exécute maintenant cette tâche Cowork dans le workspace, ne te limite pas à un plan. ID: " + item.id +
-          "\nTâche: " + item.title +
-          "\nRôle spécialiste: " + targetRole +
-          (item.acceptanceCriteria ? "\nCritères d'acceptation: " + item.acceptanceCriteria : "") +
-          "\nInspecte le code concerné, réalise le travail, puis lance les vérifications adaptées. Termine avec un rapport factuel via l'outil work; le statut et la complétion sont mis à jour par le runtime d'après le résultat réel du tour et les vérifications. Si une délégation aide, délègue un sous-objectif borné et intègre son résultat toi-même.";
-        ccSend(promptText, { workItemId: item.id });
-        closeCC();
-      };
-      row.appendChild(delegateBtn);
 
-      for (const [action, label] of [["complete", "Terminer"], ["archive", "Archiver"]]) {
-        const button = el("button", "cc-act", label); button.type = "button"; button.disabled = !writable;
-        button.onclick = () => {
-          button.disabled = true;
-          post("/work/items", { sid: active.sid, action, task_id: item.id })
-            .then((result) => {
-              if (result && result.error) throw new Error(result.error);
-              if (cc.data) cc.data.workItems = result.items || [];
-              renderCC();
-            }).catch((error) => showToast(error.message || "Échec de mise à jour", "error"))
-            .finally(() => { button.disabled = !writable; });
-        };
-        row.appendChild(button);
+  const items = Array.isArray(d.workItems) ? d.workItems : [];
+  const kanbanBoard = el("div", "cc-kanban-board");
+  const cols = [
+    { id: "todo", label: "À faire", items: items.filter((it) => it.status === "open" && it.executionStatus !== "in_progress" && it.executionStatus !== "running") },
+    { id: "inprogress", label: "En cours", items: items.filter((it) => it.status === "in_progress" || it.executionStatus === "in_progress" || it.executionStatus === "running") },
+    { id: "done", label: "Terminé / Archivé", items: items.filter((it) => it.status === "completed" || it.status === "archived" || it.executionStatus === "verified") },
+  ];
+
+  for (const col of cols) {
+    const colEl = el("div", "cc-kanban-col");
+    const head = el("div", "cc-kanban-head");
+    head.appendChild(el("span", "", col.label));
+    head.appendChild(el("span", "cc-kanban-count", String(col.items.length)));
+    colEl.appendChild(head);
+
+    const cardsEl = el("div", "cc-kanban-cards");
+    for (const item of col.items) {
+      const card = el("div", "cc-kanban-card");
+      card.appendChild(el("div", "cc-kanban-card-title", item.title));
+
+      const tags = el("div", "cc-kanban-tags");
+      tags.appendChild(el("span", "cc-tag", item.area + (item.due ? " · " + item.due : "")));
+      const prioClass = item.priority === "urgent" || item.priority === "high" ? "cc-tag warn" : "cc-tag";
+      tags.appendChild(el("span", prioClass, item.priority));
+      if (item.assignedRole) tags.appendChild(el("span", "cc-tag ok", "rôle : " + item.assignedRole));
+      if (item.executionStatus && item.executionStatus !== "idle") {
+        tags.appendChild(el("span", "cc-tag " + (item.executionStatus === "verified" ? "ok" : "warn"), item.executionStatus));
       }
+      card.appendChild(tags);
+
+      if (item.acceptanceCriteria) card.appendChild(el("span", "hint", "Critères : " + item.acceptanceCriteria));
+      if (item.notes) card.appendChild(el("span", "cc-worknotes", item.notes));
+      if (item.lastReport) card.appendChild(el("span", "cc-worknotes", "Rapport : " + item.lastReport.slice(0, 140) + (item.lastReport.length > 140 ? "…" : "")));
+
+      const acts = el("div", "cc-kanban-actions");
+      if (item.status === "open" || col.id === "inprogress") {
+        const delegateBtn = el("button", "cc-act primary", "Lancer avec l’agent");
+        delegateBtn.type = "button";
+        delegateBtn.title = "Envoyer cette tâche à l’agent pour exécution et vérification";
+        delegateBtn.onclick = () => {
+          const targetRole = item.assignedRole || "expert";
+          const promptText =
+            "Exécute maintenant cette tâche Cowork dans le workspace, ne te limite pas à un plan. ID: " + item.id +
+            "\nTâche: " + item.title +
+            "\nRôle spécialiste: " + targetRole +
+            (item.acceptanceCriteria ? "\nCritères d'acceptation: " + item.acceptanceCriteria : "") +
+            "\nInspecte le code concerné, réalise le travail, puis lance les vérifications adaptées. Termine avec un rapport factuel via l'outil work; le statut et la complétion sont mis à jour par le runtime d'après le résultat réel du tour et les vérifications. Si une délégation aide, délègue un sous-objectif borné et intègre son résultat toi-même.";
+          ccSend(promptText, { workItemId: item.id });
+          closeCC();
+        };
+        acts.appendChild(delegateBtn);
+
+        const doneBtn = el("button", "cc-act ok", "Terminer");
+        doneBtn.type = "button";
+        doneBtn.disabled = !writable;
+        doneBtn.onclick = () => {
+          doneBtn.disabled = true;
+          post("/work/items", { sid: active.sid, action: "complete", task_id: item.id })
+            .then((res) => {
+              if (res && res.error) throw new Error(res.error);
+              if (cc.data) cc.data.workItems = res.items || [];
+              renderCC();
+            }).catch((err) => showToast(err.message || "Échec", "error"))
+            .finally(() => { doneBtn.disabled = !writable; });
+        };
+        acts.appendChild(doneBtn);
+      } else {
+        const reopenBtn = el("button", "cc-act", "Réouvrir");
+        reopenBtn.type = "button";
+        reopenBtn.disabled = !writable;
+        reopenBtn.onclick = () => {
+          reopenBtn.disabled = true;
+          post("/work/items", { sid: active.sid, action: "update", task_id: item.id, status: "open" })
+            .then((res) => {
+              if (res && res.error) throw new Error(res.error);
+              if (cc.data) cc.data.workItems = res.items || [];
+              renderCC();
+            }).catch((err) => showToast(err.message || "Échec", "error"))
+            .finally(() => { reopenBtn.disabled = !writable; });
+        };
+        acts.appendChild(reopenBtn);
+      }
+
+      if (item.status !== "archived") {
+        const archBtn = el("button", "cc-act", "Archiver");
+        archBtn.type = "button";
+        archBtn.disabled = !writable;
+        archBtn.onclick = () => {
+          archBtn.disabled = true;
+          post("/work/items", { sid: active.sid, action: "archive", task_id: item.id })
+            .then((res) => {
+              if (res && res.error) throw new Error(res.error);
+              if (cc.data) cc.data.workItems = res.items || [];
+              renderCC();
+            }).catch((err) => showToast(err.message || "Échec", "error"))
+            .finally(() => { archBtn.disabled = !writable; });
+        };
+        acts.appendChild(archBtn);
+      }
+
+      card.appendChild(acts);
+      cardsEl.appendChild(card);
     }
-    list.appendChild(row);
+    if (!col.items.length) {
+      cardsEl.appendChild(el("div", "hint", "Aucune tâche dans cette colonne."));
+    }
+    colEl.appendChild(cardsEl);
+    kanbanBoard.appendChild(colEl);
   }
-  if (!items.length && !d.workItemsError) list.appendChild(el("div", "cc-empty", "Aucune tâche cowork dans ce projet."));
-  wrap.appendChild(ccSection("Tâches du projet (" + items.length + ")", list));
+
+  wrap.appendChild(ccSection("Tableau Kanban Cowork (" + items.length + ")", kanbanBoard));
   const refreshButton = el("button", "cc-act", "Actualiser"); refreshButton.type = "button"; refreshButton.onclick = refresh;
   wrap.appendChild(refreshButton);
   return wrap;

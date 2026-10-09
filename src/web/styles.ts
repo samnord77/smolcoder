@@ -884,6 +884,23 @@ export const STYLES = `
   .cc-workdetails strong { color: var(--fg); font-size: 12.5px; }
   .cc-worknotes { flex-basis: 100%; color: var(--gray); font-size: 11.5px; overflow-wrap: anywhere; }
   @media (max-width: 700px) { .cc-workform { grid-template-columns: 1fr 1fr; } .cc-workform input:first-child { grid-column: 1 / -1; } }
+  .cc-kanban-board { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-top: 12px; }
+  .cc-kanban-col { background: rgba(255, 255, 255, 0.02); border: 1px solid var(--line); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; min-height: 220px; }
+  .cc-kanban-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid var(--line); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--fg); }
+  .cc-kanban-count { font-size: 11px; padding: 1px 7px; border-radius: 10px; background: rgba(255, 255, 255, 0.08); color: var(--dim); }
+  .cc-kanban-cards { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+  .cc-kanban-card { background: #13181c; border: 1px solid var(--line); border-radius: 6px; padding: 10px; display: flex; flex-direction: column; gap: 6px; transition: border-color .15s, transform .15s; }
+  .cc-kanban-card:hover { border-color: rgba(255, 255, 255, 0.2); transform: translateY(-1px); }
+  .cc-kanban-card-title { font-size: 13px; font-weight: 600; color: var(--fg); line-height: 1.3; }
+  .cc-kanban-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+  .cc-kanban-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; padding-top: 6px; border-top: 1px solid rgba(255, 255, 255, 0.05); }
+  .remote-cursor { position: absolute; pointer-events: none; z-index: 10; width: 2px; }
+  .remote-cursor-flag { position: absolute; top: -18px; left: 0; font-size: 10px; padding: 1px 4px; border-radius: 3px; color: #fff; white-space: nowrap; pointer-events: none; }
+  .remote-cursor-0 { background-color: #f43f5e; }
+  .remote-cursor-1 { background-color: #3b82f6; }
+  .remote-cursor-2 { background-color: #10b981; }
+  .remote-cursor-3 { background-color: #f59e0b; }
+  .remote-cursor-4 { background-color: #8b5cf6; }
   .cc-item { display: flex; align-items: baseline; gap: 8px; padding: 6px 9px; border: 1px solid var(--line); border-radius: 6px; background: #12171a; }
   .cc-item .nm { color: var(--fg); font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; }
   .cc-item .ds { color: var(--gray); font-size: 12px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

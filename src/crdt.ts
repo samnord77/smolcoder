@@ -58,15 +58,22 @@ export function comparePos(a: number[], b: number[]): number {
   return 0;
 }
 
+export interface UndoItem {
+  type: "insert" | "delete";
+  chars: Array<{ pos: number[]; site: string; ch: string }>;
+}
+
 export interface CrdtDoc {
   chars: CrdtChar[];
   seen: string[];
   counter: number;
   site: string;
+  undoStack?: UndoItem[];
+  redoStack?: UndoItem[];
 }
 
 export function emptyDoc(site: string): CrdtDoc {
-  return { chars: [], seen: [], counter: 0, site };
+  return { chars: [], seen: [], counter: 0, site, undoStack: [], redoStack: [] };
 }
 
 /** Bootstrap from file text. Split by UTF-16 unit to match textarea offsets
@@ -104,6 +111,7 @@ function liveChars(doc: CrdtDoc): CrdtChar[] {
 export function localInsert(doc: CrdtDoc, visibleIndex: number, text: string): CrdOp[] {
   const live = liveChars(doc);
   const ops: CrdOp[] = [];
+  const insertedChars: Array<{ pos: number[]; site: string; ch: string }> = [];
   let idx = Math.max(0, Math.min(Math.floor(visibleIndex) || 0, live.length));
   for (const ch of String(text ?? "").split("")) {
     const a = idx > 0 ? live[idx - 1].pos : null;
@@ -113,7 +121,14 @@ export function localInsert(doc: CrdtDoc, visibleIndex: number, text: string): C
     applyOp(doc, op);
     ops.push(op);
     live.splice(idx, 0, { pos, site: doc.site, ch, dead: false });
+    insertedChars.push({ pos, site: doc.site, ch });
     idx++;
+  }
+  if (insertedChars.length > 0) {
+    if (!doc.undoStack) doc.undoStack = [];
+    doc.undoStack.push({ type: "insert", chars: insertedChars });
+    if (doc.undoStack.length > 500) doc.undoStack.shift();
+    if (doc.redoStack) doc.redoStack.length = 0;
   }
   return ops;
 }
@@ -122,15 +137,79 @@ export function localInsert(doc: CrdtDoc, visibleIndex: number, text: string): C
 export function localDelete(doc: CrdtDoc, visibleIndex: number, count: number): CrdOp[] {
   const live = liveChars(doc);
   const ops: CrdOp[] = [];
+  const deletedChars: Array<{ pos: number[]; site: string; ch: string }> = [];
   const idx = Math.max(0, Math.min(Math.floor(visibleIndex) || 0, Math.max(0, live.length - 1)));
   for (let k = 0; k < Math.max(0, Math.floor(count) || 0); k++) {
     const target = live[idx];
     if (!target) break;
     target.dead = true;
     live.splice(idx, 1);
+    deletedChars.push({ pos: [...target.pos], site: target.site, ch: target.ch });
     ops.push({ op: "del", id: `${doc.site}:${++doc.counter}`, pos: target.pos, site: target.site });
   }
+  if (deletedChars.length > 0) {
+    if (!doc.undoStack) doc.undoStack = [];
+    doc.undoStack.push({ type: "delete", chars: deletedChars });
+    if (doc.undoStack.length > 500) doc.undoStack.shift();
+    if (doc.redoStack) doc.redoStack.length = 0;
+  }
   return ops;
+}
+
+/** Annule la dernière opération locale de ce site sans affecter les frappes distantes. */
+export function localUndo(doc: CrdtDoc): CrdOp[] {
+  if (!doc.undoStack?.length) return [];
+  const item = doc.undoStack.pop();
+  if (!item) return [];
+  const ops: CrdOp[] = [];
+  if (item.type === "insert") {
+    for (let i = item.chars.length - 1; i >= 0; i--) {
+      const c = item.chars[i];
+      const op: CrdOp = { op: "del", id: `${doc.site}:${++doc.counter}`, pos: c.pos, site: c.site };
+      if (applyOp(doc, op)) ops.push(op);
+    }
+  } else {
+    for (const c of item.chars) {
+      const op: CrdOp = { op: "ins", id: `${doc.site}:${++doc.counter}`, pos: c.pos, site: c.site, ch: c.ch };
+      if (applyOp(doc, op)) ops.push(op);
+    }
+  }
+  if (!doc.redoStack) doc.redoStack = [];
+  doc.redoStack.push(item);
+  if (doc.redoStack.length > 500) doc.redoStack.shift();
+  return ops;
+}
+
+/** Rétablit la dernière opération locale annulée de ce site. */
+export function localRedo(doc: CrdtDoc): CrdOp[] {
+  if (!doc.redoStack?.length) return [];
+  const item = doc.redoStack.pop();
+  if (!item) return [];
+  const ops: CrdOp[] = [];
+  if (item.type === "insert") {
+    for (const c of item.chars) {
+      const op: CrdOp = { op: "ins", id: `${doc.site}:${++doc.counter}`, pos: c.pos, site: c.site, ch: c.ch };
+      if (applyOp(doc, op)) ops.push(op);
+    }
+  } else {
+    for (let i = item.chars.length - 1; i >= 0; i--) {
+      const c = item.chars[i];
+      const op: CrdOp = { op: "del", id: `${doc.site}:${++doc.counter}`, pos: c.pos, site: c.site };
+      if (applyOp(doc, op)) ops.push(op);
+    }
+  }
+  if (!doc.undoStack) doc.undoStack = [];
+  doc.undoStack.push(item);
+  if (doc.undoStack.length > 500) doc.undoStack.shift();
+  return ops;
+}
+
+export function canUndo(doc: CrdtDoc): boolean {
+  return Array.isArray(doc.undoStack) && doc.undoStack.length > 0;
+}
+
+export function canRedo(doc: CrdtDoc): boolean {
+  return Array.isArray(doc.redoStack) && doc.redoStack.length > 0;
 }
 
 /** Apply a remote (or replayed local) op. Idempotent; malformed ops are
@@ -144,15 +223,25 @@ export function applyOp(doc: CrdtDoc, op: CrdOp): boolean {
   if (doc.seen.length > 50000) doc.seen.splice(0, doc.seen.length - 50000);
   if (op.op === "ins") {
     if (typeof op.ch !== "string" || op.ch.length !== 1) return false;
-    const dup = doc.chars.some((c) => c.site === op.site && comparePos(c.pos, op.pos) === 0);
-    if (dup) return false;
+    const dup = doc.chars.find((c) => c.site === op.site && comparePos(c.pos, op.pos) === 0);
+    if (dup) {
+      if (dup.dead) {
+        dup.dead = false;
+        return true;
+      }
+      return false;
+    }
     doc.chars.push({ pos: [...op.pos], site: op.site, ch: op.ch, dead: false });
     sortDoc(doc);
     return true;
   }
   const target = doc.chars.find((c) => c.site === op.site && comparePos(c.pos, op.pos) === 0);
-  if (target) target.dead = true;
-  return !!target;
+  if (target) {
+    const changed = !target.dead;
+    target.dead = true;
+    return changed;
+  }
+  return false;
 }
 
 /** Minimal diff between shadow and current textarea value: one contiguous
@@ -176,7 +265,21 @@ export function diffForSync(before: string, after: string): { at: number; del: n
  * syntax highlighter): every function the browser needs, self-contained. */
 export const browserCrdtSource = [
   "const BASE = 65536;",
-  ...[posBetween, comparePos, emptyDoc, docFromText, docText, sortDoc, liveChars, localInsert, localDelete, applyOp, diffForSync].map(
-    (f) => `const ${f.name} = (${f.toString()});`
-  ),
+  ...[
+    posBetween,
+    comparePos,
+    emptyDoc,
+    docFromText,
+    docText,
+    sortDoc,
+    liveChars,
+    localInsert,
+    localDelete,
+    localUndo,
+    localRedo,
+    canUndo,
+    canRedo,
+    applyOp,
+    diffForSync,
+  ].map((f) => `const ${f.name} = (${f.toString()});`),
 ].join("\n");

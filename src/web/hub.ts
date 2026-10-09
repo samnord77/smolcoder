@@ -1963,8 +1963,14 @@ export class WebHub {
           map = new Map();
           this.cursors.set(l.id, map);
         }
-        if (rel) map.set(name, { name, path: rel, line, at: Date.now() });
-        else map.delete(name);
+        const col = Math.max(1, Number(d.col) || 1);
+        if (rel) {
+          map.set(name, { name, path: rel, line, at: Date.now() });
+          this.send({ t: "cursor", sid: l.id, name, path: rel, line, col });
+        } else {
+          map.delete(name);
+          this.send({ t: "cursor", sid: l.id, name, path: "", line: 0, col: 0 });
+        }
         this.changed();
         return {};
       }

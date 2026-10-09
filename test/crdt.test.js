@@ -11,6 +11,10 @@ const {
   docText,
   localInsert,
   localDelete,
+  localUndo,
+  localRedo,
+  canUndo,
+  canRedo,
   applyOp,
   diffForSync,
   browserCrdtSource,
@@ -76,13 +80,92 @@ test("diffForSync expresses typing, paste and deletes", () => {
   assert.deepEqual(diffForSync("same", "same"), { at: 4, del: 0, ins: "" });
 });
 
+test("localUndo and localRedo isolate local edits and restore state", () => {
+  const doc = docFromText("hello");
+  doc.site = "s1";
+  assert.equal(canUndo(doc), false);
+  assert.equal(canRedo(doc), false);
+
+  // Insert " world"
+  localInsert(doc, 5, " world");
+  assert.equal(docText(doc), "hello world");
+  assert.equal(canUndo(doc), true);
+
+  // Undo insert
+  const undoOps = localUndo(doc);
+  assert.ok(undoOps.length > 0);
+  assert.equal(docText(doc), "hello");
+  assert.equal(canUndo(doc), false);
+  assert.equal(canRedo(doc), true);
+
+  // Redo insert
+  const redoOps = localRedo(doc);
+  assert.ok(redoOps.length > 0);
+  assert.equal(docText(doc), "hello world");
+  assert.equal(canUndo(doc), true);
+  assert.equal(canRedo(doc), false);
+
+  // Delete "world"
+  localDelete(doc, 6, 5);
+  assert.equal(docText(doc), "hello ");
+  const undoDelOps = localUndo(doc);
+  assert.ok(undoDelOps.length > 0);
+  assert.equal(docText(doc), "hello world");
+});
+
+test("isolated undo does not undo concurrent edits from other sites", () => {
+  const A = docFromText("start ");
+  A.site = "alice";
+  const B = docFromText("start ");
+  B.site = "bob";
+
+  // Alice inserts "[A]" at end
+  const opsA = localInsert(A, 6, "[A]");
+  // Bob inserts "[B]" at end
+  const opsB = localInsert(B, 6, "[B]");
+
+  // Exchange ops
+  for (const op of opsA) applyOp(B, op);
+  for (const op of opsB) applyOp(A, op);
+
+  // Both have converged
+  assert.equal(docText(A), docText(B));
+  const merged = docText(A);
+  assert.ok(merged.includes("A") && merged.includes("B"));
+
+  // Alice undos her edit: only her characters disappear, Bob's [B] remains!
+  const undoOpsA = localUndo(A);
+  assert.ok(undoOpsA.length > 0);
+  assert.equal(docText(A), "start [B]");
+
+  // Bob receives Alice's undo ops and converges to start [B]
+  for (const op of undoOpsA) applyOp(B, op);
+  assert.equal(docText(B), "start [B]");
+  assert.equal(docText(A), docText(B));
+
+  // Alice redoes her edit: merged text is perfectly restored on both replicas
+  const redoOpsA = localRedo(A);
+  assert.equal(docText(A), merged);
+  for (const op of redoOpsA) applyOp(B, op);
+  assert.equal(docText(B), merged);
+});
+
 test("the shipped browser bundle runs standalone", () => {
-  const api = vm.runInNewContext(`${browserCrdtSource}\n({posBetween,docFromText,docText,localInsert,localDelete,applyOp,diffForSync});`);
+  const api = vm.runInNewContext(
+    `${browserCrdtSource}\n({posBetween,docFromText,docText,localInsert,localDelete,localUndo,localRedo,canUndo,canRedo,applyOp,diffForSync});`
+  );
   const doc = api.docFromText("hi");
   doc.site = "s1";
   assert.equal(api.docText(doc), "hi");
   const ops = api.localInsert(doc, 1, "X");
   assert.equal(api.docText(doc), "hXi");
+  assert.equal(api.canUndo(doc), true);
+  api.localUndo(doc);
+  assert.equal(api.docText(doc), "hi");
+  assert.equal(api.canRedo(doc), true);
+  api.localRedo(doc);
+  assert.equal(api.docText(doc), "hXi");
+
   const other = api.docFromText("hi");
   other.site = "s2";
   for (const op of ops) api.applyOp(other, op);
