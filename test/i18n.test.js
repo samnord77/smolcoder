@@ -10,10 +10,9 @@ const path = require("node:path");
 
 const WEB_DIR = path.join(__dirname, "..", "src", "web");
 const FILES = ["client.ts", "page.ts", "hub.ts"];
-// Lot B : client.ts est intégralement traduit → scan littéral complet.
-// hub.ts/page.ts ne contiennent que des messages de processus serveur
-// (hors périmètre du Lot B) : leur scan reste limité aux attributs UI.
-const LITERAL_FILES = ["client.ts"];
+// Lot B (client.ts) + hub.ts/page.ts : scan littéral complet, backticks
+// compris (les messages serveur visibles dans l'UI passent par hub.ts).
+const LITERAL_FILES = ["client.ts", "page.ts", "hub.ts"];
 
 // Littéraux uniquement : les concaténations dynamiques s'arrêtent au
 // premier guillemet fermant et ne sont donc jamais faussement analysées.
@@ -116,6 +115,58 @@ const BLACKLIST = [
   "new tab",
   "Open ",
   "Close ",
+  // --- hub.ts (messages serveur affichés dans l'UI) ---
+  "no such session",
+  "no such session or workspace",
+  "no such terminal",
+  "not a folder",
+  "not a file",
+  "unknown session",
+  "session is not ready",
+  "no plan in this session",
+  "instruction is required",
+  "unknown edit job",
+  "edit job expired",
+  "edit failed",
+  "path is required",
+  "path and to are required",
+  "unknown endpoint",
+  "bad request",
+  "forbidden",
+  "close its open sessions first",
+  "session resumed",
+  "Session could not be saved",
+  "already exists",
+  "does not exist",
+  "is a folder, not a file",
+  "workspace is read-only",
+  "invalid file version",
+  "file was removed from disk",
+  "file changed on disk",
+  "could not read",
+  "select the code to replace first",
+  "selection too large",
+  "read-only session",
+  "the model did not",
+  "no longer running",
+  "unknown language",
+  "action must be",
+  "ops must be",
+  "invalid JSON body",
+  "request body too large",
+  "upload limit",
+  "unknown or expired share",
+  "no longer available",
+  "Cowork work item",
+  "only HTML files",
+  "preview file must",
+  "mcp: missing server name",
+  "mcp: no MCP bridge",
+  "lang is required",
+  "creating or changing work items",
+  "image must be",
+  "cannot see images",
+  "cannot read ",
 ];
 
 // Motifs anglais généraux (phrases et mots caractéristiques) pour les
@@ -154,17 +205,29 @@ const ENGLISH_PATTERNS = [
 // Toutes les chaînes littérales simples de client.ts (arguments de el(),
 // prompt(), confirm(), alert(), textContent, etc.), pas seulement celles
 // affectées à un attribut connu.
-const ANY_STRING = /(["'])((?:\\.|(?!\1).)*)\1/g;
+const ANY_STRING = /(["'`])((?:\\.|(?!\1).)*)\1/g;
 
-// Un littéral qui sert de valeur comparée (=== "running") ou qui vit dans
-// un commentaire n'est jamais affiché à l'utilisateur.
+// Littéraux volontairement anglais : prompts envoyés aux modèles (leur
+// language est un protocole, pas une interface) — hub.ts.
+const EXCEPTIONS = [
+  /Reply with ONLY one fenced/,
+  // Valeurs protocolaires (stées dans l'API git/hook) : les mots anglais
+  // sont des identifiants comparés côté serveur, pas des textes affichés.
+  /action doit être "stage"/,
+  /l\\?'action doit être "extend"/,
+];
+
+// Un littéral qui sert de valeur comparée (=== "running"), qui vit dans un
+// commentaire // ou /* */, ou dont l'apostrophe est au milieu d'un texte
+// français ("l'instruction…") n'est jamais un littéral à traduire.
 function isVisibleLiteral(src, index) {
+  const quote = src[index];
+  const before = src[index - 1] ?? "";
+  if (quote === "'" && /[A-Za-zÀ-ÿ'’]/.test(before)) return false;
   const lineStart = src.lastIndexOf("\n", index) + 1;
-  const before = src.slice(lineStart, index);
-  if (/(===|!==)\s*$/.test(before) || /\bcase\s+$/.test(before)) return false;
-  const lineEnd = src.indexOf("\n", index);
-  const line = src.slice(lineStart, lineEnd === -1 ? src.length : lineEnd);
-  if (line.slice(0, index - lineStart).includes("//")) return false;
+  const beforeLine = src.slice(lineStart, index);
+  if (/(===|!==)\s*$/.test(beforeLine) || /\bcase\s+$/.test(beforeLine)) return false;
+  if (beforeLine.includes("//") || beforeLine.includes("/*")) return false;
   return true;
 }
 
@@ -209,7 +272,8 @@ test("i18n: l'interface web ne contient plus de texte anglais visible", () => {
     let s = ANY_STRING.exec(src);
     while (s !== null) {
       const value = s[2];
-      if (isVisibleLiteral(src, s.index) && !value.includes("://") && !value.includes("\\n")) {
+      const exempt = EXCEPTIONS.some((e) => e.test(value));
+      if (!exempt && isVisibleLiteral(src, s.index) && !value.includes("://") && !value.includes("\\n")) {
         check(file, "chaîne", value, s.index, src);
       }
       s = ANY_STRING.exec(src);

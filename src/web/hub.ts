@@ -400,14 +400,14 @@ export function browseDir(input: string | null | undefined): Record<string, any>
   try {
     st = fs.statSync(target);
   } catch {
-    return { ...base, error: `not a folder: ${target}`, parent: path.dirname(target), dirs: [] };
+    return { ...base, error: `dossier inexistant : ${target}`, parent: path.dirname(target), dirs: [] };
   }
-  if (!st.isDirectory()) return { ...base, error: `not a folder: ${target}`, parent: path.dirname(target), dirs: [] };
+  if (!st.isDirectory()) return { ...base, error: `dossier inexistant : ${target}`, parent: path.dirname(target), dirs: [] };
   let entries: fs.Dirent[];
   try {
     entries = fs.readdirSync(target, { withFileTypes: true });
   } catch (err: any) {
-    return { ...base, error: `cannot read ${target}: ${err?.message ?? err}`, parent: path.dirname(target), dirs: [] };
+    return { ...base, error: `impossible de lire ${target}: ${err?.message ?? err}`, parent: path.dirname(target), dirs: [] };
   }
   const dirs = entries
     .filter((e) => e.isDirectory() && !e.name.startsWith(".") && !SKIP_DIRS.test(e.name))
@@ -756,7 +756,7 @@ export class WebHub {
   removeWorkspace(p: string): string | null {
     const key = workspaceKey(p);
     for (const live of this.live.values()) {
-      if (workspaceKey(live.workspace) === key) return "close its open sessions first";
+      if (workspaceKey(live.workspace) === key) return "fermez d'abord ses sessions ouvertes";
     }
     for (const m of [...this.metas.values()]) {
       if (workspaceKey(m.workspace) === key) {
@@ -865,7 +865,7 @@ export class WebHub {
       session.announce();
       if (restore) {
         live.channel.status(
-          `· session resumed${restore.mode === "bypass" ? " in edit mode (bypass is not restored)" : ""} — earlier command approvals are not remembered`
+          `· session reprise${restore.mode === "bypass" ? " en mode édition (bypass non restauré)" : ""} — les approbations de commandes précédentes ne sont pas conservées`
         );
       }
       this.log(`  ● ${live.id} · ${tilde(live.workspace)} · ${session.chosen.id}`);
@@ -875,7 +875,7 @@ export class WebHub {
       live.error = String(err?.message ?? err);
       live.channel.phase = "error";
       live.channel.error(live.error);
-      live.channel.warn("Start a backend, then click this session in the sidebar to retry.");
+      live.channel.warn("Démarrez un backend, puis cliquez sur cette session dans la barre latérale pour réessayer.");
       this.changed();
     }
   }
@@ -891,7 +891,7 @@ export class WebHub {
       }
     }
     this.dropLive(live);
-    this.log(`  ○ ${id} closed`);
+    this.log(`  ○ ${id} fermée`);
   }
 
   private dropLive(live: Live): void {
@@ -943,7 +943,7 @@ export class WebHub {
       if (!live.saveFailed) {
         live.saveFailed = true;
         live.channel.warn(
-          `Session could not be saved: ${err?.message ?? err}. Keep this session open and check free disk space and permissions.`
+          `Impossible d'enregistrer la session : ${err?.message ?? err}. Gardez cette session ouverte et vérifiez l'espace disque et les permissions.`
         );
       }
     }
@@ -1130,7 +1130,7 @@ export class WebHub {
       url = new URL(req.url ?? "/", `http://127.0.0.1:${this.port}`);
     } catch {
       res.writeHead(400, { "content-type": "text/plain" });
-      res.end("bad request");
+      res.end("requête invalide");
       return;
     }
     // The workspace HTML preview renders inside the app's iframe; nothing else
@@ -1164,7 +1164,7 @@ export class WebHub {
       const sharedPath = url.pathname === "/shared" || url.pathname === "/shared/ping";
       if (!sharedPath) {
         res.writeHead(403, { "content-type": "text/plain; charset=utf-8" });
-        res.end("forbidden — open smolcoder's printed URL (it includes the session key)");
+        res.end("interdit — ouvrez l'URL imprimée par smolcoder (elle contient la clé de session)");
         return;
       }
     }
@@ -1225,7 +1225,7 @@ export class WebHub {
           const sid = String(url.searchParams.get("sid") ?? "");
           const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
           if (!live) {
-            json(404, { error: "no such session" });
+            json(404, { error: "session inexistante" });
             return;
           }
           try {
@@ -1247,7 +1247,7 @@ export class WebHub {
           const meta = this.metas.get(sid);
           const ws = live?.workspace ?? meta?.workspace;
           if (!ws) {
-            json(404, { error: "no such session or workspace" });
+            json(404, { error: "session ou workspace inexistant" });
             return;
           }
           try {
@@ -1261,7 +1261,7 @@ export class WebHub {
           const sid = String(url.searchParams.get("sid") ?? "");
           const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
           if (!live) {
-            json(404, { error: "no such session" });
+            json(404, { error: "session inexistante" });
             return;
           }
           if (url.searchParams.get("scope") === "all") {
@@ -1281,7 +1281,7 @@ export class WebHub {
           const sid = String(url.searchParams.get("sid") ?? "");
           const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
           if (!live) {
-            json(404, { error: "no such session" });
+            json(404, { error: "session inexistante" });
             return;
           }
           const num = (v: string | null): number | undefined => {
@@ -1305,7 +1305,7 @@ export class WebHub {
           const sid = String(url.searchParams.get("sid") ?? "");
           const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
           if (!live) {
-            json(404, { error: "no such session" });
+            json(404, { error: "session inexistante" });
             return;
           }
           try {
@@ -1335,12 +1335,12 @@ export class WebHub {
           const sid = String(url.searchParams.get("sid") ?? "");
           const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
           if (!live) {
-            json(404, { error: "no such session" });
+            json(404, { error: "session inexistante" });
             return;
           }
           const rel = String(url.searchParams.get("path") ?? "");
           if (!rel) {
-            json(400, { error: "path is required" });
+            json(400, { error: "chemin requis" });
             return;
           }
           void queryDiagStructured(live.workspace, rel)
@@ -1352,7 +1352,7 @@ export class WebHub {
           const sid = String(url.searchParams.get("sid") ?? "");
           const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
           if (!live) {
-            json(404, { error: "no such session" });
+            json(404, { error: "session inexistante" });
             return;
           }
           try {
@@ -1366,7 +1366,7 @@ export class WebHub {
           const sid = String(url.searchParams.get("sid") ?? "");
           const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
           if (!live) {
-            json(404, { error: "no such session" });
+            json(404, { error: "session inexistante" });
             return;
           }
           json(200, { sync: gitSyncStatus(live.workspace) });
@@ -1376,7 +1376,7 @@ export class WebHub {
           const sid = String(url.searchParams.get("sid") ?? "");
           const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
           if (!live) {
-            json(404, { error: "no such session" });
+            json(404, { error: "session inexistante" });
             return;
           }
           void collectSessionOverview(live.workspace, live.session?.taskManager.runningSummary().length ?? 0)
@@ -1388,13 +1388,13 @@ export class WebHub {
           const sid = String(url.searchParams.get("sid") ?? "");
           const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
           if (!live) {
-            json(404, { error: "no such session" });
+            json(404, { error: "session inexistante" });
             return;
           }
           const file = String(url.searchParams.get("path") ?? "");
           const line = Number(url.searchParams.get("line"));
           if (!file) {
-            json(400, { error: "path is required" });
+            json(400, { error: "chemin requis" });
             return;
           }
           const result = gitBlame(live.workspace, file, Number.isInteger(line) && line > 0 ? line : undefined);
@@ -1411,12 +1411,12 @@ export class WebHub {
           const id = String(url.searchParams.get("id") ?? "");
           const job = this.inlineJobs.get(id);
           if (!job) {
-            json(404, { error: "unknown edit job" });
+            json(404, { error: "tâche d'édition inconnue" });
             return;
           }
           if (job.status === "running" && Date.now() - job.at > 10 * 60 * 1000) {
             this.inlineJobs.delete(id);
-            json(200, { status: "error", error: "edit job expired" });
+            json(200, { status: "error", error: "tâche d'édition expirée" });
             return;
           }
           if (job.status === "running") {
@@ -1425,14 +1425,14 @@ export class WebHub {
           }
           this.inlineJobs.delete(id);
           if (job.status === "done") json(200, { status: "done", ...(job.result ?? {}) });
-          else json(200, { status: "error", error: job.error ?? "edit failed" });
+          else json(200, { status: "error", error: job.error ?? "échec de l'édition" });
           return;
         }
         case "/plan": {
           const sid = String(url.searchParams.get("sid") ?? "");
           const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
           if (!live) {
-            json(404, { error: "no such session" });
+            json(404, { error: "session inexistante" });
             return;
           }
           try {
@@ -1446,13 +1446,13 @@ export class WebHub {
           const sid = String(url.searchParams.get("sid") ?? "");
           const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
           if (!live) {
-            json(404, { error: "no such session" });
+            json(404, { error: "session inexistante" });
             return;
           }
           try {
             const rel = String(url.searchParams.get("path") ?? "");
             const rec = this.editDocs.get(this.editKey(live.workspace, rel));
-            if (!rec) throw new Error("open the file for collaboration first (open it in the editor)");
+            if (!rec) throw new Error("ouvrez d'abord le fichier pour la collaboration (dans l'éditeur)");
             json(200, { version: rec.version, chars: rec.chars });
           } catch (err: any) {
             json(400, { error: String(err?.message ?? err).slice(0, 500) });
@@ -1473,12 +1473,12 @@ export class WebHub {
             .split(/;\s*/)
             .includes(`smpv=${this.previewGrant()}`);
           if (!kOk && !cookieOk) {
-            json(403, { error: "forbidden" });
+            json(403, { error: "interdit" });
             return;
           }
           const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
           if (!live) {
-            json(404, { error: "no such session" });
+            json(404, { error: "session inexistante" });
             return;
           }
           if (kOk) {
@@ -1495,9 +1495,10 @@ export class WebHub {
           try {
             const abs = resolveInWorkspace(live.workspace, rel);
             const st = fs.statSync(abs);
-            if (!st.isFile() || st.size > 2 * 1024 * 1024) throw new Error("preview file must be a regular file under 2 MB");
+            if (!st.isFile() || st.size > 2 * 1024 * 1024)
+              throw new Error("le fichier d'aperçu doit être un fichier normal de moins de 2 Mo");
             const ext = path.extname(abs).toLowerCase();
-            if (![".html", ".htm"].includes(ext)) throw new Error("only HTML files can be previewed locally");
+            if (![".html", ".htm"].includes(ext)) throw new Error("seuls les fichiers HTML peuvent être prévisualisés en local");
             res.writeHead(200, {
               "content-type": "text/html; charset=utf-8",
               "cache-control": "no-store",
@@ -1541,7 +1542,7 @@ export class WebHub {
             tooLarge = true;
             chunks.length = 0;
             res.writeHead(413, { "content-type": "application/json" });
-            res.end(JSON.stringify({ error: "request body too large (1 MB max)" }));
+            res.end(JSON.stringify({ error: "corps de requête trop volumineux (1 Mo max)" }));
           }
           return;
         }
@@ -1554,7 +1555,7 @@ export class WebHub {
         try {
           data = body ? JSON.parse(body) : {};
         } catch {
-          json(400, { error: "invalid JSON body" });
+          json(400, { error: "corps JSON invalide" });
           return;
         }
         try {
@@ -1596,7 +1597,7 @@ export class WebHub {
     const share = this.shares.get(token);
     if (!share) {
       res.writeHead(403, { "content-type": "text/plain" });
-      res.end("unknown or expired share — ask the owner for a fresh link");
+      res.end("lien de partage inconnu ou expiré — demandez un nouveau lien à son propriétaire");
       return;
     }
     // The link alone is enough: the session comes from the token itself.
@@ -1604,7 +1605,7 @@ export class WebHub {
     const live = share.sid === sid && SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
     if (!live) {
       res.writeHead(403, { "content-type": "text/plain" });
-      res.end("unknown or expired share — ask the owner for a fresh link");
+      res.end("lien de partage inconnu ou expiré — demandez un nouveau lien à son propriétaire");
       return;
     }
     res.writeHead(200, {
@@ -1623,7 +1624,7 @@ export class WebHub {
 
   /** Mint a read-only follow token for a live session. */
   private shareSession(sid: string): { token: string } {
-    if (!SESSION_ID_RE.test(sid) || !this.live.has(sid)) throw new Error("no such session");
+    if (!SESSION_ID_RE.test(sid) || !this.live.has(sid)) throw new Error("session inexistante");
     const token = crypto.randomBytes(16).toString("hex");
     this.shares.set(token, { sid, createdAt: Date.now() });
     if (this.shares.size > 50) {
@@ -1637,7 +1638,7 @@ export class WebHub {
   private sharedPing(token: string, name: string): { sid: string } {
     const share = this.shares.get(String(token ?? ""));
     if (!share || !this.live.has(share.sid)) {
-      throw new Error("unknown or expired share — ask the owner for a fresh link");
+      throw new Error("lien de partage inconnu ou expiré — demandez un nouveau lien à son propriétaire");
     }
     const viewer =
       String(name ?? "")
@@ -1669,7 +1670,7 @@ export class WebHub {
     const sid = String(url.searchParams.get("sid") ?? "");
     const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
     if (!live) {
-      reply(404, { error: "no such session" });
+      reply(404, { error: "session inexistante" });
       req.resume();
       return;
     }
@@ -1687,7 +1688,7 @@ export class WebHub {
       if (size > MAX_UPLOAD_BYTES) {
         if (!failed) {
           failed = true;
-          reply(413, { error: `"${name}" is larger than the ${MAX_UPLOAD_BYTES / 1024 / 1024} MB upload limit.` });
+          reply(413, { error: `"${name}" dépasse la limite d'envoi de ${MAX_UPLOAD_BYTES / 1024 / 1024} Mo.` });
           // No req.destroy(): destroying right after replying reset the socket
           // before the 413 flushed. Drain the rest instead.
         }
@@ -1710,7 +1711,7 @@ export class WebHub {
         fs.mkdirSync(dir, { recursive: true });
         fs.writeFileSync(file, bytes);
       } catch (err: any) {
-        reply(500, { error: `could not store the upload: ${err?.message ?? err}` });
+        reply(500, { error: `impossible d'enregistrer l'envoi : ${err?.message ?? err}` });
         return;
       }
       const att: Attachment = { id, name, kind: verdict.kind, mime: verdict.mime, size: bytes.length, path: file };
@@ -1718,7 +1719,7 @@ export class WebHub {
       const model = live.session?.chosen;
       const warning =
         att.kind === "image" && model?.vision === false
-          ? `${model.id} cannot see images — switch to a vision-capable model with /models`
+          ? `${model.id} ne peut pas voir les images — passez à un modèle avec vision via /models`
           : undefined;
       reply(200, { id, name, kind: att.kind, size: att.size, url: uploadUrl(sid, id), ...(warning ? { warning } : {}) });
     });
@@ -1773,9 +1774,9 @@ export class WebHub {
 
   private checkDir(p: any): string {
     const s = String(p ?? "").trim();
-    if (!s) throw new Error("path is required");
+    if (!s) throw new Error("chemin requis");
     const abs = path.resolve(expandHome(s));
-    if (!fs.existsSync(abs) || !fs.statSync(abs).isDirectory()) throw new Error(`not a folder: ${abs}`);
+    if (!fs.existsSync(abs) || !fs.statSync(abs).isDirectory()) throw new Error(`dossier inexistant : ${abs}`);
     return abs;
   }
 
@@ -1788,7 +1789,7 @@ export class WebHub {
           l = this.live.get(sid);
         }
       }
-      if (!l) throw new Error("no such session");
+      if (!l) throw new Error("session inexistante");
       return l;
     };
     switch (p) {
@@ -1796,9 +1797,9 @@ export class WebHub {
         const l = live();
         const ids: string[] = Array.isArray(d.attachments) ? d.attachments.map(String) : [];
         const attachments = ids.map((id) => l.uploads.get(id));
-        if (attachments.some((a) => !a)) throw new Error("an attachment is no longer available — add it again");
+        if (attachments.some((a) => !a)) throw new Error("une pièce jointe n'est plus disponible — ajoutez-la à nouveau");
         for (const id of ids) l.uploads.delete(id);
-        if (d.workItemId !== undefined && typeof d.workItemId !== "string") throw new Error("invalid Cowork work item ID");
+        if (d.workItemId !== undefined && typeof d.workItemId !== "string") throw new Error("ID d'élément Cowork invalide");
         l.channel.handleMessage(String(d.text ?? ""), attachments as Attachment[], d.workItemId as string | undefined);
         return {};
       }
@@ -1832,7 +1833,7 @@ export class WebHub {
       case "/mcp/toggle": {
         const l = live();
         const name = String(d.name ?? "").trim();
-        if (!name) throw new Error("mcp: missing server name");
+        if (!name) throw new Error("mcp : nom de serveur manquant");
         const verb = d.verb === "on" || d.verb === "off" ? d.verb : "toggle";
         const message = setMcpEnabled(l.workspace, name, verb);
         // The 60 s health cache would keep showing the old "hors ligne" state
@@ -1844,12 +1845,12 @@ export class WebHub {
       case "/mcp/debug": {
         const l = live();
         const name = String(d.name ?? "").trim();
-        if (!name) throw new Error("mcp: missing server name");
+        if (!name) throw new Error("mcp : nom de serveur manquant");
         const timeoutMs = Number(d.timeoutMs) > 0 ? Number(d.timeoutMs) : undefined;
         // debugServer lives on the per-session bridge, not on the module, so
         // probe the very same client the agent is using.
         const bridge = l.session?.toolCtx?.mcp;
-        if (!bridge) throw new Error("mcp: no MCP bridge for this session");
+        if (!bridge) throw new Error("mcp : pas de pont MCP pour cette session");
         return { message: await bridge.debugServer(name, timeoutMs) };
       }
       case "/cancel": {
@@ -1864,7 +1865,7 @@ export class WebHub {
       case "/sessions/new":
         return { id: this.openSession(this.checkDir(d.workspace)) };
       case "/sessions/resume":
-        if (!this.resumeSession(String(d.id ?? ""))) throw new Error("unknown session");
+        if (!this.resumeSession(String(d.id ?? ""))) throw new Error("session inconnue");
         return { id: d.id };
       case "/sessions/close":
         this.closeSession(String(d.id ?? ""));
@@ -1888,18 +1889,18 @@ export class WebHub {
       }
       case "/term/open": {
         const r = this.openTerminal(sid);
-        if (!r) throw new Error("no such session");
+        if (!r) throw new Error("session inexistante");
         return r;
       }
       case "/term/input": {
         const t = live().terminals.get(String(d.tid ?? ""));
-        if (!t) throw new Error("no such terminal");
+        if (!t) throw new Error("terminal inexistant");
         t.write(String(d.text ?? ""));
         return {};
       }
       case "/term/interrupt": {
         const t = live().terminals.get(String(d.tid ?? ""));
-        if (!t) throw new Error("no such terminal");
+        if (!t) throw new Error("terminal inexistant");
         t.interrupt();
         return {};
       }
@@ -1912,9 +1913,9 @@ export class WebHub {
       }
       case "/work/items": {
         const l = live();
-        if (!l.session) throw new Error("session is not ready");
+        if (!l.session) throw new Error("la session n'est pas prête");
         if (d.action !== "list" && l.session.agent.mode === "ro") {
-          throw new Error("creating or changing work items is unavailable in read-only mode");
+          throw new Error("créer ou modifier des éléments de travail est indisponible en lecture seule");
         }
         const board = new CoworkBoard(l.workspace);
         const result = d.action === "complete" ? await board.completeWorkItem(String(d.task_id ?? "")) : await board.run(d);
@@ -1933,7 +1934,7 @@ export class WebHub {
       case "/plan/done": {
         const l = live();
         const plan = (l.session as any)?.toolCtx?.plan;
-        if (!plan || typeof plan.markDone !== "function") throw new Error("no plan in this session");
+        if (!plan || typeof plan.markDone !== "function") throw new Error("aucun plan dans cette session");
         const step = d.step === undefined || d.step === null ? undefined : Number(d.step);
         // `done` present = explicit check/uncheck from the task rail; absent =
         // legacy mark-done (the agent's own flow).
@@ -1974,13 +1975,13 @@ export class WebHub {
         const l = this.editLive(sid);
         const action = String(d.action ?? "");
         if (action !== "stage" && action !== "unstage" && action !== "revert")
-          throw new Error('action must be "stage", "unstage" or "revert"');
+          throw new Error('l\'action doit être "stage", "unstage" ou "revert"');
         return { message: gitApplyHunk(l.workspace, String(d.path ?? ""), Number(d.hunk), action) };
       }
       case "/code/diff/stage": {
         const l = this.editLive(sid);
         const p = String(d.path ?? "");
-        if (!p) throw new Error("path is required");
+        if (!p) throw new Error("chemin requis");
         return { message: gitStage(l.workspace, [p]) };
       }
       // Turns the 37-language catalogue into something usable: the panel can
@@ -1989,9 +1990,9 @@ export class WebHub {
         const want = String(d.lang ?? "")
           .trim()
           .toLowerCase();
-        if (!want) throw new Error("lang is required");
+        if (!want) throw new Error("le langage est requis");
         if (!LSP_LANGS.includes(want)) {
-          throw new Error(`unknown language "${want}" - GET /code/availability lists the supported ones`);
+          throw new Error(`langage inconnu « ${want} » — GET /code/availability liste les langages pris en charge`);
         }
         const l = this.editLive(sid);
         return installLspServer(want, l.workspace);
@@ -1999,20 +2000,20 @@ export class WebHub {
       case "/code/diff/unstage": {
         const l = this.editLive(sid);
         const p = String(d.path ?? "");
-        if (!p) throw new Error("path is required");
+        if (!p) throw new Error("chemin requis");
         return { message: gitUnstage(l.workspace, [p]) };
       }
       case "/code/diff/stage-lines": {
         const l = this.editLive(sid);
         const p = String(d.path ?? "");
-        if (!p) throw new Error("path is required");
+        if (!p) throw new Error("chemin requis");
         const lines = Array.isArray(d.lines) ? d.lines.map(Number).filter((n: number) => Number.isSafeInteger(n)) : [];
         return { message: gitStageLines(l.workspace, p, Number(d.hunk), lines) };
       }
       case "/code/diff/revert-file": {
         const l = this.editLive(sid);
         const p = String(d.path ?? "");
-        if (!p) throw new Error("path is required");
+        if (!p) throw new Error("chemin requis");
         return { message: gitRevertFile(l.workspace, p) };
       }
       case "/code/commit": {
@@ -2022,13 +2023,13 @@ export class WebHub {
       case "/code/format": {
         const l = this.editLive(sid);
         const fp = String(d.path ?? "");
-        if (!fp) throw new Error("path is required");
+        if (!fp) throw new Error("chemin requis");
         return formatFile(l.workspace, fp);
       }
       case "/shell": {
         const command = String(d.command ?? "");
         const ctl = command ? findLiveShell(command) : null;
-        if (!ctl) return { ok: false, reason: "that command is no longer running" };
+        if (!ctl) return { ok: false, reason: "cette commande n'est plus en cours" };
         const action = String(d.action ?? "");
         if (action === "extend") {
           const ok = ctl.extend(Number(d.ms) || 60_000);
@@ -2042,7 +2043,7 @@ export class WebHub {
           ctl.cancel();
           return { ok: true };
         }
-        return { ok: false, reason: 'action must be "extend", "detach" or "cancel"' };
+        return { ok: false, reason: 'l\'action doit être "extend", "detach" ou "cancel"' };
       }
       case "/code/inline/start": {
         const l = live();
@@ -2064,7 +2065,7 @@ export class WebHub {
         return this.shareSession(l.id);
       }
       default:
-        throw new Error(`unknown endpoint ${p}`);
+        throw new Error(`point d'entrée inconnu ${p}`);
     }
   }
 
@@ -2075,7 +2076,7 @@ export class WebHub {
     const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
     const meta = this.metas.get(sid);
     const ws = live?.workspace ?? meta?.workspace;
-    if (!ws) throw new Error("no such session or workspace");
+    if (!ws) throw new Error("session ou workspace inexistant");
     const rel = String(relRaw ?? "").trim() || ".";
     let abs: string;
     try {
@@ -2084,7 +2085,7 @@ export class WebHub {
       throw new Error(err instanceof SandboxError ? err.message : String(err?.message ?? err));
     }
     const st = fs.statSync(abs);
-    if (!st.isDirectory()) throw new Error("not a folder");
+    if (!st.isDirectory()) throw new Error("dossier inexistant");
     const statusMap = gitStatusMap(ws, abs);
     const entries = fs
       .readdirSync(abs, { withFileTypes: true })
@@ -2123,7 +2124,7 @@ export class WebHub {
     const ws = live?.workspace ?? meta?.workspace;
     if (!ws) {
       res.writeHead(404, { "content-type": "application/json" });
-      res.end(JSON.stringify({ error: "no such session or workspace" }));
+      res.end(JSON.stringify({ error: "session ou workspace inexistant" }));
       return;
     }
     let abs: string;
@@ -2134,7 +2135,7 @@ export class WebHub {
       const zipRel = sep >= 0 ? requested.slice(0, sep) : requested;
       abs = resolveInWorkspace(ws, zipRel);
       const st = fs.statSync(abs);
-      if (st.isDirectory()) throw new Error("not a file");
+      if (st.isDirectory()) throw new Error("ce n'est pas un fichier");
       const relBase = path.relative(ws, abs).split(path.sep).join("/");
       const rel = sep >= 0 ? `${relBase} › ${requested.slice(sep + 3)}` : relBase;
       if (url.searchParams.get("meta") === "1") {
@@ -2227,7 +2228,8 @@ export class WebHub {
         ".bmp": "image/bmp",
       };
       const mime = allowed[ext];
-      if (!st.isFile() || !mime || st.size > 8 * 1024 * 1024) throw new Error("image must be a supported file under 8 MB");
+      if (!st.isFile() || !mime || st.size > 8 * 1024 * 1024)
+        throw new Error("l'image doit être un fichier pris en charge de moins de 8 Mo");
       res.writeHead(200, {
         "content-type": mime,
         "content-length": st.size,
@@ -2250,9 +2252,9 @@ export class WebHub {
 
   private saveWorkspaceFile(sid: string, d: any): any {
     const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
-    if (!live?.session) throw new Error("no such session");
+    if (!live?.session) throw new Error("session inexistante");
     const mode = live.session.agent.mode;
-    if (mode === "ro") throw new Error("workspace is read-only; switch the session to edit mode first");
+    if (mode === "ro") throw new Error("le workspace est en lecture seule ; passez d'abord la session en mode édition");
     const rel = String(d.path ?? "").trim();
     const content = typeof d.content === "string" ? d.content : "";
     if (!rel) throw new Error("chemin requis");
@@ -2278,14 +2280,14 @@ export class WebHub {
     }
     if (d.expectedMtimeMs !== undefined) {
       const expected = Number(d.expectedMtimeMs);
-      if (!Number.isFinite(expected)) throw new Error("invalid file version; reload it before saving");
+      if (!Number.isFinite(expected)) throw new Error("version de fichier invalide ; rechargez-la avant d'enregistrer");
       // 0 means "no version known": comparing against epoch always failed and
       // locked the user out of their own file.
       if (expected > 0) {
-        if (!fs.existsSync(abs)) throw new Error("file was removed from disk; reload the folder before saving");
+        if (!fs.existsSync(abs)) throw new Error("le fichier a été supprimé du disque ; rechargez le dossier avant d'enregistrer");
         const current = fs.statSync(abs).mtimeMs;
         if (Math.abs(current - expected) > 1) {
-          throw new Error("file changed on disk; reload it before saving");
+          throw new Error("le fichier a changé sur le disque ; rechargez-le avant d'enregistrer");
         }
       }
     }
@@ -2313,7 +2315,7 @@ export class WebHub {
     }
     live.session.toolCtx.filesTouched.add(rel);
     const st = fs.statSync(abs);
-    live.channel.status(`· saved ${rel}`);
+    live.channel.status(`· enregistré ${rel}`);
     live.channel.refresh();
     return { path: rel, size: st.size, mtimeMs: st.mtimeMs };
   }
@@ -2321,9 +2323,9 @@ export class WebHub {
   /** Guard for every mutating workspace-file endpoint. */
   private editLive(sid: string): Live & { session: Session } {
     const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
-    if (!live?.session) throw new Error("no such session");
+    if (!live?.session) throw new Error("session inexistante");
     if ((live.session as any)?.agent?.mode === "ro") {
-      throw new Error("workspace is read-only; switch the session to edit mode first");
+      throw new Error("le workspace est en lecture seule ; passez d'abord la session en mode édition");
     }
     return live as Live & { session: Session };
   }
@@ -2331,21 +2333,21 @@ export class WebHub {
   private createWorkspaceEntry(sid: string, d: any): any {
     const live = this.editLive(sid);
     const rel = String(d.path ?? "").trim();
-    if (!rel || rel === "." || rel === "/") throw new Error("path is required");
+    if (!rel || rel === "." || rel === "/") throw new Error("chemin requis");
     let abs: string;
     try {
       abs = resolveInWorkspace(live.workspace, rel);
     } catch (err: any) {
       throw new Error(err instanceof SandboxError ? err.message : String(err?.message ?? err));
     }
-    if (fs.existsSync(abs)) throw new Error(`"${rel}" already exists`);
+    if (fs.existsSync(abs)) throw new Error(`"${rel}" existe déjà`);
     if (d.dir === true) fs.mkdirSync(abs, { recursive: true });
     else {
       fs.mkdirSync(path.dirname(abs), { recursive: true });
       fs.writeFileSync(abs, "", "utf8");
     }
     live.session.toolCtx.filesTouched.add(rel);
-    live.channel.status(`· created ${rel}`);
+    live.channel.status(`· créé ${rel}`);
     return { path: rel };
   }
 
@@ -2353,7 +2355,7 @@ export class WebHub {
     const live = this.editLive(sid);
     const from = String(d.path ?? "").trim();
     const to = String(d.to ?? "").trim();
-    if (!from || !to) throw new Error("path and to are required");
+    if (!from || !to) throw new Error("chemin et to sont requis");
     let absFrom: string;
     let absTo: string;
     try {
@@ -2362,30 +2364,30 @@ export class WebHub {
     } catch (err: any) {
       throw new Error(err instanceof SandboxError ? err.message : String(err?.message ?? err));
     }
-    if (!fs.existsSync(absFrom)) throw new Error(`"${from}" does not exist`);
-    if (fs.existsSync(absTo)) throw new Error(`"${to}" already exists`);
+    if (!fs.existsSync(absFrom)) throw new Error(`"${from}" n'existe pas`);
+    if (fs.existsSync(absTo)) throw new Error(`"${to}" existe déjà`);
     fs.mkdirSync(path.dirname(absTo), { recursive: true });
     fs.renameSync(absFrom, absTo);
     live.session.toolCtx.filesTouched.add(to);
-    live.channel.status(`· renamed ${from} → ${to}`);
+    live.channel.status(`· renommé ${from} → ${to}`);
     return { path: to };
   }
 
   private deleteWorkspaceEntry(sid: string, d: any): any {
     const live = this.editLive(sid);
     const rel = String(d.path ?? "").trim();
-    if (!rel || rel === "." || rel === "/") throw new Error("path is required (never the workspace itself)");
+    if (!rel || rel === "." || rel === "/") throw new Error("chemin requis (jamais le workspace lui-même)");
     let abs: string;
     try {
       abs = resolveInWorkspace(live.workspace, rel);
     } catch (err: any) {
       throw new Error(err instanceof SandboxError ? err.message : String(err?.message ?? err));
     }
-    if (!fs.existsSync(abs)) throw new Error(`"${rel}" does not exist`);
+    if (!fs.existsSync(abs)) throw new Error(`"${rel}" n'existe pas`);
     if (fs.statSync(abs).isDirectory()) fs.rmSync(abs, { recursive: true, force: true });
     else fs.unlinkSync(abs);
     live.session.toolCtx.filesTouched.add(rel);
-    live.channel.status(`· deleted ${rel}`);
+    live.channel.status(`· supprimé ${rel}`);
     return {};
   }
 
@@ -2395,7 +2397,7 @@ export class WebHub {
   }
 
   private readEditFile(workspace: string, rel: string): { abs: string; text: string } {
-    if (!rel || rel === "." || rel === "/") throw new Error("path is required");
+    if (!rel || rel === "." || rel === "/") throw new Error("chemin requis");
     let abs: string;
     try {
       abs = resolveInWorkspace(workspace, rel);
@@ -2406,15 +2408,15 @@ export class WebHub {
     try {
       stat = fs.statSync(abs);
     } catch {
-      throw new Error(`"${rel}" does not exist`);
+      throw new Error(`"${rel}" n'existe pas`);
     }
-    if (!stat.isFile()) throw new Error(`"${rel}" is a folder, not a file`);
-    if (stat.size > 256 * 1024) throw new Error(`"${rel}" is too large for live collaboration (256 KB limit)`);
+    if (!stat.isFile()) throw new Error(`"${rel}" est un dossier, pas un fichier`);
+    if (stat.size > 256 * 1024) throw new Error(`"${rel}" est trop gros pour la collaboration en direct (limite 256 Ko)`);
     let buf: Buffer;
     try {
       buf = fs.readFileSync(abs);
     } catch {
-      throw new Error(`could not read "${rel}"`);
+      throw new Error(`impossible de lire "${rel}"`);
     }
     if (looksBinary(buf)) throw new Error(`« ${rel} » est un fichier binaire — la collaboration en direct a besoin de texte`);
     return { abs, text: buf.toString("utf8") };
@@ -2445,8 +2447,8 @@ export class WebHub {
   private applyEditOps(workspace: string, rel: string, rawOps: unknown, sid: string): { version: number; applied: number } {
     const key = this.editKey(workspace, rel);
     const rec = this.editDocs.get(key);
-    if (!rec) throw new Error("open the file for collaboration first (open it in the editor)");
-    if (!Array.isArray(rawOps) || !rawOps.length) throw new Error("ops must be a non-empty array");
+    if (!rec) throw new Error("ouvrez d'abord le fichier pour la collaboration (dans l'éditeur)");
+    if (!Array.isArray(rawOps) || !rawOps.length) throw new Error("ops doit être un tableau non vide");
     const doc = { chars: rec.chars, seen: rec.seen, counter: 0, site: "hub" };
     const accepted: CrdOp[] = [];
     for (const raw of (rawOps as unknown[]).slice(0, 200)) {
@@ -2473,10 +2475,10 @@ export class WebHub {
     const selection = typeof d.selection === "string" ? d.selection : "";
     const start = Math.max(1, Number(d.start) || 1);
     const end = Math.max(start, Number(d.end) || start);
-    if (!rel) throw new Error("path is required");
-    if (!instruction) throw new Error("instruction is required");
-    if (!selection.trim()) throw new Error("select the code to replace first");
-    if (selection.length > 8000) throw new Error("selection too large (8000 chars max) — narrow it");
+    if (!rel) throw new Error("chemin requis");
+    if (!instruction) throw new Error("l'instruction est requise");
+    if (!selection.trim()) throw new Error("sélectionnez d'abord le code à remplacer");
+    if (selection.length > 8000) throw new Error("sélection trop longue (8000 caractères max) — réduisez-la");
     try {
       resolveInWorkspace(live.workspace, rel);
     } catch (err: any) {
@@ -2491,17 +2493,17 @@ export class WebHub {
   private async runInlineEdit(live: Live, d: any): Promise<any> {
     const session = live.session as any;
     const agent = session?.agent;
-    if (!session || !agent) throw new Error("no such session");
-    if (agent.mode === "ro") throw new Error("read-only session — switch to edit mode for inline edits");
+    if (!session || !agent) throw new Error("session inexistante");
+    if (agent.mode === "ro") throw new Error("session en lecture seule — passez en mode édition pour les éditions en ligne");
     const rel = String(d.path ?? "").trim();
     const instruction = String(d.instruction ?? "").trim();
     const selection = typeof d.selection === "string" ? d.selection : "";
     const start = Math.max(1, Number(d.start) || 1);
     const end = Math.max(start, Number(d.end) || start);
-    if (!rel) throw new Error("path is required");
-    if (!instruction) throw new Error("instruction is required");
-    if (!selection.trim()) throw new Error("select the code to replace first");
-    if (selection.length > 8000) throw new Error("selection too large (8000 chars max) — narrow it");
+    if (!rel) throw new Error("chemin requis");
+    if (!instruction) throw new Error("l'instruction est requise");
+    if (!selection.trim()) throw new Error("sélectionnez d'abord le code à remplacer");
+    if (selection.length > 8000) throw new Error("sélection trop longue (8000 caractères max) — réduisez-la");
     let abs: string;
     try {
       abs = resolveInWorkspace(live.workspace, rel);
@@ -2512,7 +2514,7 @@ export class WebHub {
     try {
       disk = fs.readFileSync(abs, "utf8");
     } catch {
-      throw new Error(`could not read "${rel}"`);
+      throw new Error(`impossible de lire "${rel}"`);
     }
     const lines = disk.split("\n");
     const from = Math.max(1, start - 20);
@@ -2539,7 +2541,7 @@ export class WebHub {
       `Reply with ONLY one fenced ${ext} block containing the COMPLETE replacement lines.`;
     await inline.runTurn(task);
     if (inline.outcome !== "completed") {
-      throw new Error("the model did not produce a replacement — try a shorter selection or simpler instruction");
+      throw new Error("le modèle n'a pas produit de remplacement — essayez une sélection plus courte ou une instruction plus simple");
     }
     const last = [...inline.messages].reverse().find((m) => m.role === "assistant" && (m.content ?? "").trim());
     let newText = "";
@@ -2551,7 +2553,7 @@ export class WebHub {
       if (raw && !raw.startsWith("I ") && !raw.startsWith("Here")) {
         newText = raw;
       } else {
-        throw new Error("the model did not return a code block — rephrase the instruction");
+        throw new Error("le modèle n'a pas renvoyé de bloc de code — reformulez l'instruction");
       }
     }
     return { oldText: selection, newText, startLine: start, endLine: end, diff: renderEditDiff(selection, newText) };
@@ -2608,7 +2610,7 @@ export class WebHub {
   private async statusReport(url: URL): Promise<any> {
     const sid = String(url.searchParams.get("sid") ?? "");
     const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
-    if (!live) return { error: "no such session" };
+    if (!live) return { error: "session inexistante" };
     const session = live.session;
     // Same builder as the CLI /status: the terminal, the page and Electron
     // read one function, so the three surfaces cannot drift apart.

@@ -317,7 +317,7 @@ test("hub: uploads are stored, served, attached to a message, and removed with t
     const shot = JSON.parse(shotRes.body);
     assert.equal(shot.kind, "image");
     assert.equal(shot.size, PNG.length);
-    assert.match(shot.warning, /fake-model cannot see images/);
+    assert.match(shot.warning, /fake-model ne peut pas voir les images/);
     const stored = path.join(dataDir, "uploads", sid, `${shot.id}.png`);
     assert.ok(fs.existsSync(stored), "stored under the data folder, not the workspace");
     assert.deepEqual(fs.readdirSync(ws), []);
@@ -341,7 +341,7 @@ test("hub: uploads are stored, served, attached to a message, and removed with t
     const gone = JSON.parse((await up("x.txt", Buffer.from("x"), "text/plain")).body);
     await request(hub, "POST", `/upload/remove${k}`, { sid, id: gone.id });
     assert.ok(!fs.existsSync(path.join(dataDir, "uploads", sid, `${gone.id}.txt`)));
-    assert.match((await request(hub, "POST", `/msg${k}`, { sid, text: "hi", attachments: [gone.id] })).body, /no longer available/);
+    assert.match((await request(hub, "POST", `/msg${k}`, { sid, text: "hi", attachments: [gone.id] })).body, /n'est plus disponible/);
 
     // the message carries both attachments to the session and to the page
     assert.equal((await request(hub, "POST", `/msg${k}`, { sid, text: "what is this?", attachments: [shot.id, tx.id] })).status, 200);

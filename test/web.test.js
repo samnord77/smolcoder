@@ -291,8 +291,8 @@ test("browseDir lists subfolders, flags projects, hides dot folders and reports 
   );
   assert.equal(d.parent, path.dirname(dir));
   assert.ok(Array.isArray(d.roots) && d.roots.length > 0);
-  assert.match(browseDir(path.join(dir, "missing")).error, /not a folder/);
-  assert.match(browseDir(path.join(dir, "file.txt")).error, /not a folder/);
+  assert.match(browseDir(path.join(dir, "missing")).error, /dossier inexistant/);
+  assert.match(browseDir(path.join(dir, "file.txt")).error, /dossier inexistant/);
   assert.equal(browseDir("").path, os.homedir());
 });
 
@@ -510,7 +510,7 @@ test("hub: sessions start, echo, save, close, resume, delete; workspaces add and
     const snap = hub.snapshot();
     assert.equal(snap.workspaces.length, 1);
     assert.equal(snap.workspaces[0].sessions.length, 0);
-    assert.match((await request(hub, "POST", `/workspaces/add${k}`, { path: path.join(dataDir, "missing") })).body, /not a folder/);
+    assert.match((await request(hub, "POST", `/workspaces/add${k}`, { path: path.join(dataDir, "missing") })).body, /dossier inexistant/);
 
     // start a session and talk to it
     const { id } = JSON.parse((await request(hub, "POST", `/sessions/new${k}`, { workspace: ws })).body);
@@ -551,7 +551,7 @@ test("hub: sessions start, echo, save, close, resume, delete; workspaces add and
         })
       ).body
     );
-    assert.match(readOnlyWrite.error, /read-only mode/i);
+    assert.match(readOnlyWrite.error, /lecture seule/i);
     hub.live.get(id).session.agent.mode = "edit";
     await request(hub, "POST", `/msg${k}`, { sid: id, text: "hello there" });
     await until(() => hub.snapshot().workspaces[0].sessions[0].title === "hello there", 2000, "verbatim title");
@@ -611,7 +611,7 @@ test("hub: sessions start, echo, save, close, resume, delete; workspaces add and
     // remove the workspace
     await request(hub, "POST", `/workspaces/remove${k}`, { path: ws });
     assert.equal(hub.snapshot().workspaces.length, 0);
-    assert.match((await request(hub, "POST", `/sessions/resume${k}`, { id: "zzz" })).body, /unknown session/);
+    assert.match((await request(hub, "POST", `/sessions/resume${k}`, { id: "zzz" })).body, /session inconnue/);
   } finally {
     hub.close();
   }
@@ -786,14 +786,14 @@ test("hub: workspace file explorer lists, reads and safely saves files", async (
       content: "stale",
       expectedMtimeMs: file.mtimeMs,
     });
-    assert.match(conflict.body, /changed on disk/);
+    assert.match(conflict.body, /changé sur le disque/);
     const invalidVersion = await request(hub, "POST", `/workspace/file${k}`, {
       sid: id,
       path: "src/app.js",
       content: "must reject",
       expectedMtimeMs: "not-a-version",
     });
-    assert.match(invalidVersion.body, /invalid file version/i);
+    assert.match(invalidVersion.body, /version de fichier invalide/i);
     fs.unlinkSync(path.join(ws, "src", "app.js"));
     const removed = await request(hub, "POST", `/workspace/file${k}`, {
       sid: id,
@@ -801,7 +801,7 @@ test("hub: workspace file explorer lists, reads and safely saves files", async (
       content: "must not recreate",
       expectedMtimeMs: fs.statSync(path.join(ws, "src")).mtimeMs,
     });
-    assert.match(removed.body, /removed from disk/i);
+    assert.match(removed.body, /supprimé du disque/i);
   } finally {
     hub.close();
   }
@@ -875,7 +875,7 @@ test("hub: /status is the control centre report and /agents/draft writes a bound
     assert.deepEqual(status.skillsActive, []);
     assert.match(status.runtime.node, /^v\d+/);
     assert.equal(status.version, "9.9.9");
-    assert.match((await request(hub, "GET", `/status${k}&sid=nope`)).body, /no such session/);
+    assert.match((await request(hub, "GET", `/status${k}&sid=nope`)).body, /session inexistante/);
 
     const draft = JSON.parse(
       (await request(hub, "POST", `/agents/draft${k}`, { sid: opened.id, role: "architect", task: "map the login flow" })).body
