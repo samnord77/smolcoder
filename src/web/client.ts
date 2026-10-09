@@ -3914,7 +3914,8 @@ function buildFilesTab(v, t) {
     t.filePath = nextPath; t.mtimeMs = tab ? tab.mtimeMs : 0;
     imagePreview.hidden = true;
     // Un .gz affiché par le hub l'est forcément décompressé : lecture seule.
-    t.decompressed = /\.(?:gz|gzip)$/i.test(nextPath);
+    // Idem pour le listing d'une .zip et ses membres (« archive › fichier »).
+    t.decompressed = /\.(?:gz|gzip|zip)$/i.test(nextPath) || nextPath.includes(" › ");
     imageEl.removeAttribute("src");
     editor.hidden = false; code.hidden = false; gutter.hidden = false; minimap.hidden = false;
     t.diags = [];
@@ -3943,8 +3944,16 @@ function buildFilesTab(v, t) {
     if (sbEol) sbEol.textContent = isCrlf ? "CRLF" : "LF";
     updatePosition();
     meta.classList.remove("error");
-    if (t.decompressed) meta.textContent = nextPath + " · .gz décompressé (lecture seule)";
-    pathInput.value = tab ? tab.path : (t.rel || ".");
+    if (t.decompressed) {
+      const kind = /\.(?:gz|gzip)$/i.test(nextPath)
+        ? ".gz décompressé (lecture seule)"
+        : nextPath.includes(" › ")
+          ? "membre d'archive .zip (lecture seule)"
+          : "listing de l'archive .zip (double-clic pour ouvrir)";
+      meta.textContent = nextPath + " · " + kind;
+    }
+    const shownPath = tab ? tab.path : (t.rel || ".");
+    pathInput.value = shownPath.includes(" › ") ? shownPath.slice(0, shownPath.indexOf(" › ")) : shownPath;
     renderTabs();
     void analyzeFile(t.filePath);
     openCollab(tab && !tab.dirty ? tab.path : "");
@@ -4473,7 +4482,12 @@ function buildFilesTab(v, t) {
   save.onclick = () => {
     if (!t.filePath) return;
     if (!imagePreview.hidden) return;
-    if (t.decompressed) { showError("Ce fichier .gz est affiché décompressé en lecture seule : enregistrer écraserait l'archive."); return; }
+    if (t.decompressed) {
+      showError(/\.(?:gz|gzip)$/i.test(t.filePath)
+        ? "Ce fichier .gz est affiché décompressé en lecture seule : enregistrer écraserait l'archive."
+        : "Ce contenu d'archive .zip est affiché en lecture seule : enregistrer écraserait l'archive.");
+      return;
+    }
     const filePath = t.filePath, content = editor.value, expectedMtimeMs = t.mtimeMs;
     t.tabStore.update(filePath, content);
     save.disabled = true;
@@ -4495,6 +4509,20 @@ function buildFilesTab(v, t) {
       scheduleProblemsScan(v, 900);
       if (t.filePath === filePath && (!tab || !tab.dirty)) openCollab(filePath);
     }).catch((e) => showError(e.message)).finally(() => t.refreshMode(v.state.mode !== "ro"));
+  };
+  // Listing .zip : double-clic sur une ligne (« nom… taille ») = ouvrir le
+  // membre en lecture seule via « archive.zip › chemin ».
+  editor.ondblclick = () => {
+    if (!t.decompressed || !/\.zip$/i.test(t.filePath) || t.filePath.includes(" › ")) return;
+    const pos = editor.selectionStart;
+    const from = editor.value.lastIndexOf("\n", Math.max(0, pos - 1)) + 1;
+    let to = editor.value.indexOf("\n", pos);
+    if (to < 0) to = editor.value.length;
+    const m = /^(.+?)\s{2,}(\d[\d.,]* [KMG]?o|\?)\s*$/.exec(editor.value.slice(from, to));
+    if (!m) return;
+    const name = m[1].replace(/\s+$/, "");
+    if (!name || /^Archive/.test(name)) return;
+    void t.loadFile(t.filePath + " › " + name);
   };
   t.refreshMode(v.state.mode !== "ro");
 }

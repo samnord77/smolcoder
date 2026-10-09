@@ -42,6 +42,42 @@ export function isSlowPrefillError(error: unknown): boolean {
   );
 }
 
+/** Undici reports every network drop as a bare `fetch failed` with the real
+ * reason buried in `cause` (DNS miss, refused socket, connect timeout). Attach
+ * it so the chat log and the retry loop say WHY the call died. */
+export async function fetchOrCause(url: string, init?: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, init);
+  } catch (err: any) {
+    if (err?.name === "AbortError" || isBackendTimeoutError(err)) throw err;
+    if (!/fetch failed/i.test(String(err?.message ?? ""))) throw err;
+    const cause: any = err?.cause;
+    const first: any = Array.isArray(cause?.errors) ? cause.errors[0] : cause;
+    const code = String(first?.code ?? cause?.code ?? "");
+    const detail = String(first?.message ?? cause?.message ?? first?.name ?? "");
+    throw new Error(`fetch failed${code ? ` [${code}]` : ""}${detail ? ` — ${detail}` : ""}`);
+  }
+}
+
+/** A provider 429/5xx body is a JSON blob whose raw slice is unreadable (and
+ * the chat log truncates to 80 chars). Surface the human message and the
+ * Retry-After countdown instead; keep the raw body for auth/validation errors. */
+export function httpErrorDetail(status: number, text: string, headers?: Headers): string {
+  if (status !== 429 && status < 500) return text.slice(0, 300);
+  let msg = "";
+  try {
+    const data = JSON.parse(text);
+    const e = Array.isArray(data) ? data?.[0]?.error : data?.error;
+    msg = typeof e === "string" ? e : String(e?.message ?? data?.message ?? "");
+  } catch {
+    // not JSON (HTML error page…) — no extracted message
+  }
+  const head = status === 429 ? "limite de requêtes atteinte" : "erreur temporaire du serveur";
+  const ra = String(headers?.get("retry-after") ?? "");
+  const reset = /^\d+$/.test(ra) ? ` (réessayer dans ${ra} s)` : "";
+  return `${head}${reset}${msg ? ` — ${msg}` : ""}`.slice(0, 300);
+}
+
 /** Fail visibly when a local server accepts a request but stops producing data. */
 export async function withDeadline<T>(opts: ChatOptions, run: (signal: AbortSignal, activity: () => void) => Promise<T>): Promise<T> {
   const controller = new AbortController();

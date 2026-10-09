@@ -14,7 +14,7 @@
 import { imageDataUrl } from "../attachments";
 import { tryFetchJson } from "../util";
 import { scheduleInference } from "./scheduler";
-import { responseLines, streamJson, withDeadline } from "./transport";
+import { fetchOrCause, httpErrorDetail, responseLines, streamJson, withDeadline } from "./transport";
 import {
   type ChatOptions,
   type ChatResult,
@@ -235,7 +235,7 @@ export class LmStudioProvider implements Provider {
 
   private async readResponse(body: any, opts: ChatOptions, activity: () => void, started?: { streaming: boolean }): Promise<ChatResult> {
     const t0 = Date.now();
-    const res = await fetch(this.chatUrl, {
+    const res = await fetchOrCause(this.chatUrl, {
       method: "POST",
       headers: {
         "content-type": "application/json",
@@ -246,7 +246,7 @@ export class LmStudioProvider implements Provider {
     });
     if (!res.ok) {
       const text = await res.text().catch(() => "");
-      throw new Error(`${this.serverName} returned ${res.status}: ${text.slice(0, 300)}`);
+      throw new Error(`${this.serverName} returned ${res.status}: ${httpErrorDetail(res.status, text, res.headers)}`);
     }
 
     if (body.stream === false) {
@@ -331,7 +331,12 @@ export class LmStudioProvider implements Provider {
     };
 
     for await (const line of responseLines(res, activity)) handleLine(line);
-    if (!finished) throw new Error("LM Studio stream ended before completion; the response was discarded");
+    if (!finished)
+      throw new Error(
+        content.length
+          ? `LM Studio stream ended before completion after ${content.length} chars; the response was discarded`
+          : `LM Studio stream ended before completion without a single token (model server stopped or ran out of memory); the response was discarded`
+      );
 
     const toolCalls: ToolCall[] = [...partials.entries()]
       .sort((a, b) => a[0] - b[0])

@@ -70,6 +70,8 @@ const UPLOAD_ID_RE = /^[a-f0-9]{16}$/;
 const WEB_FILE_CAP = 512 * 1024;
 /** Limite d'un fichier .gz une fois décompressé (lecture seule). */
 const WEB_GZ_CAP = 8 * 1024 * 1024;
+/** Limite d'une archive .zip lue en mémoire (listing ou extraction d'un membre). */
+const WEB_ZIP_CAP = 64 * 1024 * 1024;
 const WEB_TREE_CAP = 800;
 /** Limite du listing @fichier (mention composer). */
 const WEB_FILES_CAP = 4000;
@@ -83,6 +85,98 @@ function looksBinary(buf: Buffer): boolean {
 }
 /** Sous-dossiers ignorés par le listing @fichier (blocage perf). */
 const AT_FILE_SKIP = /^(node_modules|dist|build|coverage|out|target|\.next|\.nuxt|\.turbo|\.cache|vendor)$/i;
+
+interface ZipEntry {
+  name: string;
+  size: number;
+  csize: number;
+  method: number;
+  localOffset: number;
+}
+
+/** Table des matières d'un .zip, parsée sans dépendance : signature EOCD en
+ * fin d'archive, puis un en-tête central par entrée (nom, tailles, offset). */
+function zipEntries(buf: Buffer): ZipEntry[] {
+  let eocd = -1;
+  const floor = Math.max(0, buf.length - 22 - 65_535);
+  for (let i = buf.length - 22; i >= floor; i--) {
+    if (buf.readUInt32LE(i) === 0x06054b50) {
+      eocd = i;
+      break;
+    }
+  }
+  if (eocd < 0) throw new Error("table des matières absente : archive .zip illisible ou incomplète");
+  const count = Math.min(buf.readUInt16LE(eocd + 10), 65_535);
+  let off = buf.readUInt32LE(eocd + 16);
+  const out: ZipEntry[] = [];
+  for (let i = 0; i < count; i++) {
+    if (off + 46 > buf.length || buf.readUInt32LE(off) !== 0x02014b50)
+      throw new Error("table des matières corrompue : archive .zip illisible");
+    const method = buf.readUInt16LE(off + 10);
+    const csize = buf.readUInt32LE(off + 20);
+    const size = buf.readUInt32LE(off + 24);
+    const nameLen = buf.readUInt16LE(off + 28);
+    const extraLen = buf.readUInt16LE(off + 30);
+    const commentLen = buf.readUInt16LE(off + 32);
+    const localOffset = buf.readUInt32LE(off + 42);
+    if (off + 46 + nameLen > buf.length) throw new Error("nom illisible dans la table des matières .zip");
+    out.push({ name: buf.toString("utf8", off + 46, off + 46 + nameLen), size, csize, method, localOffset });
+    off += 46 + nameLen + extraLen + commentLen;
+  }
+  return out;
+}
+
+/** Extrait un membre (stocké ou deflate), borné par la limite de lecture. */
+function zipMember(buf: Buffer, e: ZipEntry): Buffer {
+  const lo = e.localOffset;
+  if (lo + 30 > buf.length || buf.readUInt32LE(lo) !== 0x04034b50)
+    throw new Error(`en-tête local manquant pour « ${e.name} » : archive .zip illisible`);
+  const nameLen = buf.readUInt16LE(lo + 26);
+  const extraLen = buf.readUInt16LE(lo + 28);
+  const start = lo + 30 + nameLen + extraLen;
+  if (e.csize === 0xffffffff || start + e.csize > buf.length)
+    throw new Error(`membre « ${e.name} » illisible (taille zip64 ou archive tronquée)`);
+  const raw = buf.subarray(start, start + e.csize);
+  if (e.method === 0) {
+    if (raw.length > WEB_FILE_CAP) throw new Error(`membre « ${e.name} » plus grand que ${WEB_FILE_CAP} octets`);
+    return Buffer.from(raw);
+  }
+  if (e.method === 8) {
+    try {
+      return zlib.inflateRawSync(raw, { maxOutputLength: WEB_FILE_CAP });
+    } catch {
+      throw new Error(`membre « ${e.name} » illisible ou dépassant ${WEB_FILE_CAP} octets une fois décompressé`);
+    }
+  }
+  throw new Error(`méthode de compression ${e.method} non prise en charge pour « ${e.name} »`);
+}
+
+function fmtZipSize(n: number): string {
+  if (n < 1024) return `${n} o`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1).replace(".", ",")} Ko`;
+  if (n < 1024 ** 3) return `${(n / 1024 ** 2).toFixed(1).replace(".", ",")} Mo`;
+  return `${(n / 1024 ** 3).toFixed(1).replace(".", ",")} Go`;
+}
+
+/** Listing texte d'une .zip : chaque ligne se termine par une taille, format
+ * que le double-clic côté client reconnaît pour ouvrir le membre. */
+function zipListText(buf: Buffer, rel: string): string {
+  const entries = zipEntries(buf).filter((e) => e.name && !e.name.endsWith("/"));
+  const total = entries.reduce((s, e) => s + (e.size === 0xffffffff ? 0 : e.size), 0);
+  const lines = [
+    `Archive .zip « ${rel} » — ${entries.length} fichier${entries.length > 1 ? "s" : ""}, ${fmtZipSize(buf.length)} (contenu décompressé ${fmtZipSize(total)})`,
+    `Double-cliquez sur un nom de fichier pour l'ouvrir en lecture seule.`,
+    ``,
+  ];
+  const MAX = 500;
+  for (const e of entries.slice(0, MAX)) {
+    const size = e.size === 0xffffffff ? "?" : fmtZipSize(e.size);
+    const pad = e.name.length >= 50 ? "  " : " ".repeat(52 - e.name.length);
+    lines.push(e.name + pad + size);
+  }
+  if (entries.length > MAX) lines.push(`… + ${entries.length - MAX} autres fichiers`);
+  return lines.join("\n").slice(0, WEB_FILE_CAP);
+}
 /** Budget d'une passe MCP rapide. Mesure locale : à 20 000 ms tout le monde
  * sauf « browse » (cold start uvx) répond, donc 30 000 ms laisse la marge aux
  * premiers lancements npx sans retarder l'affichage du Centre de Contrôle. */
@@ -2034,23 +2128,50 @@ export class WebHub {
     }
     let abs: string;
     try {
-      abs = resolveInWorkspace(ws, String(url.searchParams.get("path") ?? ""));
+      const requested = String(url.searchParams.get("path") ?? "");
+      // « archive.zip › chemin/dedans » : lecture d'un membre (ou meta du zip).
+      const sep = requested.indexOf(" › ");
+      const zipRel = sep >= 0 ? requested.slice(0, sep) : requested;
+      abs = resolveInWorkspace(ws, zipRel);
       const st = fs.statSync(abs);
       if (st.isDirectory()) throw new Error("not a file");
+      const relBase = path.relative(ws, abs).split(path.sep).join("/");
+      const rel = sep >= 0 ? `${relBase} › ${requested.slice(sep + 3)}` : relBase;
       if (url.searchParams.get("meta") === "1") {
         res.writeHead(200, { "content-type": "application/json" });
         res.end(
           JSON.stringify({
-            path: path.relative(ws, abs).split(path.sep).join("/"),
+            path: rel,
             size: st.size,
             mtimeMs: st.mtimeMs,
           })
         );
         return;
       }
-      const rel = path.relative(ws, abs).split(path.sep).join("/");
       let buf: Buffer;
-      if (/\.(?:gz|gzip)$/i.test(rel)) {
+      if (sep >= 0) {
+        if (!/\.zip$/i.test(relBase))
+          throw new Error(`« ${relBase} » n'est pas une archive .zip : impossible d'en ouvrir un fichier dedans.`);
+        if (st.size > WEB_ZIP_CAP) throw new Error(`archive plus grande que ${WEB_ZIP_CAP} octets`);
+        const zbuf = fs.readFileSync(abs);
+        const inner = requested.slice(sep + 3);
+        const entry = zipEntries(zbuf).find((e) => e.name === inner && !e.name.endsWith("/"));
+        if (!entry) throw new Error(`« ${inner} » est introuvable dans l'archive « ${relBase} ».`);
+        buf = zipMember(zbuf, entry);
+        if (looksBinary(buf))
+          throw new Error(
+            `« ${inner} » est un fichier binaire (image, archive, exécutable, police…) à l'intérieur de « ${relBase} » : il ne peut pas s'ouvrir comme du texte.`
+          );
+      } else if (/\.zip$/i.test(rel)) {
+        // Une .zip est du binaire : on affiche son listing (noms + tailles) à
+        // la place des octets bruts — double-clic pour ouvrir un membre.
+        if (st.size > WEB_ZIP_CAP) throw new Error(`archive plus grande que ${WEB_ZIP_CAP} octets`);
+        try {
+          buf = Buffer.from(zipListText(fs.readFileSync(abs), rel), "utf8");
+        } catch (err: any) {
+          throw new Error(`« ${rel} » est une archive .zip illisible : ${String(err?.message ?? err)}`);
+        }
+      } else if (/\.(?:gz|gzip)$/i.test(rel)) {
         // Une archive .gz est du binaire compressé : on la décompresse pour
         // afficher le texte qu'elle contient, en lecture seule.
         try {
@@ -2139,6 +2260,12 @@ export class WebHub {
     // texte détruirait l'archive sans aucune chance de récupération.
     if (/\.(?:gz|gzip)$/i.test(rel)) {
       throw new Error(`« ${rel} » est une archive .gz : l'éditeur ne peut pas l'écraser avec du texte.`);
+    }
+    if (rel.includes(" › ")) {
+      throw new Error(`« ${rel} » est le contenu d'une archive .zip : lecture seule, impossible de l'écrire.`);
+    }
+    if (/\.zip$/i.test(rel)) {
+      throw new Error(`« ${rel} » est une archive .zip : l'éditeur ne peut pas l'écraser avec du texte.`);
     }
     // Compare in bytes, not UTF-16 units: 512 000 emoji would pass this check
     // but be rejected on reopen by the byte-based read cap.

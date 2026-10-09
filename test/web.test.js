@@ -890,3 +890,113 @@ test("hub: /status is the control centre report and /agents/draft writes a bound
     hub.close();
   }
 });
+
+/** Construit un .zip valide à la main (deflate + stocké), sans dépendance. */
+function makeZip(entries) {
+  const locals = [];
+  const centrals = [];
+  let offset = 0;
+  for (const { name, data, store } of entries) {
+    const nameBuf = Buffer.from(name, "utf8");
+    const raw = Buffer.isBuffer(data) ? data : Buffer.from(data, "utf8");
+    const comp = store ? raw : zlib.deflateRawSync(raw);
+    const method = store ? 0 : 8;
+    const local = Buffer.alloc(30);
+    local.writeUInt32LE(0x04034b50, 0);
+    local.writeUInt16LE(20, 4);
+    local.writeUInt16LE(method, 8);
+    local.writeUInt32LE(comp.length, 18);
+    local.writeUInt32LE(raw.length, 22);
+    local.writeUInt16LE(nameBuf.length, 26);
+    locals.push(local, nameBuf, comp);
+    const central = Buffer.alloc(46);
+    central.writeUInt32LE(0x02014b50, 0);
+    central.writeUInt16LE(20, 4);
+    central.writeUInt16LE(20, 6);
+    central.writeUInt16LE(method, 10);
+    central.writeUInt32LE(comp.length, 20);
+    central.writeUInt32LE(raw.length, 24);
+    central.writeUInt16LE(nameBuf.length, 28);
+    central.writeUInt32LE(offset, 42);
+    centrals.push(central, nameBuf);
+    offset += local.length + nameBuf.length + comp.length;
+  }
+  const centralBuf = Buffer.concat(centrals);
+  const eocd = Buffer.alloc(22);
+  eocd.writeUInt32LE(0x06054b50, 0);
+  eocd.writeUInt16LE(entries.length, 8);
+  eocd.writeUInt16LE(entries.length, 10);
+  eocd.writeUInt32LE(centralBuf.length, 12);
+  eocd.writeUInt32LE(offset, 16);
+  return Buffer.concat([...locals, centralBuf, eocd]);
+}
+
+test("hub: a .zip shows a listing and opens members read-only", async () => {
+  const dataDir = tmpdir("smol-hub-zip-");
+  const ws = path.join(dataDir, "proj");
+  fs.mkdirSync(ws, { recursive: true });
+  fs.writeFileSync(
+    path.join(ws, "evidence.zip"),
+    makeZip([
+      { name: "README.md", data: "# preuve\ndedans le zip\n" },
+      { name: "nested/data.json", data: '{"ok":true}', store: true },
+      { name: "logo.bin", data: Buffer.from([0x00, 0x01, 0x02]) },
+    ])
+  );
+  const hub = new WebHub({ port: 0, prefs: {}, help: "help", version: "9.9.9", dataDir, factory: fakeFactory([]), quiet: true });
+  await hub.start();
+  const k = `?k=${hub.authToken}`;
+  try {
+    const { id } = JSON.parse((await request(hub, "POST", `/sessions/new${k}`, { workspace: ws })).body);
+    await until(() => hub.snapshot().workspaces[0].sessions[0].status === "idle", 2000, "idle");
+
+    // Le .zip affiche un listing lisible (noms + tailles), pas des octets bruts.
+    const list = JSON.parse((await request(hub, "GET", `/workspace/file${k}&sid=${id}&path=evidence.zip`)).body);
+    assert.match(list.content, /Archive \.zip « evidence\.zip » — 3 fichiers/);
+    assert.match(list.content, /Double-cliquez sur un nom de fichier/);
+    assert.match(list.content, /README\.md\s+23 o/);
+    assert.match(list.content, /nested\/data\.json\s+11 o/);
+    assert.doesNotMatch(list.content, /\0/);
+
+    // Membre deflate : le texte du dedans est lisible.
+    const member = JSON.parse(
+      (await request(hub, "GET", `/workspace/file${k}&sid=${id}&path=${encodeURIComponent("evidence.zip › README.md")}`)).body
+    );
+    assert.equal(member.path, "evidence.zip › README.md");
+    assert.match(member.content, /# preuve/);
+    assert.match(member.content, /dedans le zip/);
+    assert.equal(member.mtimeMs, list.mtimeMs, "un membre partage le mtime du .zip");
+
+    // Membre stocké (méthode 0, non compressé).
+    const stored = JSON.parse(
+      (await request(hub, "GET", `/workspace/file${k}&sid=${id}&path=${encodeURIComponent("evidence.zip › nested/data.json")}`)).body
+    );
+    assert.match(stored.content, /"ok":true/);
+
+    // Un membre binaire est nommé et expliqué, pas ouvert en texte corrompu.
+    const bin = await request(hub, "GET", `/workspace/file${k}&sid=${id}&path=${encodeURIComponent("evidence.zip › logo.bin")}`);
+    assert.match(bin.body, /« logo\.bin » est un fichier binaire/);
+    assert.match(bin.body, /à l'intérieur de « evidence\.zip »/);
+
+    // Un membre absent donne une erreur claire.
+    const missing = await request(hub, "GET", `/workspace/file${k}&sid=${id}&path=${encodeURIComponent("evidence.zip › nope.txt")}`);
+    assert.match(missing.body, /introuvable dans l'archive/);
+
+    // L'éditeur ne peut jamais écraser une archive .zip (ni un de ses membres).
+    const overZip = await request(hub, "POST", `/workspace/file${k}`, {
+      sid: id,
+      path: "evidence.zip",
+      content: "must not replace the zip",
+      expectedMtimeMs: list.mtimeMs,
+    });
+    assert.match(overZip.body, /archive \.zip/);
+    const overMember = await request(hub, "POST", `/workspace/file${k}`, {
+      sid: id,
+      path: "evidence.zip › README.md",
+      content: "must not write into the zip",
+    });
+    assert.match(overMember.body, /lecture seule/);
+  } finally {
+    hub.close();
+  }
+});

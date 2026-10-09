@@ -10,7 +10,7 @@
 import { imageBase64 } from "../attachments";
 import { tryFetchJson } from "../util";
 import { scheduleInference } from "./scheduler";
-import { responseLines, streamJson, withDeadline } from "./transport";
+import { fetchOrCause, httpErrorDetail, responseLines, streamJson, withDeadline } from "./transport";
 import {
   type ChatOptions,
   type ChatResult,
@@ -179,7 +179,7 @@ export class OllamaProvider implements Provider {
 
   private async readResponse(body: any, opts: ChatOptions, activity: () => void, started?: { streaming: boolean }): Promise<ChatResult> {
     const t0 = Date.now();
-    const res = await fetch(`${this.baseUrl}/api/chat`, {
+    const res = await fetchOrCause(`${this.baseUrl}/api/chat`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body),
@@ -187,7 +187,7 @@ export class OllamaProvider implements Provider {
     });
     if (!res.ok) {
       const text = await res.text().catch(() => "");
-      throw new Error(`Ollama returned ${res.status}: ${text.slice(0, 300)}`);
+      throw new Error(`Ollama returned ${res.status}: ${httpErrorDetail(res.status, text, res.headers)}`);
     }
 
     let content = "";
@@ -247,7 +247,12 @@ export class OllamaProvider implements Provider {
         if (line) handleChunk(streamJson(line));
       }
     }
-    if (!finished) throw new Error("Ollama stream ended before completion; the response was discarded");
+    if (!finished)
+      throw new Error(
+        content.length
+          ? `Ollama stream ended before completion after ${content.length} chars; the response was discarded`
+          : `Ollama stream ended before completion without a single token (model server stopped or ran out of memory); the response was discarded`
+      );
 
     if (toolCalls.length === 0 && content) {
       const extracted = extractToolCallsFromContent(content);
