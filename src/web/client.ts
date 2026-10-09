@@ -823,11 +823,11 @@ function renderState(v) {
   st.innerHTML = "";
   if (!s.mode) { st.textContent = targetModel ? "chargement " + targetModel + "…" : "starting…"; renderCrumb(); return; }
   const command = (name) => post("/msg", { sid: v.sid, text: "/" + name });
-  const modeLabel = s.modeLabel || (s.mode === "ro" ? "Read-only" : s.mode === "bypass" ? "YOLO bypass" : "Edit");
+  const modeLabel = s.modeLabel || (s.mode === "ro" ? "lecture seule" : s.mode === "bypass" ? "YOLO" : "édition");
   const mode = el("button", "statusbtn mode " + s.mode, modeLabel);
   mode.title = s.yolo ? "YOLO ACTIF — aucune demande avant d'agir" : "Mode de l’agent — cliquer pour choisir"; mode.onclick = () => statusMenu(mode, modeMenuItems(s, command));
   st.appendChild(mode);
-  const model = el("button", "statusbtn modelpick", s.model + (s.model.endsWith(":free") ? " · gratuit" : "") + (s.host ? " @ " + s.host : "") + " ▾"); model.title = s.backend + (s.host ? " on " + s.host : "") + " · Switch model or find models on another machine"; model.onclick = () => command("models"); st.appendChild(model);
+  const model = el("button", "statusbtn modelpick", s.model + (s.model.endsWith(":free") ? " · gratuit" : "") + (s.host ? " @ " + s.host : "") + " ▾"); model.title = s.backend + (s.host ? " sur " + s.host : "") + " · Changez de modèle ou trouvez-en un autre sur le réseau"; model.onclick = () => command("models"); st.appendChild(model);
     const effort = el("button", "statusbtn eff", s.effort || "Auto"); effort.title = "Niveau de raisonnement"; effort.onclick = () => command("effort"); st.appendChild(effort);
     const bell = el("button", "statusbtn bell", bellOn() ? "🔔" : "🔕"); bell.title = "Notifications bureau : approbations, fins de tour, erreurs";
   bell.onclick = () => {

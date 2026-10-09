@@ -232,7 +232,7 @@
   <div class="vsc-sb-right">
     <button type="button" class="vsc-sb-item" id="sb-blame" title="Afficher l'auteur Git réel de la ligne courante"><span class="vsc-sb-ico">⌖</span> <span id="sb-blame-text">Git blame</span></button>
     <button type="button" class="vsc-sb-item" id="sb-pos" title="Ligne et colonne du curseur"><span id="sPosition">Ln 1, Col 1</span></button>
-    <button type="button" class="vsc-sb-item" id="sb-indent" title="Indentation du document"><span id="sb-indent-text">Spaces: 2</span></button>
+    <button type="button" class="vsc-sb-item" id="sb-indent" title="Indentation du document"><span id="sb-indent-text">Espaces : 2</span></button>
     <button type="button" class="vsc-sb-item" id="sb-encoding" title="Encodage du fichier">UTF-8</button>
     <button type="button" class="vsc-sb-item" id="sb-eol" title="Fin de ligne">LF</button>
     <button type="button" class="vsc-sb-item" id="sb-lang" title="Sélectionner le mode de langage"><span class="vsc-sb-ico">{ }</span> <span id="sb-lang-text">JavaScript</span></button>
@@ -1017,7 +1017,7 @@ if ($("sb-sync")) $("sb-sync").onclick = async () => {
 let desktopIndent = 2;
 if ($("sb-indent")) $("sb-indent").onclick = () => {
   desktopIndent = desktopIndent === 2 ? 4 : 2;
-  if ($("sb-indent-text")) $("sb-indent-text").textContent = `Spaces: ${desktopIndent}`;
+    if ($("sb-indent-text")) $("sb-indent-text").textContent = `Espaces : ${desktopIndent}`;
 };
 if ($("sb-eol")) $("sb-eol").onclick = () => {
   const current = $("sb-eol").textContent;

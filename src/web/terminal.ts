@@ -81,7 +81,7 @@ export class Terminal {
     this.proc = proc;
     proc.stdout?.on("data", (d: Buffer) => this.ingest(d.toString("utf8")));
     proc.stderr?.on("data", (d: Buffer) => this.ingest(d.toString("utf8")));
-    proc.on("error", (err) => this.emit(`[could not start ${this.shell.label}: ${err.message}]\n`));
+    proc.on("error", (err) => this.emit(`[impossible de démarrer ${this.shell.label}: ${err.message}]\n`));
     proc.on("close", (code) => {
       if (this.proc !== proc) return;
       this.proc = null;

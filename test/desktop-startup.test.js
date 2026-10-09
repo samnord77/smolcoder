@@ -76,5 +76,5 @@ test("Desktop project tree shows larger left-side Git badges and refreshes witho
   assert.match(editor, /tree\.replaceChildren\(\.\.\.nextTree\.childNodes\)/);
   assert.match(editor, /if \(root && !document\.hidden\) void refreshTree/);
   assert.match(main, /const status = await editorTreeStatus\(root\)/);
-  assert.match(main, /entry\.promise = gitService\.status\(root\)/);
+  assert.match(main, /entry\.promise = gitService\s*\.status\(root\)/);
 });

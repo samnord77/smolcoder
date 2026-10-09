@@ -284,7 +284,7 @@ async function commit() {
     $("bCommit").disabled = true;
     showErr("");
     $("sMsg").textContent = "commit en cours…";
-    if (!cur) throw new Error("Choose a file to commit first.");
+    if (!cur) throw new Error("Choisissez d'abord un fichier à commiter.");
     const r = await window.smolGit.commit(m, cur);
     msgEl.value = "";
     $("sMsg").textContent = `${r?.summary ? r.summary : "commit créé ✓"} ${new Date().toLocaleTimeString()}`;

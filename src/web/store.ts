@@ -36,7 +36,7 @@ function writeAtomic(file: string, data: string): void {
  * id can never read or delete a file outside the sessions folder. */
 function assertValidId(id: string): void {
   if (typeof id !== "string" || !/^[A-Za-z0-9_-]{1,64}$/.test(id)) {
-    throw new Error(`Invalid session id: ${String(id).slice(0, 40)}`);
+    throw new Error(`ID de session invalide : ${String(id).slice(0, 40)}`);
   }
 }
 

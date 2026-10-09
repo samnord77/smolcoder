@@ -153,9 +153,13 @@ function openMainWindow() {
         if (!win.isDestroyed()) await win.webContents.session.clearCache().catch(() => {});
         win.loadURL(activeSid ? `${hubBase}#${activeSid}` : hubBase);
         return;
-      } catch { /* tombe sur l'errBox ci-dessous */ }
+      } catch {
+        /* tombe sur l'errBox ci-dessous */
+      }
     }
-    errBox(`Impossible de joindre le serveur Smolcoder.\nCopiez cette URL dans un navigateur quand il tourne :\n${hubBase || "(serveur arrêté)"}`);
+    errBox(
+      `Impossible de joindre le serveur Smolcoder.\nCopiez cette URL dans un navigateur quand il tourne :\n${hubBase || "(serveur arrêté)"}`
+    );
   });
   win.webContents.session.clearCache().catch(() => {});
   win.loadURL(activeSid ? `${hubBase}#${activeSid}` : hubBase);
@@ -181,21 +185,32 @@ function openEditor() {
     webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: true, nodeIntegration: false },
   });
   editorWin.loadFile(path.join(__dirname, "editor.html"));
-  editorWin.on("closed", () => { editorWin = null; });
+  editorWin.on("closed", () => {
+    editorWin = null;
+  });
 }
 
 let panelWin = null;
 let gitWin = null;
 
 function openGit() {
-  if (gitWin) { gitWin.focus(); return; }
+  if (gitWin) {
+    gitWin.focus();
+    return;
+  }
   gitWin = new BrowserWindow({
-    width: 1120, height: 760, minWidth: 760, minHeight: 520,
-    title: "Smolcoder - Git", backgroundColor: "#1e1e1e",
+    width: 1120,
+    height: 760,
+    minWidth: 760,
+    minHeight: 520,
+    title: "Smolcoder - Git",
+    backgroundColor: "#1e1e1e",
     webPreferences: { preload: path.join(__dirname, "preload-git.js"), contextIsolation: true, nodeIntegration: false },
   });
   gitWin.loadFile(path.join(__dirname, "git.html"));
-  gitWin.on("closed", () => { gitWin = null; });
+  gitWin.on("closed", () => {
+    gitWin = null;
+  });
 }
 
 function openPanel() {
@@ -213,7 +228,9 @@ function openPanel() {
     webPreferences: { preload: path.join(__dirname, "preload-panel.js"), contextIsolation: true, nodeIntegration: false },
   });
   panelWin.loadFile(path.join(__dirname, "mcp.html"));
-  panelWin.on("closed", () => { panelWin = null; });
+  panelWin.on("closed", () => {
+    panelWin = null;
+  });
 }
 
 /** Read-only live-follow link for the current session (copied to clipboard). */
@@ -294,14 +311,26 @@ function buildMenu() {
     },
     {
       label: "Effort",
-      submenu: [send("Off (rapide)", "/effort off"), send("Low", "/effort low"), send("Medium", "/effort medium"), send("High", "/effort high")],
+      submenu: [
+        send("Off (rapide)", "/effort off"),
+        send("Low", "/effort low"),
+        send("Medium", "/effort medium"),
+        send("High", "/effort high"),
+      ],
     },
     {
       label: "T\u00e2ches",
       submenu: [
         send("Voir les t\u00e2ches", "/tasks"),
         { type: "separator" },
-        { label: "Ouvrir un terminal", click: () => hub.openTerminal(hubRec).then(() => mainWin?.focus()).catch((e) => errBox(e.message)) },
+        {
+          label: "Ouvrir un terminal",
+          click: () =>
+            hub
+              .openTerminal(hubRec)
+              .then(() => mainWin?.focus())
+              .catch((e) => errBox(e.message)),
+        },
       ],
     },
     {
@@ -346,11 +375,16 @@ async function editorTreeStatus(root) {
   if (cached?.status && Date.now() - cached.at < 10000) return cached.status;
   if (cached?.promise) return cached.promise;
   const entry = { at: 0, status: null, promise: null };
-  entry.promise = gitService.status(root).then((status) => {
-    entry.at = Date.now();
-    entry.status = status;
-    return status;
-  }).finally(() => { entry.promise = null; });
+  entry.promise = gitService
+    .status(root)
+    .then((status) => {
+      entry.at = Date.now();
+      entry.status = status;
+      return status;
+    })
+    .finally(() => {
+      entry.promise = null;
+    });
   editorTreeStatusCache.set(key, entry);
   return entry.promise;
 }
@@ -551,7 +585,9 @@ async function activeWorkspace() {
     }
     const recent = [...(snap.workspaces ?? [])].sort((a, b) => (b.last || 0) - (a.last || 0));
     if (recent.length) return recent[0].path;
-  } catch { /* use the current project when the hub is offline */ }
+  } catch {
+    /* use the current project when the hub is offline */
+  }
   return editorRoot || currentProjectDir || ROOT;
 }
 
@@ -564,16 +600,20 @@ ipcMain.handle("git:commit", async (_event, message, rel) => gitService.commit(a
 
 ipcMain.handle("panel:setEnabled", async (_event, name, enabled) => {
   if (typeof name !== "string" || !/^[A-Za-z0-9_-]{1,40}$/.test(name) || typeof enabled !== "boolean") {
-    throw new Error("Invalid MCP server settings.");
+    throw new Error("Réglages du serveur MCP invalides.");
   }
   const workspace = await activeWorkspace();
   const { globalMcpConfigPath, loadMcpConfig } = require(path.join(ROOT, "dist", "mcp.js"));
   const configured = loadMcpConfig(workspace).find((server) => server.name.toLowerCase() === name.toLowerCase());
-  if (!configured) throw new Error("This MCP server is no longer configured.");
+  if (!configured) throw new Error("Ce serveur MCP n'est plus configuré.");
   const candidates = [path.join(workspace, ".smol", "mcp.json"), globalMcpConfigPath()];
   for (const file of candidates) {
     let raw;
-    try { raw = JSON.parse(fs.readFileSync(file, "utf8")); } catch { continue; }
+    try {
+      raw = JSON.parse(fs.readFileSync(file, "utf8"));
+    } catch {
+      continue;
+    }
     const list = Array.isArray(raw) ? raw : Array.isArray(raw?.servers) ? raw.servers : null;
     const entry = list?.find((server) => server && typeof server.name === "string" && server.name.toLowerCase() === name.toLowerCase());
     if (!entry) continue;
@@ -582,7 +622,7 @@ ipcMain.handle("panel:setEnabled", async (_event, name, enabled) => {
     fs.writeFileSync(file, `${JSON.stringify(raw, null, 2)}\n`, "utf8");
     return { enabled };
   }
-  throw new Error("MCP configuration file was not found.");
+  throw new Error("Fichier de configuration MCP introuvable.");
 });
 ipcMain.handle("panel:data", async () => {
   const { createMcpBridge, loadMcpConfig } = require(path.join(ROOT, "dist", "mcp.js"));
@@ -623,21 +663,39 @@ ipcMain.handle("panel:data", async () => {
       bridge.closeAll();
     }
   } catch (e) {
-    servers = cfgs.map((c) => ({ name: c.name, ok: false, tools: [], enabled: c.enabled !== false, error: String(e.message ?? e), transport: transportOf(c.name) }));
+    servers = cfgs.map((c) => ({
+      name: c.name,
+      ok: false,
+      tools: [],
+      enabled: c.enabled !== false,
+      error: String(e.message ?? e),
+      transport: transportOf(c.name),
+    }));
   }
   // Plugins = skills : lus + integres, avec leur premiere ligne en description.
-  const firstLine = (t) => String(t ?? "").split("\n").map((l) => l.trim()).find(Boolean) ?? "";
+  const firstLine = (t) =>
+    String(t ?? "")
+      .split("\n")
+      .map((l) => l.trim())
+      .find(Boolean) ?? "";
   let skills = [];
   try {
-    const m = /Skills \(\d+\): (.*)$/.exec(listSkills(workspace).replace(/\n/g, " ")) ;
-    const names = m ? m[1].split(",").map((s) => s.trim()).filter(Boolean) : [];
+    const m = /Skills \(\d+\): (.*)$/.exec(listSkills(workspace).replace(/\n/g, " "));
+    const names = m
+      ? m[1]
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : [];
     for (const n of names.slice(0, 60)) {
       const builtin = /\(built-in\)$/.test(n);
       const clean = n.replace(/\s*\(built-in\)$/, "");
       let desc = "";
       try {
         desc = builtin ? firstLine(BUILTIN_SKILLS[clean]) : firstLine(readSkill(workspace, clean));
-      } catch { /* sans description */ }
+      } catch {
+        /* sans description */
+      }
       skills.push({ name: clean, builtin, desc: desc.slice(0, 140) });
     }
   } catch (e) {
@@ -652,7 +710,9 @@ ipcMain.handle("panel:data", async () => {
         fs.accessSync(path.join(dir, exe));
         lspServer = path.join(dir, exe);
         break;
-      } catch { /* suivant */ }
+      } catch {
+        /* suivant */
+      }
     }
     if (lspServer) break;
   }
@@ -708,16 +768,16 @@ app.whenReady().then(async () => {
         return;
       }
     } else if (!runBuild() || !fs.existsSync(DIST_INDEX)) {
-      dialog.showErrorBox(
-        "Smolcoder Desktop",
-        "La compilation a échoué. Lancez `npm run build` dans un terminal, puis relancez."
-      );
+      dialog.showErrorBox("Smolcoder Desktop", "La compilation a échoué. Lancez `npm run build` dans un terminal, puis relancez.");
       app.quit();
       return;
     }
   }
   if (!fs.existsSync(DIST_INDEX) || !fs.existsSync(DIST_SANDBOX)) {
-    dialog.showErrorBox("Smolcoder Desktop", `Fichiers core dist/index.js ou dist/sandbox.js introuvables.\nLancez d\u2019abord : npm run build\n(dans ${ROOT})`);
+    dialog.showErrorBox(
+      "Smolcoder Desktop",
+      `Fichiers core dist/index.js ou dist/sandbox.js introuvables.\nLancez d\u2019abord : npm run build\n(dans ${ROOT})`
+    );
     app.quit();
     return;
   }
@@ -774,7 +834,9 @@ app.whenReady().then(async () => {
     activeSid = await hub.ensureSession(hubRec, projectDir);
     try {
       await hub.openTerminalSid(hubRec, activeSid);
-    } catch { /* le bouton +>_ reste dispo */ }
+    } catch {
+      /* le bouton +>_ reste dispo */
+    }
   } catch (e) {
     errBox(`Session : ${e.message}`);
   }

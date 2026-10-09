@@ -6,10 +6,19 @@ const run = promisify(execFile);
 
 async function git(root, args) {
   try {
-    const result = await run("git", ["-C", root, ...args], { encoding: "utf8", windowsHide: true, timeout: 15000, maxBuffer: 5 * 1024 * 1024 });
+    const result = await run("git", ["-C", root, ...args], {
+      encoding: "utf8",
+      windowsHide: true,
+      timeout: 15000,
+      maxBuffer: 5 * 1024 * 1024,
+    });
     return result.stdout;
   } catch (error) {
-    throw new Error(String(error.stderr || error.message || "Git command failed").trim().slice(0, 800));
+    throw new Error(
+      String(error.stderr || error.message || "La commande git a échoué")
+        .trim()
+        .slice(0, 800)
+    );
   }
 }
 
@@ -31,17 +40,28 @@ async function status(workspace) {
     if (!file) continue;
     const normalized = file.replace(/\\/g, "/");
     const segments = normalized.split("/");
-    if (segments.some((part) => part === ".c3" || part === ".playwright-mcp")) continue;    let scopedPath;
-    try { scopedPath = resolveInWorkspace(workspace, path.relative(workspace, path.resolve(root, file))); }
-    catch { continue; }
+    if (segments.some((part) => part === ".c3" || part === ".playwright-mcp")) continue;
+    let scopedPath;
+    try {
+      scopedPath = resolveInWorkspace(workspace, path.relative(workspace, path.resolve(root, file)));
+    } catch {
+      continue;
+    }
     const rel = path.relative(workspace, scopedPath).split(path.sep).join("/");
     gitPaths.push(file);
     const badge = code === "??" ? "N" : code.includes("D") ? "D" : code.includes("R") ? "R" : code.includes("A") ? "A" : "M";
     files.push({ path: rel, badge });
   }
   let stat = "";
-  try { stat = (await git(root, ["diff", "--stat", "HEAD", "--", ...gitPaths])).trim(); }
-  catch { try { stat = (await git(root, ["diff", "--stat", "--", ...gitPaths])).trim(); } catch { stat = ""; } }
+  try {
+    stat = (await git(root, ["diff", "--stat", "HEAD", "--", ...gitPaths])).trim();
+  } catch {
+    try {
+      stat = (await git(root, ["diff", "--stat", "--", ...gitPaths])).trim();
+    } catch {
+      stat = "";
+    }
+  }
   const branch = (await git(root, ["branch", "--show-current"])).trim();
   return { root, branch, files, stat };
 }
@@ -57,18 +77,21 @@ async function blame(workspace, requestedPath, line) {
 }
 
 async function diff(workspace, requestedPath) {
-  if (typeof requestedPath !== "string" || !requestedPath.trim()) throw new Error("Choose a changed file first.");
+  if (typeof requestedPath !== "string" || !requestedPath.trim()) throw new Error("Choisissez d'abord un fichier modifié.");
   const root = await repoRoot(workspace);
   const abs = resolveInWorkspace(workspace, requestedPath);
   const rel = path.relative(root, abs);
-  try { return await git(root, ["diff", "--no-ext-diff", "--no-color", "HEAD", "--", rel]); }
-  catch { return git(root, ["diff", "--no-ext-diff", "--no-color", "--", rel]); }
+  try {
+    return await git(root, ["diff", "--no-ext-diff", "--no-color", "HEAD", "--", rel]);
+  } catch {
+    return git(root, ["diff", "--no-ext-diff", "--no-color", "--", rel]);
+  }
 }
 
 async function commit(workspace, requestedPath, message) {
-  if (typeof message !== "string" || !message.trim()) throw new Error("Enter a commit message.");
-  if (Buffer.byteLength(message, "utf8") > 4000) throw new Error("Commit message exceeds 4 KB.");
-  if (typeof requestedPath !== "string" || !requestedPath.trim()) throw new Error("Choose a file to commit.");
+  if (typeof message !== "string" || !message.trim()) throw new Error("Saisissez un message de commit.");
+  if (Buffer.byteLength(message, "utf8") > 4000) throw new Error("Le message de commit dépasse 4 Ko.");
+  if (typeof requestedPath !== "string" || !requestedPath.trim()) throw new Error("Choisissez un fichier à commiter.");
   const root = await repoRoot(workspace);
   const abs = resolveInWorkspace(workspace, requestedPath);
   const rel = path.relative(root, abs);

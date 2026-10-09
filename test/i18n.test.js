@@ -1,7 +1,8 @@
 // Garde-fou i18n : aucun texte anglais visible ne doit réapparaître dans
-// l'interface web (attributs title/placeholder/aria-label et textContent
-// littéraux de src/web/*.ts, puis toutes les chaînes littérales de
-// client.ts — celles passées en argument de el()/prompt()/confirm()/alert()).
+// l'interface — web (src/web/*.ts : attributs title/placeholder/aria-label,
+// littéraux de tous les fichiers, backticks compris) ET pages desktop
+// (desktop/*.html : texte visible + attributs + littéraux des <script>,
+// desktop/*.js : littéraux hors scripts utilitaires de dev).
 // Exécution automatique via scripts/test.cjs.
 const test = require("node:test");
 const assert = require("node:assert");
@@ -9,10 +10,28 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const WEB_DIR = path.join(__dirname, "..", "src", "web");
-const FILES = ["client.ts", "page.ts", "hub.ts"];
-// Lot B (client.ts) + hub.ts/page.ts : scan littéral complet, backticks
-// compris (les messages serveur visibles dans l'UI passent par hub.ts).
-const LITERAL_FILES = ["client.ts", "page.ts", "hub.ts"];
+const DESKTOP_DIR = path.join(__dirname, "..", "desktop");
+const webTs = fs
+  .readdirSync(WEB_DIR)
+  .filter((f) => f.endsWith(".ts"))
+  .sort();
+const FILES = webTs;
+// Scan littéral complet de tous les modules web (régression Lot B :
+// client.ts, page.ts, hub.ts, store.ts, terminal.ts, channel.ts, ...).
+const LITERAL_FILES = webTs;
+// Pages et services desktop réellement affichés (les *.bak et scripts de
+// dev — smoke/check-hub/hl-check/sse-check — sont volontairement exclus).
+const DESKTOP_HTML = ["editor.html", "git.html", "mcp.html"];
+const DESKTOP_JS = [
+  "main.js",
+  "hub-client.js",
+  "git-service.js",
+  "mcp-status.js",
+  "editor-file-service.js",
+  "preload.js",
+  "preload-git.js",
+  "preload-panel.js",
+];
 
 // Littéraux uniquement : les concaténations dynamiques s'arrêtent au
 // premier guillemet fermant et ne sont donc jamais faussement analysées.
@@ -167,6 +186,20 @@ const BLACKLIST = [
   "image must be",
   "cannot see images",
   "cannot read ",
+  // --- régressions desktop + labels de mode (traduits cette session) ---
+  "Read-only",
+  "YOLO bypass",
+  "Switch model or find models",
+  "Invalid session id",
+  "could not start",
+  "Git command failed",
+  "Enter a commit message",
+  "Commit message exceeds",
+  "Choose a file to commit",
+  "Choose a changed file",
+  "no longer configured",
+  "configuration file was not found",
+  "Invalid MCP server",
 ];
 
 // Motifs anglais généraux (phrases et mots caractéristiques) pour les
@@ -202,9 +235,9 @@ const ENGLISH_PATTERNS = [
   /\bclick\b/i,
 ];
 
-// Toutes les chaînes littérales simples de client.ts (arguments de el(),
-// prompt(), confirm(), alert(), textContent, etc.), pas seulement celles
-// affectées à un attribut connu.
+// Toutes les chaînes littérales simples (arguments de el(), prompt(),
+// confirm(), alert(), textContent, throw new Error(...), etc.), backticks
+// compris, pas seulement celles affectées à un attribut connu.
 const ANY_STRING = /(["'`])((?:\\.|(?!\1).)*)\1/g;
 
 // Littéraux volontairement anglais : prompts envoyés aux modèles (leur
@@ -235,22 +268,41 @@ test("i18n: l'interface web ne contient plus de texte anglais visible", () => {
   const violations = [];
   const check = (file, attr, value, index, src) => {
     if (!/[A-Za-z]{3,}/.test(value)) return;
+    // Suffixe de classe CSS (" open", " hidden") : jamais du texte affiché.
+    if (/\s/.test(value) && /^\s*[a-z][a-z-]*\s*$/.test(value)) return;
     const line = src.slice(0, index).split("\n").length;
-    for (const banned of BLACKLIST) {
-      // Les phrases (avec espace) sont cherchées en sous-chaîne ; les mots
-      // courts ne doivent égaliser la chaîne entière (évite "remove" dans
-      // les routes API, "send" dans une phrase déjà française...).
-      const match = banned.includes(" ") ? value.includes(banned) : value === banned;
-      if (match) {
-        violations.push(`${file}:${line} ${attr} contient "${banned}" → "${value}"`);
-      }
-    }
-    if (/\s/.test(value) && !/^\/[a-z]/.test(value)) {
-      for (const pattern of ENGLISH_PATTERNS) {
-        if (pattern.test(value)) {
-          violations.push(`${file}:${line} ${attr} matche ${pattern} → "${value}"`);
+    // Dans un template literal, ${...} est du code (classes CSS
+    // conditionnelles…) : on n'analyse que les fragments affichés.
+    for (const part of value.split(/\$\{[^{}]*\}/g)) {
+      if (!/[A-Za-z]{3,}/.test(part)) continue;
+      for (const banned of BLACKLIST) {
+        // Les phrases (avec espace) sont cherchées en sous-chaîne ; les mots
+        // courts ne doivent égaliser la chaîne entière (évite "remove" dans
+        // les routes API, "send" dans une phrase déjà française...).
+        const match = banned.includes(" ") ? part.includes(banned) : part === banned;
+        if (match) {
+          violations.push(`${file}:${line} ${attr} contient "${banned}" → "${part}"`);
         }
       }
+      if (/\s/.test(part) && !/^\/[a-z]/.test(part)) {
+        for (const pattern of ENGLISH_PATTERNS) {
+          if (pattern.test(part)) {
+            violations.push(`${file}:${line} ${attr} matche ${pattern} → "${part}"`);
+          }
+        }
+      }
+    }
+  };
+  const scanLiterals = (file, src, label) => {
+    ANY_STRING.lastIndex = 0;
+    let s = ANY_STRING.exec(src);
+    while (s !== null) {
+      const value = s[2];
+      const exempt = EXCEPTIONS.some((e) => e.test(value));
+      if (!exempt && isVisibleLiteral(src, s.index) && !value.includes("://") && !value.includes("\\n")) {
+        check(file, label, value, s.index, src);
+      }
+      s = ANY_STRING.exec(src);
     }
   };
   for (const file of FILES) {
@@ -267,17 +319,50 @@ test("i18n: l'interface web ne contient plus de texte anglais visible", () => {
   for (const file of LITERAL_FILES) {
     const full = path.join(WEB_DIR, file);
     if (!fs.existsSync(full)) continue;
+    scanLiterals(file, fs.readFileSync(full, "utf8"), "chaîne");
+  }
+  // --- Pages desktop : attributs, texte visible entre balises et littéraux
+  // des <script> inline (commentaires HTML blanchis pour ne pas les lire) ---
+  for (const file of DESKTOP_HTML) {
+    const full = path.join(DESKTOP_DIR, file);
+    if (!fs.existsSync(full)) continue;
     const src = fs.readFileSync(full, "utf8");
-    ANY_STRING.lastIndex = 0;
-    let s = ANY_STRING.exec(src);
-    while (s !== null) {
-      const value = s[2];
-      const exempt = EXCEPTIONS.some((e) => e.test(value));
-      if (!exempt && isVisibleLiteral(src, s.index) && !value.includes("://") && !value.includes("\\n")) {
-        check(file, "chaîne", value, s.index, src);
-      }
-      s = ANY_STRING.exec(src);
+    LITERAL_ATTR.lastIndex = 0;
+    let m = LITERAL_ATTR.exec(src);
+    while (m !== null) {
+      check(file, m[1], m[3], m.index, src);
+      m = LITERAL_ATTR.exec(src);
+    }
+    const clean = src
+      .replace(/<!--[\s\S]*?-->/g, (c) => " ".repeat(c.length))
+      .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, (c) => " ".repeat(c.length))
+      .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, (c) => " ".repeat(c.length));
+    const textRe = />([^<>{}\n]{4,160})</g;
+    let t = textRe.exec(clean);
+    while (t !== null) {
+      const value = t[1].trim();
+      if (/[A-Za-z]{4,}/.test(value)) check(file, "texte", value, t.index + 1, src);
+      t = textRe.exec(clean);
+    }
+    const scriptRe = /<script\b[^>]*>([\s\S]*?)<\/script>/gi;
+    let b = scriptRe.exec(src);
+    while (b !== null) {
+      scanLiterals(file, b[1], "script");
+      b = scriptRe.exec(src);
     }
   }
+  // --- Services desktop (messages d'erreur remontés dans l'UI) ---
+  for (const file of DESKTOP_JS) {
+    const full = path.join(DESKTOP_DIR, file);
+    if (!fs.existsSync(full)) continue;
+    scanLiterals(file, fs.readFileSync(full, "utf8"), "chaîne");
+  }
   assert.deepEqual(violations, [], `Textes anglais détectés dans l'UI (traduire en français) :\n${violations.join("\n")}`);
+});
+
+test("i18n: les libellés de mode (MODE_LABELS) restent en français", () => {
+  const src = fs.readFileSync(path.join(__dirname, "..", "src", "tools", "index.ts"), "utf8");
+  const m = src.match(/export const MODE_LABELS[\s\S]{0,300}?\};/);
+  assert.ok(m, "MODE_LABELS introuvable dans src/tools/index.ts");
+  assert.ok(!/read-only|YOLO bypass|"edit"|"ro"/i.test(m[0]), `MODE_LABELS contient un libellé anglais à traduire : ${m[0]}`);
 });

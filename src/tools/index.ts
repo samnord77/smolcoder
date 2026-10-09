@@ -32,9 +32,9 @@ import { fetchUrl } from "./web";
 export type Mode = "ro" | "edit" | "bypass";
 
 export const MODE_LABELS: Record<Mode, string> = {
-  ro: "read-only",
-  edit: "edit",
-  bypass: "YOLO bypass",
+  ro: "lecture seule",
+  edit: "édition",
+  bypass: "YOLO",
 };
 
 const TOOL_RESULT_CAP = 10000; // chars — final safety net over per-tool caps
