@@ -14,7 +14,7 @@
 import { imageDataUrl } from "../attachments";
 import { tryFetchJson } from "../util";
 import { scheduleInference } from "./scheduler";
-import { fetchOrCause, httpErrorDetail, responseLines, streamJson, withDeadline } from "./transport";
+import { fetchOrCause, HttpError, httpErrorDetail, isHttp4xx, responseLines, streamJson, withDeadline } from "./transport";
 import {
   type ChatOptions,
   type ChatResult,
@@ -196,8 +196,9 @@ export class LmStudioProvider implements Provider {
       if (started.streaming) throw err; // tokens already shown — don't re-emit
       const msg = String(err?.message ?? "");
       // Only latch effortUnsupported on an actual param rejection (4xx naming
-      // it), never on a transient 5xx / dropped socket.
-      if (base.reasoning_effort && /returned 4\d\d/.test(msg) && /reasoning|effort/i.test(msg)) {
+      // it), never on a transient 5xx / dropped socket. Status travels on the
+      // HttpError itself — no message-text parsing.
+      if (base.reasoning_effort && isHttp4xx(err) && /reasoning|effort/i.test(msg)) {
         this.effortUnsupported = true;
         delete base.reasoning_effort;
         return await this.chain(base, opts, started);
@@ -215,7 +216,7 @@ export class LmStudioProvider implements Provider {
       const msg = String(err?.message ?? "");
       // Only degrade the request shape on a pre-stream HTTP rejection; a
       // transient error must propagate to chatWithRetry for backoff.
-      if (!/returned 4\d\d/.test(msg)) throw err;
+      if (!isHttp4xx(err)) throw err;
       // A reasoning_effort rejection must reach chat()'s handler, not be
       // masked by the stream-shape fallback ladder.
       if (/reasoning|effort/i.test(msg)) throw err;
@@ -223,7 +224,7 @@ export class LmStudioProvider implements Provider {
         return await this.request({ ...base, stream: true }, opts, started);
       } catch (err2: any) {
         if (err2?.name === "AbortError" || started.streaming) throw err2;
-        if (!/returned 4\d\d/.test(String(err2?.message ?? ""))) throw err2;
+        if (!isHttp4xx(err2)) throw err2;
         return await this.request({ ...base, stream: false }, opts, started);
       }
     }
@@ -246,13 +247,13 @@ export class LmStudioProvider implements Provider {
     });
     if (!res.ok) {
       const text = await res.text().catch(() => "");
-      throw new Error(`${this.serverName} returned ${res.status}: ${httpErrorDetail(res.status, text, res.headers)}`);
+      throw new HttpError(res.status, this.serverName, httpErrorDetail(res.status, text, res.headers));
     }
 
     if (body.stream === false) {
       const data: any = await res.json();
       if (data.error || !data.choices?.[0]?.message)
-        throw new Error(`${this.serverName} returned an invalid completion: ${data.error?.message ?? "missing message"}`);
+        throw new Error(`${this.serverName} : completion invalide — ${data.error?.message ?? "message manquant"}`);
       const msg = data.choices?.[0]?.message ?? {};
       const toolCalls: ToolCall[] = (msg.tool_calls ?? []).map((tc: any) => ({
         id: tc.id || nextCallId(),
@@ -334,8 +335,9 @@ export class LmStudioProvider implements Provider {
     if (!finished)
       throw new Error(
         content.length
-          ? `LM Studio stream ended before completion after ${content.length} chars; the response was discarded`
-          : `LM Studio stream ended before completion without a single token (model server stopped or ran out of memory); the response was discarded`
+          ? // "stream ended before completion" stays: recovery tests and retry policy match it.
+            `LM Studio : flux interrompu (stream ended before completion) après ${content.length} caractères ; la réponse a été ignorée`
+          : `LM Studio : flux interrompu (stream ended before completion) sans un seul token (serveur de modèle arrêté ou mémoire insuffisante) ; la réponse a été ignorée`
       );
 
     const toolCalls: ToolCall[] = [...partials.entries()]

@@ -10,7 +10,7 @@
 import { imageBase64 } from "../attachments";
 import { tryFetchJson } from "../util";
 import { scheduleInference } from "./scheduler";
-import { fetchOrCause, httpErrorDetail, responseLines, streamJson, withDeadline } from "./transport";
+import { fetchOrCause, HttpError, httpErrorDetail, responseLines, streamJson, withDeadline } from "./transport";
 import {
   type ChatOptions,
   type ChatResult,
@@ -187,7 +187,7 @@ export class OllamaProvider implements Provider {
     });
     if (!res.ok) {
       const text = await res.text().catch(() => "");
-      throw new Error(`Ollama returned ${res.status}: ${httpErrorDetail(res.status, text, res.headers)}`);
+      throw new HttpError(res.status, "Ollama", httpErrorDetail(res.status, text, res.headers));
     }
 
     let content = "";
@@ -202,7 +202,7 @@ export class OllamaProvider implements Provider {
     let firstTokAt = 0;
 
     const handleChunk = (chunk: any) => {
-      if (chunk.error) throw new Error(`Ollama stream error: ${chunk.error}`);
+      if (chunk.error) throw new Error(`stream error côté Ollama : ${chunk.error}`);
       if (started) started.streaming = true; // committed — no safe re-request now
       const msg = chunk.message;
       if (msg?.thinking) {
@@ -250,8 +250,9 @@ export class OllamaProvider implements Provider {
     if (!finished)
       throw new Error(
         content.length
-          ? `Ollama stream ended before completion after ${content.length} chars; the response was discarded`
-          : `Ollama stream ended before completion without a single token (model server stopped or ran out of memory); the response was discarded`
+          ? // "stream ended before completion" stays: retry policy matches that keyword.
+            `Ollama : flux interrompu (stream ended before completion) après ${content.length} caractères ; la réponse a été ignorée`
+          : `Ollama : flux interrompu (stream ended before completion) sans un seul token (serveur de modèle arrêté ou mémoire insuffisante) ; la réponse a été ignorée`
       );
 
     if (toolCalls.length === 0 && content) {

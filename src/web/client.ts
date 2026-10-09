@@ -43,7 +43,7 @@ function smolReportError(where, err) {
       b.style.cssText = "position:fixed;left:0;right:0;bottom:0;z-index:9999;background:#3a1414;color:#ffd7d7;font:12px Consolas,monospace;padding:8px 12px;border-top:1px solid #f14c4c;white-space:pre-wrap;";
       document.body.appendChild(b);
     }
-    b.textContent = "Page error (" + where + "): " + String((err && err.message) || err) + " — reload (Ctrl+R). If it persists after npm run build + hub restart, report this text.";
+    b.textContent = "Erreur de page (" + where + ") : " + String((err && err.message) || err) + " — rechargez (Ctrl+R). Si elle persiste après npm run build + redémarrage du hub, signalez ce texte.";
   } catch (_) {}
 }
 window.addEventListener("error", (e) => smolReportError("js", e.error || e.message));
@@ -551,7 +551,7 @@ function scheduleMd(v, target) {
 }
 function endThought(v) {
   if (v.curThought) {
-    v.curThought._preview.textContent = "✦ thought for " + ((Date.now() - v.thoughtStart) / 1000).toFixed(1) + "s";
+    v.curThought._preview.textContent = "✦ réfléchi pendant " + ((Date.now() - v.thoughtStart) / 1000).toFixed(1) + "s";
     v.curThought = null; v.thoughtBuf = "";
   }
 }
@@ -621,9 +621,9 @@ function renderBusy() {
   const label = active ? active.busyLabel : null;
   const mainEl = $("main");
   if (mainEl) mainEl.classList.toggle("agent-working", !!label);
-  actionBtn.textContent = label ? "■ stop" : "send";
+  actionBtn.textContent = label ? "■ arrêt" : "Envoyer";
   actionBtn.className = label ? "stop" : "";
-  actionBtn.title = label ? "interrupt the agent (esc)" : "send (enter)";
+  actionBtn.title = label ? "Interrompre l'agent (échap)" : "Envoyer (entrée)";
   const connBar = $("connbar");
   if (connBar) connBar.classList.toggle("active", !!label);
   const spinEl = document.querySelector("#busy .spin");
@@ -828,8 +828,8 @@ function renderState(v) {
   mode.title = s.yolo ? "YOLO ACTIF — aucune demande avant d'agir" : "Mode de l’agent — cliquer pour choisir"; mode.onclick = () => statusMenu(mode, modeMenuItems(s, command));
   st.appendChild(mode);
   const model = el("button", "statusbtn modelpick", s.model + (s.model.endsWith(":free") ? " · gratuit" : "") + (s.host ? " @ " + s.host : "") + " ▾"); model.title = s.backend + (s.host ? " on " + s.host : "") + " · Switch model or find models on another machine"; model.onclick = () => command("models"); st.appendChild(model);
-  const effort = el("button", "statusbtn eff", s.effort || "Auto"); effort.title = "Reasoning effort"; effort.onclick = () => command("effort"); st.appendChild(effort);
-  const bell = el("button", "statusbtn bell", bellOn() ? "🔔" : "🔕"); bell.title = "Desktop notifications: approvals, finished turns, errors";
+    const effort = el("button", "statusbtn eff", s.effort || "Auto"); effort.title = "Niveau de raisonnement"; effort.onclick = () => command("effort"); st.appendChild(effort);
+    const bell = el("button", "statusbtn bell", bellOn() ? "🔔" : "🔕"); bell.title = "Notifications bureau : approbations, fins de tour, erreurs";
   bell.onclick = () => {
     if (!bellOn()) {
       ls.set("smol-notify", "1");
@@ -869,7 +869,7 @@ function renderState(v) {
     void ctxNum.offsetWidth;
     ctxNum.classList.add("bump");
   }
-  const b = s.context; ctxChip.title = b ? b.prompt.toLocaleString() + " / " + b.window.toLocaleString() + " tokens · " + b.reserve.toLocaleString() + " reserved for reply · " + b.source : "Context usage";
+  const b = s.context; ctxChip.title = b ? b.prompt.toLocaleString() + " / " + b.window.toLocaleString() + " tokens · " + b.reserve.toLocaleString() + " réservés à la réponse · " + b.source : "Utilisation du contexte";
   st.appendChild(ctxChip);
   if (s.plan) {
     const done = s.plan.steps.filter((x) => x.done).length;
@@ -885,7 +885,7 @@ function renderState(v) {
     cmdChip.title = s.commandsRun.join("\n");
     st.appendChild(cmdChip);
   }
-  if (s.tasks) st.appendChild(el("span", "task-chip", s.tasks + " running"));
+  if (s.tasks) st.appendChild(el("span", "task-chip", s.tasks + " en cours"));
   if (s.autopilot && s.autopilot.label) {
     const phase = String(s.autopilot.phase || "starting");
     const phaseClass =
@@ -974,8 +974,8 @@ function renderState(v) {
     st.appendChild(chip);
   }
   if (s.outcome === "error" || s.outcome === "cancelled") {
-    const paused = el("span", s.outcome === "error" ? "line-warn" : "task-chip", s.outcome === "error" ? "Paused" : "Stopped");
-    paused.title = s.lastError || "Turn cancelled; progress is kept"; st.appendChild(paused);
+    const paused = el("span", s.outcome === "error" ? "line-warn" : "task-chip", s.outcome === "error" ? "En pause" : "Arrêté");
+    paused.title = s.lastError || "Tour annulé ; la progression est conservée"; st.appendChild(paused);
     const resume = el("button", "statusbtn autopilot-resume", s.outcome === "error" ? "reprendre" : "relancer");
     resume.type = "button";
     resume.title = s.lastError || "Reprendre le dernier plan Auto Copilot avec le contexte conservé";
@@ -1392,14 +1392,14 @@ function armOffload(v, host, summary) {
 function showOffloadCard(v, o) {
   if (v.offload !== o || !o.host || o.card) return;
   const card = el("div", "offload-card");
-  const title = el("div", "offload-title", "Tool running longer — about to offload");
+  const title = el("div", "offload-title", "Outil en cours depuis longtemps — déport imminent");
   const count = el("div", "offload-count", "");
   const row = el("div", "offload-actions");
   const refresh = () => {
     const left = o.deadline - Date.now();
     count.textContent = left > 0
-      ? "Detaching in " + Math.ceil(left / 1000) + "s — the command is killed at zero"
-      : "the shell timeout is firing now…";
+      ? "Déport dans " + Math.ceil(left / 1000) + "s — la commande est tuée à zéro"
+      : "le timeout du shell se déclenche maintenant…";
   };
   const send = (action, ms) => post("/shell", { action: action, command: o.command, ms: ms || 0 });
   const button = (label, primary, fn) => {
@@ -1411,14 +1411,14 @@ function showOffloadCard(v, o) {
     const wait = Math.max(0, deadline - Date.now() - OFFLOAD_LEAD_MS);
     o.arm = setTimeout(() => { if (v.offload === o) showOffloadCard(v, o); }, wait);
   };
-  row.appendChild(button("Move to background now", true, () => {
+  row.appendChild(button("Déplacer en arrière-plan maintenant", true, () => {
     send("detach").then((r) => {
-      if (r && r.ok && r.taskId) count.textContent = "Moved to background as task " + r.taskId + " — the agent keeps working.";
-      else count.textContent = "It finished before it could be moved.";
+    if (r && r.ok && r.taskId) count.textContent = "Déplacé en tâche d'arrière-plan n° " + r.taskId + " — l'agent continue de travailler.";
+    else count.textContent = "Il s'est terminé avant d'être déplacé.";
     });
   }));
-  row.appendChild(button("Don't auto-offload", false, () => clearOffload(v)));
-  row.appendChild(button("Delay offload", false, () => {
+  row.appendChild(button("Ne pas déporter automatiquement", false, () => clearOffload(v)));
+  row.appendChild(button("Reporter le déport", false, () => {
     send("extend", 60000).then((r) => {
       if (!r || !r.deadline) { clearOffload(v); return; }
       o.deadline = r.deadline;
@@ -1426,13 +1426,13 @@ function showOffloadCard(v, o) {
       rearmShow(r.deadline);
     });
   }));
-  row.appendChild(button("Extend timeout", false, () => {
+  row.appendChild(button("Prolonger le délai", false, () => {
     send("extend", 120000).then((r) => {
       if (r && r.deadline) { o.deadline = r.deadline; refresh(); }
       else clearOffload(v);
     });
   }));
-  row.appendChild(button("Cancel", false, () => {
+  row.appendChild(button("Annuler", false, () => {
     send("cancel").then(() => clearOffload(v));
   }));
   card.appendChild(title); card.appendChild(count); card.appendChild(row);
@@ -1709,10 +1709,10 @@ function handle(m) {
     case "confirm": {
       endThought(v); v.curText = null;
       const box = el("div", "ask");
-      box.appendChild(el("div", "", "run?")); box.appendChild(el("div", "cmd", m.command));
+      box.appendChild(el("div", "", "Exécuter ?")); box.appendChild(el("div", "cmd", m.command));
       if (m.reason) box.appendChild(el("div", "hint", m.reason));
       ["yes", "no", "always"].forEach((a) => {
-        const b = el("button", "", a === "always" ? "always allow this program" : a);
+        const b = el("button", "", a === "always" ? "Toujours autoriser ce programme" : a === "yes" ? "oui" : "non");
         b.onclick = () => { post("/confirm", { sid: v.sid, id: m.id, answer: a }); box.remove(); };
         box.appendChild(b);
       });
@@ -1789,7 +1789,7 @@ function onHub(m) {
       mm = String(when.getMinutes()).padStart(2, "0");
     } catch (e) {}
     $("ver").textContent += " · hub " + hh + ":" + mm;
-    $("ver").title = "Hub started " + when.toLocaleString() + " — if this predates your latest npm run build, stop the old hub (Ctrl+C in its terminal) and start it again, then reload this page";
+    $("ver").title = "Hub démarré " + when.toLocaleString() + " — si cette date précède votre dernier npm run build, arrêtez l'ancien hub (Ctrl+C dans son terminal) et relancez-le, puis rechargez cette page";
   }
   if (pendingSelect && sessInfo.has(pendingSelect)) { const id = pendingSelect; pendingSelect = null; show(id); }
   else if (!active) {
@@ -1916,9 +1916,9 @@ function renderSidebar() {
     const box = el("div", "ws");
     const hdr = el("div", "wshdr"); hdr.title = w.path;
     hdr.appendChild(el("span", "wsname", w.name)); hdr.appendChild(el("span", "grow"));
-    const plus = el("button", "iconbtn", "+"); plus.title = "new session in " + w.name;
+    const plus = el("button", "iconbtn", "+");     plus.title = "Nouvelle session dans " + w.name;
     plus.onclick = (e) => { e.stopPropagation(); newSession(w.path); };
-    const rm = el("button", "iconbtn", "×"); rm.title = "remove " + w.name + " from the list";
+    const rm = el("button", "iconbtn", "×");     rm.title = "Retirer " + w.name + " de la liste";
     rm.onclick = (e) => { e.stopPropagation(); removeWorkspace(w); };
     hdr.appendChild(plus); hdr.appendChild(rm);
     if (!w.sessions.length) { hdr.style.cursor = "pointer"; hdr.onclick = () => newSession(w.path); }
@@ -1928,26 +1928,26 @@ function renderSidebar() {
       const v = views.get(s.id);
       const row = el("div", "sess " + (s.live ? s.status : "stored") + (active && active.sid === s.id ? " active" : "") + (v && v.unread ? " unread" : ""));
       row.appendChild(el("span", "dot"));
-      row.appendChild(el("span", "stitle" + (s.title ? "" : " untitled"), s.title || "new session"));
+      row.appendChild(el("span", "stitle" + (s.title ? "" : " untitled"), s.title || "nouvelle session"));
       if (s.plan) row.appendChild(el("span", "stime", String(s.plan)));
       row.appendChild(el("span", "stime", rel(s.updatedAt)));
       if (s.live) {
         const sh = el("button", "iconbtn", "⍾");
-        sh.title = "copy a read-only live-follow link";
+        sh.title = "Copier un lien de suivi en direct (lecture seule)";
         sh.onclick = (e) => { e.stopPropagation(); shareSession(s.id); };
         row.appendChild(sh);
       }
       const x = el("button", "iconbtn", "×");
-      x.title = s.live ? "close session (kept in the list)" : "delete session";
+      x.title = s.live ? "Fermer la session (conservée dans la liste)" : "Supprimer la session";
       x.onclick = (e) => {
         e.stopPropagation();
         if (s.live) post("/sessions/close", { id: s.id });
-        else if (confirm("Delete this session permanently?")) post("/sessions/delete", { id: s.id });
+        else if (confirm("Supprimer définitivement cette session ?")) post("/sessions/delete", { id: s.id });
       };
       row.appendChild(x);
-      row.title = (s.title || "new session") + (s.model ? " · " + s.model : "") + (s.live ? " · " + s.status : " · saved — click to resume") + (s.viewers && s.viewers.length ? " · 👁 " + s.viewers.join(", ") : "") + (s.editing && s.editing.length ? " · ✎ " + s.editing.map((e) => e.name + ": " + e.path + ":" + e.line).join(", ") : "");
+      row.title = (s.title || "nouvelle session") + (s.model ? " · " + s.model : "") + (s.live ? " · " + s.status : " · enregistrée — cliquez pour reprendre") + (s.viewers && s.viewers.length ? " · 👁 " + s.viewers.join(", ") : "") + (s.editing && s.editing.length ? " · ✎ " + s.editing.map((e) => e.name + ": " + e.path + ":" + e.line).join(", ") : "");
       row.onclick = () => select(s.id);
-      row.ondblclick = () => { const t = prompt("Rename session", s.title || ""); if (t !== null && t.trim()) post("/sessions/rename", { id: s.id, title: t }); };
+      row.ondblclick = () => { const t = prompt("Renommer la session", s.title || ""); if (t !== null && t.trim()) post("/sessions/rename", { id: s.id, title: t }); };
       sl.appendChild(row);
     }
     box.appendChild(sl);
@@ -2007,9 +2007,9 @@ function renderTaskRail() {
 }
 
 function removeWorkspace(w) {
-  if (w.sessions.some((s) => s.live)) { alert("Close the open sessions in " + w.name + " first."); return; }
+  if (w.sessions.some((s) => s.live)) { alert("Fermez d'abord les sessions ouvertes dans " + w.name + "."); return; }
   const n = w.sessions.length;
-  if (!confirm("Remove " + w.name + " from the list?" + (n ? " Its " + n + " saved session" + (n > 1 ? "s" : "") + " will be deleted." : ""))) return;
+  if (!confirm("Retirer " + w.name + " de la liste ?" + (n ? " Ses " + n + " session" + (n > 1 ? "s" : "") + " enregistrée" + (n > 1 ? "s" : "") + " seront supprimées." : ""))) return;
   post("/workspaces/remove", { path: w.path }).then((r) => { if (r.error) alert(r.error); });
 }
 function renderCrumb() {
@@ -2019,11 +2019,11 @@ function renderCrumb() {
   const info = sessInfo.get(active.sid);
   c.appendChild(el("span", "ws", info ? info.wsname : ""));
   c.appendChild(el("span", "sep", "›"));
-  c.appendChild(el("span", "title", active.state.title || (info && info.title) || "new session"));
+  c.appendChild(el("span", "title", active.state.title || (info && info.title) || "nouvelle session"));
   c.title = info ? info.workspace : "";
   if (info && info.plan) {
     const chip = el("button", "planchip", "☑ " + info.plan);
-    chip.type = "button"; chip.title = "Open task list";
+    chip.type = "button"; chip.title = "Ouvrir la liste des tâches";
     chip.onclick = () => togglePanelKind("plan");
     c.appendChild(chip);
   }
@@ -2075,7 +2075,7 @@ function renderFs(d) {
   $("fsopen").disabled = false;
   fsState = d;
   $("fspath").value = d.path;
-  $("fsopen").textContent = "Open " + (d.path.split(/[\\/]/).filter(Boolean).pop() || d.path) + (d.project ? " ✦" : "");
+  $("fsopen").textContent = "Ouvrir " + (d.path.split(/[\\/]/).filter(Boolean).pop() || d.path) + (d.project ? " ✦" : "");
   if (d.parent) { const up = el("div", "fsitem up", "↑ .."); up.onclick = () => browse(d.parent); list.appendChild(up); }
   for (const dir of d.dirs) {
     const it = el("div", "fsitem");
@@ -2085,7 +2085,7 @@ function renderFs(d) {
     it.ondblclick = () => openFolder(dir.path);
     list.appendChild(it);
   }
-  if (!d.dirs.length) list.appendChild(el("div", "sidehint", "no subfolders"));
+  if (!d.dirs.length) list.appendChild(el("div", "sidehint", "aucun sous-dossier"));
 }
 function openFolder(p) {
   post("/workspaces/add", { path: p, start: $("fsstart").checked }).then((r) => {
@@ -2400,8 +2400,8 @@ function appendOutputLog(channel, text) {
   }).join(" ");
   const origErr = console.error;
   const origWarn = console.warn;
-  console.error = function (...a) { try { appendOutputLog("Console", outStamp() + " [error] " + fmt(a)); } catch {} return origErr.apply(console, a); };
-  console.warn = function (...a) { try { appendOutputLog("Console", outStamp() + " [warn] " + fmt(a)); } catch {} return origWarn.apply(console, a); };
+  console.error = function (...a) { try { appendOutputLog("Console", outStamp() + " [erreur] " + fmt(a)); } catch {} return origErr.apply(console, a); };
+  console.warn = function (...a) { try { appendOutputLog("Console", outStamp() + " [avertissement] " + fmt(a)); } catch {} return origWarn.apply(console, a); };
 })();
 
 function ensureDebugConsoleTab(v) {
@@ -2578,9 +2578,9 @@ function renderPanel() {
       const isAct = t === cur;
       const b = el("div", "ptab" + (isAct ? " on" : ""));
       b.appendChild(el("span", "ico", t.kind === "browser" ? "◎" : t.kind === "files" ? "▤" : t.kind === "review" ? "Δ" : "☑"));
-      b.appendChild(el("span", "lbl", t.kind === "browser" ? (t.url ? t.url.replace(/^https?:\/\//, "") : "new tab") : t.kind === "files" ? "project files" : t.kind === "review" ? "review" : "tasks"));
+      b.appendChild(el("span", "lbl", t.kind === "browser" ? (t.url ? t.url.replace(/^https?:\/\//, "") : "nouvel onglet") : t.kind === "files" ? "fichiers du projet" : t.kind === "review" ? "révision" : "tâches"));
       const x = el("span", "x", "×");
-      x.title = "close tab";
+      x.title = "Fermer l'onglet";
       x.onclick = (e) => { e.stopPropagation(); closeTab(v, t); };
       b.appendChild(x);
       b.onclick = () => { v.activeTab = t.id; savePanel(v); renderPanel(); };
@@ -2589,13 +2589,13 @@ function renderPanel() {
   }
   tabsEl.appendChild(tabsLeft);
   const legacyWrap = el("div", "vsc-legacy-actions");
-  const nb = el("button", "iconbtn", "+◎"); nb.title = "new browser tab"; nb.onclick = () => openBrowserTab(v);
-  const nf = el("button", "iconbtn", "+▤"); nf.title = "project files"; nf.onclick = () => openFilesTab(v);
-  const ns = el("button", "iconbtn", "+⊞"); ns.title = "split: second files panel"; ns.onclick = () => openFilesTab(v, false, true);
-  const nr = el("button", "iconbtn", "+Δ"); nr.title = "review uncommitted changes"; nr.onclick = () => openReviewTab(v);
-  const np = el("button", "iconbtn", "+☑"); np.title = "task list"; np.onclick = () => openPlanTab(v);
-  const nt = el("button", "iconbtn", "+>_"); nt.title = "new terminal"; nt.onclick = () => openTerminalTab(v);
-  const cl = el("button", "iconbtn", "»"); cl.title = "hide panel"; cl.onclick = () => { v.panelOpen = false; savePanel(v); renderPanel(); };
+    const nb = el("button", "iconbtn", "+◎"); nb.title = "Nouvel onglet navigateur"; nb.onclick = () => openBrowserTab(v);
+    const nf = el("button", "iconbtn", "+▤"); nf.title = "Fichiers du projet"; nf.onclick = () => openFilesTab(v);
+    const ns = el("button", "iconbtn", "+⊞"); ns.title = "Fractionné : second panneau de fichiers"; ns.onclick = () => openFilesTab(v, false, true);
+    const nr = el("button", "iconbtn", "+Δ"); nr.title = "Réviser les changements non committés"; nr.onclick = () => openReviewTab(v);
+    const np = el("button", "iconbtn", "+☑"); np.title = "Liste des tâches"; np.onclick = () => openPlanTab(v);
+    const nt = el("button", "iconbtn", "+>_"); nt.title = "Nouveau terminal"; nt.onclick = () => openTerminalTab(v);
+    const cl = el("button", "iconbtn", "»"); cl.title = "Masquer le panneau"; cl.onclick = () => { v.panelOpen = false; savePanel(v); renderPanel(); };
   legacyWrap.append(nb, nf, ns, nr, np, nt, cl);
   tabsEl.appendChild(legacyWrap);
   tabsEl.appendChild(el("span", "grow"));
@@ -2720,7 +2720,7 @@ function renderPanel() {
     const filterBox = el("div", "vsc-filter-box");
     const filterIn = document.createElement("input");
     filterIn.className = "vsc-filter-in";
-    filterIn.placeholder = "Filter (e.g. text, **/*.ts, !**/nod...";
+    filterIn.placeholder = "Filtrer (ex. texte, **/*.ts, !**/nod...";
     filterIn.value = cur.filter || "";
     filterIn.oninput = () => {
       cur.filter = filterIn.value;
@@ -2912,7 +2912,7 @@ function fillUrls(t, urls) {
   for (const u of urls) { const o = document.createElement("option"); o.value = u; t.dl.appendChild(o); }
   t.urlsEl.innerHTML = "";
   if (urls.length && !t.url) {
-    t.urlsEl.appendChild(el("div", "hint", "dev servers the agent started:"));
+    t.urlsEl.appendChild(el("div", "hint", "serveurs de dev démarrés par l'agent :"));
     for (const u of urls) { const b = el("button", "ghost", u); b.onclick = () => t.nav(u); t.urlsEl.appendChild(b); }
   }
 }
@@ -2926,23 +2926,23 @@ function openBrowserTab(v, url) {
 function buildBrowserTab(v, t) {
   const body = el("div", "tabbody browser"); body.hidden = true;
   const bar = el("div", "bar");
-  const reload = el("button", "iconbtn", "↻"); reload.title = "reload";
+  const reload = el("button", "iconbtn", "↻"); reload.title = "Recharger";
   const urlIn = document.createElement("input"); urlIn.placeholder = "http://localhost:5173"; urlIn.spellcheck = false;
   const dlId = "dl_" + t.id; const dl = document.createElement("datalist"); dl.id = dlId; urlIn.setAttribute("list", dlId);
-  const go = el("button", "iconbtn", "→"); go.title = "go";
-  const ext = el("a", "iconbtn", "↗"); ext.title = "open in a new browser tab"; ext.target = "_blank"; ext.rel = "noopener";
+  const go = el("button", "iconbtn", "→"); go.title = "Aller";
+  const ext = el("a", "iconbtn", "↗"); ext.title = "Ouvrir dans un nouvel onglet navigateur"; ext.target = "_blank"; ext.rel = "noopener";
   bar.appendChild(reload); bar.appendChild(urlIn); bar.appendChild(dl); bar.appendChild(go); bar.appendChild(ext);
-  const previewStatus = el("span", "preview-status", "Preview inactive");
+  const previewStatus = el("span", "preview-status", "Aperçu inactif");
   bar.appendChild(previewStatus);
   const empty = el("div", "empty");
-  empty.appendChild(el("div", "", "Enter a URL to preview it here."));
+  empty.appendChild(el("div", "", "Saisissez une URL pour l'aperçu ici."));
   const urlsEl = el("div", "urls"); empty.appendChild(urlsEl);
   const frame = document.createElement("iframe"); frame.hidden = true;
   // Games need pointer lock; confirmation dialogs must reach the user.
   // Keep navigation to the harness origin blocked below.
   frame.setAttribute("sandbox", "allow-scripts allow-forms allow-same-origin allow-popups allow-pointer-lock allow-modals");
   frame.referrerPolicy = "no-referrer";
-  frame.title = "App preview";
+  frame.title = "Aperçu de l'application";
   body.appendChild(bar); body.appendChild(empty); body.appendChild(frame);
   v.panelEl.appendChild(body);
   t.el = body; t.frame = frame; t.urlIn = urlIn; t.dl = dl; t.urlsEl = urlsEl; t.previewStatus = previewStatus;
@@ -2964,10 +2964,10 @@ function buildBrowserTab(v, t) {
     if (!u) return;
     if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(u)) u = "http://" + u;
     let parsed;
-    try { parsed = new URL(u); } catch { urlIn.setCustomValidity("Enter a valid http or https URL"); urlIn.reportValidity(); return; }
+    try { parsed = new URL(u); } catch { urlIn.setCustomValidity("Saisissez une URL http ou https valide"); urlIn.reportValidity(); return; }
     const localWorkspacePreview = parsed.origin === location.origin && parsed.pathname === "/workspace/preview";
     if (!["http:", "https:"].includes(parsed.protocol) || (!localWorkspacePreview && parsed.origin === location.origin) || (!localWorkspacePreview && ["localhost", "127.0.0.1", "[::1]"].includes(parsed.hostname) && parsed.port === location.port)) {
-      urlIn.setCustomValidity("Preview a separate app or a local HTML workspace file"); urlIn.reportValidity(); return;
+      urlIn.setCustomValidity("Prévisualisez une application séparée ou un fichier HTML local du workspace"); urlIn.reportValidity(); return;
     }
     urlIn.setCustomValidity(""); u = parsed.href;
     t.url = u; urlIn.value = u; ext.href = u;
@@ -3014,23 +3014,23 @@ function openFilesTab(v, focusSearch, forceNew) {
 function buildFilesTab(v, t) {
   const body = el("div", "tabbody files"); body.hidden = true;
   const bar = el("div", "bar");
-  const up = el("button", "iconbtn", "↑"); up.title = "parent folder";
+  const up = el("button", "iconbtn", "↑"); up.title = "Dossier parent";
   const pathInput = document.createElement("input");
-  pathInput.placeholder = "workspace path"; pathInput.spellcheck = false;
-  const refresh = el("button", "iconbtn", "↻"); refresh.title = "refresh files";
-  const save = el("button", "iconbtn", "save"); save.title = "save file";
+  pathInput.placeholder = "Chemin du dossier du projet"; pathInput.spellcheck = false;
+  const refresh = el("button", "iconbtn", "↻"); refresh.title = "Rafraîchir les fichiers";
+  const save = el("button", "iconbtn", "save"); save.title = "Enregistrer le fichier";
   const diagnosticsButton = el("button", "iconbtn", "✓ problèmes"); diagnosticsButton.title = "Analyser le fichier ouvert avec le serveur de langage";
   const previewButton = el("button", "iconbtn", "▣"); previewButton.title = "Aperçu local HTML";
   const findInput = document.createElement("input");
   findInput.placeholder = "Rechercher dans le projet…"; findInput.setAttribute("aria-label", "Rechercher dans les fichiers du projet");
-  const findButton = el("button", "iconbtn", "⌕"); findButton.title = "search workspace";
+  const findButton = el("button", "iconbtn", "⌕"); findButton.title = "Rechercher dans l'espace de travail";
   bar.appendChild(up); bar.appendChild(pathInput); bar.appendChild(findInput); bar.appendChild(findButton); bar.appendChild(refresh); bar.appendChild(diagnosticsButton); bar.appendChild(previewButton); bar.appendChild(save);
-  const newFile = el("button", "iconbtn", "+F"); newFile.title = "new file in this folder";
-  const newFolder = el("button", "iconbtn", "+D"); newFolder.title = "new folder here";
-  const renameBtn = el("button", "iconbtn", "✎"); renameBtn.title = "rename the open file";
-  const deleteBtn = el("button", "iconbtn", "🗑"); deleteBtn.title = "delete the open file";
+  const newFile = el("button", "iconbtn", "+F"); newFile.title = "Nouveau fichier dans ce dossier";
+  const newFolder = el("button", "iconbtn", "+D"); newFolder.title = "Nouveau dossier ici";
+  const renameBtn = el("button", "iconbtn", "✎"); renameBtn.title = "Renommer le fichier ouvert";
+  const deleteBtn = el("button", "iconbtn", "🗑"); deleteBtn.title = "Supprimer le fichier ouvert";
   bar.appendChild(newFile); bar.appendChild(newFolder); bar.appendChild(renameBtn); bar.appendChild(deleteBtn);
-  const inlineBtn = el("button", "iconbtn", "✨"); inlineBtn.title = "Edit selection with AI (Ctrl+K)";
+  const inlineBtn = el("button", "iconbtn", "✨");     inlineBtn.title = "Modifier la sélection avec l'IA (Ctrl+K)";
   bar.appendChild(inlineBtn);
   // A single "+" that opens a real menu: add the open file to what the agent
   // knows about it, or ask for a comment on it. Both used to be unreachable.
@@ -3323,7 +3323,7 @@ function buildFilesTab(v, t) {
   const code = document.createElement("pre"); code.className = "filecode"; code.setAttribute("aria-hidden", "true");
   const editor = document.createElement("textarea");
   t.editor = editor;
-  editor.className = "fileeditor"; editor.spellcheck = false; editor.placeholder = "Select a file…";
+  editor.className = "fileeditor"; editor.spellcheck = false; editor.placeholder = "Sélectionnez un fichier…";
   const gutter = document.createElement("div"); gutter.className = "filegutter";
   t.agentDiffBases = new Map();
   const minimap = document.createElement("div"); minimap.className = "fileminimap"; minimap.title = "Minimap — cliquer pour naviguer";
@@ -3899,8 +3899,8 @@ function buildFilesTab(v, t) {
       const label = el("button", "filetab-label", (tab.dirty ? "● " : "") + tab.path.split("/").pop());
       label.type = "button"; label.title = tab.path; label.setAttribute("aria-selected", String(tab.path === t.filePath));
       label.onclick = () => t.loadFile(tab.path);
-      const close = el("button", "filetab-close", "×"); close.type = "button"; close.title = "Close " + tab.path;
-      close.setAttribute("aria-label", "Close " + tab.path);
+      const close = el("button", "filetab-close", "×"); close.type = "button"; close.title = "Fermer " + tab.path;
+      close.setAttribute("aria-label", "Fermer " + tab.path);
       close.onclick = (event) => { event.stopPropagation(); closeFile(tab.path); };
       item.append(label, close); tabsBar.appendChild(item);
     }
@@ -4002,7 +4002,7 @@ function buildFilesTab(v, t) {
   const agentText = el("span", "filemeta", "");
   agentText.style.flex = "1";
   const agentReload = el("button", "iconbtn", "Recharger"); agentReload.type = "button";
-  const agentKeep = el("button", "iconbtn", "Garder"); agentKeep.type = "button"; agentKeep.title = "Keep my version (next save overwrites)";
+  const agentKeep = el("button", "iconbtn", "Garder"); agentKeep.type = "button"; agentKeep.title = "Garder ma version (la prochaine sauvegarde l'écrase)";
   const agentX = el("button", "iconbtn", "×"); agentX.type = "button";
   agentBar.append(agentText, agentReload, agentKeep, agentX);
   body.insertBefore(agentBar, split);
@@ -4364,7 +4364,7 @@ function buildFilesTab(v, t) {
       const url = "/workspace/search?k=" + k + "&sid=" + encodeURIComponent(v.sid) + "&q=" + encodeURIComponent(query);
       const response = await fetch(url);
       const data = await response.json();
-      if (!response.ok || data.error) throw new Error(data.error || "Search failed");
+      if (!response.ok || data.error) throw new Error(data.error || "Échec de la recherche");
       results.replaceChildren();
       for (const match of data.matches || []) {
         const button = el("button", "filesearch-result");
@@ -4576,22 +4576,22 @@ function openReviewTab(v) {
 function buildReviewTab(v, t) {
   const body = el("div", "tabbody review"); body.hidden = true;
   const bar = el("div", "bar");
-  const refresh = el("button", "iconbtn", "↻"); refresh.title = "refresh review";
+  const refresh = el("button", "iconbtn", "↻"); refresh.title = "Actualiser la révision";
   const staged = document.createElement("select");
   staged.className = "reviewmode";
-  staged.setAttribute("aria-label", "Review view");
-  staged.title = "show staged changes instead of unstaged";
-  const unstagedOpt = document.createElement("option"); unstagedOpt.value = "unstaged"; unstagedOpt.textContent = "Working tree";
-  const stagedOpt = document.createElement("option"); stagedOpt.value = "staged"; stagedOpt.textContent = "Staged";
+  staged.setAttribute("aria-label", "Vue de révision");
+  staged.title = "afficher les changements stagés à la place des non stagés";
+  const unstagedOpt = document.createElement("option"); unstagedOpt.value = "unstaged"; unstagedOpt.textContent = "Arbre de travail";
+  const stagedOpt = document.createElement("option"); stagedOpt.value = "staged"; stagedOpt.textContent = "Stagé";
   staged.appendChild(unstagedOpt); staged.appendChild(stagedOpt);
   bar.appendChild(refresh); bar.appendChild(staged);
-  const sbsBtn = el("button", "iconbtn", "⇄"); sbsBtn.type = "button"; sbsBtn.title = "side-by-side view";
+  const sbsBtn = el("button", "iconbtn", "⇄"); sbsBtn.type = "button"; sbsBtn.title = "Vue côte à côte";
   bar.appendChild(sbsBtn);
   let sbsMode = t.sbs ?? null; // null = auto, true = side-by-side, false = unified
   const updateSbsBtn = () => {
-    if (sbsMode === null) { sbsBtn.textContent = "⇄"; sbsBtn.title = "side-by-side view (auto)"; }
-    else if (sbsMode) { sbsBtn.textContent = "≡"; sbsBtn.title = "unified view"; }
-    else { sbsBtn.textContent = "⇄"; sbsBtn.title = "side-by-side view"; }
+    if (sbsMode === null) { sbsBtn.textContent = "⇄"; sbsBtn.title = "Vue côte à côte (auto)"; }
+    else if (sbsMode) { sbsBtn.textContent = "≡"; sbsBtn.title = "Vue unifiée"; }
+    else { sbsBtn.textContent = "⇄"; sbsBtn.title = "Vue côte à côte"; }
   };
   const computeSbs = () => {
     if (sbsMode !== null) return sbsMode;
@@ -4621,10 +4621,10 @@ function buildReviewTab(v, t) {
   updateSbsBtn();
   const reviewFilter = document.createElement("input");
   reviewFilter.placeholder = "Filtrer…";
-  reviewFilter.setAttribute("aria-label", "Filter hunks");
-  reviewFilter.title = "Filter files and hunks by text";
-  const navUp = el("button", "iconbtn", "↑"); navUp.type = "button"; navUp.title = "Previous change";
-  const navDown = el("button", "iconbtn", "↓"); navDown.type = "button"; navDown.title = "Next change";
+  reviewFilter.setAttribute("aria-label", "Filtrer les blocs");
+  reviewFilter.title = "Filtrer les fichiers et les blocs par texte";
+  const navUp = el("button", "iconbtn", "↑"); navUp.type = "button"; navUp.title = "Changement précédent";
+  const navDown = el("button", "iconbtn", "↓"); navDown.type = "button"; navDown.title = "Changement suivant";
   bar.appendChild(reviewFilter); bar.appendChild(navUp); bar.appendChild(navDown);
   const applyReviewFilter = () => {
     const q = reviewFilter.value.trim().toLowerCase();
@@ -4652,15 +4652,15 @@ function buildReviewTab(v, t) {
   navDown.onclick = () => jumpHunk(1);
   const commitRow = el("div", "bar");
   const commitInput = document.createElement("input");
-  commitInput.placeholder = "Commit message…";
-  commitInput.setAttribute("aria-label", "Commit message");
-  const commitBtn = el("button", "iconbtn", "Commit"); commitBtn.type = "button"; commitBtn.title = "commit staged changes";
+  commitInput.placeholder = "Message de commit…";
+  commitInput.setAttribute("aria-label", "Message de commit");
+  const commitBtn = el("button", "iconbtn", "Committer"); commitBtn.type = "button"; commitBtn.title = "Committer les changements stagés";
   commitRow.appendChild(commitInput); commitRow.appendChild(commitBtn);
   const list = el("div", "reviewlist");
   const totals = el("div", "reviewtotals", "");
   const listCol = el("div", "reviewfiles");
   listCol.appendChild(list); listCol.appendChild(totals);
-  const diffPath = el("span", "reviewpath", "no changes");
+  const diffPath = el("span", "reviewpath", "aucun changement");
   const fileActions = el("span", "reviewfileacts");
   const diffTop = el("div", "reviewdifftop");
   diffTop.appendChild(diffPath); diffTop.appendChild(fileActions);
@@ -4668,13 +4668,13 @@ function buildReviewTab(v, t) {
   const diffCol = el("div", "reviewdiff");
   diffCol.appendChild(diffTop); diffCol.appendChild(diffBody);
   const navBadge = el("span", "badge-n", "–");
-  const navPrev = el("button", "iconbtn", "↑"); navPrev.type = "button"; navPrev.title = "Previous file";
-  const navNext = el("button", "iconbtn", "↓"); navNext.type = "button"; navNext.title = "Next file";
+  const navPrev = el("button", "iconbtn", "↑"); navPrev.type = "button"; navPrev.title = "Fichier précédent";
+  const navNext = el("button", "iconbtn", "↓"); navNext.type = "button"; navNext.title = "Fichier suivant";
   const navRail = el("div", "reviewnav");
   navRail.appendChild(navPrev); navRail.appendChild(navBadge); navRail.appendChild(navNext);
   const panes = el("div", "reviewpanes");
   panes.appendChild(listCol); panes.appendChild(navRail); panes.appendChild(diffCol);
-  const note = el("div", "filemeta", "uncommitted changes");
+  const note = el("div", "filemeta", "changements non committés");
   body.appendChild(bar); body.appendChild(commitRow); body.appendChild(panes); body.appendChild(note);
   v.panelEl.appendChild(body);
   t.el = body;
@@ -4683,11 +4683,11 @@ function buildReviewTab(v, t) {
   let selected = null;
   const doCommit = () => {
     const message = commitInput.value.trim();
-    if (!message) { note.textContent = "Write a commit message first."; return; }
+    if (!message) { note.textContent = "Écrivez d'abord un message de commit."; return; }
     commitBtn.disabled = true;
     post("/code/commit", { sid: v.sid, message }).then((r) => {
       if (!r || r.error || (typeof r.message === "string" && /^Error/.test(r.message))) {
-        note.textContent = (r && (r.error || r.message)) || "Commit failed";
+        note.textContent = (r && (r.error || r.message)) || "Le commit a échoué";
         return;
       }
       commitInput.value = "";
@@ -4709,23 +4709,23 @@ function buildReviewTab(v, t) {
     fileActions.replaceChildren();
     const f = (list2 || []).find((x) => x.file === selected);
     if (!f) {
-      diffPath.textContent = (list2 || []).length ? "select a file" : "no changes";
+      diffPath.textContent = (list2 || []).length ? "sélectionnez un fichier" : "aucun changement";
       navBadge.textContent = "–";
-      navRail.title = "No file selected";
+      navRail.title = "Aucun fichier sélectionné";
       return;
     }
     const pos = (list2 || []).indexOf(f) + 1;
     diffPath.textContent = f.file;
     navBadge.textContent = String(pos);
-    navRail.title = "File " + pos + " of " + (list2 || []).length + " · prev/next file";
+    navRail.title = "Fichier " + pos + " sur " + (list2 || []).length + " · fichier précédent/suivant";
     if (!showStaged) {
-      const sf = el("button", "iconbtn", "Stage file"); sf.type = "button"; sf.title = "stage the whole file";
-      const rf = el("button", "iconbtn", "Revert"); rf.type = "button"; rf.title = "revert the whole file to HEAD";
+      const sf = el("button", "iconbtn", "Stager le fichier"); sf.type = "button"; sf.title = "Stager le fichier entier";
+      const rf = el("button", "iconbtn", "Restaurer"); rf.type = "button"; rf.title = "Restaurer le fichier entier depuis HEAD";
       sf.onclick = () => fileAction("/code/diff/stage", { sid: v.sid, path: f.file }, sf);
-      rf.onclick = () => { if (confirm("Revert " + f.file + " to HEAD? Unstaged changes will be lost.")) fileAction("/code/diff/revert-file", { sid: v.sid, path: f.file }, rf); };
+      rf.onclick = () => { if (confirm("Restaurer " + f.file + " depuis HEAD ? Les changements non stagés seront perdus.")) fileAction("/code/diff/revert-file", { sid: v.sid, path: f.file }, rf); };
       fileActions.appendChild(sf); fileActions.appendChild(rf);
     } else {
-      const uf = el("button", "iconbtn", "Unstage"); uf.type = "button"; uf.title = "take the file back out of the staging area";
+      const uf = el("button", "iconbtn", "Dé-stager"); uf.type = "button"; uf.title = "Retirer le fichier de la zone de staging";
       uf.onclick = () => fileAction("/code/diff/unstage", { sid: v.sid, path: f.file }, uf);
       fileActions.appendChild(uf);
     }
@@ -4744,10 +4744,10 @@ function buildReviewTab(v, t) {
     btn.disabled = true;
     post(endpoint, body).then((r) => {
       if (!r || r.error || (typeof r.message === "string" && /^Error/.test(r.message))) {
-        alert((r && (r.error || r.message)) || "Review action failed");
+        alert((r && (r.error || r.message)) || "Échec de l'action de révision");
         return;
       }
-      note.textContent = r.message || "Done.";
+      note.textContent = r.message || "Fait.";
       load();
     }).catch((e) => alert(String((e && e.message) || e))).finally(() => { btn.disabled = false; });
   };
@@ -4755,14 +4755,14 @@ function buildReviewTab(v, t) {
     btn.disabled = true;
     post("/code/diff/hunk", { sid: v.sid, path: file, hunk: index, action }).then((r) => {
       if (!r || r.error || (typeof r.message === "string" && /^Error/.test(r.message))) {
-        alert((r && (r.error || r.message)) || "Review action failed");
+        alert((r && (r.error || r.message)) || "Échec de l'action de révision");
         return;
       }
       load();
     }).catch((e) => alert(String((e && e.message) || e))).finally(() => { btn.disabled = false; });
   };
   const load = () => {
-    list.replaceChildren(el("div", "filediagnostic-note", "Loading review…"));
+    list.replaceChildren(el("div", "filediagnostic-note", "Chargement de la révision…"));
     fetch("/code/diff?k=" + k + "&sid=" + encodeURIComponent(v.sid) + (showStaged ? "&staged=1" : ""))
       .then((r) => r.json()).then((d) => {
         if (d.error) throw new Error(d.error);
@@ -4771,7 +4771,7 @@ function buildReviewTab(v, t) {
         files = d.files || [];
         updateReviewBadge(files.length);
         if (!files.some((f) => f.file === selected)) selected = files[0] ? files[0].file : null;
-        note.textContent = d.note || (files.length + " file(s) with uncommitted changes");
+        note.textContent = d.note || (files.length + " fichier(s) avec des changements non committés");
         let allAdds = 0, allDels = 0;
         renderDiffTop(files);
         for (const [fi, f] of files.entries()) {
@@ -4805,7 +4805,7 @@ function buildReviewTab(v, t) {
               const wrap = el("div", "reviewline");
               if (change && !showStaged) {
                 const cb = document.createElement("input");
-                cb.type = "checkbox"; cb.className = "reviewpick"; cb.title = "stage this line";
+                cb.type = "checkbox"; cb.className = "reviewpick"; cb.title = "Stager cette ligne";
                 cb.onchange = () => { if (cb.checked) sel.add(li); else sel.delete(li); };
                 wrap.appendChild(cb);
               }
@@ -4837,20 +4837,20 @@ function buildReviewTab(v, t) {
               // Staged hunks can only come out of the index: staging is a no-op
               // and a revert here would rewrite the working tree behind the
               // user's back.
-              const ub = el("button", "iconbtn", "Unstage"); ub.title = "take this hunk back out of the staging area";
+              const ub = el("button", "iconbtn", "Dé-stager"); ub.title = "Retirer ce bloc de la zone de staging";
               ub.onclick = () => actHunk(f.file, h.index, "unstage", ub);
               row.appendChild(ub);
             } else {
-              const sb = el("button", "iconbtn", "Stage"); sb.title = "stage this hunk";
-              const rb = el("button", "iconbtn", "Revert"); rb.title = "revert this hunk in the working tree";
-              const sl = el("button", "iconbtn", "Stage ✓"); sl.title = "stage checked lines only";
+              const sb = el("button", "iconbtn", "Stager"); sb.title = "Stager ce bloc";
+              const rb = el("button", "iconbtn", "Restaurer"); rb.title = "Restaurer ce bloc dans l'arbre de travail";
+              const sl = el("button", "iconbtn", "Stager ✓"); sl.title = "Stager uniquement les lignes cochées";
               sb.onclick = () => actHunk(f.file, h.index, "stage", sb);
-              rb.onclick = () => { if (confirm("Revert this hunk in " + f.file + "? The change will be lost.")) actHunk(f.file, h.index, "revert", rb); };
+              rb.onclick = () => { if (confirm("Restaurer ce bloc dans " + f.file + " ? La modification sera perdue.")) actHunk(f.file, h.index, "revert", rb); };
               sl.onclick = () => {
                 sl.disabled = true;
                 post("/code/diff/stage-lines", { sid: v.sid, path: f.file, hunk: h.index, lines: [...sel] }).then((r) => {
                   if (!r || r.error || (typeof r.message === "string" && /^Error/.test(r.message))) {
-                    alert((r && (r.error || r.message)) || "Stage failed");
+                    alert((r && (r.error || r.message)) || "Échec du staging des lignes");
                     return;
                   }
                   load();
@@ -4864,7 +4864,7 @@ function buildReviewTab(v, t) {
         }
         totals.replaceChildren(el("span", "plus", "+" + allAdds), el("span", "minus", " −" + allDels));
         if (!files.length) {
-          list.appendChild(el("div", "filediagnostic-note", "Working tree clean."));
+          list.appendChild(el("div", "filediagnostic-note", "Arbre de travail propre."));
           diffBody.replaceChildren();
         }
         applyReviewFilter();
@@ -4897,8 +4897,8 @@ function openPlanTab(v) {
 function buildPlanTab(v, t) {
   const body = el("div", "tabbody plan"); body.hidden = true;
   const bar = el("div", "bar");
-  const refresh = el("button", "iconbtn", "↻"); refresh.title = "refresh task list";
-  const head = el("span", "filemeta", "task list");
+  const refresh = el("button", "iconbtn", "↻"); refresh.title = "Actualiser la liste des tâches";
+  const head = el("span", "filemeta", "liste des tâches");
   head.style.flex = "1";
   bar.appendChild(refresh); bar.appendChild(head);
   const list = el("div", "planlist");
@@ -4908,15 +4908,15 @@ function buildPlanTab(v, t) {
   const renderSteps = (d) => {
     list.replaceChildren();
     const steps = (d && d.steps) || [];
-    head.textContent = d && d.exists ? (d.done + " tâches sur " + d.total + " terminées") : "task list";
+    head.textContent = d && d.exists ? (d.done + " tâches sur " + d.total + " terminées") : "liste des tâches";
     if (!steps.length) {
-      list.appendChild(el("div", "filediagnostic-note", "No task list yet — the agent creates one for multi-step work."));
+      list.appendChild(el("div", "filediagnostic-note", "Pas encore de liste de tâches — l'agent en crée une pour le travail en plusieurs étapes."));
       return;
     }
     steps.forEach((s, i) => {
       const b = el("button", "planstep" + (s.done ? " done" : i === d.current ? " current" : ""));
       b.type = "button";
-      b.title = s.done ? "done" : "mark step " + (i + 1) + " done";
+      b.title = s.done ? "terminé" : "marquer l'étape " + (i + 1) + " comme terminée";
       const box = el("span", "box", s.done ? "☑" : i === d.current ? "◉" : "☐");
       const label = el("span", "", (i + 1) + ". " + s.text);
       b.appendChild(box); b.appendChild(label);
@@ -4924,7 +4924,7 @@ function buildPlanTab(v, t) {
         b.onclick = () => {
           b.disabled = true;
           post("/plan/done", { sid: v.sid, step: i + 1 }).then((r) => {
-            if (!r || r.error) { alert((r && r.error) || "Plan update failed"); return; }
+            if (!r || r.error) { alert((r && r.error) || "Échec de la mise à jour du plan"); return; }
             if (r.plan) renderSteps(r.plan);
             else load();
           }).catch((e) => alert(String((e && e.message) || e))).finally(() => { b.disabled = false; });
@@ -4934,7 +4934,7 @@ function buildPlanTab(v, t) {
     });
   };
   const load = () => {
-    list.replaceChildren(el("div", "filediagnostic-note", "Loading task list…"));
+    list.replaceChildren(el("div", "filediagnostic-note", "Chargement de la liste des tâches…"));
     fetch("/plan?k=" + k + "&sid=" + encodeURIComponent(v.sid))
       .then((r) => r.json()).then((d) => {
         if (d.error) throw new Error(d.error);
@@ -4970,7 +4970,7 @@ function ensureTermTab(v, tid, cwd) {
   const row = el("div", "trow");
   const prompt = el("span", "prompt");
   const inp = document.createElement("input");
-  inp.placeholder = "Run a command…"; inp.title = "Enter to run · Ctrl+C to interrupt · Ctrl+L to clear"; inp.setAttribute("aria-label", "Terminal command"); inp.spellcheck = false; inp.autocomplete = "off";
+  inp.placeholder = "Tapez une commande…"; inp.title = "Entrée pour exécuter · Ctrl+C pour interrompre · Ctrl+L pour effacer"; inp.setAttribute("aria-label", "Commande du terminal"); inp.spellcheck = false; inp.autocomplete = "off";
   inp.onkeydown = (e) => {
     if (e.key === "Enter") {
       const text = inp.value;
@@ -5234,7 +5234,7 @@ input.addEventListener("keydown", (e) => {
     else if (active) {
       post("/cancel", { sid: active.sid });
       setBusy(active, null);
-      actionBtn.textContent = "send";
+      actionBtn.textContent = "Envoyer";
       actionBtn.className = "";
       showToast("Arrêt immédiat demandé…", "info");
     }
@@ -5246,7 +5246,7 @@ actionBtn.onclick = () => {
   if (isBusy) {
     post("/cancel", { sid: active.sid });
     setBusy(active, null);
-    actionBtn.textContent = "send";
+    actionBtn.textContent = "Envoyer";
     actionBtn.className = "";
     showToast("Arrêt immédiat demandé…", "info");
   } else {
@@ -5268,9 +5268,9 @@ function renderAttachments() {
     const chip = el("span", "attach" + (a.uploading ? " uploading" : "") + (a.warning ? " warn" : ""));
     if (a.kind === "image" && a.url) { const img = el("img", "attach-thumb"); img.src = a.url + "&k=" + k; img.alt = ""; chip.appendChild(img); }
     chip.appendChild(el("span", "attach-name", a.name));
-    chip.appendChild(el("span", "dim", a.uploading ? "uploading…" : fmtSize(a.size)));
-    if (a.warning) { chip.title = a.warning; chip.appendChild(el("span", "note", "model can't see images")); }
-    const x = el("button", "attach-x", "×"); x.type = "button"; x.title = "remove"; x.onclick = () => removeAttachment(a);
+    chip.appendChild(el("span", "dim", a.uploading ? "envoi…" : fmtSize(a.size)));
+    if (a.warning) { chip.title = a.warning; chip.appendChild(el("span", "note", "le modèle ne peut pas voir les images")); }
+    const x = el("button", "attach-x", "×"); x.type = "button"; x.title = "Retirer"; x.onclick = () => removeAttachment(a);
     chip.appendChild(x);
     attachRow.appendChild(chip);
   }
@@ -5289,7 +5289,7 @@ async function upload(v, file) {
   try {
     const r = await fetch("/upload?k=" + k + "&sid=" + v.sid + "&name=" + encodeURIComponent(name), { method: "POST", headers: { "content-type": type }, body: payload });
     const d = await r.json().catch(() => ({}));
-    if (!r.ok || d.error) throw new Error(d.error || ("upload failed (" + r.status + ")"));
+    if (!r.ok || d.error) throw new Error(d.error || ("échec de l'envoi (" + r.status + ")"));
     Object.assign(entry, d, { uploading: false });
   } catch (err) {
     const list = pendingOf(v); const i = list.indexOf(entry); if (i >= 0) list.splice(i, 1);
@@ -5365,8 +5365,8 @@ mainEl.addEventListener("drop", (e) => { mainEl.classList.remove("dragging"); if
 $("keys").onclick = () => {
   const dialog = document.createElement("dialog"); dialog.className = "dlg";
   const list = el("div", "shortcut-list");
-  ["/  Commands", "Enter  Send", "Shift+Enter  New line", "Ctrl+V  Paste an image or a file", "Shift+Tab  Permission mode", "Esc  Cancel", "Ctrl+B  Sidebar", "⚙  Centre de contrôle", "Ctrl+\`  Terminal"].forEach((s) => list.appendChild(el("div", "", s)));
-  const close = el("button", "ghost", "Close"); close.onclick = () => dialog.close(); list.appendChild(close);
+  ["/  Commandes", "Entrée  Envoyer", "Maj+Entrée  Nouvelle ligne", "Ctrl+V  Coller une image ou un fichier", "Maj+Tab  Mode de permission", "Échap  Annuler", "Ctrl+B  Barre latérale", "⚙  Centre de contrôle", "Ctrl+\`  Terminal"].forEach((s) => list.appendChild(el("div", "", s)));
+  const close = el("button", "ghost", "Fermer"); close.onclick = () => dialog.close(); list.appendChild(close);
   dialog.appendChild(list); document.body.appendChild(dialog); dialog.onclose = () => dialog.remove(); dialog.showModal();
 };
 document.addEventListener("keydown", (e) => {
@@ -6122,7 +6122,7 @@ if (sbIndent) {
   sbIndent.onclick = () => {
     currentIndent = currentIndent === 2 ? 4 : 2;
     const txt = $("sb-indent-text");
-    if (txt) txt.textContent = "Spaces: " + currentIndent;
+    if (txt) txt.textContent = "Espaces : " + currentIndent;
     showToast("Indentation configurée : " + currentIndent + " espaces", "info");
   };
 }
@@ -6287,7 +6287,7 @@ function showNetBanner() {
 function sseClearRetry() { sseRetry = 0; if (sseTimer) { clearTimeout(sseTimer); sseTimer = null; } }
 function sseFailed() {
   try { if (es) es.close(); } catch (e) {}
-  $("status").textContent = "reconnecting…";
+  $("status").textContent = "reconnexion…";
   if (sseRetry >= SSE_DELAYS.length) { showNetBanner(); return; }
   const delay = SSE_DELAYS[sseRetry++];
   if (sseTimer) clearTimeout(sseTimer);
@@ -6300,8 +6300,8 @@ const shareToken = new URLSearchParams(location.search).get("share") || "";
 let shareSid = "";
 function shareSession(sid) {
   post("/sessions/share", { sid }).then((r) => {
-    if (!r || r.error || !r.token) { alert((r && r.error) || "Share failed"); return; }
-    prompt("Read-only live link (copy it):", location.origin + location.pathname + "?share=" + r.token);
+    if (!r || r.error || !r.token) { alert((r && r.error) || "Échec du partage"); return; }
+    prompt("Lien de suivi en direct (lecture seule) — copiez-le :", location.origin + location.pathname + "?share=" + r.token);
   }).catch((e) => alert(String((e && e.message) || e)));
 }
 function pingShare() {

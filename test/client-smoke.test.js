@@ -509,11 +509,11 @@ test("review staged view offers Unstage, never a Stage that would do nothing", a
     return out;
   };
   assert.ok(
-    texts().some((t) => t === "Stage file"),
+    texts().some((t) => t === "Stager le fichier"),
     "the unstaged view stages"
   );
 
-  const toggle = c.allElements().find((e) => e.title === "show staged changes instead of unstaged");
+  const toggle = c.allElements().find((e) => e.title === "afficher les changements stagés à la place des non stagés");
   assert.ok(toggle, "the staged toggle exists");
   toggle.onclick();
   await c.flush(200);
@@ -524,12 +524,12 @@ test("review staged view offers Unstage, never a Stage that would do nothing", a
   );
   const now = texts();
   assert.ok(
-    now.some((t) => t === "Unstage"),
+    now.some((t) => t === "Dé-stager"),
     "staged content offers Unstage"
   );
-  assert.ok(!now.some((t) => t === "Stage file"), "no Stage that would be a no-op");
-  assert.ok(!now.some((t) => t === "Revert"), "no Revert on the index behind the user's back");
-  assert.ok(!now.some((t) => t === "Stage ✓"), "no line staging while staged");
+  assert.ok(!now.some((t) => t === "Stager le fichier"), "no Stage that would be a no-op");
+  assert.ok(!now.some((t) => t === "Restaurer"), "no Revert on the index behind the user's back");
+  assert.ok(!now.some((t) => t === "Stager ✓"), "no line staging while staged");
 });
 
 test("panel click without a session explains instead of dying silently", async () => {
@@ -565,7 +565,7 @@ test("crumb shows the plan chip; review has filter and nav", async () => {
     .allElements()
     .map((e) => e.title)
     .filter(Boolean);
-  assert.ok(titles.includes("Previous change") && titles.includes("Next change"), "hunk navigation present");
+  assert.ok(titles.includes("Changement précédent") && titles.includes("Changement suivant"), "hunk navigation present");
 });
 
 test("control centre exposes the shared Cowork board and project tasks", async () => {
@@ -826,14 +826,14 @@ test("side-by-side toggle renders paired columns", async () => {
   await c.flush();
   c.els.btnreview.onclick();
   await c.flush(200);
-  const toggle = c.allElements().find((e) => e.title?.includes("side-by-side view"));
+  const toggle = c.allElements().find((e) => e.title?.includes("Vue côte à côte"));
   assert.ok(toggle, "sbs toggle present");
   toggle.onclick();
   await c.flush(200);
   assert.equal(c.errors(), "", "no page error in side-by-side");
   // Original test checked for sbsgrid class - our implementation uses flex-direction on reviewpanes
   // and toggles sbsgrid on body. Check that the toggle button state changed.
-  const toggleAfter = c.allElements().find((e) => e.title === "unified view");
+  const toggleAfter = c.allElements().find((e) => e.title === "Vue unifiée");
   assert.ok(toggleAfter, "toggle switched to unified view");
 });
 
@@ -845,7 +845,7 @@ test("split opens a second files panel loading the tree again", async () => {
   await c.flush(200);
   const before = c.urls.filter((u) => u.includes("/workspace/tree")).length;
   assert.ok(before >= 1);
-  const split = c.allElements().find((e) => e.title === "split: second files panel");
+  const split = c.allElements().find((e) => e.title === "Fractionné : second panneau de fichiers");
   assert.ok(split, "split button present");
   split.onclick();
   await c.flush(200);
@@ -889,16 +889,16 @@ test("the offload card shows the real countdown and detach really moves the run"
   const card = cards[0];
   const lines = card.children.map((x) => [x, ...x.children].map((y) => y.textContent).join(" "));
   assert.ok(
-    lines.some((t) => /Tool running longer — about to offload/.test(t)),
+    lines.some((t) => /Outil en cours depuis longtemps — déport imminent/.test(t)),
     "copilot-style title"
   );
   assert.ok(
-    lines.some((t) => /Detaching in \d+s/.test(t)),
+    lines.some((t) => /Déport dans \d+s/.test(t)),
     "a live countdown against the server deadline"
   );
   assert.deepEqual(
     buttonsOf(card).map((b) => b.textContent),
-    ["Move to background now", "Don't auto-offload", "Delay offload", "Extend timeout", "Cancel"],
+    ["Déplacer en arrière-plan maintenant", "Ne pas déporter automatiquement", "Reporter le déport", "Prolonger le délai", "Annuler"],
     "all five actions"
   );
   assert.ok(card.parent && card.parent.open === true, "the card forces its tool entry open");
@@ -908,7 +908,7 @@ test("the offload card shows the real countdown and detach really moves the run"
   const det = c.posts.find((p) => p.body && p.body.action === "detach");
   assert.ok(det, "the primary button calls the server");
   assert.equal(det.body.command, OFFLOAD_COMMAND, "for the command that owns the card");
-  assert.ok(/task t3/.test(card.children[1].textContent), "the card reports where it went");
+  assert.ok(/tâche d'arrière-plan n° t3/.test(card.children[1].textContent), "the card reports where it went");
 
   c.es().onmessage({ data: JSON.stringify({ t: "result", sid: "s1", line: "moved", body: "moved" }) });
   await c.flush(150);
@@ -927,7 +927,7 @@ test("Extend timeout pushes the deadline and Don't auto-offload stands down", as
   await c.flush(150);
   const ext = c.posts.filter((p) => p.body.action === "extend").pop();
   assert.ok(ext && ext.body.ms === 120000, "extend asks for two more minutes");
-  assert.match(card.children[1].textContent, /Detaching in 8[0-9]s|Detaching in 9[0-9]s/, "countdown follows the new deadline");
+  assert.match(card.children[1].textContent, /Déport dans 8[0-9]s|Déport dans 9[0-9]s/, "countdown follows the new deadline");
 
   buttonsOf(card)[1].onclick();
   await c.flush(50);

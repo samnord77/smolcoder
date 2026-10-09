@@ -17,7 +17,7 @@ export function scheduleInference<T>(server: string, opts: ChatOptions, run: (op
   }
   const queue = state;
   if (opts.background && (queue.active || queue.queue.length))
-    return Promise.reject(new Error("Background inference deferred: server is busy"));
+    return Promise.reject(new Error("Inférence en arrière-plan différée : le serveur est occupé."));
   return new Promise<T>((resolve, reject) => {
     const controller = new AbortController();
     const job: Job = { background: !!opts.background, controller, start: () => {} };

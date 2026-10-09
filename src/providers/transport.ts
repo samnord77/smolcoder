@@ -42,6 +42,26 @@ export function isSlowPrefillError(error: unknown): boolean {
   );
 }
 
+/** A rejected HTTP response (4xx/5xx). The status travels as a field instead
+ * of being parsed back out of the message text, so failover ladders and retry
+ * policies key on `status` while users read a fully French message. */
+export class HttpError extends Error {
+  constructor(
+    readonly status: number,
+    readonly serverName: string,
+    detail: string
+  ) {
+    super(`${serverName} : erreur ${status} — ${detail}`);
+    this.name = "HttpError";
+  }
+}
+
+/** True for the 4xx family the shape-fallback ladder may act on. Exported so
+ * providers never re-encode HTTP status matching in message regexes. */
+export function isHttp4xx(err: unknown): err is HttpError {
+  return err instanceof HttpError && err.status >= 400 && err.status < 500;
+}
+
 /** Undici reports every network drop as a bare `fetch failed` with the real
  * reason buried in `cause` (DNS miss, refused socket, connect timeout). Attach
  * it so the chat log and the retry loop say WHY the call died. */
@@ -112,7 +132,7 @@ export async function withDeadline<T>(opts: ChatOptions, run: (signal: AbortSign
 
 /** Cancel reads and release the connection even on malformed stream data. */
 export async function* responseLines(res: Response, activity: () => void): AsyncGenerator<string> {
-  if (!res.body) throw new Error("Backend returned an empty response body");
+  if (!res.body) throw new Error("Le backend a renvoyé une réponse vide (corps HTTP absent).");
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
@@ -122,7 +142,7 @@ export async function* responseLines(res: Response, activity: () => void): Async
       if (done) break;
       activity();
       buffer += decoder.decode(value, { stream: true });
-      if (buffer.length > 4_000_000) throw new Error("Backend stream frame exceeded 4 MB");
+      if (buffer.length > 4_000_000) throw new Error("Trame du flux trop volumineuse (plus de 4 Mo) — flux interrompu.");
       let nl = buffer.indexOf("\n");
       while (nl >= 0) {
         yield buffer.slice(0, nl).trim();
@@ -143,11 +163,14 @@ export function streamJson(line: string): any {
   try {
     data = JSON.parse(line);
   } catch {
-    throw new Error("Backend stream contained malformed JSON; the response was discarded");
+    // The English keyword stays in the message: retry policies (TRANSIENT_ERROR,
+    // isTransientError) match on it. The French wording is what users read.
+    throw new Error("JSON malformé (malformed JSON) dans le flux du backend ; la réponse a été ignorée.");
   }
+  // "stream error" stays: TRANSIENT_ERROR retries on that keyword.
   if (data?.error)
     throw new Error(
-      `Backend stream error: ${typeof data.error === "string" ? data.error : (data.error.message ?? JSON.stringify(data.error))}`
+      `stream error transmis par le backend : ${typeof data.error === "string" ? data.error : (data.error.message ?? JSON.stringify(data.error))}`
     );
   return data;
 }

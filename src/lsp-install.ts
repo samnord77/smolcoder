@@ -101,10 +101,10 @@ export function installLspServer(lang: string, cwd: string): InstallStep {
     return {
       lang,
       ok: false,
-      detail: `Installed but not on PATH (${last}). Add your user binary folder to PATH, then retry.`,
+      detail: `Installé mais absent du PATH (${last}). Ajoutez votre dossier de binaires utilisateur au PATH, puis réessayez.`,
     };
   }
-  return { lang, ok: false, detail: `Install failed (${last}). ${def.installHint}` };
+  return { lang, ok: false, detail: `Échec de l'installation (${last}). ${def.installHint}` };
 }
 
 /** One-line status per language, with the exact fix when missing. */
