@@ -28,7 +28,7 @@ test("work items persist across board instances and support filters and completi
   assert.equal(new CoworkBoard(root).items().length, 1);
   assert.equal(new CoworkBoard(root).items()[0].status, "open");
   assert.doesNotMatch(await board.run({ action: "list", area: "personal" }), /Prepare quarterly report/);
-  assert.match(await board.completeWorkItem(id), /completed/);
+  assert.match(await board.completeWorkItem(id), /terminé/);
   assert.match(await new CoworkBoard(root).run({ action: "list", status: "completed" }), /Prepare quarterly report/);
   assert.doesNotMatch(await board.run({ action: "list", status: "open" }), /Prepare quarterly report/);
 });
@@ -40,7 +40,7 @@ test("work item fields are validated and update keeps the stable id", async () =
   assert.match(await board.run({ action: "create", title: "Task", priority: "impossible" }), /^Error:/);
   const created = await board.run({ action: "create", title: "Book appointment" });
   const id = created.match(/(w_[a-f0-9-]{36})/)?.[1];
-  assert.match(await board.run({ action: "update", task_id: id, title: "Book dentist appointment", due: "2026-10-01" }), /Updated/);
+  assert.match(await board.run({ action: "update", task_id: id, title: "Book dentist appointment", due: "2026-10-01" }), /mis à jour/);
   assert.match(await board.run({ action: "list" }), new RegExp(id));
   assert.match(await board.run({ action: "list" }), /2026-10-01/);
   assert.match(await board.run({ action: "archive", task_id: "missing" }), /^Error:/);
@@ -78,7 +78,7 @@ test("a stale lock left by a crashed process does not block future work", async 
   fs.mkdirSync(path.dirname(lock), { recursive: true });
   fs.writeFileSync(lock, JSON.stringify({ pid: 2147483647, token: "orphaned" }));
 
-  assert.match(await new CoworkBoard(root).run({ action: "create", title: "Recover board" }), /^Created/);
+  assert.match(await new CoworkBoard(root).run({ action: "create", title: "Recover board" }), /^Élément de travail/);
   assert.equal(fs.existsSync(lock), false);
 });
 
@@ -92,7 +92,7 @@ test("waiting for another process's board lock does not block the event loop", a
   await new Promise((resolve) => setTimeout(resolve, 60));
   assert.equal(fs.existsSync(lock), true, "the live lock remains owned by this process");
   fs.unlinkSync(lock);
-  assert.match(await pending, /^Created/);
+  assert.match(await pending, /^Élément de travail/);
 });
 
 test("the unified work tool is available to read-only agents for listing and gates mutations", async () => {
@@ -101,7 +101,7 @@ test("the unified work tool is available to read-only agents for listing and gat
   assert.ok(names.includes("work"));
   const ctx = { workspace: root, canWrite: false };
   assert.match(await executeTool("work", { action: "create", title: "Must not be added" }, ctx), /^Error:/);
-  assert.match(await executeTool("work", { action: "list" }, ctx), /No work items/);
+  assert.match(await executeTool("work", { action: "list" }, ctx), /Aucun élément/);
 });
 
 test("a restricted sub-agent cannot bypass its allowlist through direct tool execution", async () => {
@@ -130,7 +130,7 @@ test("Cowork runtime controls execution status and completion after checks succe
   });
   const id = created.match(/(w_[a-f0-9-]{36})/)?.[1];
   assert.ok(id, created);
-  assert.match(created, /assigned to architect/);
+  assert.match(created, /assigné à architect/);
 
   let items = board.items();
   assert.equal(items.length, 1);
@@ -145,7 +145,7 @@ test("Cowork runtime controls execution status and completion after checks succe
     role: "implementer",
     acceptance: "Re-run test suite with 100% pass",
   });
-  assert.match(assigned, /Assigned work item/);
+  assert.match(assigned, /assigné au rôle/);
   assert.match(assigned, /implementer/);
 
   // Record execution report with verification and snapshot
@@ -157,10 +157,10 @@ test("Cowork runtime controls execution status and completion after checks succe
       execution_status: "verified",
       mark_completed: true,
     }),
-    /^Error: execution status and completion are controlled by the session runtime/
+    /^Error: le statut d'exécution et l'achèvement sont contrôlés par le runtime de session/
   );
 
-  assert.match(await board.beginExecution(id), /Started work item/);
+  assert.match(await board.beginExecution(id), /démarré/);
   assert.equal(board.items()[0].executionStatus, "running");
   const reported = await board.run({
     action: "record_report",
@@ -168,8 +168,8 @@ test("Cowork runtime controls execution status and completion after checks succe
     report: "Successfully wired OAuth endpoint.",
     snapshot: { file: "src/auth.ts", summary: "Added OAuth routes" },
   });
-  assert.match(reported, /Recorded execution report/);
-  assert.match(await board.finishExecution(id, "verified", "Automated checks passed."), /status=completed, execution=verified/);
+  assert.match(reported, /Rapport d'exécution enregistré/);
+  assert.match(await board.finishExecution(id, "verified", "Automated checks passed."), /statut=completed, exécution=verified/);
 
   items = board.items();
   assert.equal(items[0].status, "completed");
@@ -182,7 +182,7 @@ test("Cowork runtime controls execution status and completion after checks succe
   const list = await board.run({ action: "list", status: "completed" });
   assert.match(list, /@implementer/);
   assert.match(list, /\[verified\]/);
-  assert.match(list, /Report: Automated checks passed/);
+  assert.match(list, /Rapport : Automated checks passed/);
 });
 
 test("Cowork keeps an unverified execution open and cannot complete it by model report", async () => {
@@ -198,9 +198,9 @@ test("Cowork keeps an unverified execution open and cannot complete it by model 
     execution_status: "verified",
     mark_completed: true,
   });
-  assert.match(result, /^Error: execution status and completion are controlled by the session runtime/);
-  assert.match(await board.beginExecution(id), /Started work item/);
-  assert.match(await board.finishExecution(id, "unverified", "No automated checks were available."), /status=open, execution=unverified/);
+  assert.match(result, /^Error: le statut d'exécution et l'achèvement sont contrôlés par le runtime de session/);
+  assert.match(await board.beginExecution(id), /démarré/);
+  assert.match(await board.finishExecution(id, "unverified", "No automated checks were available."), /statut=open, exécution=unverified/);
   const item = board.items().find((workItem) => workItem.id === id);
   assert.equal(item.status, "open");
   assert.equal(item.executionStatus, "unverified");

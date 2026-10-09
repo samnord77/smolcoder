@@ -142,13 +142,13 @@ test("splitCommand respects quotes", () => {
 
 test("queryCode validates without spawning a server", async () => {
   const ws = scratchWs({ "a.py": "x = 1\n", "note.txt": "hi\n" });
-  assert.match(await queryCode(ws, {}), /action must be one of/);
-  assert.match(await queryCode(ws, { action: "hover" }), /path is required/);
-  assert.match(await queryCode(ws, { action: "hover", path: "note.txt", line: 1, col: 1 }), /not a supported language/);
-  assert.match(await queryCode(ws, { action: "hover", path: "nope.py", line: 1, col: 1 }), /does not exist/);
-  assert.match(await queryCode(ws, { action: "hover", path: "../evil.py", line: 1, col: 1 }), /outside|path/i);
+  assert.match(await queryCode(ws, {}), /l'action doit être l'une de/);
+  assert.match(await queryCode(ws, { action: "hover" }), /le chemin est requis/);
+  assert.match(await queryCode(ws, { action: "hover", path: "note.txt", line: 1, col: 1 }), /n'est pas un langage pris en charge/);
+  assert.match(await queryCode(ws, { action: "hover", path: "nope.py", line: 1, col: 1 }), /n'existe pas/);
+  assert.match(await queryCode(ws, { action: "hover", path: "../evil.py", line: 1, col: 1 }), /en dehors|chemin/i);
   assert.match(await queryCode(ws, { action: "rename", path: "a.py", line: 1, col: 1 }), /new_text/);
-  assert.match(await queryCode(ws, { action: "wsymbol" }), /needs a query/);
+  assert.match(await queryCode(ws, { action: "wsymbol" }), /a besoin d'une requête/);
 });
 
 test("queryCode honors the disable switch", async () => {
@@ -169,11 +169,14 @@ test("live mock server: all manager actions over one persistent process", async 
     assert.match(await manager.query({ action: "hover", path: "a.py", line: 2, col: 7 }), /mock hover for test/);
     const def = await manager.query({ action: "def", path: "a.py", line: 2, col: 7 });
     assert.match(def, /a\.py:1/);
-    assert.match(await manager.query({ action: "refs", path: "a.py", line: 2, col: 7 }), /No result/);
+    assert.match(await manager.query({ action: "refs", path: "a.py", line: 2, col: 7 }), /Aucun résultat/);
     assert.match(await manager.query({ action: "diag", path: "a.py" }), /mock error/);
     assert.match(await manager.query({ action: "completion", path: "a.py", line: 2, col: 3 }), /mockComplete/);
     assert.match(await manager.query({ action: "signature", path: "a.py", line: 2, col: 7 }), /mock\(a, b\)/);
-    assert.match(await manager.query({ action: "rename", path: "a.py", line: 1, col: 1, new_text: "total" }), /no edits/i);
+    assert.match(
+      await manager.query({ action: "rename", path: "a.py", line: 1, col: 1, new_text: "total" }),
+      /n'a proposé aucune modification/i
+    );
     assert.match(await manager.query({ action: "quickfix", path: "a.py", line: 1, col: 1 }), /mock fix/);
     assert.match(await manager.query({ action: "wsymbol", query: "Mock", lang: "python" }), /MockThing/);
     assert.equal(manager.serverCount(), 1, "one persistent server for every action");
@@ -234,7 +237,7 @@ test("diagStructured returns panel rows through the mock server", async () => {
     assert.match(r.diagnostics[0].message, /mock error/);
     const bad = await queryDiagStructured(ws, "note.txt");
     assert.deepEqual(bad.diagnostics, []);
-    assert.match(bad.text, /not a supported language/);
+    assert.match(bad.text, /n['’]est pas un langage pris en charge/);
   } finally {
     delete process.env.SMOLCODER_LSP_PYTHON;
     closeLspManagers();
@@ -257,7 +260,7 @@ test("symbols setup installs only in edit modes", async () => {
       canWrite,
     });
     assert.match(await executeTool("symbols", { action: "setup", lang: "cobol" }, ctx(true)), /Unknown language/);
-    assert.match(await executeTool("symbols", { action: "setup", lang: "cobol" }, ctx(false)), /read-only/);
+    assert.match(await executeTool("symbols", { action: "setup", lang: "cobol" }, ctx(false)), /lecture seule/);
   } finally {
     try {
       tm.killAll();

@@ -350,34 +350,35 @@ const INDEX_ACTIONS = ["search", "file", "stats", "refresh"];
 export function queryIndex(root: string, args: IndexQuery, opts?: { canRefresh?: boolean; canWrite?: boolean }): string {
   const action = String(args.action ?? "");
   if (!INDEX_ACTIONS.includes(action)) {
-    return `Error: action must be one of ${INDEX_ACTIONS.map((a) => `"${a}"`).join(", ")}. Example: {"action": "search", "query": "Agent"}`;
+    return `Error: l’action doit être l’une de ${INDEX_ACTIONS.map((a) => `"${a}"`).join(", ")}. Exemple : {"action": "search", "query": "Agent"}`;
   }
   const idx = indexFor(root);
   if (action === "refresh") {
     if (opts?.canRefresh === false || opts?.canWrite === false) {
-      return "Error: rebuilding the index writes the cache — unavailable in read-only mode. Switch to edit mode to refresh.";
+      return "Error: reconstruire l’index écrit le cache — indisponible en mode lecture seule. Passez en mode édition pour actualiser.";
     }
     const st = idx.refresh();
-    return `Index rebuilt: ${st.files} files, ${st.symbols} symbols in ${st.ms} ms.`;
+    return `Index reconstruit : ${st.files} fichiers, ${st.symbols} symboles en ${st.ms} ms.`;
   }
   if (idx.isEmpty() && !idx.loadCache()) idx.refresh();
   if (action === "stats") {
     const st = idx.getStats();
-    const age = st.updatedAt ? `${Math.max(0, Math.round((Date.now() - st.updatedAt) / 1000))}s ago` : "just now";
-    return `Index: ${st.files} files, ${st.symbols} symbols (built ${age}).`;
+    const age = st.updatedAt ? `il y a ${Math.max(0, Math.round((Date.now() - st.updatedAt) / 1000))} s` : "à l'instant";
+    return `Index : ${st.files} fichiers, ${st.symbols} symboles (construit ${age}).`;
   }
   if (action === "file") {
     const rel = typeof args.path === "string" ? args.path : "";
-    if (!rel) return 'Error: file needs a path. Example: {"action": "file", "path": "src/agent.ts"}';
+    if (!rel) return 'Error: file a besoin d\u2019un chemin. Exemple : {"action": "file", "path": "src/agent.ts"}';
     const found = idx.symbolsIn(rel);
-    if (!found.length) return `No indexed symbols in "${rel}" (file may be unindexed or use an unsupported language).`;
+    if (!found.length)
+      return `Aucun symbole indexé dans "${rel}" (le fichier peut être non indexé ou utiliser un langage non pris en charge).`;
     return found.slice(0, 50).map(fmtSym).join("\n");
   }
   const q = typeof args.query === "string" ? args.query : "";
-  if (!q.trim()) return 'Error: search needs a query. Example: {"action": "search", "query": "Agent"}';
+  if (!q.trim()) return 'Error: search a besoin d’une requête. Exemple : {"action": "search", "query": "Agent"}';
   const limit = Number(args.limit) || 30;
   const found = idx.search(q, limit);
   if (!found.length)
-    return `No symbol matching "${q.trim().slice(0, 80)}". Try a shorter name or {"action": "refresh"} after adding files.`;
+    return `Aucun symbole correspondant à "${q.trim().slice(0, 80)}". Essayez un nom plus court ou {"action": "refresh"} après avoir ajouté des fichiers.`;
   return found.map(fmtSym).join("\n");
 }

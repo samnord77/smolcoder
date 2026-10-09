@@ -117,18 +117,18 @@ export function readFile(root: string, args: any, maxChars = READ_CHAR_LIMIT): s
     let hint = "";
     if (fs.existsSync(dir)) {
       const near = fs.readdirSync(dir).slice(0, 15).join(", ");
-      if (near) hint = ` Files that do exist in ${relPath(root, dir)}: ${near}`;
+      if (near) hint = ` Fichiers qui existent dans ${relPath(root, dir)} : ${near}`;
     }
-    return `Error: file "${args.path}" does not exist.${hint}`;
+    return `Error: le fichier « ${args.path} » n’existe pas.${hint}`;
   }
   const stat = fs.statSync(abs);
   if (stat.isDirectory()) {
-    return `Error: "${args.path}" is a folder, not a file. Use list_files with {"path": "${args.path}"} to see what is inside it.`;
+    return `Error: « ${args.path} » est un dossier, pas un fichier. Utilisez list_files avec {"path": "${args.path}"} pour voir ce qu’il contient.`;
   }
   if (stat.size > 8 * 1024 * 1024)
-    return `Error: "${args.path}" exceeds the 8 MB text-file limit. Use a command to extract a small relevant section into a workspace file, then read that file.`;
+    return `Error: « ${args.path} » dépasse la limite de 8 Mo pour un fichier texte. Lancez une commande pour extraire une petite section pertinente dans un fichier de l’espace de travail, puis lisez ce fichier.`;
   if (isProbablyBinary(abs)) {
-    return `Error: "${args.path}" looks like a binary file (${stat.size} bytes) and cannot be read as text.`;
+    return `Error: « ${args.path} » ressemble à un fichier binaire (${stat.size} octets) et ne peut pas être lu comme du texte.`;
   }
 
   const content = fs.readFileSync(abs, "utf8");
@@ -136,7 +136,7 @@ export function readFile(root: string, args: any, maxChars = READ_CHAR_LIMIT): s
   const total = lines.length;
   const offset = Math.max(1, Number(args.offset) || 1);
   if (offset > total) {
-    return `The file "${args.path}" has only ${total} line${total === 1 ? "" : "s"}; you have already read all of it.`;
+    return `Le fichier « ${args.path} » n’a que ${total} ligne${total === 1 ? "" : "s"} ; vous avez déjà lu tout son contenu.`;
   }
   const limit = Math.min(Math.max(1, Number(args.limit) || READ_LINE_LIMIT), 1000);
   const slice = lines.slice(offset - 1, offset - 1 + limit);
@@ -157,31 +157,33 @@ export function readFile(root: string, args: any, maxChars = READ_CHAR_LIMIT): s
       // advance to, so a line-based "continue" would loop forever. Serve the
       // head and say so, without a continuation offset.
       body = body.slice(0, charLimit);
-      return `${body}\n\n[line ${offset} of ${total} is very long; showing its first ${charLimit} characters only.]`;
+      return `${body}\n\n[la ligne ${offset} sur ${total} est très longue ; seuls ses ${charLimit} premiers caractères sont affichés.]`;
     }
   }
   if (offset === 1 && end >= total && !charCut) return body;
-  return `${body}\n\n[showing lines ${offset}-${end} of ${total}. Call read_file with {"path": "${args.path}", "offset": ${end + 1}} to continue.]`;
+  return `${body}\n\n[lignes ${offset}-${end} sur ${total}. Appelez read_file avec {"path": "${args.path}", "offset": ${end + 1}} pour continuer.]`;
 }
 
 export function writeFile(root: string, args: any): string {
   const abs = resolveInWorkspace(root, args.path);
   assertFinalInside(root, abs, String(args.path));
   if (typeof args.content !== "string") {
-    return 'Error: content is required and must be a string. Example: {"path": "notes.txt", "content": "hello"}';
+    return 'Error: le contenu est requis et doit être une chaîne. Exemple : {"path": "notes.txt", "content": "hello"}';
   }
   if (isHistoryPlaceholder(args.content)) {
-    return "Error: this is a history placeholder, not source code. No file was changed. Read the current file and provide the actual complete contents.";
+    return "Error: ceci est un marqueur d'historique, pas du code source. Aucun fichier n'a été modifié. Lisez le fichier actuel et fournissez le contenu complet réel.";
   }
   if (fs.existsSync(abs) && fs.statSync(abs).isDirectory()) {
-    return `Error: "${args.path}" is an existing folder; cannot write a file there.`;
+    return `Error: « ${args.path} » est un dossier existant ; impossible d'y écrire un fichier.`;
   }
   const existed = fs.existsSync(abs);
   const prevLines = existed ? fs.readFileSync(abs, "utf8").split("\n").length : 0;
   fs.mkdirSync(path.dirname(abs), { recursive: true });
   fs.writeFileSync(abs, args.content, "utf8");
   const newLines = args.content.split("\n").length;
-  return existed ? `Overwrote ${args.path} (was ${prevLines} lines, now ${newLines} lines).` : `Created ${args.path} (${newLines} lines).`;
+  return existed
+    ? `${args.path} écrasé (était ${prevLines} lignes, maintenant ${newLines} lignes).`
+    : `${args.path} créé (${newLines} lignes).`;
 }
 
 // ---------------------------------------------------------------------------
@@ -195,81 +197,81 @@ export function movePath(root: string, args: any): string {
   const from = typeof args.from === "string" ? args.from : "";
   const to = typeof args.to === "string" ? args.to : "";
   if (!from.trim() || !to.trim()) {
-    return 'Error: both "from" and "to" are required. Example: {"from": "notes/draft.ts", "to": "src/draft.ts"}.';
+    return 'Error: « from » et « to » sont tous deux requis. Exemple : {"from": "notes/draft.ts", "to": "src/draft.ts"}.';
   }
   const absFrom = resolveInWorkspace(root, from);
   const absTo = resolveInWorkspace(root, to);
   assertFinalInside(root, absFrom, from);
-  if (path.resolve(absFrom) === path.resolve(absTo)) return `Nothing to do: "${from}" is already at that path.`;
+  if (path.resolve(absFrom) === path.resolve(absTo)) return `Rien à faire : « ${from} » est déjà à ce chemin.`;
   if (!fs.existsSync(absFrom)) {
-    return `Error: "${from}" does not exist — nothing to move. Use list_files to check the path.`;
+    return `Error: « ${from} » n'existe pas — rien à déplacer. Utilisez list_files pour vérifier le chemin.`;
   }
   if (fs.existsSync(absTo)) {
-    const what = fs.statSync(absTo).isDirectory() ? "a folder" : "a file";
-    return `Error: "${to}" already exists (${what}) — nothing is overwritten silently. Remove it first with delete_path, then move.`;
+    const what = fs.statSync(absTo).isDirectory() ? "un dossier" : "un fichier";
+    return `Error: « ${to} » existe déjà (${what}) — rien n'est écrasé silencieusement. Supprimez-le d'abord avec delete_path, puis déplacez.`;
   }
   try {
     fs.mkdirSync(path.dirname(absTo), { recursive: true });
     fs.renameSync(absFrom, absTo);
   } catch (err: any) {
-    return `Error: could not move "${from}" to "${to}" (${err?.code || err?.message || "unknown reason"}).`;
+    return `Error: impossible de déplacer « ${from} » vers « ${to} » (${err?.code || err?.message || "raison inconnue"}).`;
   }
-  const kind = fs.statSync(absTo).isDirectory() ? "folder" : "file";
-  return `Moved ${kind} "${from}" → "${to}". (Moves are not undoable with /undo — git restores the previous layout.)`;
+  const kind = fs.statSync(absTo).isDirectory() ? "dossier" : "fichier";
+  return `${kind.charAt(0).toUpperCase() + kind.slice(1)} « ${from} » → « ${to} » déplacé. (Les déplacements ne sont pas annulables par /undo — git restaure la disposition précédente.)`;
 }
 
 export function deletePath(root: string, args: any): string {
   const rel = typeof args.path === "string" ? args.path : "";
-  if (!rel.trim()) return 'Error: path is required. Example: {"path": "src/old.ts"}.';
+  if (!rel.trim()) return 'Error: le chemin est requis. Exemple : {"path": "src/old.ts"}.';
   const abs = resolveInWorkspace(root, rel);
   assertFinalInside(root, abs, rel);
   if (path.resolve(abs) === path.resolve(root)) {
-    return "Error: the workspace root itself cannot be deleted. Delete what is inside it instead.";
+    return "Error: la racine de l'espace de travail elle-même ne peut pas être supprimée. Supprimez plutôt ce qu'elle contient.";
   }
-  if (!fs.existsSync(abs)) return `Error: "${rel}" does not exist — nothing to delete.`;
+  if (!fs.existsSync(abs)) return `Error: « ${rel} » n'existe pas — rien à supprimer.`;
   const recursive = args.recursive === true || args.recursive === "true";
   let isDir = false;
   try {
     isDir = fs.statSync(abs).isDirectory();
   } catch (err: any) {
-    return `Error: cannot inspect "${rel}" (${err?.code || err?.message || "unknown reason"}).`;
+    return `Error: impossible d'inspecter « ${rel} » (${err?.code || err?.message || "raison inconnue"}).`;
   }
   if (isDir) {
     const entries = fs.readdirSync(abs);
     if (entries.length && !recursive) {
-      return `Error: "${rel}" is a folder with ${entries.length} item(s). Re-send with {"path": "${rel}", "recursive": true} to confirm — a folder delete cannot be undone here.`;
+      return `Error: « ${rel} » est un dossier avec ${entries.length} élément(s). Renvoyez avec {"path": "${rel}", "recursive": true} pour confirmer — une suppression de dossier ne peut pas être annulée ici.`;
     }
     try {
       fs.rmSync(abs, { recursive: true, force: true });
     } catch (err: any) {
-      return `Error: could not delete "${rel}" (${err?.code || err?.message || "unknown reason"}).`;
+      return `Error: impossible de supprimer « ${rel} » (${err?.code || err?.message || "raison inconnue"}).`;
     }
-    return `Deleted folder "${rel}" (${entries.length} item(s)). This one cannot be undone here — git is the recovery.`;
+    return `Dossier « ${rel} » supprimé (${entries.length} élément(s)). Celui-ci ne peut pas être annulé ici — git est la récupération.`;
   }
   try {
     fs.unlinkSync(abs);
   } catch (err: any) {
-    return `Error: could not delete "${rel}" (${err?.code || err?.message || "unknown reason"}).`;
+    return `Error: impossible de supprimer « ${rel} » (${err?.code || err?.message || "raison inconnue"}).`;
   }
-  return `Deleted file "${rel}". ( /undo puts a small text file back. )`;
+  return `Fichier « ${rel} » supprimé. ( /undo remet un petit fichier texte. )`;
 }
 
 export function createFolder(root: string, args: any): string {
   const rel = typeof args.path === "string" ? args.path : "";
-  if (!rel.trim()) return 'Error: path is required. Example: {"path": "src/components"}.';
+  if (!rel.trim()) return 'Error: le chemin est requis. Exemple : {"path": "src/components"}.';
   const abs = resolveInWorkspace(root, rel);
   assertFinalInside(root, abs, rel);
-  if (path.resolve(abs) === path.resolve(root)) return `"${rel}" is the workspace root — it already exists.`;
+  if (path.resolve(abs) === path.resolve(root)) return `« ${rel} » est la racine de l'espace de travail — il existe déjà.`;
   if (fs.existsSync(abs)) {
-    if (fs.statSync(abs).isDirectory()) return `Folder "${rel}" already exists — nothing to do.`;
-    return `Error: "${rel}" exists as a file, not a folder. Move it away first if you need the name.`;
+    if (fs.statSync(abs).isDirectory()) return `Le dossier « ${rel} » existe déjà — rien à faire.`;
+    return `Error: « ${rel} » existe en tant que fichier, pas un dossier. Déplacez-le d'abord si vous avez besoin du nom.`;
   }
   try {
     fs.mkdirSync(abs, { recursive: true });
   } catch (err: any) {
-    return `Error: could not create "${rel}" (${err?.code || err?.message || "unknown reason"}).`;
+    return `Error: impossible de créer « ${rel} » (${err?.code || err?.message || "raison inconnue"}).`;
   }
-  return `Created folder "${rel}".`;
+  return `Dossier « ${rel} » créé.`;
 }
 
 // ---------------------------------------------------------------------------
@@ -325,18 +327,18 @@ export function editFile(root: string, args: any): string {
   const abs = resolveInWorkspace(root, args.path);
   assertFinalInside(root, abs, String(args.path));
   if (!fs.existsSync(abs)) {
-    return `Error: file "${args.path}" does not exist. Use write_file to create a new file.`;
+    return `Error: le fichier « ${args.path} » n'existe pas. Utilisez write_file pour créer un nouveau fichier.`;
   }
   const oldText = args.old_text;
   const newText = args.new_text ?? "";
   if (typeof oldText !== "string" || oldText.length === 0) {
-    return "Error: old_text is required — copy the exact text from the file that you want to replace. To create a new file use write_file instead.";
+    return "Error: old_text est requis — copiez le texte exact du fichier que vous voulez remplacer. Pour créer un nouveau fichier, utilisez write_file à la place.";
   }
   if (typeof newText !== "string") {
-    return "Error: new_text must be a string (use an empty string to delete the old text).";
+    return "Error: new_text doit être une chaîne (utilisez une chaîne vide pour supprimer l'ancien texte).";
   }
   if (isHistoryPlaceholder(newText)) {
-    return "Error: this is a history placeholder, not source code. No file was changed. Read the current file and provide the actual replacement text.";
+    return "Error: ceci est un marqueur d'historique, pas du code source. Aucun fichier n'a été modifié. Lisez le fichier actuel et fournissez le texte de remplacement réel.";
   }
 
   const rawContent = fs.readFileSync(abs, "utf8");
@@ -353,10 +355,10 @@ export function editFile(root: string, args: any): string {
   const occurrences = content.split(oldNorm).length - 1;
   if (occurrences === 1) {
     fs.writeFileSync(abs, serialize(content.replace(oldNorm, newNorm)), "utf8");
-    return `Edited ${args.path}: replaced 1 occurrence.`;
+    return `${args.path} modifié : 1 occurrence remplacée.`;
   }
   if (occurrences > 1) {
-    return `Error: old_text appears ${occurrences} times in ${args.path}. Include a few more surrounding lines in old_text so it matches exactly one place.`;
+    return `Error: old_text apparaît ${occurrences} fois dans ${args.path}. Ajoutez quelques lignes de contexte dans old_text pour qu'il corresponde à un seul endroit.`;
   }
 
   // Tier 2: line-trimmed match (forgives leading/trailing whitespace per line).
@@ -367,26 +369,26 @@ export function editFile(root: string, args: any): string {
     const start = matches[0];
     const replaced = [...fileLines.slice(0, start), ...newNorm.split("\n"), ...fileLines.slice(start + oldLines.length)].join("\n");
     fs.writeFileSync(abs, serialize(replaced), "utf8");
-    return `Edited ${args.path}: replaced 1 occurrence (whitespace differences in old_text were ignored).`;
+    return `${args.path} modifié : 1 occurrence remplacée (les différences d'espacement dans old_text ont été ignorées).`;
   }
   if (matches.length > 1) {
-    return `Error: old_text matches ${matches.length} places in ${args.path} (ignoring whitespace). Include more surrounding lines to make it unique.`;
+    return `Error: old_text correspond à ${matches.length} endroits dans ${args.path} (espacement ignoré). Ajoutez plus de lignes de contexte pour le rendre unique.`;
   }
 
   // Tier 3: coach with the closest real snippet.
   const snippet = closestSnippet(fileLines, oldText);
   if (snippet) {
-    return `Error: old_text was not found in ${args.path}. Closest source starts at line ${snippet.offset}. Read this range: ${JSON.stringify({ path: args.path, offset: snippet.offset, limit: snippet.limit })}. Use a small exact replacement; this snippet is only a location hint, not the whole block you tried to replace.\n---\n${truncateEnd(snippet.text, 1500)}\n---`;
+    return `Error: old_text introuvable dans ${args.path}. Le code le plus proche commence à la ligne ${snippet.offset}. Lisez cette plage : ${JSON.stringify({ path: args.path, offset: snippet.offset, limit: snippet.limit })}. Utilisez un petit remplacement exact ; cet extrait n'est qu'un indice d'emplacement, pas le bloc entier que vous essayiez de remplacer.\n---\n${truncateEnd(snippet.text, 1500)}\n---`;
   }
-  return `Error: old_text was not found in ${args.path}. Call read_file on it first and copy the exact text you want to change.`;
+  return `Error: old_text introuvable dans ${args.path}. Lancez read_file dessus d'abord et copiez le texte exact que vous voulez modifier.`;
 }
 
 export function listFiles(root: string, args: any): string {
   const startRel = typeof args.path === "string" && args.path.trim() ? args.path : ".";
   const start = resolveInWorkspace(root, startRel);
-  if (!fs.existsSync(start)) return `Error: folder "${startRel}" does not exist.`;
+  if (!fs.existsSync(start)) return `Error: le dossier « ${startRel} » n'existe pas.`;
   if (!fs.statSync(start).isDirectory()) {
-    return `Error: "${startRel}" is a file, not a folder. Use read_file to read it.`;
+    return `Error: « ${startRel} » est un fichier, pas un dossier. Utilisez read_file pour le lire.`;
   }
 
   const entries: string[] = [];
@@ -425,10 +427,10 @@ export function listFiles(root: string, args: any): string {
   };
   walk(start, 0);
 
-  if (entries.length === 0) return `The folder "${startRel}" is empty.`;
+  if (entries.length === 0) return `Le dossier « ${startRel} » est vide.`;
   let out = entries.join("\n");
   if (truncated) {
-    out += `\n\n[listing capped at ${LIST_ENTRY_LIMIT} entries. Call list_files with {"path": "<subfolder>"} to explore deeper.]`;
+    out += `\n\n[liste plafonnée à ${LIST_ENTRY_LIMIT} entrées. Appelez list_files avec {"path": "<sous-dossier>"} pour explorer plus en profondeur.]`;
   }
   return out;
 }
@@ -436,11 +438,11 @@ export function listFiles(root: string, args: any): string {
 export function searchFiles(root: string, args: any): string {
   const pattern = args.pattern;
   if (typeof pattern !== "string" || !pattern) {
-    return 'Error: pattern is required. Example: {"pattern": "function main"}';
+    return 'Error: le motif est requis. Exemple : {"pattern": "function main"}';
   }
   const startRel = typeof args.path === "string" && args.path.trim() ? args.path : ".";
   const start = resolveInWorkspace(root, startRel);
-  if (!fs.existsSync(start)) return `Error: folder "${startRel}" does not exist.`;
+  if (!fs.existsSync(start)) return `Error: le dossier « ${startRel} » n'existe pas.`;
 
   const startIsFile = fs.statSync(start).isFile();
 
@@ -531,11 +533,11 @@ export function searchFiles(root: string, args: any): string {
   }
 
   if (matches.length === 0) {
-    return `No matches for "${pattern}" in ${startRel}. (Searched ${filesScanned} files. Tip: try a shorter or simpler pattern.)`;
+    return `Aucune correspondance pour « ${pattern} » dans ${startRel}. (${filesScanned} fichiers examinés. Astuce : essayez un motif plus court ou plus simple.)`;
   }
   let out = matches.join("\n");
   if (matches.length >= SEARCH_MATCH_LIMIT) {
-    out += `\n\n[stopped at ${SEARCH_MATCH_LIMIT} matches — narrow the pattern or search a subfolder with {"path": "..."}]`;
+    out += `\n\n[arrêté à ${SEARCH_MATCH_LIMIT} correspondances — précisez le motif ou cherchez dans un sous-dossier avec {"path": "..."}]`;
   }
   return out;
 }

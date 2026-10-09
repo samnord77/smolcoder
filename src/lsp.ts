@@ -240,7 +240,7 @@ function fmtLoc(root: string, uri: string, range: any): string {
 }
 
 function fmtHover(res: any): string {
-  if (!res) return "No hover info at that position.";
+  if (!res) return "Aucune info de survol à cette position.";
   const c = res.contents;
   const text =
     typeof c === "string"
@@ -249,7 +249,7 @@ function fmtHover(res: any): string {
         ? c.map((x) => (typeof x === "string" ? x : (x?.value ?? ""))).join("\n")
         : (c?.value ?? "");
   const clean = String(text).trim().slice(0, RESULT_CAP);
-  return clean || "No hover info at that position.";
+  return clean || "Aucune info de survol à cette position.";
 }
 
 function fmtLocList(root: string, res: any): string {
@@ -262,11 +262,11 @@ function fmtLocList(root: string, res: any): string {
     })
     .filter(Boolean)
     .slice(0, 20);
-  return locs.length ? locs.join("\n") : "No result at that position.";
+  return locs.length ? locs.join("\n") : "Aucun résultat à cette position.";
 }
 
 function fmtDiagnostics(root: string, uri: string, diags: any[]): string {
-  if (!diags.length) return "No diagnostics — the file parses clean.";
+  if (!diags.length) return "Aucun diagnostic — le fichier est syntaxiquement propre.";
   return diags
     .slice(0, 20)
     .map((d) => {
@@ -289,11 +289,11 @@ export async function querySymbols(
   signal?: AbortSignal
 ): Promise<string> {
   if (lspDisabled()) {
-    return "Error: symbols is désactivé (SMOLCODER_LSP_DISABLE=1). Unset it to re-enable hover/def/refs/diag.";
+    return "Error: symbols est désactivé (SMOLCODER_LSP_DISABLE=1). Retirez cette variable pour réactiver hover/def/refs/diag.";
   }
   const action = String(args.action ?? "");
   if (!["hover", "def", "refs", "diag"].includes(action)) {
-    return 'Error: action must be one of "hover", "def", "refs", "diag". Example: {"action": "hover", "path": "src/agent.ts", "line": 10, "col": 15}';
+    return 'Error: l\'action doit être l\'une de "hover", "def", "refs", "diag". Exemple : {"action": "hover", "path": "src/agent.ts", "line": 10, "col": 15}';
   }
   const rel = typeof args.path === "string" ? args.path : "";
   let abs: string;
@@ -303,24 +303,24 @@ export async function querySymbols(
     return `Error: ${err?.message ?? err}`;
   }
   if (!isTsLike(abs)) {
-    return `Error: "${rel}" is not a TypeScript/JavaScript file — symbols work on .ts, .tsx, .js, .jsx, .mjs, .cjs.`;
+    return `Error: "${rel}" n'est pas un fichier TypeScript/JavaScript — symbols fonctionne sur .ts, .tsx, .js, .jsx, .mjs, .cjs.`;
   }
   let stat: fs.Stats;
   try {
     stat = fs.statSync(abs);
   } catch {
-    return `Error: file "${rel}" does not exist.`;
+    return `Error: le fichier "${rel}" n'existe pas.`;
   }
-  if (!stat.isFile()) return `Error: "${rel}" is a folder, not a file.`;
-  if (stat.size > 1024 * 1024) return `Error: "${rel}" is too large for symbol queries (1 MB limit).`;
-  if (signal?.aborted) return "Error: symbols query cancelled before starting.";
+  if (!stat.isFile()) return `Error: "${rel}" est un dossier, pas un fichier.`;
+  if (stat.size > 1024 * 1024) return `Error: "${rel}" est trop volumineux pour les requêtes de symboles (limite 1 Mo).`;
+  if (signal?.aborted) return "Error: requête symbols annulée avant le démarrage.";
 
   const client = new LspClient(root, toUri(abs));
   try {
     await client.start();
   } catch (err: any) {
     client.close();
-    return `Error: language server unavailable (${String(err?.message ?? err).slice(0, 160)}). Install once with: npx -y typescript-language-server --version`;
+    return `Error: le serveur de langage est indisponible (${String(err?.message ?? err).slice(0, 160)}). Installez-le une fois avec : npx -y typescript-language-server --version`;
   }
   try {
     const text = fs.readFileSync(abs, "utf8");
@@ -347,7 +347,7 @@ export async function querySymbols(
       let diags: any[] = [...client.takeDiagnostics()];
       while (!diags.length && Date.now() < deadline) {
         await new Promise((r) => setTimeout(r, 300));
-        if (signal?.aborted) return "Error: symbols query cancelled.";
+        if (signal?.aborted) return "Error: requête symbols annulée.";
         diags = [...diags, ...client.takeDiagnostics()];
       }
       return fmtDiagnostics(root, toUri(abs), diags);
@@ -355,13 +355,13 @@ export async function querySymbols(
     const line = Math.max(1, Number(args.line) || 1) - 1;
     const col = Math.max(1, Number(args.col) || 1) - 1;
     const params = { textDocument: { uri: toUri(abs) }, position: { line, character: col } };
-    if (signal?.aborted) return "Error: symbols query cancelled.";
+    if (signal?.aborted) return "Error: requête symbols annulée.";
     if (action === "hover") return fmtHover(await client.request("textDocument/hover", params));
     if (action === "def") return fmtLocList(root, await client.request("textDocument/definition", params));
     return fmtLocList(root, await client.request("textDocument/references", { ...params, context: { includeDeclaration: true } }));
   } catch (err: any) {
-    if (signal?.aborted || (err as any)?.name === "AbortError") return "Error: symbols query cancelled.";
-    return `Error: symbols query failed (${String(err?.message ?? err).slice(0, 200)}).`;
+    if (signal?.aborted || (err as any)?.name === "AbortError") return "Error: requête symbols annulée.";
+    return `Error: la requête symbols a échoué (${String(err?.message ?? err).slice(0, 200)}).`;
   } finally {
     client.close();
   }

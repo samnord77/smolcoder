@@ -69,16 +69,16 @@ export async function fetchUrl(root: string, args: any, signal?: AbortSignal): P
   void root;
   const raw = typeof args.url === "string" ? args.url.trim() : "";
   if (!raw) {
-    return 'Error: url is required. Example: {"url": "https://example.com/docs"}';
+    return 'Error: l’URL est requise. Exemple : {"url": "https://example.com/docs"}';
   }
   let url: URL;
   try {
     url = new URL(raw);
   } catch {
-    return `Error: "${raw.slice(0, 120)}" is not a valid URL. Use a full https:// address.`;
+    return `Error: « ${raw.slice(0, 120)} » n’est pas une URL valide. Utilisez une adresse https:// complète.`;
   }
   if (!isPublicHttp(url)) {
-    return `Error: only public http(s) pages can be read — "${url.protocol}//${url.hostname}" is not allowed.`;
+    return `Error: seules les pages publiques http(s) peuvent être lues — « ${url.protocol}//${url.hostname} » n’est pas autorisé.`;
   }
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
@@ -90,14 +90,14 @@ export async function fetchUrl(root: string, args: any, signal?: AbortSignal): P
       redirect: "follow",
       headers: { "user-agent": "smolcoder/1 (+local coding agent)", accept: "text/html,text/plain,*/*" },
     });
-    if (!res.ok) return `Error: the page answered ${res.status} ${res.statusText}. Check the address.`;
+    if (!res.ok) return `Error: la page a répondu ${res.status} ${res.statusText}. Vérifiez l’adresse.`;
     const type = (res.headers.get("content-type") ?? "").toLowerCase();
     if (!/text|html|xml|json|markdown/.test(type) && type) {
-      return `Error: "${type.split(";")[0]}" is not readable text (page skipped to save context).`;
+      return `Error: « ${type.split(";")[0]} » n’est pas du texte lisible (page ignorée pour économiser le contexte).`;
     }
     const buf = Buffer.from(await res.arrayBuffer());
     if (buf.length > FETCH_BODY_CAP) {
-      return `Error: page too large (${Math.round(buf.length / 1024)} KB, limit ${FETCH_BODY_CAP / 1000} KB). Narrow the question or read its docs instead.`;
+      return `Error: page trop volumineuse (${Math.round(buf.length / 1024)} Ko, limite ${FETCH_BODY_CAP / 1000} Ko). Précisez la question ou lisez plutôt la documentation.`;
     }
     const body = buf.toString("utf8");
     const isHtml = /<html|<!doctype/i.test(body);
@@ -107,15 +107,15 @@ export async function fetchUrl(root: string, args: any, signal?: AbortSignal): P
       .replace(/[ \t]+\n/g, "\n")
       .replace(/\n{3,}/g, "\n\n")
       .trim();
-    if (!clean) return "Error: the page contains no readable text.";
+    if (!clean) return "Error: la page ne contient pas de texte lisible.";
     const head =
       clean.length > OUTPUT_CAP
-        ? `${clean.slice(0, OUTPUT_CAP)}\n[page capped at ${OUTPUT_CAP} characters — ask for one section at a time]`
+        ? `${clean.slice(0, OUTPUT_CAP)}\n[page plafonnée à ${OUTPUT_CAP} caractères — demandez une section à la fois]`
         : clean;
-    return `${title ? `Title: ${title}\n` : ""}URL: ${url.toString()}\n\n${head}`;
+    return `${title ? `Titre : ${title}\n` : ""}URL : ${url.toString()}\n\n${head}`;
   } catch (err: any) {
-    if (err?.name === "AbortError" || signal?.aborted) return "Error: the page took too long (25s) — try a lighter page.";
-    return `Error: could not read the page (${String(err?.message ?? err).slice(0, 160)}).`;
+    if (err?.name === "AbortError" || signal?.aborted) return "Error: la page a mis trop de temps (25 s) — essayez une page plus légère.";
+    return `Error: impossible de lire la page (${String(err?.message ?? err).slice(0, 160)}).`;
   } finally {
     clearTimeout(timer);
     signal?.removeEventListener("abort", onAbort);

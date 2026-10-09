@@ -104,13 +104,13 @@ test("code api: availability, symbol search, and lsp coaching", async () => {
     assert.match(sym.result, /add \(function\) — calc\.py:1/);
 
     const stats = JSON.parse((await request(hub, "GET", `/code/symbols${k}&sid=${id}`)).body);
-    assert.match(stats.result, /Index:/);
+    assert.match(stats.result, /Index :/);
 
     const diag = JSON.parse((await request(hub, "GET", `/code/lsp${k}&sid=${id}&action=diag&path=note.txt`)).body);
-    assert.match(diag.result, /not a supported language/);
+    assert.match(diag.result, /n'est pas un langage pris en charge/);
 
     const hover = JSON.parse((await request(hub, "GET", `/code/lsp${k}&sid=${id}&action=hover`)).body);
-    assert.match(hover.result, /path is required/);
+    assert.match(hover.result, /le chemin est requis/);
 
     const missing = await request(hub, "GET", `/code/symbols${k}&sid=deadbeef`);
     assert.equal(missing.status, 404);
@@ -154,7 +154,7 @@ test("code api: Git status and blame report real workspace data", async () => {
     assert.equal(status.sync.ahead, null);
     const blame = JSON.parse((await request(hub, "GET", `/git/blame${k}&sid=${id}&path=tracked.txt&line=2`)).body);
     assert.match(blame.result, /Smol API Test.*line two/);
-    assert.match((await request(hub, "GET", `/git/blame${k}&sid=${id}&path=missing.txt&line=1`)).body, /git blame failed/);
+    assert.match((await request(hub, "GET", `/git/blame${k}&sid=${id}&path=missing.txt&line=1`)).body, /git blame a échoué/);
   } finally {
     hub.close();
   }
@@ -251,9 +251,9 @@ test("code api: share links, presence, and hunk review", async () => {
     const diff = JSON.parse((await request(hub, "GET", `/code/diff${k}&sid=${id}`)).body);
     assert.equal(diff.files.length, 2);
     assert.equal(diff.files[0].hunks.length, 2);
-    assert.match(diff.note, /Untracked.*new\.txt/);
+    assert.match(diff.note, /Non suivis.*new\.txt/);
     const st = JSON.parse((await request(hub, "POST", `/code/diff/hunk${k}`, { sid: id, path: "app.txt", hunk: 0, action: "stage" })).body);
-    assert.match(st.message, /Staged hunk 0/);
+    assert.match(st.message, /Hunk 0 .*staging|mis en staging/i);
     const stagedView = JSON.parse((await request(hub, "GET", `/code/diff${k}&sid=${id}&staged=1`)).body);
     assert.equal(stagedView.files.length, 1);
     const bad = JSON.parse(
@@ -263,13 +263,13 @@ test("code api: share links, presence, and hunk review", async () => {
     const rv = JSON.parse(
       (await request(hub, "POST", `/code/diff/hunk${k}`, { sid: id, path: "app.txt", hunk: 0, action: "revert" })).body
     );
-    assert.match(rv.message, /Reverted hunk 0/);
+    assert.match(rv.message, /Hunk 0 .*annulé/);
     const content = fs.readFileSync(path.join(ws, "app.txt"), "utf8");
     assert.match(content, /CHANGED2/);
     assert.doesNotMatch(content, /CHANGED18/);
 
     const ds = JSON.parse((await request(hub, "GET", `/code/diag-structured${k}&sid=${id}&path=new.txt`)).body);
-    assert.match(ds.text, /not a supported language/);
+    assert.match(ds.text, /n['’]est pas un langage pris en charge/);
     assert.deepEqual(ds.diagnostics, []);
   } finally {
     hub.close();
@@ -311,33 +311,36 @@ test("code api: review file actions with read-only guard", async () => {
     const post = (p, body) => request(hub, "POST", p + k, { sid: id, ...body });
 
     const st = JSON.parse((await post("/code/diff/stage", { path: "a.txt" })).body);
-    assert.match(st.message, /Staged/);
+    assert.match(st.message, /Mis en staging/);
     const stagedView = JSON.parse((await request(hub, "GET", `/code/diff${k}&sid=${id}&staged=1`)).body);
     assert.equal(stagedView.files.length, 1);
 
     // unstage: file and hunk leave the index, the working tree is untouched
     const un = JSON.parse((await post("/code/diff/unstage", { path: "a.txt" })).body);
-    assert.match(un.message, /Unstaged: a\.txt/);
-    assert.match(un.message, /working tree keeps every change/i);
+    assert.match(un.message, /Retiré du staging : a\.txt/);
+    assert.match(un.message, /arbre de travail conserve toutes les modifications/i);
     assert.equal(
       JSON.parse((await request(hub, "GET", `/code/diff${k}&sid=${id}&staged=1`)).body).files.length,
       0,
       "the file left the staging area"
     );
-    assert.match(JSON.parse((await post("/code/diff/unstage", { path: "a.txt" })).body).message, /Nothing staged/);
-    assert.match(JSON.parse((await post("/code/diff/hunk", { path: "a.txt", hunk: 0, action: "unstage" })).body).message, /not staged/);
-    assert.match(JSON.parse((await post("/code/diff/stage", { path: "a.txt" })).body).message, /Staged/);
+    assert.match(JSON.parse((await post("/code/diff/unstage", { path: "a.txt" })).body).message, /Rien en staging/);
+    assert.match(
+      JSON.parse((await post("/code/diff/hunk", { path: "a.txt", hunk: 0, action: "unstage" })).body).message,
+      /n’est pas en staging/
+    );
+    assert.match(JSON.parse((await post("/code/diff/stage", { path: "a.txt" })).body).message, /Mis en staging/);
 
     const rv = JSON.parse((await post("/code/diff/revert-file", { path: "b.txt" })).body);
-    assert.match(rv.message, /Reverted/);
+    assert.match(rv.message, /restauré/);
     assert.equal(fs.readFileSync(path.join(ws, "b.txt"), "utf8").replace(/\r\n/g, "\n"), "two\n");
-    assert.match(JSON.parse((await post("/code/diff/revert-file", { path: "missing.txt" })).body).message, /does not exist|failed/);
+    assert.match(JSON.parse((await post("/code/diff/revert-file", { path: "missing.txt" })).body).message, /does not exist|échoué/);
 
     const cm = JSON.parse((await post("/code/commit", { message: "Second" })).body);
     assert.match(cm.message, /Second|master|main|create/i);
 
     const sl1 = JSON.parse((await post("/code/diff/stage-lines", { sid: id, path: "app.txt", hunk: 0, lines: [] })).body);
-    assert.match(sl1.message, /at least one|no longer exists/);
+    assert.match(sl1.message, /au moins|n’existe plus/);
 
     hub.live.get(id).session.agent.mode = "ro";
     for (const [p, body] of [
@@ -392,7 +395,7 @@ test("code api: file ops, plan checklist, and cursor presence", async () => {
     await request(hub, "POST", `/workspace/file/delete${k}`, { sid: id, path: "sub/m.txt" });
     assert.ok(!fs.existsSync(path.join(ws, "sub", "m.txt")));
     assert.match((await request(hub, "POST", `/workspace/file/delete${k}`, { sid: id, path: "." })).body, /workspace lui-même/);
-    assert.match((await request(hub, "POST", `/workspace/file/delete${k}`, { sid: id, path: "../evil.txt" })).body, /outside|workspace/i);
+    assert.match((await request(hub, "POST", `/workspace/file/delete${k}`, { sid: id, path: "../evil.txt" })).body, /en dehors|espace/i);
 
     live().session.agent.mode = "ro";
     assert.match((await request(hub, "POST", `/workspace/file/new${k}`, { sid: id, path: "x.txt" })).body, /lecture seule/);
@@ -403,17 +406,17 @@ test("code api: file ops, plan checklist, and cursor presence", async () => {
     const { Plan } = require("../dist/plan");
     const { Session } = require("../dist/session");
     const plan = new Plan(ws, "testkey");
-    assert.match(plan.set("alpha\nbeta"), /Plan set/);
+    assert.match(plan.set("alpha\nbeta"), /Plan défini/);
     live().session.toolCtx.plan = plan;
     live().session.planLine = Session.prototype.planLine;
     const full = JSON.parse((await request(hub, "GET", `/plan${k}&sid=${id}`)).body);
     assert.equal(full.total, 2);
     assert.equal(full.done, 0);
     const done = JSON.parse((await request(hub, "POST", `/plan/done${k}`, { sid: id, step: 1 })).body);
-    assert.match(done.message, /Done: 1/);
+    assert.match(done.message, /Terminé : 1/);
     assert.equal(done.plan.done, 1);
     assert.deepEqual(hub.snapshot().workspaces[0].sessions[0].plan, "Plan 1/2 · beta");
-    assert.match((await request(hub, "POST", `/plan/done${k}`, { sid: id, step: 9 })).body, /does not exist/);
+    assert.match((await request(hub, "POST", `/plan/done${k}`, { sid: id, step: 9 })).body, /n'existe pas/);
 
     await request(hub, "POST", `/cursor${k}`, { sid: id, path: "keep.txt", line: 3, name: "Zoe" });
     const editing = hub.snapshot().workspaces[0].sessions[0].editing;

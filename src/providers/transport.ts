@@ -6,8 +6,8 @@ export class BackendTimeoutError extends Error {
   constructor(readonly code: BackendTimeoutCode) {
     super(
       code === "BACKEND_IDLE_TIMEOUT"
-        ? "Backend timed out waiting for data. Check the model server and available memory."
-        : "Backend request timed out. The model did not finish within the request deadline."
+        ? "Le backend a expiré en attendant des données. Vérifiez le serveur de modèle et la mémoire disponible."
+        : "La requête backend a expiré. Le modèle n'a pas terminé dans le délai imparti."
     );
     this.name = "BackendTimeoutError";
   }
@@ -23,7 +23,9 @@ export function isBackendTimeoutError(error: unknown): boolean {
   )
     return true;
   const message = String((error as any)?.message ?? error ?? "");
-  return /Backend timed out waiting for data|Backend request timed out|backend timeout|timed out waiting for data/i.test(message);
+  return /Backend timed out waiting for data|Backend request timed out|backend timeout|timed out waiting for data|backend a expiré en attendant des données|La requête backend a expiré/i.test(
+    message
+  );
 }
 
 /** A local CPU model can need minutes to prefill a prompt. Node's fetch gives up

@@ -23,21 +23,22 @@ export class Plan {
     this.storage = workspace ? { workspace, key } : null;
     if (!this.storage) return;
     if (!/^[A-Za-z0-9_-]{1,64}$/.test(key)) {
-      this.loadError = "invalid plan storage key; plan persistence is disabled for this session.";
+      this.loadError = "clé de stockage de plan invalide ; la persistance des plans est désactivée pour cette session.";
       return;
     }
     try {
       const file = this.storagePath();
       if (!fs.existsSync(file)) return;
       const stat = fs.statSync(file);
-      if (!stat.isFile() || stat.size > 128 * 1024) throw new Error("saved plan exceeds its size limit or is not a regular file");
+      if (!stat.isFile() || stat.size > 128 * 1024)
+        throw new Error("le plan enregistré dépasse sa limite de taille ou n'est pas un fichier régulier");
       const data = JSON.parse(fs.readFileSync(file, "utf8"));
       if (data?.version !== 1 || !Array.isArray(data.steps) || !Plan.validSteps(data.steps)) {
-        throw new Error("saved plan has an unsupported format");
+        throw new Error("le plan enregistré a un format non pris en charge");
       }
       this.steps = data.steps.map((step: PlanStep) => ({ ...step }));
     } catch (error: any) {
-      this.loadError = `could not load the saved plan: ${String(error?.message ?? error).slice(0, 240)}`;
+      this.loadError = `impossible de charger le plan enregistré : ${String(error?.message ?? error).slice(0, 240)}`;
     }
   }
 
@@ -69,7 +70,7 @@ export class Plan {
   private persist(steps: PlanStep[]): string | null {
     if (!this.storage) return null;
     const data = `${JSON.stringify({ version: 1, updatedAt: new Date().toISOString(), steps }, null, 2)}\n`;
-    if (Buffer.byteLength(data, "utf8") > 128 * 1024) return "Error: saved plan exceeds its 128 KB storage limit.";
+    if (Buffer.byteLength(data, "utf8") > 128 * 1024) return "Error: le plan enregistré dépasse sa limite de stockage de 128 Ko.";
     let temp: string | null = null;
     try {
       const directory = resolveInWorkspace(this.storage.workspace, ".smol/plans");
@@ -81,7 +82,7 @@ export class Plan {
       temp = null;
       return null;
     } catch (error: any) {
-      return `Error: could not save the project plan: ${String(error?.message ?? error).slice(0, 240)}`;
+      return `Error: impossible d'enregistrer le plan du projet : ${String(error?.message ?? error).slice(0, 240)}`;
     } finally {
       try {
         if (temp && fs.existsSync(temp)) fs.unlinkSync(temp);
@@ -93,7 +94,7 @@ export class Plan {
 
   /** Restore a validated plan snapshot, used when resuming one saved session. */
   restoreSteps(steps: unknown): string | null {
-    if (!Plan.validSteps(steps)) return "Error: saved session plan has an unsupported format.";
+    if (!Plan.validSteps(steps)) return "Error: le plan de session enregistré a un format non pris en charge.";
     const copy = steps.map((step) => ({ ...step }));
     const failure = this.persist(copy);
     if (failure) return failure;
@@ -131,31 +132,31 @@ export class Plan {
       .filter(Boolean)
       .slice(0, 20);
     if (lines.length === 0) {
-      return 'Error: steps is required — one step per line. Example: {"action": "set", "steps": "create index.html\\ncreate game.js\\ntest the page"}';
+      return 'Error: steps est requis — une étape par ligne. Exemple : {"action": "set", "steps": "create index.html\\ncreate game.js\\ntest the page"}';
     }
-    if (lines.some((text) => text.length > 4000)) return "Error: each plan step must be at most 4,000 characters.";
+    if (lines.some((text) => text.length > 4000)) return "Error: chaque étape du plan doit faire au plus 4 000 caractères.";
     const next = lines.map((text) => ({ text, done: false }));
     const failure = this.persist(next);
     if (failure) return failure;
     this.steps = next;
-    return `Plan set (${this.steps.length} steps). Current: 1. ${this.steps[0].text}`;
+    return `Plan défini (${this.steps.length} étapes). Actuel : 1. ${this.steps[0].text}`;
   }
 
   /** Mark a step done. No index = the current step. Returns a compact
    * "what's next" line — cheap tokens that keep the model on course. */
   markDone(stepNumber?: number): string {
-    if (!this.exists) return 'Error: no plan yet. Create one first with {"action": "set", "steps": "..."}';
+    if (!this.exists) return 'Error: pas encore de plan. Créez-en un d\'abord avec {"action": "set", "steps": "..."}';
     let idx: number;
     if (stepNumber === undefined || stepNumber === null) {
       idx = this.currentIndex;
-      if (idx < 0) return "All steps are already done.";
+      if (idx < 0) return "Toutes les étapes sont déjà terminées.";
     } else {
       if (typeof stepNumber !== "number" || !Number.isFinite(stepNumber)) {
-        return `Error: step must be a number between 1 and ${this.steps.length}.`;
+        return `Error: l'étape doit être un nombre entre 1 et ${this.steps.length}.`;
       }
       idx = Math.floor(stepNumber) - 1;
       if (!Number.isSafeInteger(idx) || idx < 0 || idx >= this.steps.length) {
-        return `Error: step ${stepNumber} does not exist. The plan has ${this.steps.length} steps.`;
+        return `Error: l'étape ${stepNumber} n'existe pas. Le plan comporte ${this.steps.length} étapes.`;
       }
     }
     const nextSteps = this.steps.map((step, i) => (i === idx ? { ...step, done: true } : step));
@@ -164,56 +165,56 @@ export class Plan {
     this.steps = nextSteps;
     const next = this.currentIndex;
     return next < 0
-      ? `Done: ${idx + 1}. All ${this.steps.length} steps complete.`
-      : `Done: ${idx + 1}. Next: ${next + 1}. ${this.steps[next].text}`;
+      ? `Terminé : ${idx + 1}. Les ${this.steps.length} étapes sont complètes.`
+      : `Terminé : ${idx + 1}. Ensuite : ${next + 1}. ${this.steps[next].text}`;
   }
 
   /** Force one step to an explicit state (check or uncheck from the UI).
    *  markDone can only move a step forward; the task rail needs to toggle. */
   setDone(stepNumber: unknown, done: boolean): string {
-    if (!this.exists) return 'Error: no plan yet. Create one first with {"action": "set", "steps": "..."}';
+    if (!this.exists) return 'Error: pas encore de plan. Créez-en un d\'abord avec {"action": "set", "steps": "..."}';
     const idx = typeof stepNumber === "number" && Number.isFinite(stepNumber) ? Math.floor(stepNumber) - 1 : -1;
     if (!Number.isSafeInteger(idx) || idx < 0 || idx >= this.steps.length) {
-      return `Error: step must be a number between 1 and ${this.steps.length}.`;
+      return `Error: l'étape doit être un nombre entre 1 et ${this.steps.length}.`;
     }
     if (!!this.steps[idx].done === !!done) {
-      return `Step ${idx + 1} is already ${done ? "done" : "open"}.`;
+      return `L'étape ${idx + 1} est déjà ${done ? "terminée" : "ouverte"}.`;
     }
     const nextSteps = this.steps.map((step, i) => (i === idx ? { ...step, done: !!done } : step));
     const failure = this.persist(nextSteps);
     if (failure) return failure;
     this.steps = nextSteps;
-    return `Step ${idx + 1} ${done ? "done" : "reopened"}.`;
+    return `Étape ${idx + 1} ${done ? "terminée" : "rouverte"}.`;
   }
 
   add(text: string): string {
     if (typeof text !== "string" || !text.trim()) {
-      return 'Error: text is required. Example: {"action": "add", "text": "fix the collision bug"}';
+      return 'Error: le texte est requis. Exemple : {"action": "add", "text": "fix the collision bug"}';
     }
-    if (this.steps.length >= 20) return "Error: the plan already has 20 steps — finish some first.";
-    if (text.trim().length > 4000) return "Error: each plan step must be at most 4,000 characters.";
+    if (this.steps.length >= 20) return "Error: le plan a déjà 20 étapes — en terminez certaines d'abord.";
+    if (text.trim().length > 4000) return "Error: chaque étape du plan doit faire au plus 4 000 caractères.";
     const next = [...this.steps, { text: text.trim(), done: false }];
     const failure = this.persist(next);
     if (failure) return failure;
     this.steps = next;
-    return `Added step ${this.steps.length}: ${text.trim()}`;
+    return `Étape ${this.steps.length} ajoutée : ${text.trim()}`;
   }
 
   checkpoint(text: string): string {
     const idx = this.currentIndex;
-    if (idx < 0) return "Error: create a plan with an unfinished step before recording a checkpoint.";
+    if (idx < 0) return "Error: créez un plan avec une étape non terminée avant d'enregistrer un point de sauvegarde.";
     if (typeof text !== "string" || !text.trim() || text.length > 1000)
-      return "Error: checkpoint text must be 1–1000 characters. Keep exact APIs, the unresolved error and the next small edit.";
+      return "Error: le texte du point de sauvegarde doit faire 1 à 1 000 caractères. Conservez les API exactes, l'erreur non résolue et la prochaine petite modification.";
     const next = this.steps.map((step, i) => (i === idx ? { ...step, note: text.trim() } : step));
     const failure = this.persist(next);
     if (failure) return failure;
     this.steps = next;
-    return `Checkpoint saved for step ${idx + 1}: ${text.trim()}`;
+    return `Point de sauvegarde enregistré pour l'étape ${idx + 1} : ${text.trim()}`;
   }
 
   /** Compact model-facing checklist (used by action "show" and after compaction). */
   modelView(): string {
-    if (!this.exists) return "No plan set.";
+    if (!this.exists) return "Aucun plan défini.";
     return this.steps
       .map(
         (s, i) =>

@@ -675,11 +675,11 @@ function fmtLocList(root: string, res: any): string {
     })
     .filter(Boolean)
     .slice(0, 20);
-  return locs.length ? locs.join("\n") : "No result at that position.";
+  return locs.length ? locs.join("\n") : "Aucun résultat à cette position.";
 }
 
 function fmtHoverText(res: any): string {
-  if (!res) return "No hover info at that position.";
+  if (!res) return "Aucune info de survol à cette position.";
   const c = res.contents;
   const text =
     typeof c === "string"
@@ -688,11 +688,11 @@ function fmtHoverText(res: any): string {
         ? c.map((x) => (typeof x === "string" ? x : (x?.value ?? ""))).join("\n")
         : (c?.value ?? "");
   const clean = String(text).trim().slice(0, RESULT_CAP);
-  return clean || "No hover info at that position.";
+  return clean || "Aucune info de survol à cette position.";
 }
 
 function fmtDiagList(root: string, uri: string, diags: any[]): string {
-  if (!diags.length) return "No diagnostics — the file parses clean.";
+  if (!diags.length) return "Aucun diagnostic — le fichier est syntaxiquement propre.";
   return diags
     .slice(0, 20)
     .map((d) => {
@@ -734,7 +734,7 @@ const COMPLETION_KINDS: Record<number, string> = {
 
 function fmtCompletion(res: any): string {
   const items = Array.isArray(res) ? res : Array.isArray(res?.items) ? res.items : [];
-  if (!items.length) return "No completions at that position.";
+  if (!items.length) return "Aucune complétion à cette position.";
   return items
     .slice(0, 30)
     .map((it: any) => {
@@ -750,7 +750,7 @@ function fmtCompletion(res: any): string {
 
 function fmtSignature(res: any): string {
   const sigs = Array.isArray(res?.signatures) ? res.signatures : [];
-  if (!sigs.length) return "No signature help at that position.";
+  if (!sigs.length) return "Aucune aide de signature à cette position.";
   const active = typeof res?.activeSignature === "number" ? res.activeSignature : 0;
   return sigs
     .slice(0, 5)
@@ -821,7 +821,7 @@ function fmtWorkspaceEdit(root: string, edit: any): string {
       }
     }
   }
-  if (!ones.length) return "The server proposed no edits.";
+  if (!ones.length) return "Le serveur n'a proposé aucune modification.";
   return ones
     .slice(0, 20)
     .map((o) => `${o.uri}:${o.line}: "${o.oldLine}" → "${o.newText}"`)
@@ -830,7 +830,7 @@ function fmtWorkspaceEdit(root: string, edit: any): string {
 
 function fmtCodeActions(res: any): string {
   const arr = Array.isArray(res) ? res : [];
-  if (!arr.length) return "No quick fixes offered at that position.";
+  if (!arr.length) return "Aucune correction rapide proposée à cette position.";
   return arr
     .slice(0, 15)
     .map((a: any) => `- ${String(a?.title ?? "untitled").slice(0, 120)}${a?.kind ? ` (${a.kind})` : ""}`)
@@ -979,18 +979,18 @@ export class LspManager {
   /** One symbol question. Never throws: failures are coaching strings. */
   async query(raw: CodeQuery, signal?: AbortSignal): Promise<string> {
     if (lspDisabled()) {
-      return "Error: symbols is désactivé (SMOLCODER_LSP_DISABLE=1). Unset it to re-enable code intelligence.";
+      return "Error: symbols est désactivé (SMOLCODER_LSP_DISABLE=1). Retirez cette variable pour réactiver l'intelligence de code.";
     }
     const action = String(raw.action ?? "");
     if (action === "wsymbol") {
       return this.workspaceSymbol(String(raw.query ?? ""), String(raw.lang ?? "typescript"), signal);
     }
     if (!CODE_ACTIONS.includes(action)) {
-      return `Error: action must be one of ${CODE_ACTIONS.map((a) => `"${a}"`).join(", ")}. Example: {"action": "hover", "path": "src/agent.ts", "line": 10, "col": 15}`;
+      return `Error: l'action doit être l'une de ${CODE_ACTIONS.map((a) => `"${a}"`).join(", ")}. Exemple : {"action": "hover", "path": "src/agent.ts", "line": 10, "col": 15}`;
     }
     const rel = typeof raw.path === "string" ? raw.path : "";
     if (!rel)
-      return `Error: path is required. Example: {"action": "${action}", "path": "src/agent.ts"${action === "diag" ? "" : ', "line": 10, "col": 15'}}`;
+      return `Error: le chemin est requis. Exemple : {"action": "${action}", "path": "src/agent.ts"${action === "diag" ? "" : ', "line": 10, "col": 15'}}`;
     let abs: string;
     try {
       abs = resolveInWorkspace(this.root, rel);
@@ -999,21 +999,21 @@ export class LspManager {
     }
     const def = serverForFile(abs);
     if (!def) {
-      return `Error: "${rel}" is not a supported language — code intelligence works on ${supportedLspExts().join(", ")}.`;
+      return `Error: "${rel}" n'est pas un langage pris en charge — l'intelligence de code fonctionne sur ${supportedLspExts().join(", ")}.`;
     }
     let stat: fs.Stats;
     try {
       stat = fs.statSync(abs);
     } catch {
-      return `Error: file "${rel}" does not exist.`;
+      return `Error: le fichier "${rel}" n'existe pas.`;
     }
-    if (!stat.isFile()) return `Error: "${rel}" is a folder, not a file.`;
-    if (stat.size > MAX_FILE_BYTES) return `Error: "${rel}" is too large for symbol queries (1 MB limit).`;
-    if (signal?.aborted) return "Error: symbols query cancelled before starting.";
+    if (!stat.isFile()) return `Error: "${rel}" est un dossier, pas un fichier.`;
+    if (stat.size > MAX_FILE_BYTES) return `Error: "${rel}" est trop volumineux pour les requêtes de symboles (limite 1 Mo).`;
+    if (signal?.aborted) return "Error: requête symbols annulée avant le démarrage.";
     if (action === "rename") {
       const newName = typeof raw.new_text === "string" ? raw.new_text.trim() : "";
       if (!newName || /[\s,;]/.test(newName)) {
-        return 'Error: rename needs new_text with the new name. Example: {"action": "rename", "path": "src/a.ts", "line": 3, "col": 5, "new_text": "total"}';
+        return 'Error: rename a besoin de new_text avec le nouveau nom. Exemple : {"action": "rename", "path": "src/a.ts", "line": 3, "col": 5, "new_text": "total"}';
       }
     }
 
@@ -1021,15 +1021,15 @@ export class LspManager {
     try {
       live = await this.ensureServer(def, signal);
     } catch (err: any) {
-      return `Error: ${def.lang} language server unavailable (${String(err?.message ?? err).slice(0, 160)}). ${def.installHint}`;
+      return `Error: le serveur de langage ${def.lang} est indisponible (${String(err?.message ?? err).slice(0, 160)}). ${def.installHint}`;
     }
     const uri = lspUri(abs);
     try {
       await this.ensureDoc(live, abs, uri, def, signal);
     } catch (err: any) {
-      return `Error: could not open "${rel}" on the language server (${String(err?.message ?? err).slice(0, 160)}).`;
+      return `Error: impossible d'ouvrir "${rel}" sur le serveur de langage (${String(err?.message ?? err).slice(0, 160)}).`;
     }
-    if (signal?.aborted) return "Error: symbols query cancelled.";
+    if (signal?.aborted) return "Error: requête symbols annulée.";
     const pos = { line: num1(raw.line), character: num1(raw.col) };
     const docId = { uri };
     try {
@@ -1052,7 +1052,7 @@ export class LspManager {
           try {
             diags = await this.fetchDiagnostics(live, uri, signal);
           } catch {
-            return "Error: symbols query cancelled.";
+            return "Error: requête symbols annulée.";
           }
           return fmtDiagList(this.root, uri, diags);
         }
@@ -1078,11 +1078,11 @@ export class LspManager {
           );
         }
         default:
-          return `Error: action must be one of ${CODE_ACTIONS.map((a) => `"${a}"`).join(", ")}.`;
+          return `Error: l'action doit être l'une de ${CODE_ACTIONS.map((a) => `"${a}"`).join(", ")}.`;
       }
     } catch (err: any) {
-      if (signal?.aborted || (err as any)?.name === "AbortError") return "Error: symbols query cancelled.";
-      return `Error: symbols query failed (${String(err?.message ?? err).slice(0, 200)}).`;
+      if (signal?.aborted || (err as any)?.name === "AbortError") return "Error: requête symbols annulée.";
+      return `Error: la requête symbols a échoué (${String(err?.message ?? err).slice(0, 200)}).`;
     }
   }
 
@@ -1111,9 +1111,9 @@ export class LspManager {
    * for click-to-jump, plus the human-readable text. Never throws. */
   async diagStructured(rel: string, signal?: AbortSignal): Promise<{ text: string; diagnostics: StructuredDiag[] }> {
     const none = (text: string): { text: string; diagnostics: StructuredDiag[] } => ({ text, diagnostics: [] });
-    if (lspDisabled()) return none("Error: symbols is désactivé (SMOLCODER_LSP_DISABLE=1).");
+    if (lspDisabled()) return none("Error: symbols est désactivé (SMOLCODER_LSP_DISABLE=1).");
     if (typeof rel !== "string" || !rel) {
-      return none('Error: path is required. Example: {"action": "diag", "path": "src/agent.ts"}');
+      return none('Error: le chemin est requis. Exemple : {"action": "diag", "path": "src/agent.ts"}');
     }
     let abs: string;
     try {
@@ -1123,34 +1123,38 @@ export class LspManager {
     }
     const def = serverForFile(abs);
     if (!def) {
-      return none(`Error: "${rel}" is not a supported language — code intelligence works on ${supportedLspExts().join(", ")}.`);
+      return none(
+        `Error: "${rel}" n'est pas un langage pris en charge — l'intelligence de code fonctionne sur ${supportedLspExts().join(", ")}.`
+      );
     }
     let stat: fs.Stats;
     try {
       stat = fs.statSync(abs);
     } catch {
-      return none(`Error: file "${rel}" does not exist.`);
+      return none(`Error: le fichier "${rel}" n'existe pas.`);
     }
-    if (!stat.isFile()) return none(`Error: "${rel}" is a folder, not a file.`);
-    if (stat.size > MAX_FILE_BYTES) return none(`Error: "${rel}" is too large for symbol queries (1 MB limit).`);
-    if (signal?.aborted) return none("Error: symbols query cancelled before starting.");
+    if (!stat.isFile()) return none(`Error: "${rel}" est un dossier, pas un fichier.`);
+    if (stat.size > MAX_FILE_BYTES) return none(`Error: "${rel}" est trop volumineux pour les requêtes de symboles (limite 1 Mo).`);
+    if (signal?.aborted) return none("Error: requête symbols annulée avant le démarrage.");
     let live: LiveServer;
     try {
       live = await this.ensureServer(def, signal);
     } catch (err: any) {
-      return none(`Error: ${def.lang} language server unavailable (${String(err?.message ?? err).slice(0, 160)}). ${def.installHint}`);
+      return none(
+        `Error: le serveur de langage ${def.lang} est indisponible (${String(err?.message ?? err).slice(0, 160)}). ${def.installHint}`
+      );
     }
     const uri = lspUri(abs);
     try {
       await this.ensureDoc(live, abs, uri, def, signal);
     } catch (err: any) {
-      return none(`Error: could not open "${rel}" on the language server (${String(err?.message ?? err).slice(0, 160)}).`);
+      return none(`Error: impossible d'ouvrir "${rel}" sur le serveur de langage (${String(err?.message ?? err).slice(0, 160)}).`);
     }
     let diags: any[];
     try {
       diags = await this.fetchDiagnostics(live, uri, signal);
     } catch {
-      return none("Error: symbols query cancelled.");
+      return none("Error: requête symbols annulée.");
     }
     const relNorm = path.relative(this.root, abs).split(path.sep).join("/");
     const diagnostics: StructuredDiag[] = diags.slice(0, 50).map((d: any) => ({
@@ -1167,19 +1171,19 @@ export class LspManager {
 
   private async workspaceSymbol(query: string, lang: string, signal?: AbortSignal): Promise<string> {
     const q = query.trim().slice(0, 100);
-    if (!q) return 'Error: wsymbol needs a query. Example: {"action": "wsymbol", "query": "Agent", "lang": "typescript"}';
+    if (!q) return 'Error: wsymbol a besoin d\'une requête. Exemple : {"action": "wsymbol", "query": "Agent", "lang": "typescript"}';
     const def = serverDefForLang(lang) ?? serverDefForLang("typescript")!;
     let live: LiveServer;
     try {
       live = await this.ensureServer(def, signal);
     } catch (err: any) {
-      return `Error: ${def.lang} language server unavailable (${String(err?.message ?? err).slice(0, 160)}). ${def.installHint}`;
+      return `Error: le serveur de langage ${def.lang} est indisponible (${String(err?.message ?? err).slice(0, 160)}). ${def.installHint}`;
     }
-    if (signal?.aborted) return "Error: symbols query cancelled.";
+    if (signal?.aborted) return "Error: requête symbols annulée.";
     try {
       const res = await live.client.request("workspace/symbol", { query: q });
       const arr = Array.isArray(res) ? res : [];
-      if (!arr.length) return `No workspace symbol matching "${q}".`;
+      if (!arr.length) return `Aucun symbole d'espace de travail correspondant à "${q}".`;
       return arr
         .slice(0, 20)
         .map((s: any) => {
@@ -1190,7 +1194,7 @@ export class LspManager {
         })
         .join("\n");
     } catch (err: any) {
-      return `Error: workspace symbol search failed (${String(err?.message ?? err).slice(0, 200)}).`;
+      return `Error: la recherche de symboles d'espace de travail a échoué (${String(err?.message ?? err).slice(0, 200)}).`;
     }
   }
 
@@ -1252,14 +1256,14 @@ const LEGACY_TS_ACTIONS = new Set(["hover", "def", "refs", "diag"]);
 export async function queryCode(root: string, args: CodeQuery, signal?: AbortSignal): Promise<string> {
   const action = String((args as any)?.action ?? "");
   if (!CODE_ACTIONS.includes(action)) {
-    return `Error: action must be one of ${CODE_ACTIONS.map((a) => `"${a}"`).join(", ")}. Example: {"action": "hover", "path": "src/agent.ts", "line": 10, "col": 15}`;
+    return `Error: l'action doit être l'une de ${CODE_ACTIONS.map((a) => `"${a}"`).join(", ")}. Exemple : {"action": "hover", "path": "src/agent.ts", "line": 10, "col": 15}`;
   }
   if (action === "setup") {
-    return "Error: setup installs software — use the symbols tool in edit mode, or run /doctor install in any session.";
+    return "Error: setup installe des logiciels — utilisez l'outil symbols en mode édition, ou lancez /doctor install dans n'importe quelle session.";
   }
   const rel = typeof (args as any)?.path === "string" ? (args as any).path : "";
   if (!rel && action !== "wsymbol") {
-    return `Error: path is required. Example: {"action": "${action}", "path": "src/agent.ts"${action === "diag" ? "" : ', "line": 10, "col": 15'}}`;
+    return `Error: le chemin est requis. Exemple : {"action": "${action}", "path": "src/agent.ts"${action === "diag" ? "" : ', "line": 10, "col": 15'}}`;
   }
   let lang: string | null = null;
   if (rel) {

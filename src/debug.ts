@@ -379,7 +379,7 @@ function loadDebugConfig(root: string): { cfg: DebugConfig | null; error: string
     }
     return { cfg: parsed as DebugConfig, error: null };
   } catch (err: any) {
-    return { cfg: null, error: `debug.json is not valid JSON (${err?.message ?? err}).` };
+    return { cfg: null, error: `debug.json n’est pas un JSON valide (${err?.message ?? err}).` };
   }
 }
 
@@ -397,13 +397,13 @@ export interface DebugQuery {
 /** Entry point for the debug tool. Needs canWrite (it runs code). Never throws. */
 export async function queryDebug(root: string, args: DebugQuery, opts?: { canWrite?: boolean }, signal?: AbortSignal): Promise<string> {
   if (opts?.canWrite === false) {
-    return "Error: debugging runs code — unavailable in read-only mode. Switch to edit mode first.";
+    return "Error: le débogage exécute du code — indisponible en mode lecture seule. Passez d’abord en mode édition.";
   }
   const action = String(args.action ?? "run");
   if (action !== "run") {
-    return 'Error: action must be "run". Example: {"action": "run"} (configure first in .smol/debug.json).';
+    return 'Error: l’action doit être "run". Exemple : {"action": "run"} (configurez d’abord dans .smol/debug.json).';
   }
-  if (signal?.aborted) return "Error: debug cancelled before starting.";
+  if (signal?.aborted) return "Error: débogage annulé avant le démarrage.";
   const { cfg, error } = loadDebugConfig(root);
   if (error) return `Error: ${error}`;
   if (!cfg) return DEBUG_SETUP_HELP;
@@ -439,24 +439,24 @@ export async function queryDebug(root: string, args: DebugQuery, opts?: { canWri
     if (transport === "socket") {
       const spawnCmd = Array.isArray(cfg.spawn) ? cfg.spawn.map(String) : [];
       if (!spawnCmd.length) {
-        return 'Error: socket transport needs "spawn" (the listener command). Example: {"transport":"socket","spawn":["python","-m","debugpy","--listen","5678","app.py"],"port":5678}';
+        return 'Error: le transport socket a besoin de "spawn" (la commande d’écoute). Exemple : {"transport":"socket","spawn":["python","-m","debugpy","--listen","5678","app.py"],"port":5678}';
       }
       const port = Number(cfg.port);
       if (!Number.isSafeInteger(port) || port < 1 || port > 65535) {
-        return 'Error: socket transport needs a valid "port". Example: {"port": 5678}';
+        return 'Error: le transport socket a besoin d’un "port" valide. Exemple : {"port": 5678}';
       }
       const host = typeof cfg.host === "string" && cfg.host ? cfg.host : "127.0.0.1";
       try {
         const [exe, ...rest] = spawnCmd;
         spawned = spawn(resolveCommand(exe), rest, { cwd: root, stdio: "ignore", windowsHide: true });
       } catch (err: any) {
-        return `Error: could not spawn the debug listener (${err?.message ?? err}).`;
+        return `Error: impossible de lancer l’écouteur de débogage (${err?.message ?? err}).`;
       }
       const t0 = Date.now();
       let connected = false;
       let lastErr = "";
       while (Date.now() - t0 < 15_000) {
-        if (signal?.aborted) return "Error: debug cancelled while waiting for the adapter.";
+        if (signal?.aborted) return "Error: débogage annulé en attendant l’adaptateur.";
         try {
           await client.connectSocket(host, port, 1000);
           connected = true;
@@ -466,11 +466,12 @@ export async function queryDebug(root: string, args: DebugQuery, opts?: { canWri
           await new Promise((r) => setTimeout(r, 500));
         }
       }
-      if (!connected) return `Error: the debug listener never opened ${host}:${port} (${lastErr}). Check the spawn command.`;
+      if (!connected)
+        return `Error: l’écouteur de débogage n’a jamais ouvert ${host}:${port} (${lastErr}). Vérifiez la commande de démarrage.`;
     } else {
       const adapter = Array.isArray(cfg.adapter) ? cfg.adapter.map(String) : [];
       if (!adapter.length) {
-        return 'Error: stdio transport needs "adapter" (the command). Example: {"transport":"stdio","adapter":["my-dap-adapter"],"request":"launch"}';
+        return 'Error: le transport stdio a besoin de "adapter" (la commande). Exemple : {"transport":"stdio","adapter":["my-dap-adapter"],"request":"launch"}';
       }
       try {
         await client.startStdio(adapter, root);
@@ -478,11 +479,11 @@ export async function queryDebug(root: string, args: DebugQuery, opts?: { canWri
         return `Error: ${err?.message ?? err}`;
       }
     }
-    if (signal?.aborted) return "Error: debug cancelled.";
+    if (signal?.aborted) return "Error: débogage annulé.";
     return await runDebugSession(client, plan, root);
   } catch (err: any) {
-    if (signal?.aborted || (err as any)?.name === "AbortError") return "Error: debug cancelled.";
-    return `Error: debug session failed (${String(err?.message ?? err).slice(0, 300)}).`;
+    if (signal?.aborted || (err as any)?.name === "AbortError") return "Error: débogage annulé.";
+    return `Error: échec de la session de débogage (${String(err?.message ?? err).slice(0, 300)}).`;
   } finally {
     try {
       client.close();

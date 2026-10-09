@@ -19,7 +19,7 @@ export interface GitRun {
 
 function cap(s: string): string {
   if (s.length <= OUTPUT_CAP) return s;
-  return `${s.slice(0, OUTPUT_CAP)}\n… (truncated, ${s.length - OUTPUT_CAP} more chars)`;
+  return `${s.slice(0, OUTPUT_CAP)}\n… (tronqué, ${s.length - OUTPUT_CAP} caractères restants)`;
 }
 
 /** Exported for tests: run git with args in root, capture output. */
@@ -34,14 +34,14 @@ export function runGit(root: string, args: string[]): GitRun {
       maxBuffer: 4 * 1024 * 1024,
     });
   } catch (err: any) {
-    return { code: 1, out: `Error: could not run git (${err?.message ?? err}). Install git and put it on PATH.` };
+    return { code: 1, out: `Error: impossible de lancer git (${err?.message ?? err}). Installez git et ajoutez-le au PATH.` };
   }
   const err = res.error as any;
   if (err) {
     if (err.code === "ENOENT") {
-      return { code: 1, out: "Error: git is not installed or not on PATH. Install git first (https://git-scm.com)." };
+      return { code: 1, out: "Error: git n’est pas installé ou absent du PATH. Installez d’abord git (https://git-scm.com)." };
     }
-    return { code: 1, out: `Error: git failed to run (${err?.message ?? err}).` };
+    return { code: 1, out: `Error: git n’a pas pu démarrer (${err?.message ?? err}).` };
   }
   const text = `${res.stdout ?? ""}${res.stderr ?? ""}`.trim();
   return { code: res.status ?? 1, out: cap(text) };
@@ -59,7 +59,7 @@ export function isGitRepo(root: string): boolean {
 
 function needRepo(root: string): string | null {
   if (!isGitRepo(root)) {
-    return 'Error: this workspace is not a git repository. Start one with run_command {"command": "git init"} (or open a folder that already is one).';
+    return 'Error: cet espace de travail n’est pas un dépôt git. Initialisez-en un avec run_command {"command": "git init"} (ou ouvrez un dossier qui en est déjà un).';
   }
   return null;
 }
@@ -69,10 +69,10 @@ export function gitStatus(root: string): string {
   if (blocked) return blocked;
   const branch = runGit(root, ["branch", "--show-current"]);
   const short = runGit(root, ["status", "--short", "--branch"]);
-  if (short.code !== 0) return `Error: git status failed (${short.out.slice(0, 200)}).`;
-  const head = branch.code === 0 && branch.out ? `On branch ${branch.out}` : "Detached HEAD";
+  if (short.code !== 0) return `Error: git status a échoué (${short.out.slice(0, 200)}).`;
+  const head = branch.code === 0 && branch.out ? `Sur la branche ${branch.out}` : "HEAD détaché";
   const body = short.out.trim();
-  if (!body || body === `## ${branch.out}`) return `${head}\nWorking tree clean — nothing to commit.`;
+  if (!body || body === `## ${branch.out}`) return `${head}\nArbre de travail propre — rien à commiter.`;
   return `${head}\n${body}`;
 }
 
@@ -91,9 +91,11 @@ export function gitDiff(root: string, opts?: { staged?: boolean; path?: string; 
     }
   }
   const r = runGit(root, args);
-  if (r.code !== 0) return `Error: git diff failed (${r.out.slice(0, 200)}).`;
+  if (r.code !== 0) return `Error: git diff a échoué (${r.out.slice(0, 200)}).`;
   if (!r.out.trim())
-    return opts?.staged ? "Nothing staged — the staging area is empty." : "No uncommitted changes — working tree matches HEAD.";
+    return opts?.staged
+      ? "Rien en staging — la zone de staging est vide."
+      : "Aucun changement non committé — l’arbre de travail correspond à HEAD.";
   return r.out;
 }
 
@@ -102,8 +104,8 @@ export function gitLog(root: string, count = 10): string {
   if (blocked) return blocked;
   const n = Math.min(Math.max(1, Math.floor(count) || 10), 50);
   const r = runGit(root, ["log", `--max-count=${n}`, "--pretty=format:%h %ad %an %s", "--date=short"]);
-  if (r.code !== 0) return `Error: git log failed (${r.out.slice(0, 200)}).`;
-  return r.out.trim() || "No commits yet.";
+  if (r.code !== 0) return `Error: git log a échoué (${r.out.slice(0, 200)}).`;
+  return r.out.trim() || "Aucun commit pour l’instant.";
 }
 
 export function gitBlame(root: string, relPath: string, line?: number): string {
@@ -118,7 +120,7 @@ export function gitBlame(root: string, relPath: string, line?: number): string {
   const rel = path.relative(root, abs) || ".";
   const args = ["blame", "--line-porcelain", "-L", line ? `${line},${line}` : "1,+15", "--", rel];
   const r = runGit(root, args);
-  if (r.code !== 0) return `Error: git blame failed (${r.out.slice(0, 300)}). The file may be untracked — commit it first.`;
+  if (r.code !== 0) return `Error: git blame a échoué (${r.out.slice(0, 300)}). Le fichier est peut-être non suivi — commitez-le d’abord.`;
   // Porcelain is verbose: compress to "commit author date | line".
   const out: string[] = [];
   let hash = "";
@@ -139,15 +141,15 @@ export function gitBlame(root: string, relPath: string, line?: number): string {
     } else if (ln.startsWith("\t")) content = ln.slice(1, 160);
   }
   if (content) out.push(`${hash.slice(0, 7)} ${author} ${date} | ${content}`);
-  return out.slice(0, 15).join("\n") || "No blame info.";
+  return out.slice(0, 15).join("\n") || "Aucune info de blame.";
 }
 
 export function gitBranch(root: string): string {
   const blocked = needRepo(root);
   if (blocked) return blocked;
   const r = runGit(root, ["branch", "-vv"]);
-  if (r.code !== 0) return `Error: git branch failed (${r.out.slice(0, 200)}).`;
-  return r.out.trim() || "No branches.";
+  if (r.code !== 0) return `Error: git branch a échoué (${r.out.slice(0, 200)}).`;
+  return r.out.trim() || "Aucune branche.";
 }
 
 export interface GitSyncStatus {
@@ -169,7 +171,7 @@ export function gitSyncStatus(root: string): GitSyncStatus {
       upstream: null,
       ahead: null,
       behind: null,
-      error: `Error: git status failed (${r.out.slice(0, 200)}).`,
+      error: `Error: git status a échoué (${r.out.slice(0, 200)}).`,
     };
   }
   const branch = r.out.match(/^# branch\.head (.+)$/m)?.[1] ?? "";
@@ -187,7 +189,7 @@ export function gitStage(root: string, paths: string[]): string {
   const blocked = needRepo(root);
   if (blocked) return blocked;
   if (!paths.length)
-    return 'Error: stage needs at least one path. Example: {"action": "stage", "path": "src/agent.ts"} (use "." for everything).';
+    return 'Error: stage a besoin d’au moins un chemin. Exemple : {"action": "stage", "path": "src/agent.ts"} (utilisez "." pour tout).';
   const safe: string[] = [];
   for (const p of paths) {
     try {
@@ -198,8 +200,8 @@ export function gitStage(root: string, paths: string[]): string {
     }
   }
   const r = runGit(root, ["add", "--", ...safe]);
-  if (r.code !== 0) return `Error: git add failed (${r.out.slice(0, 300)}).`;
-  return `Staged: ${safe.join(", ")}. Review with {"action": "diff", "staged": true} before committing.`;
+  if (r.code !== 0) return `Error: git add a échoué (${r.out.slice(0, 300)}).`;
+  return `Mis en staging : ${safe.join(", ")}. Vérifiez avec {"action": "diff", "staged": true} avant de commiter.`;
 }
 
 /** Take paths back out of the staging area. The index is reset to HEAD; the
@@ -210,7 +212,7 @@ export function gitUnstage(root: string, paths: string[]): string {
   const blocked = needRepo(root);
   if (blocked) return blocked;
   if (!paths.length)
-    return 'Error: unstage needs at least one path. Example: {"action": "unstage", "path": "src/agent.ts"} (use "." for everything).';
+    return 'Error: unstage a besoin d’au moins un chemin. Exemple : {"action": "unstage", "path": "src/agent.ts"} (utilisez "." pour tout).';
   const safe: string[] = [];
   for (const p of paths) {
     try {
@@ -221,30 +223,30 @@ export function gitUnstage(root: string, paths: string[]): string {
     }
   }
   const staged = runGit(root, ["diff", "--cached", "--name-only", "--", ...safe]);
-  if (staged.code !== 0) return `Error: could not inspect the staging area (${staged.out.slice(0, 200)}).`;
-  if (!staged.out.trim()) return `Nothing staged for ${safe.join(", ")} — the index already matches HEAD there.`;
+  if (staged.code !== 0) return `Error: impossible d’inspecter la zone de staging (${staged.out.slice(0, 200)}).`;
+  if (!staged.out.trim()) return `Rien en staging pour ${safe.join(", ")} — l’index correspond déjà à HEAD ici.`;
   let r = runGit(root, ["reset", "-q", "HEAD", "--", ...safe]);
   if (r.code !== 0) {
     // No commit yet: reset has no HEAD to point at. Drop the paths from the
     // empty index instead (git rm --cached leaves the working tree alone).
     r = runGit(root, ["rm", "-r", "-q", "--cached", "--ignore-unmatch", "--", ...safe]);
   }
-  if (r.code !== 0) return `Error: git could not unstage (${r.out.slice(0, 300)}).`;
-  return `Unstaged: ${safe.join(", ")}. The working tree keeps every change.`;
+  if (r.code !== 0) return `Error: git n’a pas pu retirer du staging (${r.out.slice(0, 300)}).`;
+  return `Retiré du staging : ${safe.join(", ")}. L’arbre de travail conserve toutes les modifications.`;
 }
 
 export function gitCommit(root: string, message: string): string {
   const blocked = needRepo(root);
   if (blocked) return blocked;
   const msg = message.trim().slice(0, 500);
-  if (!msg) return 'Error: commit needs a message. Example: {"action": "commit", "message": "Fix login retry loop"}';
+  if (!msg) return 'Error: commit a besoin d’un message. Exemple : {"action": "commit", "message": "Fix login retry loop"}';
   const staged = runGit(root, ["diff", "--cached", "--name-only"]);
-  if (staged.code !== 0) return `Error: could not inspect the staging area (${staged.out.slice(0, 200)}).`;
+  if (staged.code !== 0) return `Error: impossible d’inspecter la zone de staging (${staged.out.slice(0, 200)}).`;
   if (!staged.out.trim()) {
-    return 'Error: nothing staged — stage files first with {"action": "stage", "path": "."}. Never commit blind.';
+    return 'Error: rien en staging — mettez d’abord les fichiers en staging avec {"action": "stage", "path": "."}. Ne commitez jamais à l’aveugle.';
   }
   const r = runGit(root, ["commit", "-m", msg]);
-  if (r.code !== 0) return `Error: git commit failed (${r.out.slice(0, 400)}).`;
+  if (r.code !== 0) return `Error: git commit a échoué (${r.out.slice(0, 400)}).`;
   return r.out.split("\n").slice(0, 4).join("\n");
 }
 
@@ -341,12 +343,12 @@ function gitStdout(root: string, args: string[]): GitRun {
     });
     const err = res.error as any;
     if (err) {
-      if (err.code === "ENOENT") return { code: 1, out: "Error: git is not installed or not on PATH." };
-      return { code: 1, out: `Error: git failed to run (${err?.message ?? err}).` };
+      if (err.code === "ENOENT") return { code: 1, out: "Error: git n’est pas installé ou absent du PATH." };
+      return { code: 1, out: `Error: git n’a pas pu démarrer (${err?.message ?? err}).` };
     }
     const code = res.status ?? 1;
     const stdout = res.stdout ?? "";
-    if (code !== 0 && !stdout) return { code, out: (res.stderr ?? "").trim() || `git exited with code ${code}.` };
+    if (code !== 0 && !stdout) return { code, out: (res.stderr ?? "").trim() || `git s’est arrêté avec le code ${code}.` };
     return { code, out: stdout };
   } catch (err: any) {
     return { code: 1, out: `Error: git failed (${err?.message ?? err}).` };
@@ -365,12 +367,12 @@ function applyPatch(root: string, args: string[], patch: string): GitRun {
     });
     const err = res.error as any;
     if (err) {
-      if (err.code === "ENOENT") return { code: 1, out: "Error: git is not installed or not on PATH." };
-      return { code: 1, out: `Error: git apply failed to run (${err?.message ?? err}).` };
+      if (err.code === "ENOENT") return { code: 1, out: "Error: git n’est pas installé ou absent du PATH." };
+      return { code: 1, out: `Error: git apply n’a pas pu démarrer (${err?.message ?? err}).` };
     }
     return { code: res.status ?? 1, out: cap(`${res.stdout ?? ""}${res.stderr ?? ""}`.trim()) };
   } catch (err: any) {
-    return { code: 1, out: `Error: git apply crashed (${err?.message ?? err}).` };
+    return { code: 1, out: `Error: git apply a planté (${err?.message ?? err}).` };
   }
 }
 
@@ -383,11 +385,11 @@ export interface DiffFilesResult {
  * out separately (git diff cannot show them). Never throws. */
 export function gitDiffFiles(root: string, staged = false): DiffFilesResult {
   const empty = (note: string): DiffFilesResult => ({ files: [], note });
-  if (!isGitRepo(root)) return empty("Not a git repository — start one to review changes hunk by hunk.");
+  if (!isGitRepo(root)) return empty("Pas un dépôt git — initialisez-en un pour examiner les changements hunk par hunk.");
   const args = ["diff", "--no-color", "--no-ext-diff", "-U3"];
   if (staged) args.push("--cached");
   const r = runGit(root, args);
-  if (r.code !== 0) return empty(`Error: git diff failed (${r.out.slice(0, 200)}).`);
+  if (r.code !== 0) return empty(`Error: git diff a échoué (${r.out.slice(0, 200)}).`);
   const files = parseDiffHunks(r.out);
   let note = "";
   if (!staged) {
@@ -422,12 +424,12 @@ export function gitDiffFiles(root: string, staged = false): DiffFilesResult {
             files.push({ file: u, status: "A", hunks: [] });
           }
         }
-        note = `Untracked (shown as A — stage to review): ${untracked.join(", ")}`;
+        note = `Non suivis (affichés en A — mettez en staging pour réviser) : ${untracked.join(", ")}`;
       }
     }
   }
   if (!files.length && !note) {
-    return empty(staged ? "Nothing staged." : "No uncommitted changes — working tree matches HEAD.");
+    return empty(staged ? "Rien en staging." : "Aucun changement non committé — l’arbre de travail correspond à HEAD.");
   }
   return { files, note };
 }
@@ -436,39 +438,39 @@ export function gitDiffFiles(root: string, staged = false): DiffFilesResult {
  * so a changed file fails loudly instead of applying the wrong hunk. Never
  * throws. */
 export function gitApplyHunk(root: string, file: string, index: number, action: "stage" | "revert" | "unstage"): string {
-  if (!isGitRepo(root)) return "Error: this workspace is not a git repository.";
+  if (!isGitRepo(root)) return "Error: cet espace de travail n’est pas un dépôt git.";
   if (typeof file !== "string" || !file || file.includes("..")) {
-    return "Error: a file path inside the repository is required.";
+    return "Error: un chemin de fichier à l’intérieur du dépôt est requis.";
   }
   const idx = Math.floor(Number(index));
   if (!Number.isSafeInteger(idx) || idx < 0) {
-    return "Error: hunk must be the hunk number from the review (starting at 0).";
+    return "Error: hunk doit être le numéro de hunk de la révision (commençant à 0).";
   }
   if (action !== "stage" && action !== "revert" && action !== "unstage") {
-    return 'Error: action must be "stage", "unstage" or "revert".';
+    return 'Error: l’action doit être "stage", "unstage" ou "revert".';
   }
   // Unstaging reads what the index holds; staging and reverting read the
   // working tree — the two diffs git keeps side by side.
   const head = action === "unstage" ? ["diff", "--cached"] : ["diff"];
   const full = runGit(root, [...head, "--no-color", "--no-ext-diff", "-U3", "--", file]);
-  if (full.code !== 0) return `Error: git diff failed (${full.out.slice(0, 200)}).`;
+  if (full.code !== 0) return `Error: git diff a échoué (${full.out.slice(0, 200)}).`;
   const parsed = parseDiffHunks(full.out).find((f) => f.file === file);
   const hunk = parsed?.hunks[idx];
   if (!hunk) {
     return action === "unstage"
-      ? `Error: hunk ${idx} is not staged for "${file}" — refresh the review.`
-      : `Error: hunk ${idx} no longer exists for "${file}" — refresh the review, the file changed.`;
+      ? `Error: le hunk ${idx} n’est pas en staging pour "${file}" — actualisez la révision.`
+      : `Error: le hunk ${idx} n’existe plus pour "${file}" — actualisez la révision, le fichier a changé.`;
   }
   const patch = `${[...fileHeaderFor(full.out, file), hunk.header, ...hunk.lines].join("\n")}\n`;
   const args =
     action === "stage" ? ["apply", "--cached", "-"] : action === "unstage" ? ["apply", "-R", "--cached", "-"] : ["apply", "-R", "-"];
   const r = applyPatch(root, args, patch);
   if (r.code !== 0) {
-    return `Error: git could not ${action} that hunk (${r.out.slice(0, 300)}). The file probably changed — refresh the review.`;
+    return `Error: git n’a pas pu ${action} ce hunk (${r.out.slice(0, 300)}). Le fichier a probablement changé — actualisez la révision.`;
   }
-  if (action === "stage") return `Staged hunk ${idx} of "${file}".`;
-  if (action === "unstage") return `Unstaged hunk ${idx} of "${file}". The working tree keeps the change.`;
-  return `Reverted hunk ${idx} of "${file}".`;
+  if (action === "stage") return `Hunk ${idx} de "${file}" mis en staging.`;
+  if (action === "unstage") return `Hunk ${idx} de "${file}" retiré du staging. L’arbre de travail conserve la modification.`;
+  return `Hunk ${idx} de "${file}" annulé.`;
 }
 
 /** Rewrite a hunk header with recounts after filtering lines (git apply
@@ -545,13 +547,13 @@ function stagedPatchBody(root: string, from: string, to: string): GitRun {
     fs.writeFileSync(a, from, "utf8");
     fs.writeFileSync(b, to, "utf8");
     const d = gitStdout(root, ["diff", "--no-color", "--no-ext-diff", "-U3", "--no-index", "--", a, b]);
-    if (d.code > 1) return { code: 2, out: `Error: could not build the staged patch (${d.out.slice(0, 200)}).` };
+    if (d.code > 1) return { code: 2, out: `Error: impossible de construire le patch de staging (${d.out.slice(0, 200)}).` };
     const lines = d.out.split("\n");
     const at = lines.findIndex((l) => l.startsWith("@@"));
     if (at < 0) return { code: 1, out: "" };
     return { code: 0, out: lines.slice(at).join("\n").replace(/\n+$/, "") };
   } catch (err: any) {
-    return { code: 2, out: `Error: could not compute the staged patch (${err?.message ?? err}).` };
+    return { code: 2, out: `Error: impossible de calculer le patch de staging (${err?.message ?? err}).` };
   } finally {
     if (tmp) {
       try {
@@ -568,46 +570,46 @@ function stagedPatchBody(root: string, from: string, to: string): GitRun {
  * git computes the patch itself — positions are always honest, never
  * hand-counted. Never throws. */
 export function gitStageLines(root: string, file: string, index: number, selected: number[]): string {
-  if (!isGitRepo(root)) return "Error: this workspace is not a git repository.";
+  if (!isGitRepo(root)) return "Error: cet espace de travail n’est pas un dépôt git.";
   if (typeof file !== "string" || !file || file.includes("..")) {
-    return "Error: a file path inside the repository is required.";
+    return "Error: un chemin de fichier à l’intérieur du dépôt est requis.";
   }
   const idx = Math.floor(Number(index));
   if (!Number.isSafeInteger(idx) || idx < 0) {
-    return "Error: hunk must be the hunk number from the review (starting at 0).";
+    return "Error: hunk doit être le numéro de hunk de la révision (commençant à 0).";
   }
   const sel = new Set((Array.isArray(selected) ? selected : []).map(Number).filter((n) => Number.isSafeInteger(n) && n >= 0));
-  if (!sel.size) return "Error: select at least one + or - line to stage.";
+  if (!sel.size) return "Error: sélectionnez au moins une ligne + ou - à mettre en staging.";
   const full = runGit(root, ["diff", "--no-color", "--no-ext-diff", "-U3", "--", file]);
-  if (full.code !== 0) return `Error: git diff failed (${full.out.slice(0, 200)}).`;
+  if (full.code !== 0) return `Error: git diff a échoué (${full.out.slice(0, 200)}).`;
   const parsed = parseDiffHunks(full.out).find((f) => f.file === file);
   const hunk = parsed && idx < parsed.hunks.length ? parsed.hunks[idx] : undefined;
-  if (!parsed || !hunk) return `Error: hunk ${idx} no longer exists for "${file}" — refresh the review, the file changed.`;
+  if (!parsed || !hunk) return `Error: le hunk ${idx} n’existe plus pour "${file}" — actualisez la révision, le fichier a changé.`;
   if (parsed.hunks.some((h) => h.lines.length >= 200)) {
-    return `Error: a hunk of "${file}" is too big for line-by-line staging — stage the whole hunk or the whole file instead.`;
+    return `Error: un hunk de "${file}" est trop grand pour un staging ligne par ligne — mettez en staging le hunk entier ou le fichier entier.`;
   }
   const picked = hunk.lines.reduce((n, l, j) => n + (sel.has(j) && (l[0] === "-" || l[0] === "+") ? 1 : 0), 0);
   if (!picked) {
-    return "Error: none of the selected lines are +/- lines (or the file changed) — refresh the review.";
+    return "Error: aucune des lignes sélectionnées n’est une ligne +/- (ou le fichier a changé) — actualisez la révision.";
   }
   const baseRun = gitStdout(root, ["show", `:${file}`]);
   if (baseRun.code !== 0) {
-    return `Error: "${file}" is not in the index yet — stage the whole file first (${baseRun.out.slice(0, 160)}).`;
+    return `Error: "${file}" n’est pas encore dans l’index — mettez d’abord le fichier entier en staging (${baseRun.out.slice(0, 160)}).`;
   }
   const base = baseRun.out;
   const next = stagedContentFrom(base, parsed.hunks, idx, sel);
-  if (next === base) return "Nothing to stage — those lines already match the index.";
+  if (next === base) return "Rien à mettre en staging — ces lignes correspondent déjà à l’index.";
   const header = fileHeaderFor(full.out, file);
-  if (!header.length) return `Error: could not rebuild the patch header for "${file}" — refresh the review.`;
+  if (!header.length) return `Error: impossible de reconstruire l’en-tête du patch pour "${file}" — actualisez la révision.`;
   const body = stagedPatchBody(root, base, next);
   if (body.code === 2) return body.out;
-  if (body.code === 1) return "Nothing to stage — those lines already match the index.";
+  if (body.code === 1) return "Rien à mettre en staging — ces lignes correspondent déjà à l’index.";
   const patch = `${[...header, body.out].join("\n")}\n`;
   const r = applyPatch(root, ["apply", "--cached", "-"], patch);
   if (r.code !== 0) {
-    return `Error: git could not stage those lines (${r.out.slice(0, 300)}). Refresh the review and try again.`;
+    return `Error: git n’a pas pu mettre ces lignes en staging (${r.out.slice(0, 300)}). Actualisez la révision et réessayez.`;
   }
-  return `Staged ${picked} line(s) of hunk ${idx} in "${file}".`;
+  return `Mis en staging : ${picked} ligne(s) du hunk ${idx} dans "${file}".`;
 }
 
 /** Revert one tracked file to HEAD (destructive; recovery lives in git
@@ -616,7 +618,7 @@ export function gitRevertFile(root: string, relPath: string): string {
   const blocked = needRepo(root);
   if (blocked) return blocked;
   if (typeof relPath !== "string" || !relPath || relPath.includes("..")) {
-    return "Error: a file path inside the repository is required.";
+    return "Error: un chemin de fichier à l’intérieur du dépôt est requis.";
   }
   let abs: string;
   try {
@@ -625,12 +627,12 @@ export function gitRevertFile(root: string, relPath: string): string {
     return `Error: ${err?.message ?? err}`;
   }
   const rel = path.relative(root, abs) || ".";
-  if (rel === ".") return "Error: refusing to revert the whole workspace — pick one file.";
+  if (rel === ".") return "Error: refus de restaurer tout l’espace de travail — choisissez un fichier.";
   const r = runGit(root, ["checkout", "--", rel]);
   if (r.code !== 0) {
-    return `Error: git checkout failed (${r.out.slice(0, 300)}). Untracked files cannot be reverted — delete them instead.`;
+    return `Error: git checkout a échoué (${r.out.slice(0, 300)}). Les fichiers non suivis ne peuvent pas être restaurés — supprimez-les à la place.`;
   }
-  return `Reverted "${rel}" to HEAD.`;
+  return `"${rel}" restauré à HEAD.`;
 }
 
 /** Short status per direct child of one directory: name -> "A", "U", "D", "M", ...
@@ -682,7 +684,7 @@ export function gitTurnSummary(root: string, files: Set<string> | string[]): str
           .slice(0, 8)
           .map((x) => `${x.f} +${x.a} −${x.d}`)
           .join(", ");
-        parts.push(`Files changed: ${rows.length} (+${ta} −${td}) — ${detail}${rows.length > 8 ? ", …" : ""}`);
+        parts.push(`Fichiers modifiés : ${rows.length} (+${ta} −${td}) — ${detail}${rows.length > 8 ? ", …" : ""}`);
       }
     }
     const st = runGit(root, ["status", "--short", "--", ...list]);
@@ -693,7 +695,7 @@ export function gitTurnSummary(root: string, files: Set<string> | string[]): str
         .map((l) => l.slice(3).trim().replace(/^"|"$/g, ""))
         .filter(Boolean)
         .slice(0, 8);
-      if (fresh.length) parts.push(`new: ${fresh.join(", ")}`);
+      if (fresh.length) parts.push(`nouveau : ${fresh.join(", ")}`);
     }
     return parts.length ? parts.join(" · ") : null;
   } catch {
@@ -744,7 +746,7 @@ export function formatReview(root: string, staged = false): string {
     }
   }
   const text = out.join("\n");
-  if (text.length > 6000) return `${text.slice(0, 6000)}\n… (truncated — review one file at a time)`;
+  if (text.length > 6000) return `${text.slice(0, 6000)}\n… (tronqué — examinez un fichier à la fois)`;
   return text;
 }
 
@@ -753,10 +755,10 @@ export function formatReview(root: string, staged = false): string {
 export function queryGit(root: string, args: GitQuery, opts?: { canWrite?: boolean }): string {
   const action = String(args.action ?? "");
   if (!GIT_ACTIONS.includes(action)) {
-    return `Error: action must be one of ${GIT_ACTIONS.map((a) => `"${a}"`).join(", ")}. Example: {"action": "status"}`;
+    return `Error: l’action doit être l’une de ${GIT_ACTIONS.map((a) => `"${a}"`).join(", ")}. Exemple : {"action": "status"}`;
   }
   if (!READ_ACTIONS.has(action) && opts?.canWrite === false) {
-    return `Error: "${action}" changes the repository — unavailable in read-only mode. Switch to edit mode first.`;
+    return `Error: "${action}" modifie le dépôt — indisponible en mode lecture seule. Passez d’abord en mode édition.`;
   }
   switch (action) {
     case "status":
@@ -771,7 +773,7 @@ export function queryGit(root: string, args: GitQuery, opts?: { canWrite?: boole
       return gitLog(root, Number(args.count) || 10);
     case "blame": {
       const rel = typeof args.path === "string" ? args.path : "";
-      if (!rel) return 'Error: blame needs a path. Example: {"action": "blame", "path": "src/agent.ts", "line": 42}';
+      if (!rel) return 'Error: blame a besoin d’un chemin. Exemple : {"action": "blame", "path": "src/agent.ts", "line": 42}';
       const ln = Number(args.line);
       return gitBlame(root, rel, Number.isSafeInteger(ln) && ln >= 1 ? ln : undefined);
     }
@@ -812,6 +814,6 @@ export function queryGit(root: string, args: GitQuery, opts?: { canWrite?: boole
       return gitStageLines(root, typeof args.path === "string" ? args.path : "", Number(args.hunk), lines);
     }
     default:
-      return `Error: action must be one of ${GIT_ACTIONS.map((a) => `"${a}"`).join(", ")}.`;
+      return `Error: l’action doit être l’une de ${GIT_ACTIONS.map((a) => `"${a}"`).join(", ")}.`;
   }
 }

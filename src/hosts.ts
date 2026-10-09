@@ -22,16 +22,18 @@ export interface ParsedAddress {
  * error for input that cannot be a server address. */
 export function parseAddress(input: string): ParsedAddress {
   let text = String(input ?? "").trim();
-  if (!text) throw new Error("Type the address of the machine that runs your models.");
-  if (/\s/.test(text)) throw new Error("An address cannot contain spaces.");
+  if (!text) throw new Error("Saisissez l'adresse de la machine qui exécute vos modèles.");
+  if (/\s/.test(text)) throw new Error("Une adresse ne peut pas contenir d'espaces.");
   // \\server\share or //server/share is a file share, not a model server: URL
   // parsing silently rewrites it to http://server/share and the app would then
   // probe a machine the user never meant to add.
   if (/^[\\/]{2}[^/\\]/.test(text) && !/^https?:/i.test(text))
-    throw new Error(`"${text.slice(0, 40)}" is a file share, not a server. Type an IP or name like 192.168.1.50 or gpu-box.local.`);
+    throw new Error(
+      `"${text.slice(0, 40)}" est un partage de fichiers, pas un serveur. Saisissez une IP ou un nom comme 192.168.1.50 ou gpu-box.local.`
+    );
   const schemeMatch = /^([a-z][a-z0-9+.-]*):\/\//i.exec(text);
-  if (schemeMatch && !/^https?$/i.test(schemeMatch[1])) throw new Error("Only http:// and https:// addresses work here.");
-  if (schemeMatch && text.length === schemeMatch[0].length) throw new Error("The address needs a host name or IP.");
+  if (schemeMatch && !/^https?$/i.test(schemeMatch[1])) throw new Error("Seules les adresses http:// et https:// fonctionnent ici.");
+  if (schemeMatch && text.length === schemeMatch[0].length) throw new Error("L'adresse a besoin d'un nom d'hôte ou d'une IP.");
   text = text.replace(/\/+$/, "");
   // A bare IPv6 address needs brackets before it can carry a port.
   if (!schemeMatch && !text.startsWith("[") && (text.match(/:/g) ?? []).length > 1) text = `[${text}]`;
@@ -39,12 +41,14 @@ export function parseAddress(input: string): ParsedAddress {
   try {
     url = new URL(schemeMatch ? text : `http://${text}`);
   } catch {
-    throw new Error(`"${input.trim()}" is not an address I can connect to. Try an IP like 192.168.1.50 or a name like gpu-box.local.`);
+    throw new Error(
+      `"${input.trim()}" n'est pas une adresse à laquelle je peux me connecter. Essayez une IP comme 192.168.1.50 ou un nom comme gpu-box.local.`
+    );
   }
-  if (url.username || url.password) throw new Error("Leave user names and passwords out of the address.");
-  if (!url.hostname) throw new Error("The address needs a host name or IP.");
+  if (url.username || url.password) throw new Error("Laissez les noms d'utilisateur et mots de hors de l'adresse.");
+  if (!url.hostname) throw new Error("L'adresse a besoin d'un nom d'hôte ou d'une IP.");
   if (/^(0\.0\.0\.0|\[::\])$/.test(url.hostname))
-    throw new Error("0.0.0.0 is what a server listens on, not where to reach it. Use that machine's IP or name.");
+    throw new Error("0.0.0.0 est l'adresse d'écoute d'un serveur, pas celle pour l'atteindre. Utilisez l'IP ou le nom de cette machine.");
   const hostname = url.hostname.replace(/^\[|\]$/g, "");
   const pathPart = url.pathname.replace(/\/+$/, "");
   // URL drops a default port ("box:80"), so look at the text for one too.

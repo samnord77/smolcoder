@@ -80,11 +80,13 @@ export function looksLikeText(bytes: Buffer): boolean {
 
 /** Decide how an upload is used, or say why it cannot be. */
 export function classifyUpload(name: string, mime: string, bytes: Buffer): { kind: "image" | "text"; mime: string } | { error: string } {
-  if (bytes.length === 0) return { error: `"${name}" is empty.` };
+  if (bytes.length === 0) return { error: `« ${name} » est vide.` };
   const ext = extOf(name, mime);
   if (IMAGE_MIMES[ext]) return { kind: "image", mime: IMAGE_MIMES[ext] };
   if (!looksLikeText(bytes)) {
-    return { error: `"${name}" is not a supported attachment. Images (png, jpg, gif, webp) and text files can be attached.` };
+    return {
+      error: `« ${name} » n’est pas une pièce jointe prise en charge. Vous pouvez joindre des images (png, jpg, gif, webp) et des fichiers texte.`,
+    };
   }
   if (bytes.length > MAX_TEXT_BYTES) {
     return {

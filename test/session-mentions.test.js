@@ -33,5 +33,5 @@ test("missing files and plain text pass through safely", () => {
   assert.equal(expandMentionsInWorkspace(ws, "no mentions here", images), "no mentions here");
   assert.deepEqual(images, []);
   assert.match(expandMentionsInWorkspace(ws, "read @nope.txt", []), /\[file @nope\.txt:\]/);
-  assert.match(expandMentionsInWorkspace(ws, "see @../evil.txt", []), /outside the workspace/);
+  assert.match(expandMentionsInWorkspace(ws, "see @../evil.txt", []), /en dehors de l'espace de travail/);
 });

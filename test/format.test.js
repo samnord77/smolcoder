@@ -15,9 +15,9 @@ function scratchWs() {
 
 test("format: refuses unsupported languages and missing files", () => {
   const ws = scratchWs();
-  assert.match(formatFile(ws, "doc.md").message, /no formatter supported/);
-  assert.match(formatFile(ws, "nope.ts").message, /does not exist/);
-  assert.match(formatFile(ws, "../evil.ts").message, /outside|path/i);
+  assert.match(formatFile(ws, "doc.md").message, /aucun formateur pris en charge/);
+  assert.match(formatFile(ws, "nope.ts").message, /n['’]existe pas/);
+  assert.match(formatFile(ws, "../evil.ts").message, /en dehors|chemin/i);
 });
 
 test("format: status lists every toolchain", async () => {

@@ -206,7 +206,7 @@ export function shellEnv(): NodeJS.ProcessEnv {
 }
 
 export function runCommand(command: string, cwd: string, signal?: AbortSignal, onCtl?: (ctl: ShellControl) => void): Promise<string> {
-  if (signal?.aborted) return Promise.resolve("Error: command cancelled before starting");
+  if (signal?.aborted) return Promise.resolve("Error: commande annulée avant le démarrage");
   return new Promise((resolve) => {
     const shell = pickShell();
     let output = "";

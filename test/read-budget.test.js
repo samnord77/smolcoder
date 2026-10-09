@@ -15,17 +15,17 @@ test("a context-sized read returns contiguous lines and an accurate continuation
   let offset = 1;
   for (let page = 0; page < 3; page++) {
     const result = await executeTool("read_file", { path: "source.txt", offset }, ctx);
-    const range = result.match(/\[showing lines (\d+)-(\d+) of 200/);
+    const range = result.match(/\[lignes (\d+)-(\d+) sur 200/);
     assert.ok(range);
     assert.equal(Number(range[1]), offset);
     const end = Number(range[2]);
-    assert.equal(result.split("\n\n[showing")[0], lines.slice(offset - 1, end).join("\n"));
+    assert.equal(result.split("\n\n[lignes")[0], lines.slice(offset - 1, end).join("\n"));
     assert.match(result, new RegExp(`"offset": ${end + 1}`));
     assert.ok(result.length < 1200);
     offset = end + 1;
   }
   fs.writeFileSync(path.join(workspace, "long.txt"), "x".repeat(4000));
   const long = readFile(workspace, { path: "long.txt" }, 400);
-  assert.match(long, /first 400 characters only/);
+  assert.match(long, /très longue/);
   assert.doesNotMatch(long, /"offset"/);
 });

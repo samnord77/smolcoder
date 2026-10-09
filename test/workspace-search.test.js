@@ -27,7 +27,7 @@ test("workspace search validates the query and caps result count", (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "smol-workspace-search-cap-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   fs.writeFileSync(path.join(root, "many.txt"), Array.from({ length: 20 }, (_, i) => `hit ${i}`).join("\n"));
-  assert.throws(() => searchWorkspace(root, "   "), /query/i);
+  assert.throws(() => searchWorkspace(root, "   "), /requête/i);
   const result = searchWorkspace(root, "hit", { maxMatches: 3 });
   assert.equal(result.matches.length, 3);
   assert.equal(result.truncated, true);

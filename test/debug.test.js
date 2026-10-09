@@ -104,9 +104,9 @@ test("debug: setup coaching without config, errors on bad config", async () => {
   assert.match(await queryDebug(ws, { action: "run" }), /debug\.json/);
   fs.mkdirSync(path.join(ws, ".smol"), { recursive: true });
   fs.writeFileSync(path.join(ws, ".smol", "debug.json"), "{oops");
-  assert.match(await queryDebug(ws, { action: "run" }), /not valid JSON/);
-  assert.match(await queryDebug(ws, { action: "run" }, { canWrite: false }), /read-only/);
-  assert.match(await queryDebug(ws, { action: " dance" }), /must be "run"/);
+  assert.match(await queryDebug(ws, { action: "run" }), /n['’]est pas un JSON valide/);
+  assert.match(await queryDebug(ws, { action: "run" }, { canWrite: false }), /lecture seule/);
+  assert.match(await queryDebug(ws, { action: " dance" }), /doit être "run"/);
 });
 
 test("debug: stdio run through .smol/debug.json", async () => {

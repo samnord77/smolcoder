@@ -6,8 +6,8 @@ const { executeTool } = require("../dist/tools");
 test("a local-model semicolon plan remains a checklist after the first done call", async () => {
   const plan = new Plan();
   const result = await executeTool("plan", { steps: "scaffold vite; implement world; add movement; verify gameplay" }, { plan });
-  assert.match(result, /Plan set \(4 steps\)/);
-  assert.match(plan.markDone(), /Next: 2. implement world/);
+  assert.match(result, /Plan défini \(4 étapes\)/);
+  assert.match(plan.markDone(), /Ensuite : 2\. implement world/);
   assert.equal(plan.doneCount, 1);
   plan.checkpoint("World.getBlock(x,y,z); next: collision");
   assert.match(plan.compactLine(), /World.getBlock/);
@@ -90,13 +90,13 @@ test("renderPlan prints the checkbox checklist for terminals", () => {
 test("setDone toggles a step both ways so the task rail can uncheck", () => {
   const plan = new Plan();
   plan.set("first step\nsecond step");
-  assert.match(plan.setDone(1, true), /Step 1 done/);
+  assert.match(plan.setDone(1, true), /Étape 1 terminée/);
   assert.equal(plan.steps[0].done, true);
   assert.equal(plan.doneCount, 1);
-  assert.match(plan.setDone(1, false), /Step 1 reopened/);
+  assert.match(plan.setDone(1, false), /Étape 1 rouverte/);
   assert.equal(plan.steps[0].done, false);
   assert.equal(plan.doneCount, 0);
-  assert.match(plan.setDone(1, false), /already open/);
+  assert.match(plan.setDone(1, false), /déjà ouverte/);
   assert.match(plan.setDone(9, true), /^Error/);
   assert.match(plan.setDone("x", true), /^Error/);
   assert.match(new Plan().setDone(1, true), /^Error/);

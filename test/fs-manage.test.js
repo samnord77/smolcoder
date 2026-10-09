@@ -29,18 +29,18 @@ function ctxFor(dir) {
 
 test("move_path reorganizes files and folders and never overwrites silently", () => {
   const dir = scratch({ "draft.ts": "export const x = 1;\n", "keep.ts": "keep\n", "src/real.ts": "real\n" });
-  assert.match(movePath(dir, { from: "draft.ts", to: "src/draft.ts" }), /Moved file "draft\.ts" → "src\/draft\.ts"/);
+  assert.match(movePath(dir, { from: "draft.ts", to: "src/draft.ts" }), /Fichier « draft\.ts » → « src\/draft\.ts » déplacé/);
   assert.ok(fs.existsSync(path.join(dir, "src", "draft.ts")), "the file landed at the new path");
   assert.ok(!fs.existsSync(path.join(dir, "draft.ts")), "the old path is gone");
-  assert.match(movePath(dir, { from: "keep.ts", to: "src/draft.ts" }), /already exists/);
+  assert.match(movePath(dir, { from: "keep.ts", to: "src/draft.ts" }), /existe déjà/);
   assert.match(fs.readFileSync(path.join(dir, "src", "draft.ts"), "utf8"), /export const x/, "the existing file was not clobbered");
   assert.ok(fs.existsSync(path.join(dir, "keep.ts")), "the source of a refused move stays put");
-  assert.match(movePath(dir, { from: "ghost.ts", to: "x.ts" }), /does not exist/);
-  assert.match(movePath(dir, { from: "", to: "x.ts" }), /both "from" and "to"/);
-  assert.match(movePath(dir, { from: "keep.ts", to: "keep.ts" }), /Nothing to do/);
+  assert.match(movePath(dir, { from: "ghost.ts", to: "x.ts" }), /n'existe pas/);
+  assert.match(movePath(dir, { from: "", to: "x.ts" }), /« from » et « to »/);
+  assert.match(movePath(dir, { from: "keep.ts", to: "keep.ts" }), /Rien à faire/);
   fs.mkdirSync(path.join(dir, "old"), { recursive: true });
   fs.writeFileSync(path.join(dir, "old", "inside.txt"), "deep\n", "utf8");
-  assert.match(movePath(dir, { from: "old", to: "archive/old" }), /Moved folder "old" → "archive\/old"/);
+  assert.match(movePath(dir, { from: "old", to: "archive/old" }), /Dossier « old » → « archive\/old » déplacé/);
   assert.match(fs.readFileSync(path.join(dir, "archive", "old", "inside.txt"), "utf8"), /deep/, "folder contents travel with it");
 });
 
@@ -48,12 +48,12 @@ test("delete_path asks before a folder, guards the root, and undoes a text file"
   const dir = scratch({ "a.txt": "alpha\n", "sub/b.txt": "beta\n" });
   assert.match(deletePath(dir, { path: "sub" }), /recursive.*true/is, "a non-empty folder asks for confirmation");
   assert.ok(fs.existsSync(path.join(dir, "sub", "b.txt")), "nothing was deleted yet");
-  assert.match(deletePath(dir, { path: "sub", recursive: true }), /Deleted folder "sub" \(1 item/);
+  assert.match(deletePath(dir, { path: "sub", recursive: true }), /Dossier « sub » supprimé \(1 élément/);
   assert.ok(!fs.existsSync(path.join(dir, "sub")), "the confirmed folder is gone");
-  assert.match(deletePath(dir, { path: "." }), /workspace root/);
-  assert.match(deletePath(dir, { path: "ghost.txt" }), /does not exist/);
+  assert.match(deletePath(dir, { path: "." }), /racine de l'espace de travail/);
+  assert.match(deletePath(dir, { path: "ghost.txt" }), /n'existe pas/);
   const ctx = ctxFor(dir);
-  assert.match(await executeTool("delete_path", { path: "a.txt" }, ctx), /Deleted file "a\.txt"/);
+  assert.match(await executeTool("delete_path", { path: "a.txt" }, ctx), /Fichier « a\.txt » supprimé/);
   assert.ok(!fs.existsSync(path.join(dir, "a.txt")), "the file is gone");
   assert.equal(ctx.undoStack.length, 1, "a small text file is restorable");
   assert.equal(ctx.undoStack[0].kind, "delete", "redo knows how to take it out again");
@@ -63,12 +63,12 @@ test("delete_path asks before a folder, guards the root, and undoes a text file"
 
 test("create_folder is idempotent and refuses a file in the way", () => {
   const dir = scratch({ "exists.txt": "hi\n" });
-  assert.match(createFolder(dir, { path: "src/components/ui" }), /Created folder "src\/components\/ui"/);
+  assert.match(createFolder(dir, { path: "src/components/ui" }), /Dossier « src\/components\/ui » créé/);
   assert.ok(fs.statSync(path.join(dir, "src", "components", "ui")).isDirectory());
-  assert.match(createFolder(dir, { path: "src/components/ui" }), /already exists/);
-  assert.match(createFolder(dir, { path: "exists.txt" }), /exists as a file/);
-  assert.match(createFolder(dir, { path: "" }), /path is required/);
-  assert.match(createFolder(dir, { path: "." }), /workspace root/);
+  assert.match(createFolder(dir, { path: "src/components/ui" }), /existe déjà/);
+  assert.match(createFolder(dir, { path: "exists.txt" }), /existe en tant que fichier/);
+  assert.match(createFolder(dir, { path: "" }), /le chemin est requis/);
+  assert.match(createFolder(dir, { path: "." }), /racine de l'espace de travail/);
 });
 
 test("the shape tools are absent in read-only mode and guarded anyway", async () => {
@@ -78,16 +78,16 @@ test("the shape tools are absent in read-only mode and guarded anyway", async ()
   const edit = buildToolSpecs("edit").map((s) => s.name);
   assert.ok(edit.includes("move_path") && edit.includes("delete_path") && edit.includes("create_folder"), "edit mode offers them");
   const ctx = { ...ctxFor(dir), canWrite: false };
-  assert.match(await executeTool("move_path", { from: "a.txt", to: "b.txt" }, ctx), /read-only/);
-  assert.match(await executeTool("delete_path", { path: "a.txt" }, ctx), /read-only/);
-  assert.match(await executeTool("create_folder", { path: "newdir" }, ctx), /read-only/);
+  assert.match(await executeTool("move_path", { from: "a.txt", to: "b.txt" }, ctx), /lecture seule/);
+  assert.match(await executeTool("delete_path", { path: "a.txt" }, ctx), /lecture seule/);
+  assert.match(await executeTool("create_folder", { path: "newdir" }, ctx), /lecture seule/);
   assert.ok(fs.existsSync(path.join(dir, "a.txt")), "read-only really touches nothing");
   assert.ok(!fs.existsSync(path.join(dir, "b.txt")) && !fs.existsSync(path.join(dir, "newdir")));
 });
 
 test("paths that escape the workspace are refused by the sandbox", () => {
   const dir = scratch({ "inside.txt": "here\n" });
-  assert.throws(() => movePath(dir, { from: "../outside.txt", to: "x.txt" }), /hors du dossier de travail|outside/i);
-  assert.throws(() => deletePath(dir, { path: "../" }), /hors du dossier de travail|outside/i);
-  assert.throws(() => createFolder(dir, { path: "../evil" }), /hors du dossier de travail|outside/i);
+  assert.throws(() => movePath(dir, { from: "../outside.txt", to: "x.txt" }), /en dehors de l'espace de travail|dehors/i);
+  assert.throws(() => deletePath(dir, { path: "../" }), /en dehors de l'espace de travail|dehors/i);
+  assert.throws(() => createFolder(dir, { path: "../evil" }), /en dehors de l'espace de travail|dehors/i);
 });

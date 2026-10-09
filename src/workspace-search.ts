@@ -29,9 +29,9 @@ export function searchWorkspace(
   query: string,
   options: { path?: string; maxMatches?: number; maxFiles?: number; maxBytes?: number } = {}
 ): WorkspaceSearchResult {
-  if (typeof query !== "string" || !query.trim()) throw new Error("Search query is required.");
+  if (typeof query !== "string" || !query.trim()) throw new Error("La requête de recherche est requise.");
   const needle = query.trim();
-  if (needle.length > MAX_QUERY_LENGTH) throw new Error(`Search query must be ${MAX_QUERY_LENGTH} characters or fewer.`);
+  if (needle.length > MAX_QUERY_LENGTH) throw new Error(`La requête de recherche doit faire ${MAX_QUERY_LENGTH} caractères au maximum.`);
   const maxMatches = boundedInteger(options.maxMatches, DEFAULT_MAX_MATCHES, 1, 1000);
   const maxFiles = boundedInteger(options.maxFiles, DEFAULT_MAX_FILES, 1, 20_000);
   const maxBytes = boundedInteger(options.maxBytes, DEFAULT_MAX_BYTES, 1, 512 * 1024 * 1024);
@@ -108,9 +108,9 @@ export function searchWorkspace(
   try {
     startStat = fs.lstatSync(start);
   } catch {
-    throw new Error("Search path does not exist.");
+    throw new Error("Le chemin de recherche n'existe pas.");
   }
-  if (startStat.isSymbolicLink()) throw new Error("Search path cannot be a symbolic link.");
+  if (startStat.isSymbolicLink()) throw new Error("Le chemin de recherche ne peut pas être un lien symbolique.");
   if (startStat.isDirectory()) walk(start);
   else if (startStat.isFile()) {
     const parent = path.dirname(start);
@@ -140,7 +140,7 @@ export function searchWorkspace(
         }
       }
     }
-  } else throw new Error("Search path is not a file or folder.");
+  } else throw new Error("Le chemin de recherche n'est ni un fichier ni un dossier.");
   return { matches, scannedFiles, truncated };
 }
 

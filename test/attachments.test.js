@@ -44,7 +44,10 @@ test("uploads: names are sanitized, kinds classified, unusable files refused", (
   assert.deepEqual(classifyUpload("a.png", "image/png", PNG), { kind: "image", mime: "image/png" });
   assert.deepEqual(classifyUpload("pasted", "image/jpeg", PNG), { kind: "image", mime: "image/jpeg" });
   assert.equal(classifyUpload("notes.md", "text/markdown", Buffer.from("# hi")).kind, "text");
-  assert.match(classifyUpload("a.zip", "application/zip", Buffer.from([0x50, 0x4b, 3, 4, 0, 0])).error, /not a supported attachment/);
+  assert.match(
+    classifyUpload("a.zip", "application/zip", Buffer.from([0x50, 0x4b, 3, 4, 0, 0])).error,
+    /n['’]est pas une pièce jointe prise en charge/
+  );
   assert.match(classifyUpload("big.log", "text/plain", Buffer.alloc(MAX_TEXT_BYTES + 1, 97)).error, /too large/);
   assert.match(classifyUpload("empty.txt", "text/plain", Buffer.alloc(0)).error, /empty/);
 });

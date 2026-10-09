@@ -131,7 +131,7 @@ export function setupLsp(root: string, lang: string): string {
     const missing = lspAvailability()
       .filter((r) => !r.ok)
       .map((r) => r.lang);
-    if (!missing.length) return "All four language servers are already installed.";
+    if (!missing.length) return "Les quatre serveurs de langage sont déjà installés.";
     return missing
       .map((l) => installLspServer(l, root))
       .map((r) => `${r.ok ? "✓" : "✗"} ${r.lang}: ${r.detail}`)

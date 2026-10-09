@@ -85,23 +85,24 @@ export function formatFile(root: string, relPath: string): FormatResult {
   if (!attempts.length) {
     return {
       ok: false,
-      message: `Error: no formatter supported for "${ext}" — format works on .ts, .tsx, .js, .jsx, .py, .rs, .go, .json.`,
+      message: `Error: aucun formateur pris en charge pour « ${ext} » — format fonctionne sur .ts, .tsx, .js, .jsx, .py, .rs, .go, .json.`,
     };
   }
   let stat: fs.Stats;
   try {
     stat = fs.statSync(abs);
   } catch {
-    return { ok: false, message: `Error: file "${relPath}" does not exist.` };
+    return { ok: false, message: `Error: le fichier « ${relPath} » n’existe pas.` };
   }
-  if (!stat.isFile()) return { ok: false, message: `Error: "${relPath}" is a folder, not a file.` };
-  if (stat.size > MAX_FILE_BYTES) return { ok: false, message: `Error: "${relPath}" is too large to format (1 MB limit).` };
+  if (!stat.isFile()) return { ok: false, message: `Error: « ${relPath} » est un dossier, pas un fichier.` };
+  if (stat.size > MAX_FILE_BYTES)
+    return { ok: false, message: `Error: « ${relPath} » est trop volumineux pour être formaté (limite 1 Mo).` };
 
   let before = "";
   try {
     before = fs.readFileSync(abs, "utf8");
   } catch {
-    return { ok: false, message: `Error: could not read "${relPath}".` };
+    return { ok: false, message: `Error: impossible de lire « ${relPath} ».` };
   }
   let missing = "";
   for (const attempt of attempts) {
@@ -113,11 +114,11 @@ export function formatFile(root: string, relPath: string): FormatResult {
         missing = attempt.installHint;
         continue;
       }
-      return { ok: false, message: `Error: formatter crashed (${String(err?.message ?? err).slice(0, 200)}).` };
+      return { ok: false, message: `Error: le formateur a planté (${String(err?.message ?? err).slice(0, 200)}).` };
     }
     if (r.code !== 0) {
       const first = r.out.split("\n").filter(Boolean).slice(0, 3).join("\n");
-      return { ok: false, message: `Error: the formatter refused "${relPath}" (syntax error?).\n${first.slice(0, 400)}` };
+      return { ok: false, message: `Error: le formateur a refusé « ${relPath} » (erreur de syntaxe ?).\n${first.slice(0, 400)}` };
     }
     let after = before;
     try {
@@ -131,7 +132,7 @@ export function formatFile(root: string, relPath: string): FormatResult {
   }
   return {
     ok: false,
-    message: `Error: no formatter installed for "${ext}". Install once with: ${missing || attempts[0].installHint}`,
+    message: `Error: aucun formateur installé pour « ${ext} ». Installez-le une fois avec : ${missing || attempts[0].installHint}`,
   };
 }
 

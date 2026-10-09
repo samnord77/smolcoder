@@ -13,8 +13,8 @@ export function makeEditorTabStore() {
   const copy = (tab: EditorTab | undefined): EditorTab | null => (tab ? { ...tab } : null);
   return {
     open(filePath: string, content: string, mtimeMs = 0): EditorTab {
-      if (typeof filePath !== "string" || !filePath.trim()) throw new Error("File path is required.");
-      if (typeof content !== "string") throw new Error("File content must be text.");
+      if (typeof filePath !== "string" || !filePath.trim()) throw new Error("Le chemin du fichier est requis.");
+      if (typeof content !== "string") throw new Error("Le contenu du fichier doit être du texte.");
       const existing = tabs.get(filePath);
       if (existing) {
         activePath = filePath;

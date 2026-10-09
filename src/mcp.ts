@@ -601,7 +601,7 @@ export function createMcpBridge(workspace: string): McpBridge {
     async list(): Promise<string> {
       const cfgs = loadMcpConfig(workspace).filter((c) => c.enabled !== false);
       if (!cfgs.length) {
-        return 'No MCP servers configured. Add them in `.smol/mcp.json` (see docs/plugins.md), e.g. [{"name": "files", "command": "npx", "args": ["-y", "@modelcontextprotocol/server-filesystem", "."]}].';
+        return 'Aucun serveur MCP configuré. Ajoutez-en dans `.smol/mcp.json` (voir docs/plugins.md), ex. [{"name": "files", "command": "npx", "args": ["-y", "@modelcontextprotocol/server-filesystem", "."]}].';
       }
       const rows: string[] = [];
       for (const c of cfgs) {
@@ -609,22 +609,22 @@ export function createMcpBridge(workspace: string): McpBridge {
         if (!found) continue;
         try {
           const tools = await found.client.listTools();
-          rows.push(`${c.name} (${tools.length} tools): ${tools.map((t) => t.name).join(", ") || "none"}`);
+          rows.push(`${c.name} (${tools.length} outils) : ${tools.map((t) => t.name).join(", ") || "aucun"}`);
         } catch (err: any) {
-          rows.push(`${c.name}: unreachable (${String(err?.message ?? err).slice(0, 120)})`);
+          rows.push(`${c.name} : injoignable (${String(err?.message ?? err).slice(0, 120)})`);
           found.client.close();
           clients.delete(c.name);
         }
       }
-      return rows.join("\n") || "No MCP servers answered.";
+      return rows.join("\n") || "Aucun serveur MCP n'a répondu.";
     },
     async call(server, tool, argsJson, signal): Promise<string> {
       if (!server.trim()) {
-        return 'Error: server is required. Pass server "?" to list servers and their tools.';
+        return 'Error: le serveur est requis. Passez server "?" pour lister les serveurs et leurs outils.';
       }
       if (server === "?") return this.list();
       if (!tool.trim()) {
-        return 'Error: tool is required. Example: {"server": "files", "tool": "read_file", "args": "{\\"path\\": \\"notes.txt\\"}"}';
+        return 'Error: l\'outil est requis. Exemple : {"server": "files", "tool": "read_file", "args": "{\\"path\\": \\"notes.txt\\"}"}';
       }
       const cfgOnly = loadMcpConfig(workspace).find((s) => s.name.toLowerCase() === server.toLowerCase());
       if (cfgOnly?.enabled === false) {
@@ -632,11 +632,11 @@ export function createMcpBridge(workspace: string): McpBridge {
       }
       const found = of(server);
       if (!found) {
-        return `Error: no MCP server named "${server}". Configured: ${
+        return `Error: aucun serveur MCP nommé "${server}". Configuré : ${
           loadMcpConfig(workspace)
             .map((s) => s.name)
-            .join(", ") || "none"
-        }. See docs/plugins.md.`;
+            .join(", ") || "aucun"
+        }. Voir docs/plugins.md.`;
       }
       let args: Record<string, any> = {};
       const raw = (argsJson ?? "").trim();
@@ -644,11 +644,11 @@ export function createMcpBridge(workspace: string): McpBridge {
         try {
           const parsed = JSON.parse(raw);
           if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-            return 'Error: args must be a JSON object in a string. Example: {"server": "files", "tool": "read_file", "args": "{\\"path\\": \\"notes.txt\\"}"}';
+            return 'Error: args doit être un objet JSON dans une chaîne. Exemple : {"server": "files", "tool": "read_file", "args": "{\\"path\\": \\"notes.txt\\"}"}';
           }
           args = parsed;
         } catch (e: any) {
-          return `Error: args is not valid JSON (${String(e?.message ?? e).slice(0, 100)}).`;
+          return `Error: args n'est pas un JSON valide (${String(e?.message ?? e).slice(0, 100)}).`;
         }
       }
       try {
@@ -735,18 +735,18 @@ export function createMcpBridge(workspace: string): McpBridge {
     async debugServer(name: string, timeoutMs?: number): Promise<string> {
       const needle = (name ?? "").trim().toLowerCase();
       if (!needle) {
-        return `Error: usage /mcp debug <nom> — ex. /mcp debug files. Configured: ${
+        return `Error: utilisation /mcp debug <nom> — ex. /mcp debug files. Configuré : ${
           loadMcpConfig(workspace)
             .map((s) => s.name)
-            .join(", ") || "none"
+            .join(", ") || "aucun"
         }.`;
       }
       const cfg = loadMcpConfig(workspace).find((s) => s.name.toLowerCase() === needle);
       if (!cfg) {
-        return `Error: no MCP server named "${name}". Configured: ${
+        return `Error: aucun serveur MCP nommé "${name}". Configuré : ${
           loadMcpConfig(workspace)
             .map((s) => s.name)
-            .join(", ") || "none"
+            .join(", ") || "aucun"
         }. See docs/plugins.md.`;
       }
       const where = cfg.command ? `command "${cfg.command}${cfg.args?.length ? ` ${cfg.args.join(" ")}` : ""}"` : `url "${cfg.url ?? ""}"`;

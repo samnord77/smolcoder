@@ -15,7 +15,7 @@ const SAVE_CAP = 8000;
 
 function assertName(name: unknown): string {
   if (typeof name !== "string" || !NAME_RE.test(name.trim())) {
-    throw new SandboxError('skill name must be 1-40 letters, numbers, "-" or "_" (example: "login-debug").');
+    throw new SandboxError('le nom de la compétence doit comporter 1 à 40 lettres, chiffres, « - » ou « _ » (exemple : "login-debug").');
   }
   return name.trim();
 }
@@ -72,9 +72,9 @@ export function listSkills(root: string): string {
     .sort()
     .slice(0, 400);
   const builtins = Object.keys(BUILTIN_SKILLS).filter((n) => !valid.includes(n));
-  const all = [...valid, ...builtins.map((n) => `${n} (built-in)`)];
-  if (!all.length) return "No skills saved yet.";
-  return `Skills (${all.length}): ${all.join(", ")}`;
+  const all = [...valid, ...builtins.map((n) => `${n} (intégrée)`)];
+  if (!all.length) return "Aucune compétence sauvegardée pour l'instant.";
+  return `Compétences (${all.length}) : ${all.join(", ")}`;
 }
 
 export function readSkill(root: string, name: unknown): string {
@@ -83,11 +83,11 @@ export function readSkill(root: string, name: unknown): string {
     const abs = resolveInWorkspace(root, `${SKILLS_DIR}/${clean}.md`);
     if (fs.existsSync(abs) && !fs.statSync(abs).isDirectory()) {
       const text = fs.readFileSync(abs, "utf8");
-      const base = text.length > READ_CAP ? `${text.slice(0, READ_CAP)}\n[skill truncated — keep skills short]` : text;
+      const base = text.length > READ_CAP ? `${text.slice(0, READ_CAP)}\n[compétence tronquée — gardez les compétences courtes]` : text;
       try {
         const meta = skillMeta(text);
         if (meta.name && meta.name !== clean) {
-          return `${base}\n[skill warning: frontmatter name "${meta.name}" does not match file name "${clean}"]`;
+          return `${base}\n[avertissement de compétence : le nom du frontmatter « ${meta.name} » ne correspond pas au nom de fichier « ${clean} »]`;
         }
       } catch {
         /* soft validation never crashes */
@@ -98,25 +98,25 @@ export function readSkill(root: string, name: unknown): string {
     /* fall through to built-ins */
   }
   const builtin = BUILTIN_SKILLS[clean];
-  if (builtin) return builtin.length > READ_CAP ? `${builtin.slice(0, READ_CAP)}\n[skill truncated]` : builtin;
-  return `Error: no skill named "${clean}". Use skill {"action": "list"} to see saved skills.`;
+  if (builtin) return builtin.length > READ_CAP ? `${builtin.slice(0, READ_CAP)}\n[compétence tronquée]` : builtin;
+  return `Error: aucune compétence nommée « ${clean} ». Utilisez skill {"action": "list"} pour voir les compétences sauvegardées.`;
 }
 
 export function saveSkill(root: string, name: unknown, content: unknown): string {
   const clean = assertName(name);
   if (typeof content !== "string" || !content.trim()) {
-    return 'Error: content is required. Example: {"action": "save", "name": "login-debug", "content": "# steps\\n1. ..."}';
+    return 'Error: le contenu est requis. Exemple : {"action": "save", "name": "login-debug", "content": "# steps\\n1. ..."}';
   }
   if (content.length > SAVE_CAP) {
-    return `Error: keep the skill under ${SAVE_CAP} characters (${content.length} given). Short checklists survive compaction best.`;
+    return `Error: gardez la compétence sous ${SAVE_CAP} caractères (${content.length} fournis). Les courtes listes de vérification survivent le mieux à la compression.`;
   }
   if (isHistoryPlaceholder(content)) {
-    return "Error: this is a history placeholder, not a skill. Write the actual checklist.";
+    return "Error: ceci est un marqueur d'historique, pas une compétence. Écrivez la liste de vérification réelle.";
   }
   const abs = resolveInWorkspace(root, `${SKILLS_DIR}/${clean}.md`);
   fs.mkdirSync(path.dirname(abs), { recursive: true });
   fs.writeFileSync(abs, `${content.trim()}\n`, "utf8");
-  return `Saved skill "${clean}" (${content.trim().split("\n").length} lines). It will be listed by skill {"action": "list"}.`;
+  return `Compétence « ${clean} » sauvegardée (${content.trim().split("\n").length} lignes). Elle sera listée par skill {"action": "list"}.`;
 }
 
 // ---------------------------------------------------------------------------

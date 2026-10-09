@@ -32,7 +32,7 @@ test("Git panel stays in the chosen workspace and commits only the selected file
   const listed = await status(workspace);
   assert.deepEqual(listed.files.map((file) => file.path).sort(), ["chosen.txt", "other.txt"]);
   assert.match(await diff(workspace, "chosen.txt"), /after/);
-  await assert.rejects(diff(workspace, "../private.txt"), /outside the workspace/i);
+  await assert.rejects(diff(workspace, "../private.txt"), /en dehors de l'espace de travail/i);
   const result = await commit(workspace, "chosen.txt", "commit selected file");
   assert.match(result.summary, /commit selected file/);
   assert.deepEqual(

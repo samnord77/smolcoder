@@ -125,7 +125,7 @@ test("a silent backend hits its deadline and releases the request", async (t) =>
   global.fetch = (_url, opts) =>
     new Promise((_resolve, reject) => opts.signal.addEventListener("abort", () => reject(opts.signal.reason), { once: true }));
   await assert.rejects(new OllamaProvider("http://silent", "m", 8000).chat(messages, [], { idleTimeoutMs: 20 }), (error) => {
-    assert.match(error.message, /timed out waiting for data/);
+    assert.match(error.message, /expiré en attendant des données/);
     assert.equal(error.code, "BACKEND_IDLE_TIMEOUT");
     return true;
   });
@@ -141,7 +141,7 @@ test("a silent backend's whole-request deadline is distinguished from an idle de
   await assert.rejects(
     new OllamaProvider("http://silent", "m", 8000).chat(messages, [], { idleTimeoutMs: 100, timeoutMs: 20 }),
     (error) => {
-      assert.match(error.message, /request timed out/);
+      assert.match(error.message, /requête backend a expiré/);
       assert.equal(error.code, "BACKEND_REQUEST_TIMEOUT");
       return true;
     }
@@ -297,7 +297,7 @@ test("search timeouts are cancellable and do not block the event loop", async (t
     ticked = true;
   }, 10);
   const result = await searchFilesBounded(dir, { pattern: "(a+)+$" }, undefined, 150);
-  assert.match(result, /timed out/);
+  assert.match(result, /expiré/);
   assert.ok(ticked);
 });
 
@@ -315,7 +315,7 @@ test("dangling symlinks cannot create an outside file", (t) => {
     }
     throw err;
   }
-  assert.throws(() => resolveInWorkspace(root, "link"), /cannot resolve/);
+  assert.throws(() => resolveInWorkspace(root, "link"), /impossible de résoudre/);
 });
 
 test("arrays and null are not accepted as tool argument objects", () => {

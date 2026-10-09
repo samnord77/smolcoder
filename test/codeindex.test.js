@@ -55,19 +55,19 @@ test("index: file listing and stats", () => {
     .map((s) => s.name)
     .sort();
   assert.deepEqual(names, ["Epsilon", "delta"]);
-  assert.match(queryIndex(ws, { action: "stats" }), /files.*symbols/);
+  assert.match(queryIndex(ws, { action: "stats" }), /fichiers.*symboles/);
   assert.match(queryIndex(ws, { action: "file", path: "c.rs" }), /zeta/);
 });
 
 test("index: query validation and read-only guard", () => {
   clearIndexCache();
   const ws = scratchWs();
-  assert.match(queryIndex(ws, {}), /action must be one of/);
-  assert.match(queryIndex(ws, { action: "search" }), /needs a query/);
-  assert.match(queryIndex(ws, { action: "search", query: "zzz-no-such-symbol" }), /No symbol matching/);
-  assert.match(queryIndex(ws, { action: "file" }), /needs a path/);
-  assert.match(queryIndex(ws, { action: "refresh" }, { canWrite: false }), /read-only/);
-  assert.match(queryIndex(ws, { action: "refresh" }), /Index rebuilt/);
+  assert.match(queryIndex(ws, {}), /l['’]action doit être l['’]une de/);
+  assert.match(queryIndex(ws, { action: "search" }), /a besoin d['’]une requête/);
+  assert.match(queryIndex(ws, { action: "search", query: "zzz-no-such-symbol" }), /Aucun symbole correspondant/);
+  assert.match(queryIndex(ws, { action: "file" }), /a besoin d['’]un chemin/);
+  assert.match(queryIndex(ws, { action: "refresh" }, { canWrite: false }), /lecture seule/);
+  assert.match(queryIndex(ws, { action: "refresh" }), /Index reconstruit/);
 });
 
 test("index: disk cache reloads without a rescan", () => {

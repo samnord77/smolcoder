@@ -34,11 +34,11 @@ test("fetch_url refuses bad, private and local addresses offline", async () => {
   const server = await serve("<html><body>hi</body></html>");
   const port = server.address().port;
   try {
-    assert.match(await fetchUrl("ws", { url: "not a url" }), /not a valid URL/);
-    assert.match(await fetchUrl("ws", {}), /url is required/);
-    assert.match(await fetchUrl("ws", { url: "ftp://example.com/x" }), /only public http/);
-    assert.match(await fetchUrl("ws", { url: `http://127.0.0.1:${port}/` }), /not allowed/);
-    assert.match(await fetchUrl("ws", { url: `http://localhost:${port}/` }), /not allowed/);
+    assert.match(await fetchUrl("ws", { url: "not a url" }), /n['’]est pas une URL valide/);
+    assert.match(await fetchUrl("ws", {}), /l['’]URL est requise/);
+    assert.match(await fetchUrl("ws", { url: "ftp://example.com/x" }), /seules les pages publiques http/);
+    assert.match(await fetchUrl("ws", { url: `http://127.0.0.1:${port}/` }), /n['’]est pas autorisé/);
+    assert.match(await fetchUrl("ws", { url: `http://localhost:${port}/` }), /n['’]est pas autorisé/);
   } finally {
     server.close();
   }
@@ -50,7 +50,7 @@ test("fetch_url refuses oversized pages", async () => {
   try {
     // Loopback is refused before download; oversize is enforced by the cap
     // constant on any public-shaped URL — here the guard answers first.
-    assert.match(await fetchUrl("ws", { url: `http://127.0.0.1:${port}/` }), /not allowed/);
+    assert.match(await fetchUrl("ws", { url: `http://127.0.0.1:${port}/` }), /n['’]est pas autorisé/);
   } finally {
     server.close();
   }

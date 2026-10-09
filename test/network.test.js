@@ -250,7 +250,7 @@ test("an address where nothing answers is not saved, and the help names the serv
 
   const typo = scriptedUI({ picks: ["Saisir une adresse"], texts: ["ftp://box"] });
   assert.equal(await findModelsOnNetwork(typo), false);
-  assert.match(typo.shown.lines.join("\n"), /Only http/);
+  assert.match(typo.shown.lines.join("\n"), /Seules les adresses http/);
   const cancelled = scriptedUI({ picks: [null] });
   assert.equal(await findModelsOnNetwork(cancelled), false);
 });

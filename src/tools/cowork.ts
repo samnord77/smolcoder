@@ -109,11 +109,11 @@ export class CoworkBoard {
             case "record_report":
               return this.recordReport(items, args);
             default:
-              return 'Error: action must be "list", "create", "update", "complete", "archive", "assign" or "record_report".';
+              return 'Error: l\'action doit être "list", "create", "update", "complete", "archive", "assign" ou "record_report".';
           }
         });
       }
-      return 'Error: action must be "list", "create", "update", "complete", "archive", "assign" or "record_report".';
+      return 'Error: l\'action doit être "list", "create", "update", "complete", "archive", "assign" ou "record_report".';
     } catch (error: any) {
       return `Error: ${error?.message ?? String(error)}`;
     }
@@ -123,12 +123,12 @@ export class CoworkBoard {
     return this.withLock(() => {
       const items = this.load();
       const item = items.find((row) => row.id === taskId && row.status === "open");
-      if (!item) return "Error: open work item not found; it was not started.";
-      if (item.executionStatus === "running") return "Error: this work item is already running.";
+      if (!item) return "Error: élément de travail ouvert introuvable ; il n'a pas été démarré.";
+      if (item.executionStatus === "running") return "Error: cet élément de travail est déjà en cours d'exécution.";
       item.executionStatus = "running";
       item.updatedAt = new Date().toISOString();
       this.save(items);
-      return `Started work item ${item.id}: ${item.title}`;
+      return `Élément de travail ${item.id} démarré : ${item.title}`;
     });
   }
 
@@ -136,16 +136,16 @@ export class CoworkBoard {
     return this.withLock(() => {
       const items = this.load();
       const item = items.find((row) => row.id === taskId);
-      if (!item) return `Error: work item ${taskId} no longer exists.`;
+      if (!item) return `Error: l'élément de travail ${taskId} n'existe plus.`;
       if (item.executionStatus !== "running") {
-        return `Error: work item ${taskId} is not running; its execution result was left unchanged.`;
+        return `Error: l'élément de travail ${taskId} n'est pas en cours ; son résultat d'exécution est resté inchangé.`;
       }
       item.executionStatus = outcome;
       item.lastReport = report.slice(0, 8000);
       if (outcome === "verified" && item.status === "open") item.status = "completed";
       item.updatedAt = new Date().toISOString();
       this.save(items);
-      return `Finished work item ${item.id}: status=${item.status}, execution=${item.executionStatus}`;
+      return `Élément de travail ${item.id} terminé : statut=${item.status}, exécution=${item.executionStatus}`;
     });
   }
 
@@ -153,11 +153,12 @@ export class CoworkBoard {
     return this.withLock(() => {
       const items = this.load();
       const item = items.find((row) => row.id === taskId && row.status === "open");
-      if (!item) return 'Error: open work item not found; use work {"action":"list"} to see available IDs.';
+      if (!item)
+        return 'Error: élément de travail ouvert introuvable ; utilisez work {"action":"list"} pour voir les identifiants disponibles.';
       item.status = "completed";
       item.updatedAt = new Date().toISOString();
       this.save(items);
-      return `Work item ${item.id} completed: ${item.title}`;
+      return `Élément de travail ${item.id} terminé : ${item.title}`;
     });
   }
 
@@ -173,22 +174,22 @@ export class CoworkBoard {
     if (!fs.existsSync(this.file)) return [];
     const stat = fs.statSync(this.file);
     if (!stat.isFile() || stat.size > MAX_FILE_BYTES)
-      throw new Error("the work list is not a valid small data file; it was left unchanged.");
+      throw new Error("la liste de travail n'est pas un petit fichier de données valide ; elle est restée inchangée.");
     let parsed: unknown;
     try {
       parsed = JSON.parse(fs.readFileSync(this.file, "utf8"));
     } catch {
-      throw new Error("the work list contains invalid JSON; it was left unchanged.");
+      throw new Error("la liste de travail contient un JSON invalide ; elle est restée inchangée.");
     }
     if (!Array.isArray(parsed) || parsed.length > MAX_ITEMS || !parsed.every(isItem)) {
-      throw new Error("the work list has an unsupported format; it was left unchanged.");
+      throw new Error("la liste de travail a un format non pris en charge ; elle est restée inchangée.");
     }
     return parsed;
   }
 
   private save(items: WorkItem[]): void {
     const json = `${JSON.stringify(items, null, 2)}\n`;
-    if (Buffer.byteLength(json, "utf8") > MAX_FILE_BYTES) throw new Error("the work list reached its storage limit.");
+    if (Buffer.byteLength(json, "utf8") > MAX_FILE_BYTES) throw new Error("la liste de travail a atteint sa limite de stockage.");
     fs.mkdirSync(path.dirname(this.file), { recursive: true });
     const temp = `${this.file}.${randomUUID()}.tmp`;
     try {
@@ -225,7 +226,7 @@ export class CoworkBoard {
         if (error?.code !== "EEXIST") throw error;
         this.removeStaleLock();
         if (Date.now() - startedAt >= LOCK_TIMEOUT_MS) {
-          throw new Error("the work list is busy in another Smolcoder process; try again shortly.");
+          throw new Error("la liste de travail est occupée par un autre processus Smolcoder ; réessayez dans un instant.");
         }
         await new Promise<void>((resolve) => setTimeout(resolve, 25));
       }
@@ -273,38 +274,39 @@ export class CoworkBoard {
   private list(items: WorkItem[], args: Record<string, unknown>): string {
     const status = args.status;
     const area = typeof args.area === "string" ? args.area.trim().toLowerCase() : "";
-    if (status !== undefined && !STATUSES.includes(status as WorkStatus)) return 'Error: status must be "open", "completed" or "archived".';
+    if (status !== undefined && !STATUSES.includes(status as WorkStatus))
+      return 'Error: le statut doit être "open", "completed" ou "archived".';
     const shown = items
       .filter((item) => (!status || item.status === status) && (!area || item.area.toLowerCase() === area))
       .sort((a, b) => (a.due ?? "9999-12-31").localeCompare(b.due ?? "9999-12-31") || b.createdAt.localeCompare(a.createdAt));
-    if (!shown.length) return "No work items match those filters.";
+    if (!shown.length) return "Aucun élément de travail ne correspond à ces filtres.";
     return shown
       .slice(0, 100)
       .map((item) => {
         const due = item.due
-          ? ` · due ${item.due}${item.status === "open" && item.due < new Date().toISOString().slice(0, 10) ? " · overdue" : ""}`
+          ? ` · échéance ${item.due}${item.status === "open" && item.due < new Date().toISOString().slice(0, 10) ? " · en retard" : ""}`
           : "";
         const role = item.assignedRole ? ` · @${item.assignedRole}` : "";
         const exec = item.executionStatus && item.executionStatus !== "idle" ? ` [${item.executionStatus}]` : "";
-        const criteria = item.acceptanceCriteria ? `\n  Acceptance: ${item.acceptanceCriteria}` : "";
-        const report = item.lastReport ? `\n  Report: ${item.lastReport.slice(0, 160)}${item.lastReport.length > 160 ? "…" : ""}` : "";
+        const criteria = item.acceptanceCriteria ? `\n  Critères d'acceptation : ${item.acceptanceCriteria}` : "";
+        const report = item.lastReport ? `\n  Rapport : ${item.lastReport.slice(0, 160)}${item.lastReport.length > 160 ? "…" : ""}` : "";
         return `${item.id} [${item.status}] [${item.priority}]${exec} ${item.title} · ${item.area}${role}${due}${item.notes ? `\n  ${item.notes}` : ""}${criteria}${report}`;
       })
       .join("\n");
   }
 
   private create(items: WorkItem[], args: Record<string, unknown>): string {
-    if (items.length >= MAX_ITEMS) return "Error: the work list has reached its 1,000-item limit.";
+    if (items.length >= MAX_ITEMS) return "Error: la liste de travail a atteint sa limite de 1 000 éléments.";
     const title = boundedText(args.title, 200, true);
     const area = boundedText(args.area ?? "personal", 60, true);
     const notes = boundedText(args.notes ?? "", 2000);
     const priority = args.priority ?? "normal";
-    if (!title) return "Error: title is required and must be at most 200 characters.";
-    if (!area) return "Error: area is required and must be at most 60 characters.";
-    if (notes === null) return "Error: notes must be at most 2,000 characters.";
-    if (!PRIORITIES.includes(priority as WorkPriority)) return 'Error: priority must be "low", "normal", "high" or "urgent".';
+    if (!title) return "Error: le titre est requis et doit comporter au plus 200 caractères.";
+    if (!area) return "Error: la zone est requise et doit comporter au plus 60 caractères.";
+    if (notes === null) return "Error: les notes doivent comporter au plus 2 000 caractères.";
+    if (!PRIORITIES.includes(priority as WorkPriority)) return 'Error: la priorité doit être "low", "normal", "high" ou "urgent".';
     if (args.due !== undefined && args.due !== "" && !validDate(args.due))
-      return "Error: due must be a real calendar date in YYYY-MM-DD format.";
+      return "Error: l'échéance doit être une date de calendrier réelle au format AAAA-MM-JJ.";
     const assignedRole = boundedText(args.role, 40) || undefined;
     const acceptanceCriteria = boundedText(args.acceptance, 1000) || undefined;
     const now = new Date().toISOString();
@@ -324,37 +326,38 @@ export class CoworkBoard {
       snapshots: [],
     };
     this.save([...items, item]);
-    const roleNotice = item.assignedRole ? ` · assigned to ${item.assignedRole}` : "";
-    return `Created work item ${item.id}: ${item.title} [${item.priority}] · ${item.area}${item.due ? ` · due ${item.due}` : ""}${roleNotice}`;
+    const roleNotice = item.assignedRole ? ` · assigné à ${item.assignedRole}` : "";
+    return `Élément de travail ${item.id} créé : ${item.title} [${item.priority}] · ${item.area}${item.due ? ` · échéance ${item.due}` : ""}${roleNotice}`;
   }
 
   private update(items: WorkItem[], args: Record<string, unknown>): string {
     const id = typeof args.task_id === "string" ? args.task_id.trim() : "";
     const index = items.findIndex((item) => item.id === id && item.status === "open");
-    if (index < 0) return 'Error: open work item not found; use work {"action":"list"} to see available IDs.';
+    if (index < 0)
+      return 'Error: élément de travail ouvert introuvable ; utilisez work {"action":"list"} pour voir les identifiants disponibles.';
     const item = { ...items[index] };
     if (args.title !== undefined) {
       const value = boundedText(args.title, 200, true);
-      if (!value) return "Error: title must be 1–200 characters.";
+      if (!value) return "Error: le titre doit comporter de 1 à 200 caractères.";
       item.title = value;
     }
     if (args.area !== undefined) {
       const value = boundedText(args.area, 60, true);
-      if (!value) return "Error: area must be 1–60 characters.";
+      if (!value) return "Error: la zone doit comporter de 1 à 60 caractères.";
       item.area = value;
     }
     if (args.notes !== undefined) {
       const value = boundedText(args.notes, 2000);
-      if (value === null) return "Error: notes must be at most 2,000 characters.";
+      if (value === null) return "Error: les notes doivent comporter au plus 2 000 caractères.";
       item.notes = value;
     }
     if (args.due !== undefined) {
       if (args.due !== "" && !validDate(args.due))
-        return "Error: due must be a real calendar date in YYYY-MM-DD format, or empty to clear it.";
+        return "Error: l'échéance doit être une date de calendrier réelle au format AAAA-MM-JJ, ou vide pour l'effacer.";
       item.due = typeof args.due === "string" && args.due ? args.due : null;
     }
     if (args.priority !== undefined) {
-      if (!PRIORITIES.includes(args.priority as WorkPriority)) return 'Error: priority must be "low", "normal", "high" or "urgent".';
+      if (!PRIORITIES.includes(args.priority as WorkPriority)) return 'Error: la priorité doit être "low", "normal", "high" ou "urgent".';
       item.priority = args.priority as WorkPriority;
     }
     if (args.role !== undefined) {
@@ -368,26 +371,28 @@ export class CoworkBoard {
     item.updatedAt = new Date().toISOString();
     items[index] = item;
     this.save(items);
-    return `Updated work item ${item.id}: ${item.title}`;
+    return `Élément de travail ${item.id} mis à jour : ${item.title}`;
   }
 
   private changeStatus(items: WorkItem[], args: Record<string, unknown>, status: "completed" | "archived"): string {
     const id = typeof args.task_id === "string" ? args.task_id.trim() : "";
     const item = items.find((row) => row.id === id && row.status === "open");
-    if (!item) return 'Error: open work item not found; use work {"action":"list"} to see available IDs.';
+    if (!item)
+      return 'Error: élément de travail ouvert introuvable ; utilisez work {"action":"list"} pour voir les identifiants disponibles.';
     item.status = status;
     item.updatedAt = new Date().toISOString();
     this.save(items);
-    return `Work item ${item.id} ${status}: ${item.title}`;
+    return `Élément de travail ${item.id} ${status} : ${item.title}`;
   }
 
   private assign(items: WorkItem[], args: Record<string, unknown>): string {
     const id = typeof args.task_id === "string" ? args.task_id.trim() : "";
     const index = items.findIndex((item) => item.id === id && item.status === "open");
-    if (index < 0) return 'Error: open work item not found; use work {"action":"list"} to see available IDs.';
+    if (index < 0)
+      return 'Error: élément de travail ouvert introuvable ; utilisez work {"action":"list"} pour voir les identifiants disponibles.';
     const item = { ...items[index] };
     const role = boundedText(args.role, 40);
-    if (!role) return "Error: role is required and must be at most 40 characters.";
+    if (!role) return "Error: le rôle est requis et doit comporter au plus 40 caractères.";
     item.assignedRole = role;
     if (args.acceptance !== undefined) {
       const criteria = boundedText(args.acceptance, 1000);
@@ -397,20 +402,20 @@ export class CoworkBoard {
     item.updatedAt = new Date().toISOString();
     items[index] = item;
     this.save(items);
-    return `Assigned work item ${item.id} to role « ${item.assignedRole} »: ${item.title}`;
+    return `Élément de travail ${item.id} assigné au rôle « ${item.assignedRole} » : ${item.title}`;
   }
 
   private recordReport(items: WorkItem[], args: Record<string, unknown>): string {
     const id = typeof args.task_id === "string" ? args.task_id.trim() : "";
     const index = items.findIndex((item) => item.id === id);
-    if (index < 0) return 'Error: work item not found; use work {"action":"list"} to see available IDs.';
+    if (index < 0) return 'Error: élément de travail introuvable ; utilisez work {"action":"list"} pour voir les identifiants disponibles.';
     if (args.execution_status !== undefined || args.mark_completed === true) {
-      return "Error: execution status and completion are controlled by the session runtime, not by the model.";
+      return "Error: le statut d'exécution et l'achèvement sont contrôlés par le runtime de session, pas par le modèle.";
     }
     const item = { ...items[index] };
     if (args.report !== undefined) {
       const report = boundedText(args.report, 8000);
-      if (report === null) return "Error: report must be at most 8,000 characters.";
+      if (report === null) return "Error: le rapport doit comporter au plus 8 000 caractères.";
       item.lastReport = report;
     }
     if (args.snapshot && typeof args.snapshot === "object") {
@@ -428,6 +433,6 @@ export class CoworkBoard {
     item.updatedAt = new Date().toISOString();
     items[index] = item;
     this.save(items);
-    return `Recorded execution report for work item ${item.id}: status=${item.status}, execution=${item.executionStatus ?? "idle"}`;
+    return `Rapport d'exécution enregistré pour l'élément de travail ${item.id} : statut=${item.status}, exécution=${item.executionStatus ?? "idle"}`;
   }
 }

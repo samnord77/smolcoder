@@ -69,7 +69,7 @@ test("/status never claims a check passed when it was stopped", async () => {
   const r = await buildStatusReport({ workspace: tmpWorkspace() });
   const state = r.build.state;
   assert.ok(
-    state === "passing" || /FAILING|still running|killed|could not run|not judged|not run/.test(state),
+    state === "passing" || /FAILING|toujours en cours|tué|impossible de lancer|non jugé|non exécuté|aucune commande/.test(state),
     `the check state is honest, got: ${state}`
   );
   if (state.startsWith("FAILING")) assert.match(state, /exit \d+/, "a failure names its exit code");
@@ -86,6 +86,6 @@ test("/status never executes project scripts while the control centre is loading
   );
   const report = await buildStatusReport({ workspace: ws });
   assert.equal(report.build.command, "npm run test");
-  assert.match(report.build.state, /not run/);
+  assert.match(report.build.state, /non exécuté/);
   assert.equal(fs.existsSync(marker), false, "opening status must not run the user's test script");
 });

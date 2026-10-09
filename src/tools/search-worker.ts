@@ -5,7 +5,7 @@ if (!isMainThread) parentPort!.postMessage(searchFiles(workerData.root, workerDa
 
 /** A pathological regex can be terminated without freezing the agent/UI. */
 export function searchFilesBounded(root: string, args: Record<string, any>, signal?: AbortSignal, timeoutMs = 5000): Promise<string> {
-  if (signal?.aborted) return Promise.resolve("Error: search cancelled");
+  if (signal?.aborted) return Promise.resolve("Error: recherche annulée");
   return new Promise((resolve) => {
     const worker = new Worker(__filename, { workerData: { root, args } });
     let settled = false;
@@ -17,14 +17,17 @@ export function searchFilesBounded(root: string, args: Record<string, any>, sign
       void worker.terminate();
       resolve(result);
     };
-    const cancel = () => finish("Error: search cancelled");
-    const timer = setTimeout(() => finish("Error: search timed out. Use a simpler pattern or search a smaller folder."), timeoutMs);
+    const cancel = () => finish("Error: recherche annulée");
+    const timer = setTimeout(
+      () => finish("Error: la recherche a expiré. Utilisez un motif plus simple ou cherchez dans un plus petit dossier."),
+      timeoutMs
+    );
     signal?.addEventListener("abort", cancel, { once: true });
     if (signal?.aborted) cancel();
     worker.once("message", finish);
-    worker.once("error", (err) => finish(`Error: search failed: ${err.message}`));
+    worker.once("error", (err) => finish(`Error: la recherche a échoué : ${err.message}`));
     worker.once("exit", (code) => {
-      if (!settled) finish(`Error: search worker exited (${code})`);
+      if (!settled) finish(`Error: le worker de recherche s'est arrêté (${code})`);
     });
   });
 }

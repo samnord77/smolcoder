@@ -536,12 +536,12 @@ export async function executeTool(name: string, args: Record<string, any>, ctx: 
         else if (action === "add") result = ctx.plan.add(String(args.text ?? ""));
         else if (action === "checkpoint") result = ctx.plan.checkpoint(String(args.text ?? ""));
         else if (action === "show") result = ctx.plan.modelView();
-        else return 'Error: action must be one of "set", "done", "add", "show", "checkpoint". Example: {"action": "done"}';
+        else return 'Error: l\'action doit être "set", "done", "add", "show" ou "checkpoint". Exemple : {"action": "done"}';
         break;
       }
       case "work": {
         if (args.action !== "list" && ctx.canWrite === false) {
-          return "Error: creating or changing work items is unavailable in read-only mode. Switch to edit mode to make changes.";
+          return "Error: la création ou la modification des éléments de travail est indisponible en mode lecture seule. Passez en mode édition pour faire des changements.";
         }
         result = await new CoworkBoard(ctx.workspace).run(args);
         if (!result.startsWith("Error") && args.action !== "list") ctx.filesTouched.add(".smol/work-items.json");
@@ -569,7 +569,7 @@ export async function executeTool(name: string, args: Record<string, any>, ctx: 
       }
       case "move_path":
         if (ctx.canWrite === false) {
-          return "Error: moving files is unavailable in read-only mode. Switch to edit mode to reorganize files.";
+          return "Error: le déplacement de fichiers est indisponible en mode lecture seule. Passez en mode édition pour réorganiser les fichiers.";
         }
         result = movePath(ctx.workspace, args);
         if (!result.startsWith("Error")) {
@@ -579,7 +579,7 @@ export async function executeTool(name: string, args: Record<string, any>, ctx: 
         break;
       case "delete_path": {
         if (ctx.canWrite === false) {
-          return "Error: deleting files is unavailable in read-only mode. Switch to edit mode to remove files.";
+          return "Error: la suppression de fichiers est indisponible en mode lecture seule. Passez en mode édition pour supprimer des fichiers.";
         }
         const undoCap = capturePrev(ctx.workspace, args.path);
         result = deletePath(ctx.workspace, args);
@@ -593,14 +593,14 @@ export async function executeTool(name: string, args: Record<string, any>, ctx: 
       }
       case "create_folder":
         if (ctx.canWrite === false) {
-          return "Error: creating folders is unavailable in read-only mode. Switch to edit mode to reorganize files.";
+          return "Error: la création de dossiers est indisponible en mode lecture seule. Passez en mode édition pour réorganiser les fichiers.";
         }
         result = createFolder(ctx.workspace, args);
         if (!result.startsWith("Error")) ctx.filesTouched.add(String(args.path));
         break;
       case "run_command":
         if (typeof args.command !== "string" || !args.command.trim()) {
-          return 'Error: command is required. Example: {"command": "npm test"}';
+          return 'Error: la commande est requise. Exemple : {"command": "npm test"}';
         }
         result = await runCommand(args.command, ctx.workspace, signal, (ctl: ShellControl) => {
           // Offload path: the UI hands this live process to the background
@@ -614,7 +614,7 @@ export async function executeTool(name: string, args: Record<string, any>, ctx: 
         const action = args.action;
         if (action === "start") {
           if (typeof args.command !== "string" || !args.command.trim()) {
-            return 'Error: "start" needs a command. Example: {"action": "start", "command": "npm run dev"}';
+            return 'Error: "start" nécessite une commande. Exemple : {"action": "start", "command": "npm run dev"}';
           }
           ctx.commandsRun.push(`[bg] ${args.command}`);
           result = await ctx.taskManager.startWithEarlyOutput(args.command);
@@ -625,20 +625,20 @@ export async function executeTool(name: string, args: Record<string, any>, ctx: 
         } else if (action === "list") {
           result = ctx.taskManager.list();
         } else {
-          return 'Error: action must be one of "start", "list", "logs", "stop". Example: {"action": "list"}';
+          return 'Error: l\'action doit être "start", "list", "logs" ou "stop". Exemple : {"action": "list"}';
         }
         break;
       }
       case "delegate": {
         const task = typeof args.task === "string" ? args.task.trim() : "";
         if (!task) {
-          return 'Error: task is required. Example: {"task": "find where login validation lives and report files + line numbers"}';
+          return 'Error: la tâche est requise. Exemple : {"task": "trouver où vit la validation de connexion et rapporter fichiers + numéros de ligne"}';
         }
         if (task.length > 2000) {
-          return "Error: keep the subtask under 2000 characters — one small concrete job.";
+          return "Error: gardez la sous-tâche sous 2 000 caractères — une petite tâche concrète.";
         }
         if (!ctx.delegate) {
-          return "Error: sub-agents are unavailable at this depth. Do the step yourself with read/search.";
+          return "Error: les sous-agents sont indisponibles à cette profondeur. Faites l'étape vous-même avec read/search.";
         }
         const role = typeof args.role === "string" ? args.role.trim() : undefined;
         const customTools = typeof args.tools === "string" ? args.tools : undefined;
@@ -659,12 +659,12 @@ export async function executeTool(name: string, args: Record<string, any>, ctx: 
         else if (action === "read") result = readSkill(ctx.workspace, args.name);
         else if (action === "save") {
           if (ctx.canWrite === false) {
-            return "Error: saving skills is unavailable in read-only mode. Switch to edit mode to save.";
+            return "Error: la sauvegarde de compétences est indisponible en mode lecture seule. Passez en mode édition pour sauvegarder.";
           }
           result = saveSkill(ctx.workspace, args.name, args.content);
           if (!result.startsWith("Error")) ctx.filesTouched.add(`.smol/skills/${String(args.name).trim()}.md`);
         } else {
-          return 'Error: action must be one of "list", "read", "save". Example: {"action": "list"}';
+          return 'Error: l\'action doit être "list", "read" ou "save". Exemple : {"action": "list"}';
         }
         break;
       }
@@ -675,7 +675,7 @@ export async function executeTool(name: string, args: Record<string, any>, ctx: 
       case "symbols": {
         if (String(args.action ?? "") === "setup") {
           if (ctx.canWrite === false) {
-            return "Error: installing language servers changes this computer — unavailable in read-only mode. Switch to edit mode first.";
+            return "Error: installer des serveurs de langage modifie cet ordinateur — indisponible en mode lecture seule. Passez d'abord en mode édition.";
           }
           const lang = typeof args.lang === "string" && args.lang.trim() ? args.lang.trim() : "all";
           result = setupLsp(ctx.workspace, lang);
@@ -686,7 +686,7 @@ export async function executeTool(name: string, args: Record<string, any>, ctx: 
       }
       case "mcp": {
         if (!ctx.mcp) {
-          return "Error: MCP bridge is not wired in this session. The host must set toolCtx.mcp (see docs/plugins.md).";
+          return "Error: le pont MCP n'est pas branché dans cette session. L'hôte doit définir toolCtx.mcp (voir docs/plugins.md).";
         }
         result = await ctx.mcp.call(String(args.server ?? ""), String(args.tool ?? ""), String(args.args ?? ""), signal);
         break;
@@ -718,7 +718,7 @@ export async function executeTool(name: string, args: Record<string, any>, ctx: 
       case "format": {
         const rel = typeof args.path === "string" ? args.path : "";
         if (!rel) {
-          return 'Error: path is required. Example: {"path": "src/agent.ts"}';
+          return 'Error: le chemin est requis. Exemple : {"path": "src/agent.ts"}';
         }
         const undoCap = capturePrev(ctx.workspace, rel);
         const fr = formatFile(ctx.workspace, rel);
@@ -735,13 +735,13 @@ export async function executeTool(name: string, args: Record<string, any>, ctx: 
       }
       case "plugins": {
         if (args.action !== undefined && args.action !== "list") {
-          return 'Error: action must be "list". Example: {"action": "list"}';
+          return 'Error: l\'action doit être "list". Exemple : {"action": "list"}';
         }
         result = describePlugins(ctx.workspace);
         break;
       }
       default:
-        return `Error: unknown tool "${name}". Available tools are listed in your tool definitions — use one of those.`;
+        return `Error: outil inconnu « ${name} ». Les outils disponibles sont listés dans vos définitions d'outils — utilisez-en un de ceux-là.`;
     }
     try {
       for (const p of ctx.plugins ?? []) {

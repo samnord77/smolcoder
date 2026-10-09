@@ -35,9 +35,9 @@ function searchLocalFiles(request: LocalSearchRequest): string {
   let root: string;
   try {
     root = fs.realpathSync(request.root);
-    if (!fs.statSync(root).isDirectory()) return `Error: "${request.root}" is not a folder.`;
+    if (!fs.statSync(root).isDirectory()) return `Error: « ${request.root} » n’est pas un dossier.`;
   } catch (error) {
-    return `Error: cannot read search folder "${request.root}": ${error instanceof Error ? error.message : String(error)}`;
+    return `Error: impossible de lire le dossier de recherche « ${request.root} » : ${error instanceof Error ? error.message : String(error)}`;
   }
 
   const needle = request.query.toLocaleLowerCase();
@@ -97,13 +97,15 @@ function searchLocalFiles(request: LocalSearchRequest): string {
 
   if (pending.length || directoriesVisited >= MAX_DIRECTORIES || Date.now() >= deadline) truncated = true;
   const lines = [
-    `Filename search for "${request.query}" in ${root}`,
-    `Searched ${directoriesVisited} folders and ${filesVisited} filenames; found ${results.length}. File contents were not opened.`,
+    `Recherche de noms de fichiers pour « ${request.query} » dans ${root}`,
+    `${directoriesVisited} dossiers et ${filesVisited} noms de fichiers examinés ; ${results.length} trouvés. File contents were not opened.`,
     ...results,
   ];
-  if (truncated) lines.push("Search was bounded and may be incomplete; provide a narrower folder or query to continue.");
-  if (unreadableDirectories) lines.push(`${unreadableDirectories} folder(s) could not be read due to operating-system permissions.`);
-  if (!results.length && !truncated) lines.push("No matching filenames were found in the searched folders.");
+  if (truncated)
+    lines.push("La recherche a été bornée et peut être incomplète ; fournissez un dossier ou une requête plus précis pour continuer.");
+  if (unreadableDirectories)
+    lines.push(`${unreadableDirectories} dossier(s) n'ont pas pu être lus à cause des permissions du système d'exploitation.`);
+  if (!results.length && !truncated) lines.push("Aucun nom de fichier correspondant n'a été trouvé dans les dossiers examinés.");
   return lines.join("\n");
 }
 
@@ -118,9 +120,11 @@ export function searchLocalFilesBounded(
 ): Promise<string> {
   const query = typeof args.query === "string" ? args.query.trim() : "";
   if (query.length < 2 || query.length > 120) {
-    return Promise.resolve('Error: query must be 2–120 characters. Use a distinctive filename fragment, e.g. {"query":"deepseek"}.');
+    return Promise.resolve(
+      'Error: la requête doit comporter de 2 à 120 caractères. Utilisez un fragment distinctif de nom de fichier, ex. {"query":"deepseek"}.'
+    );
   }
-  if (signal?.aborted) return Promise.resolve("Error: local filename search cancelled.");
+  if (signal?.aborted) return Promise.resolve("Error: recherche de noms de fichiers locale annulée.");
 
   const rootArg = typeof args.path === "string" && args.path.trim() ? args.path.trim() : os.homedir();
   const root = path.isAbsolute(rootArg) ? rootArg : path.resolve(workspace, rootArg);
@@ -138,9 +142,12 @@ export function searchLocalFilesBounded(
       void worker.terminate();
       resolve(result);
     };
-    const cancel = () => finish("Error: local filename search cancelled.");
+    const cancel = () => finish("Error: recherche de noms de fichiers locale annulée.");
     const timer = setTimeout(
-      () => finish("Error: local filename search timed out; search a narrower folder or use a more distinctive filename fragment."),
+      () =>
+        finish(
+          "Error: la recherche de noms de fichiers locale a expiré ; cherchez dans un dossier plus étroit ou utilisez un fragment de nom de fichier plus distinctive."
+        ),
       timeoutMs
     );
     try {
@@ -149,17 +156,19 @@ export function searchLocalFilesBounded(
       });
     } catch (error) {
       clearTimeout(timer);
-      resolve(`Error: could not start local filename search: ${error instanceof Error ? error.message : String(error)}`);
+      resolve(
+        `Error: impossible de démarrer la recherche de noms de fichiers locale : ${error instanceof Error ? error.message : String(error)}`
+      );
       return;
     }
     signal?.addEventListener("abort", cancel, { once: true });
     if (signal?.aborted) cancel();
     worker.once("message", (result: unknown) =>
-      finish(typeof result === "string" ? result : "Error: local search returned an invalid result.")
+      finish(typeof result === "string" ? result : "Error: la recherche locale a renvoyé un résultat invalide.")
     );
-    worker.once("error", (error) => finish(`Error: local filename search failed: ${error.message}`));
+    worker.once("error", (error) => finish(`Error: la recherche de noms de fichiers locale a échoué : ${error.message}`));
     worker.once("exit", (code) => {
-      if (!settled) finish(`Error: local filename search worker exited (${code}).`);
+      if (!settled) finish(`Error: le worker de recherche de noms de fichiers locale s'est arrêté (${code}).`);
     });
   });
 }

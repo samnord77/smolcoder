@@ -56,10 +56,10 @@ test("write_file result carries the warning; edit_file that fixes it is clean", 
   const ws = fs.mkdtempSync(path.join(os.tmpdir(), "tc-ws-"));
   const ctx = { workspace: ws, taskManager: new TaskManager(ws), plan: new Plan(), filesTouched: new Set(), commandsRun: [] };
   const r1 = await executeTool("write_file", { path: "game.js", content: "function go() {\n  console.log('hi';\n}\n" }, ctx);
-  assert.match(r1, /^Created game\.js/);
+  assert.match(r1, /^game\.js créé/);
   assert.match(r1, /Warning: game\.js has a JavaScript syntax error at line 2/);
   assert.match(r1, /Fix this before moving on/);
   const r2 = await executeTool("edit_file", { path: "game.js", old_text: "console.log('hi';", new_text: "console.log('hi');" }, ctx);
-  assert.match(r2, /^Edited game\.js/);
+  assert.match(r2, /^game\.js modifié/);
   assert.doesNotMatch(r2, /Warning/);
 });

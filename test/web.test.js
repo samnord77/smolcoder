@@ -530,7 +530,7 @@ test("hub: sessions start, echo, save, close, resume, delete; workspaces add and
         })
       ).body
     );
-    assert.match(workCreated.result, /Created work item/);
+    assert.match(workCreated.result, /Élément de travail .* créé/);
     assert.equal(workCreated.items.length, 1);
     assert.equal(workCreated.items[0].title, "Review cowork integration");
     const workCompleted = await request(hub, "POST", `/work/items${k}`, {

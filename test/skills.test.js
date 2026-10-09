@@ -14,7 +14,7 @@ function scratch() {
 }
 
 test("empty workspace still offers the built-in skill, yolo banner is visible", () => {
-  assert.match(skills.listSkills(scratch()), /impeccable-design \(built-in\)/);
+  assert.match(skills.listSkills(scratch()), /impeccable-design \(intégrée\)/);
   assert.match(yoloBanner(), /YOLO/);
   assert.match(MODE_LABELS.bypass, /YOLO/);
 });
@@ -22,7 +22,7 @@ test("empty workspace still offers the built-in skill, yolo banner is visible", 
 test("skill save and read round trip", () => {
   const ws = scratch();
   const r = skills.saveSkill(ws, "login-debug", "# steps\n1. check logs");
-  assert.match(r, /Saved skill "login-debug"/);
+  assert.match(r, /Compétence « login-debug »/);
   assert.match(skills.readSkill(ws, "login-debug"), /check logs/);
   assert.match(skills.listSkills(ws), /login-debug/);
 });
@@ -30,15 +30,15 @@ test("skill save and read round trip", () => {
 test("bad skill names and traversal are blocked", () => {
   const ws = scratch();
   for (const bad of ["../../evil", "../x", "", "a/b", "x".repeat(41)]) {
-    assert.throws(() => skills.readSkill(ws, bad), /skill name/);
+    assert.throws(() => skills.readSkill(ws, bad), /nom de la compétence/);
   }
-  assert.throws(() => skills.saveSkill(ws, "../../evil", "x"), /skill name|outside/);
-  assert.match(skills.saveSkill(ws, "ok-name", "   "), /content is required/);
+  assert.throws(() => skills.saveSkill(ws, "../../evil", "x"), /nom de la compétence|dehors/);
+  assert.match(skills.saveSkill(ws, "ok-name", "   "), /le contenu est requis/);
 });
 
 test("built-in impeccable-design skill is listed and readable", () => {
   const ws = scratch();
-  assert.match(skills.listSkills(ws), /impeccable-design \(built-in\)/);
+  assert.match(skills.listSkills(ws), /impeccable-design \(intégrée\)/);
   const text = skills.readSkill(ws, "impeccable-design");
   assert.match(text, /Persuade/);
   assert.match(text, /Operate/);

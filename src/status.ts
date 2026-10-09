@@ -62,13 +62,13 @@ export function runBuildCheck(workspace: string): { command: string; state: stri
     const r = spawnSync(cmd, { cwd: workspace, encoding: "utf8", timeout: 300_000, windowsHide: true, shell: true });
     if (r.error && (r.error as any).code === "ETIMEDOUT") {
       // Saying "FAILING" here would be a lie: we stopped it, it did not fail.
-      return remember({ command: cmd, state: "still running after 5 min (not judged - run it yourself)" });
+      return remember({ command: cmd, state: "toujours en cours après 5 min (non jugé — lancez-le vous-même)" });
     }
-    if (r.error) return remember({ command: cmd, state: `could not run: ${String((r.error as any).message).slice(0, 80)}` });
-    if (r.status === null) return remember({ command: cmd, state: "killed (exit unknown)" });
+    if (r.error) return remember({ command: cmd, state: `impossible de lancer : ${String((r.error as any).message).slice(0, 80)}` });
+    if (r.status === null) return remember({ command: cmd, state: "tué (code de sortie inconnu)" });
     return remember({ command: cmd, state: r.status === 0 ? "passing" : `FAILING (exit ${r.status})` });
   } catch (e: any) {
-    return remember({ command: cmd, state: `could not run: ${String(e?.message ?? e).slice(0, 80)}` });
+    return remember({ command: cmd, state: `impossible de lancer : ${String(e?.message ?? e).slice(0, 80)}` });
   }
 }
 
@@ -76,11 +76,11 @@ export function runBuildCheck(workspace: string): { command: string; state: stri
  * because a dashboard was opened. Explicit /check still runs the command. */
 function buildCheckStatus(workspace: string): { command: string; state: string } {
   const command = projectVerification(workspace);
-  if (!command) return { command: "", state: "no check command found" };
+  if (!command) return { command: "", state: "aucune commande de vérification trouvée" };
   const key = `${path.resolve(workspace)}\0${command}`;
   const cached = buildStatusCache.get(key);
   if (cached && Date.now() - cached.at < BUILD_STATUS_TTL_MS) return cached.result;
-  return { command, state: "not run (use /check to verify)" };
+  return { command, state: "non exécuté (utilisez /check pour vérifier)" };
 }
 
 /** Invalidate the cached project verdict after an edit or an explicit check. */

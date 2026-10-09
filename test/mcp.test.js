@@ -55,8 +55,8 @@ function scratchWithServer(extra = []) {
 test("missing or broken config coaches instead of crashing", async (t) => {
   const ws = fs.mkdtempSync(path.join(os.tmpdir(), "smol-mcp-"));
   const bridge = createMcpBridge(ws);
-  assert.match(await bridge.list(), /No MCP servers configured/);
-  assert.match(await bridge.call("nope", "x", ""), /no MCP server named/);
+  assert.match(await bridge.list(), /Aucun serveur MCP configuré/);
+  assert.match(await bridge.call("nope", "x", ""), /aucun serveur MCP nommé/);
   t.after(() => bridge.closeAll());
   assert.deepEqual(loadMcpConfig(ws), []);
   fs.mkdirSync(path.join(ws, ".smol"), { recursive: true });
@@ -82,14 +82,14 @@ test("bad config entries are skipped, good ones kept", () => {
 test("list, call, server errors and bad args", async (t) => {
   const { bridge } = scratchWithServer();
   t.after(() => bridge.closeAll());
-  assert.match(await bridge.list(), /fake \(2 tools\): echo, boom/);
-  assert.match(await bridge.call("?", "", ""), /fake \(2 tools\)/);
+  assert.match(await bridge.list(), /fake \(2 outils\) : echo, boom/);
+  assert.match(await bridge.call("?", "", ""), /fake \(2 outils\)/);
   assert.match(await bridge.call("fake", "echo", '{"a": 1}'), /echo:\{"a":1\}/);
   assert.match(await bridge.call("fake", "boom", ""), /^Error: bad/);
   assert.match(await bridge.call("fake", "nope", ""), /Error: unknown/);
-  assert.match(await bridge.call("fake", "echo", "{oops"), /not valid JSON/);
-  assert.match(await bridge.call("fake", "echo", "[1]"), /must be a JSON object/);
-  assert.match(await bridge.call("ghost", "echo", ""), /no MCP server named/);
+  assert.match(await bridge.call("fake", "echo", "{oops"), /n'est pas un JSON valide/);
+  assert.match(await bridge.call("fake", "echo", "[1]"), /doit être un objet JSON/);
+  assert.match(await bridge.call("ghost", "echo", ""), /aucun serveur MCP nommé/);
 });
 
 test("a silent server times out instead of hanging", async (t) => {

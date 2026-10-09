@@ -38,12 +38,12 @@ test("local filename search skips generated directories, validates roots, and re
   const limited = await searchLocalFilesBounded(root, { query: "deepseek", path: root, max_results: 1 });
   assert.match(limited, /DeepSeek-(one|two)/);
   assert.doesNotMatch(limited, /deepseek-hidden/);
-  assert.match(limited, /bounded and may be incomplete/);
+  assert.match(limited, /bornée et peut être incomplète/);
   assert.match(
     await searchLocalFilesBounded(root, { query: "deepseek", path: path.join(root, "missing") }),
-    /^Error:.*cannot read search folder/
+    /^Error:.*impossible de lire le dossier de recherche/
   );
-  assert.match(await searchLocalFilesBounded(root, { query: "x" }), /^Error: query must be 2–120 characters/);
+  assert.match(await searchLocalFilesBounded(root, { query: "x" }), /^Error: la requête doit comporter de 2 à 120/);
 });
 
 test("find_local is available in read-only mode and invokes the bounded local search", async (t) => {

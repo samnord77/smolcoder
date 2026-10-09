@@ -22,12 +22,12 @@ test("lsp framing round trip and file filter", () => {
 
 test("symbols validation answers without a server", async () => {
   const ws = scratchTs("const x = 1;\n");
-  assert.match(await querySymbols(ws, {}), /action must be one of/);
+  assert.match(await querySymbols(ws, {}), /l'action doit être l'une de/);
   assert.match(await querySymbols(ws, { action: "hover" }), /TypeScript/);
-  assert.match(await querySymbols(ws, { action: "hover", path: "nope.ts" }), /does not exist/);
+  assert.match(await querySymbols(ws, { action: "hover", path: "nope.ts" }), /n'existe pas/);
   fs.writeFileSync(path.join(ws, "note.txt"), "hi");
-  assert.match(await querySymbols(ws, { action: "hover", path: "note.txt", line: 1, col: 1 }), /not a TypeScript/);
-  assert.match(await querySymbols(ws, { action: "hover", path: "../evil.ts", line: 1, col: 1 }), /outside|path/i);
+  assert.match(await querySymbols(ws, { action: "hover", path: "note.txt", line: 1, col: 1 }), /pas un fichier TypeScript/);
+  assert.match(await querySymbols(ws, { action: "hover", path: "../evil.ts", line: 1, col: 1 }), /en dehors|chemin/i);
 });
 
 test("symbols tool exists in edit and bypass, hidden in read-only", () => {
@@ -43,7 +43,7 @@ test("live hover, definition and diagnostics", async (t) => {
   // workspace: point it at this repo's node_modules for the test.
   process.env.NODE_PATH = path.join(__dirname, "..", "node_modules");
   const hover = await querySymbols(ws, { action: "hover", path: "a.ts", line: 3, col: 2 });
-  if (hover.startsWith("Error: language server unavailable")) {
+  if (hover.startsWith("Error: le serveur de langage est indisponible")) {
     t.skip("typescript-language-server could not start here");
     return;
   }

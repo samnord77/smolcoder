@@ -14,8 +14,8 @@ test("a failed edit points to a bounded source range without changing the file",
     old_text: "}\n\nfunction actualTarget() {\n  return 41;\n}",
     new_text: "replacement",
   });
-  assert.match(result, /^Error: old_text was not found/);
+  assert.match(result, /^Error: old_text introuvable/);
   assert.match(result, /"offset":141/);
-  assert.match(result, /location hint, not the whole block/);
+  assert.match(result, /indice d'emplacement, pas le bloc entier/);
   assert.equal(fs.readFileSync(path.join(root, "module.js"), "utf8"), source);
 });

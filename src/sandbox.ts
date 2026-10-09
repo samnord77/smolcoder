@@ -37,7 +37,7 @@ function deepestExisting(abs: string): string {
 
 export function resolveInWorkspace(root: string, userPath: string): string {
   if (typeof userPath !== "string" || userPath.trim() === "") {
-    throw new SandboxError('path is required (relative to the workspace, e.g. "src/app.js").');
+    throw new SandboxError('le chemin est requis (relatif à l\'espace de travail, ex. "src/app.js").');
   }
   const abs = path.resolve(root, userPath);
 
@@ -46,7 +46,7 @@ export function resolveInWorkspace(root: string, userPath: string): string {
   try {
     existing = deepestExisting(abs);
   } catch {
-    throw new SandboxError(`cannot inspect path "${userPath}".`);
+    throw new SandboxError(`impossible d'inspecter le chemin « ${userPath} ».`);
   }
   let realExisting: string;
   let realRoot: string;
@@ -54,13 +54,13 @@ export function resolveInWorkspace(root: string, userPath: string): string {
     realExisting = fs.realpathSync(existing);
     realRoot = fs.realpathSync(root);
   } catch {
-    throw new SandboxError(`cannot resolve path "${userPath}".`);
+    throw new SandboxError(`impossible de résoudre le chemin « ${userPath} ».`);
   }
 
   const rel = path.relative(normalizeForCompare(realRoot), normalizeForCompare(realExisting));
   if (rel.startsWith("..") || path.isAbsolute(rel)) {
     throw new SandboxError(
-      `"${userPath}" is outside the workspace. Only files inside ${root} can be accessed. Use a relative path like "src/app.js".`
+      `« ${userPath} » est en dehors de l'espace de travail. Seuls les fichiers situés dans ${root} sont accessibles. Utilisez un chemin relatif comme "src/app.js".`
     );
   }
   return abs;

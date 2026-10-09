@@ -537,7 +537,7 @@ const DEFAULT_OLLAMA_CTX_CAP = 32768; // avoid surprise VRAM blowups on huge-win
  */
 export async function resolveContextWindow(model: DetectedModel, ctxOverride?: number): Promise<DetectedModel> {
   if (ctxOverride !== undefined && (!Number.isSafeInteger(ctxOverride) || ctxOverride < 1024))
-    throw new Error("Context window must be a whole number of at least 1024 tokens.");
+    throw new Error("La fenêtre de contexte doit être un nombre entier d'au moins 1 024 tokens.");
   if (model.backend === "ollama") {
     const info = await tryFetchJson(`${model.baseUrl}/api/show`, {
       method: "POST",
@@ -622,7 +622,7 @@ export async function resolveContextWindow(model: DetectedModel, ctxOverride?: n
     const loaded: any = await response.json();
     const actual = loaded.load_config?.context_length;
     if (!Number.isSafeInteger(actual) || actual < 1024 || !loaded.instance_id)
-      throw new Error("LM Studio did not confirm the loaded context. Load the model in LM Studio and select it again.");
+      throw new Error("LM Studio n'a pas confirmé le contexte chargé. Chargez le modèle dans LM Studio et sélectionnez-le à nouveau.");
     return { ...model, id: loaded.instance_id, loaded: true, contextWindow: Math.min(desired, actual), note: undefined };
   }
   // LM Studio: an already-loaded model stays resident; an override only shrinks our budget
