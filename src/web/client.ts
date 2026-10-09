@@ -3496,6 +3496,48 @@ function buildFilesTab(v, t) {
               }
             },
           });
+
+          window.monaco.languages.registerInlineCompletionsProvider(langId, {
+            provideInlineCompletions: async function (model, position) {
+              if (!t.filePath) return { items: [] };
+              const lineContent = model.getLineContent(position.lineNumber);
+              const suffix = lineContent.slice(position.column - 1);
+              if (suffix.trim().length > 0) return { items: [] };
+              const word = model.getWordUntilPosition(position);
+              if (!word || word.word.length < 2) return { items: [] };
+              try {
+                const res = await fetch("/code/lsp?k=" + k + "&sid=" + encodeURIComponent(v.sid) + "&action=completion&path=" + encodeURIComponent(t.filePath) + "&line=" + position.lineNumber + "&col=" + position.column);
+                const d = await res.json();
+                const lines = String((d && d.result) || "").split("\n");
+                let topLabel = "";
+                for (const ln of lines) {
+                  if (ln.startsWith("- ")) {
+                    const body = ln.slice(2);
+                    const mm = /^(.+?)(?: \(([^)]*)\))?(?: — (.*))?$/.exec(body);
+                    topLabel = (mm ? mm[1] : body).trim();
+                    if (topLabel) break;
+                  }
+                }
+                if (!topLabel) return { items: [] };
+                return {
+                  items: [
+                    {
+                      insertText: topLabel,
+                      range: new window.monaco.Range(
+                        position.lineNumber,
+                        word.startColumn,
+                        position.lineNumber,
+                        position.column
+                      ),
+                    },
+                  ],
+                };
+              } catch {
+                return { items: [] };
+              }
+            },
+            freeInlineCompletions: function () {},
+          });
         }
       }
     } catch (e) {

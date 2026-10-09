@@ -8,6 +8,7 @@
  * 4. Découverte et exécution de tests ciblés non-régressifs
  * 5. Contrôle d'état Git (delta, working tree)
  * 6. Rails visuels compacts pour l'agent et le Centre d'Activité
+ * 7. Moteur différentiel asynchrone ContinuousValidator pour l'IDE
  */
 
 import { spawnSync } from "node:child_process";
@@ -15,13 +16,14 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import * as vm from "node:vm";
 import { isGitRepo, runGit } from "./git";
+import { queryDiagStructured, type StructuredDiag } from "./lsp-pro";
 import { resolveInWorkspace } from "./sandbox";
 
 let tsCompiler: any = null;
 try {
   tsCompiler = require("typescript");
 } catch {
-  // Optionnel si execution hors Node/devDependencies
+  // Optionnel si exécution hors Node/devDependencies
 }
 
 export interface LspDiagnostic {
@@ -83,8 +85,7 @@ export function checkSyntax(filePath: string, content?: string): { ok: boolean; 
     }
   }
 
-  // 2. Contrôle JavaScript (TS parser covers ESM import/meta in .mjs too;
-  // vm.Script alone would flag every ESM file as invalid)
+  // 2. Contrôle JavaScript (TS parser covers ESM import/meta in .mjs too; vm.Script alone would flag every ESM file as invalid)
   if ([".js", ".mjs", ".cjs"].includes(ext)) {
     if (tsCompiler) {
       try {
@@ -155,9 +156,13 @@ export function findTargetedTest(filePath: string, workspace: string): string | 
   ];
 
   for (const rel of candidates) {
-    const full = resolveInWorkspace(workspace, rel);
-    if (fs.existsSync(full)) {
-      return full;
+    try {
+      const full = resolveInWorkspace(workspace, rel);
+      if (fs.existsSync(full)) {
+        return full;
+      }
+    } catch {
+      /* ignore traversal */
     }
   }
 
@@ -308,4 +313,176 @@ export async function validateChange(filePath: string, workspace: string, option
 
   res.visualRail = formatVisualRail(res);
   return res;
+}
+
+// ---------------------------------------------------------------------------
+// Moteur de Validation Continue Différentielle Asynchrone pour l'IDE
+// ---------------------------------------------------------------------------
+
+export interface FileValidationResult {
+  path: string;
+  diagnostics: StructuredDiag[];
+  clean: boolean;
+  durationMs: number;
+  error?: string;
+}
+
+export interface ValidationReport {
+  timestamp: number;
+  totalFiles: number;
+  cleanFiles: number;
+  errorCount: number;
+  warningCount: number;
+  results: FileValidationResult[];
+}
+
+export type ValidationListener = (report: ValidationReport) => void;
+
+/** Moteur de validation continue différentielle en mémoire pour l'IDE. */
+export class ContinuousValidator {
+  private touched = new Set<string>();
+  private cache = new Map<string, FileValidationResult>();
+  private listeners = new Set<ValidationListener>();
+  private timer: NodeJS.Timeout | null = null;
+  private running = false;
+
+  constructor(private root: string) {}
+
+  markTouched(filePath: string): void {
+    if (!filePath || typeof filePath !== "string") return;
+    const norm = filePath.replace(/\\/g, "/").trim();
+    if (norm) {
+      this.touched.add(norm);
+    }
+  }
+
+  subscribe(listener: ValidationListener): () => void {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+
+  async validateNow(signal?: AbortSignal): Promise<ValidationReport> {
+    const filesToValidate = Array.from(this.touched);
+    this.touched.clear();
+
+    const results: FileValidationResult[] = [];
+    let errCnt = 0;
+    let warnCnt = 0;
+
+    for (const rel of filesToValidate) {
+      if (signal?.aborted) break;
+      const t0 = Date.now();
+      try {
+        resolveInWorkspace(this.root, rel);
+        const res = await queryDiagStructured(this.root, rel, signal);
+        const diags = res.diagnostics || [];
+        const clean = diags.length === 0 && !res.text.startsWith("Error:");
+        for (const d of diags) {
+          if (d.severity === "error") errCnt++;
+          else warnCnt++;
+        }
+        const fileRes: FileValidationResult = {
+          path: rel,
+          diagnostics: diags,
+          clean,
+          durationMs: Date.now() - t0,
+          error: res.text.startsWith("Error:") ? res.text.slice(0, 300) : undefined,
+        };
+        this.cache.set(rel, fileRes);
+        results.push(fileRes);
+      } catch (err: unknown) {
+        const fileRes: FileValidationResult = {
+          path: rel,
+          diagnostics: [],
+          clean: false,
+          durationMs: Date.now() - t0,
+          error: err instanceof Error ? err.message : String(err),
+        };
+        this.cache.set(rel, fileRes);
+        results.push(fileRes);
+      }
+    }
+
+    const allResults = Array.from(this.cache.values());
+    const report: ValidationReport = {
+      timestamp: Date.now(),
+      totalFiles: allResults.length,
+      cleanFiles: allResults.filter((r) => r.clean).length,
+      errorCount: errCnt,
+      warningCount: warnCnt,
+      results: allResults,
+    };
+
+    this.notify(report);
+    return report;
+  }
+
+  startWatcher(intervalMs = 3000): void {
+    if (this.timer) return;
+    this.timer = setInterval(() => {
+      if (this.touched.size > 0 && !this.running) {
+        this.running = true;
+        void this.validateNow().finally(() => {
+          this.running = false;
+        });
+      }
+    }, intervalMs);
+    if (this.timer.unref) this.timer.unref();
+  }
+
+  stopWatcher(): void {
+    if (this.timer) {
+      clearInterval(this.timer);
+      this.timer = null;
+    }
+  }
+
+  getLatestReport(): ValidationReport {
+    const allResults = Array.from(this.cache.values());
+    let errCnt = 0;
+    let warnCnt = 0;
+    for (const r of allResults) {
+      for (const d of r.diagnostics) {
+        if (d.severity === "error") errCnt++;
+        else warnCnt++;
+      }
+    }
+    return {
+      timestamp: Date.now(),
+      totalFiles: allResults.length,
+      cleanFiles: allResults.filter((r) => r.clean).length,
+      errorCount: errCnt,
+      warningCount: warnCnt,
+      results: allResults,
+    };
+  }
+
+  clear(): void {
+    this.touched.clear();
+    this.cache.clear();
+  }
+
+  private notify(report: ValidationReport): void {
+    for (const listener of this.listeners) {
+      try {
+        listener(report);
+      } catch {
+        /* listener failure */
+      }
+    }
+  }
+}
+
+const validators = new Map<string, ContinuousValidator>();
+
+export function validatorFor(root: string): ContinuousValidator {
+  const norm = path.resolve(root);
+  let v = validators.get(norm);
+  if (!v) {
+    v = new ContinuousValidator(norm);
+    validators.set(norm, v);
+  }
+  return v;
 }

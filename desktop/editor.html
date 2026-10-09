@@ -387,6 +387,39 @@ function initMonaco() {
               }
             },
           });
+
+          window.monaco.languages.registerInlineCompletionsProvider(langId, {
+            provideInlineCompletions: async function (model, position) {
+              if (!cur || !window.smolEd?.completion) return { items: [] };
+              const lineContent = model.getLineContent(position.lineNumber);
+              const suffix = lineContent.slice(position.column - 1);
+              if (suffix.trim().length > 0) return { items: [] };
+              const word = model.getWordUntilPosition(position);
+              if (!word || word.word.length < 2) return { items: [] };
+              try {
+                const res = await window.smolEd.completion(cur, position.lineNumber, position.column);
+                const items = res?.items || [];
+                if (!items.length || !items[0]?.label) return { items: [] };
+                const top = items[0];
+                return {
+                  items: [
+                    {
+                      insertText: top.label,
+                      range: new window.monaco.Range(
+                        position.lineNumber,
+                        word.startColumn,
+                        position.lineNumber,
+                        position.column
+                      ),
+                    },
+                  ],
+                };
+              } catch {
+                return { items: [] };
+              }
+            },
+            freeInlineCompletions: function () {},
+          });
         }
 
         if (tabs.active()) {

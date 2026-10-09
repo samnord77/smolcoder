@@ -1,9 +1,11 @@
-import { querySymbols } from "./lsp";
+import { isTsLike } from "./lsp";
+import { queryDiagStructured } from "./lsp-pro";
 import { resolveInWorkspace } from "./sandbox";
 
 export interface WorkspaceDiagnostic {
   path: string;
   line: number;
+  col?: number;
   severity: "error" | "warning" | "info";
   message: string;
 }
@@ -14,40 +16,40 @@ export interface WorkspaceDiagnosticsResult {
   message?: string;
 }
 
-/** Return bounded TypeScript/JavaScript diagnostics for one saved workspace file. */
+/** Return bounded TypeScript/JavaScript diagnostics for one saved workspace file using persistent LSP. */
 export async function workspaceDiagnostics(root: string, relativePath: unknown, signal?: AbortSignal): Promise<WorkspaceDiagnosticsResult> {
   if (typeof relativePath !== "string" || !relativePath.trim() || relativePath.length > 4096) {
     throw new Error("Choisissez un fichier TypeScript ou JavaScript à analyser.");
   }
   const filePath = relativePath.replace(/\\/g, "/");
   resolveInWorkspace(root, filePath);
-  const output = await querySymbols(root, { action: "diag", path: filePath }, signal);
-  if (output.startsWith("Error:")) return { path: filePath, diagnostics: [], message: output.slice(0, 500) };
-  if (output === "No diagnostics — the file parses clean.")
+  if (!isTsLike(filePath)) {
+    return {
+      path: filePath,
+      diagnostics: [],
+      message: `"${filePath}" n'est pas un fichier TypeScript/JavaScript — symbols fonctionne sur .ts, .tsx, .js, .jsx, .mjs, .cjs.`,
+    };
+  }
+
+  const structured = await queryDiagStructured(root, filePath, signal);
+  if (structured.text.startsWith("Error:")) {
+    return { path: filePath, diagnostics: [], message: structured.text.slice(0, 500) };
+  }
+  if (!structured.diagnostics.length) {
     return {
       path: filePath,
       diagnostics: [],
       message: "Aucun problème détecté.",
     };
-
-  const diagnostics: WorkspaceDiagnostic[] = [];
-  for (const line of output.split("\n").slice(0, 20)) {
-    const match = /^(.*):(\d+) \[(error|warning|info)\] (.*)$/.exec(line);
-    if (!match) continue;
-    const diagnosticPath = match[1].replace(/\\/g, "/");
-    // The LSP can report sibling files. Only publish paths inside this workspace.
-    try {
-      resolveInWorkspace(root, diagnosticPath);
-    } catch {
-      continue;
-    }
-    diagnostics.push({
-      path: diagnosticPath,
-      line: Math.max(1, Number(match[2]) || 1),
-      severity: match[3] as WorkspaceDiagnostic["severity"],
-      message: match[4].slice(0, 300),
-    });
   }
-  if (!diagnostics.length) return { path: filePath, diagnostics, message: output.slice(0, 500) };
+
+  const diagnostics: WorkspaceDiagnostic[] = structured.diagnostics.map((d) => ({
+    path: d.path.replace(/\\/g, "/"),
+    line: Math.max(1, Number(d.line) || 1),
+    col: Math.max(1, Number(d.col) || 1),
+    severity: d.severity as WorkspaceDiagnostic["severity"],
+    message: d.message.slice(0, 300),
+  }));
+
   return { path: filePath, diagnostics };
 }
