@@ -1158,7 +1158,8 @@ export class WebHub {
     // be able to get in. Cookie checks stay behind sameOrigin.
     const kOk = url.searchParams.get("k") === this.authToken && sameOrigin;
     const cookieAuth = sameOrigin && cookieList.includes(`smolk=${this.webGrant()}`);
-    if (!kOk && !cookieAuth && !previewAuth) {
+    const isMonaco = url.pathname.startsWith("/monaco/") && sameOrigin;
+    if (!kOk && !cookieAuth && !previewAuth && !isMonaco) {
       // Share links carry their own secret (the share token): viewers never
       // see the hub token. Every /shared endpoint re-validates it.
       const sharedPath = url.pathname === "/shared" || url.pathname === "/shared/ping";
@@ -1177,6 +1178,10 @@ export class WebHub {
     };
 
     if (req.method === "GET") {
+      if (url.pathname.startsWith("/monaco/")) {
+        this.serveMonacoAsset(res, url);
+        return;
+      }
       switch (url.pathname) {
         case "/":
           res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
@@ -2202,6 +2207,47 @@ export class WebHub {
       res.writeHead(400, { "content-type": "application/json" });
       res.end(JSON.stringify({ error: err instanceof SandboxError ? err.message : String(err?.message ?? err) }));
     }
+  }
+
+  /** Serveur d'assets locaux Monaco Editor pour l'IDE Web hors-ligne. */
+  private serveMonacoAsset(res: http.ServerResponse, url: URL): void {
+    const rawPath = url.pathname.replace(/^\/monaco\/?/, "");
+    if (!rawPath || rawPath.includes("..") || path.isAbsolute(rawPath)) {
+      res.writeHead(403, { "content-type": "text/plain; charset=utf-8" });
+      res.end("accès refusé");
+      return;
+    }
+    const monacoDir = path.resolve(__dirname, "..", "..", "node_modules", "monaco-editor", "min");
+    const fullPath = path.resolve(monacoDir, rawPath);
+    if (!fullPath.startsWith(monacoDir) || !fs.existsSync(fullPath)) {
+      res.writeHead(404, { "content-type": "text/plain; charset=utf-8" });
+      res.end("ressource Monaco introuvable");
+      return;
+    }
+    const stat = fs.statSync(fullPath);
+    if (!stat.isFile()) {
+      res.writeHead(404, { "content-type": "text/plain; charset=utf-8" });
+      res.end("ressource Monaco introuvable");
+      return;
+    }
+    const ext = path.extname(fullPath).toLowerCase();
+    const mimeTypes: Record<string, string> = {
+      ".js": "application/javascript; charset=utf-8",
+      ".css": "text/css; charset=utf-8",
+      ".ttf": "font/ttf",
+      ".woff": "font/woff",
+      ".woff2": "font/woff2",
+      ".json": "application/json; charset=utf-8",
+      ".map": "application/json; charset=utf-8",
+    };
+    const mime = mimeTypes[ext] || "application/octet-stream";
+    res.writeHead(200, {
+      "content-type": mime,
+      "content-length": stat.size,
+      "cache-control": "public, max-age=86400",
+      "x-content-type-options": "nosniff",
+    });
+    fs.createReadStream(fullPath).pipe(res);
   }
 
   /** Serve bounded project images for the file explorer preview. */

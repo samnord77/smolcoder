@@ -177,6 +177,7 @@ export const PAGE_HTML = `<!doctype html>
     <button type="button" class="vsc-sb-item" id="sb-bell" title="Notifications"><span class="vsc-sb-ico">🔔</span></button>
   </div>
 </footer>
+<script src="/monaco/vs/loader.js"></script>
 <script>${CLIENT_JS}</script>
 </body>
 </html>`;

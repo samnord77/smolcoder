@@ -463,6 +463,7 @@ export const STYLES = `
   .fileitem.folder { color: var(--accent); }
   .fileitem.parent { color: var(--dim); border-bottom: 1px solid var(--line); margin-bottom: 4px; }
   .fileeditor-wrap { position: relative; flex: 1; min-width: 0; min-height: 0; overflow: hidden; background: #0f1417; }
+  .filemonaco-host { position: absolute; inset: 35px 0 0 0; width: 100%; height: calc(100% - 35px); z-index: 1; display: none; }
   .filegutter { position: absolute; top: 35px; left: 0; bottom: 0; width: 48px; padding: 10px 8px 10px 0; font: 12.5px/1.5 Consolas, monospace; text-align: right; color: var(--dim); opacity: 1; user-select: none; pointer-events: none; background: #0d1114; border-right: 1px solid var(--line); overflow: hidden; }
   .filegutter .gutter-line { position: relative; height: 1.5em; padding-right: 2px; box-sizing: border-box; }
   .filegutter .gutter-line.added::before, .filegutter .gutter-line.removed::after { content: ""; position: absolute; top: 2px; bottom: 2px; width: 3px; left: 0; border-radius: 2px; }

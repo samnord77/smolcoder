@@ -31,6 +31,57 @@ if (k) {
   const cleanS = cleanQ.toString();
   history.replaceState(null, "", location.pathname + (cleanS ? "?" + cleanS : "") + location.hash);
 }
+let webMonacoReady = false;
+function monacoLanguageFor(file) {
+  if (!file) return "plaintext";
+  const ext = file.split(".").pop().toLowerCase();
+  const map = {
+    js: "javascript", mjs: "javascript", cjs: "javascript",
+    ts: "typescript", mts: "typescript", cts: "typescript",
+    jsx: "javascript", tsx: "typescript",
+    html: "html", htm: "html",
+    css: "css", scss: "scss", less: "less",
+    json: "json",
+    md: "markdown", markdown: "markdown",
+    py: "python", pyw: "python",
+    sh: "shell", bash: "shell", bat: "bat", cmd: "bat", ps1: "powershell",
+    rs: "rust", go: "go",
+    c: "c", cpp: "cpp", h: "c", hpp: "cpp",
+    java: "java",
+    yml: "yaml", yaml: "yaml",
+    toml: "ini", sql: "sql", xml: "xml"
+  };
+  return map[ext] || "plaintext";
+}
+function initWebMonaco() {
+  if (typeof window.require !== "function" || !window.require.config) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    try {
+      window.require.config({ paths: { vs: "/monaco/vs" } });
+      window.MonacoEnvironment = {
+        getWorkerUrl: function (_workerId, _label) {
+          return "data:text/javascript;charset=utf-8," + encodeURIComponent(
+            "self.MonacoEnvironment = { baseUrl: '/monaco/' }; importScripts('/monaco/vs/base/worker/workerMain.js');"
+          );
+        }
+      };
+      window.require(["vs/editor/editor.main"], () => {
+        webMonacoReady = true;
+        if (typeof window.dispatchEvent === "function") {
+          window.dispatchEvent(new CustomEvent("web-monaco-ready"));
+        }
+        resolve(window.monaco);
+      }, (err) => {
+        console.warn("Monaco web repli:", err);
+        resolve(null);
+      });
+    } catch (e) {
+      console.warn("Monaco web init:", e);
+      resolve(null);
+    }
+  });
+}
+void initWebMonaco();
 const $ = (id) => document.getElementById(id);
 // Visible self-diagnosis: any page script error shows a red banner instead
 // of silently dead panels. Tells stale code apart from real bugs.
@@ -3316,6 +3367,9 @@ function buildFilesTab(v, t) {
   const split = el("div", "filesplit");
   const tree = el("div", "filetree");
   const editorWrap = el("div", "fileeditor-wrap");
+  const monacoHost = el("div", "filemonaco-host");
+  editorWrap.appendChild(monacoHost);
+  t.monacoHost = monacoHost;
   const imagePreview = el("div", "image-preview"); imagePreview.hidden = true;
   const imageEl = document.createElement("img"); imageEl.alt = "Aperçu de l'image du projet"; imageEl.loading = "lazy";
   imagePreview.appendChild(imageEl);
@@ -3324,6 +3378,90 @@ function buildFilesTab(v, t) {
   const editor = document.createElement("textarea");
   t.editor = editor;
   editor.className = "fileeditor"; editor.spellcheck = false; editor.placeholder = "Sélectionnez un fichier…";
+  let monacoEditorInstance = null;
+  const ensureWebMonacoEditor = () => {
+    if (monacoEditorInstance || !window.monaco || !webMonacoReady) return monacoEditorInstance;
+    try {
+      monacoEditorInstance = window.monaco.editor.create(monacoHost, {
+        value: "",
+        language: "plaintext",
+        theme: "vs-dark",
+        automaticLayout: true,
+        fontSize: 13,
+        fontFamily: 'Consolas, "Courier New", monospace',
+        minimap: { enabled: true },
+        folding: true,
+        lineNumbers: "on",
+        roundedSelection: false,
+        scrollBeyondLastLine: false,
+        readOnly: false,
+        cursorBlinking: "smooth",
+        tabSize: 2,
+        wordWrap: "off",
+        multiCursorModifier: "alt",
+      });
+      t.monacoEditor = monacoEditorInstance;
+
+      monacoEditorInstance.onDidChangeCursorPosition((e) => {
+        const line = e.position.lineNumber;
+        const col = e.position.column;
+        const sPos = $("sPosition");
+        if (sPos) sPos.textContent = "Ln " + line + ", Col " + col;
+        const model = monacoEditorInstance.getModel();
+        const sel = monacoEditorInstance.getSelection();
+        if (model && sel && typeof origSetSelectionRange === "function") {
+          origSetSelectionRange(model.getOffsetAt(sel.getStartPosition()), model.getOffsetAt(sel.getEndPosition()));
+        }
+        if (typeof broadcastCursor === "function") broadcastCursor(line);
+      });
+
+      monacoEditorInstance.addCommand(window.monaco.KeyMod.CtrlCmd | window.monaco.KeyCode.KeyS, () => {
+        if (!save.disabled) save.click();
+      });
+
+      monacoEditorInstance.addCommand(window.monaco.KeyMod.CtrlCmd | window.monaco.KeyCode.KeyK, () => {
+        openInlineBar();
+      });
+
+      window.addEventListener("resize", () => {
+        if (monacoEditorInstance) monacoEditorInstance.layout();
+      });
+    } catch (e) {
+      console.warn("Échec création éditeur Monaco web:", e);
+    }
+    return monacoEditorInstance;
+  };
+  const origSetSelectionRange = editor.setSelectionRange.bind(editor);
+  editor.setSelectionRange = (start, end) => {
+    origSetSelectionRange(start, end);
+    if (t.monacoEditor && window.monaco) {
+      const model = t.monacoEditor.getModel();
+      if (model) {
+        const pStart = model.getPositionAt(start);
+        const pEnd = model.getPositionAt(end);
+        const range = new window.monaco.Range(pStart.lineNumber, pStart.column, pEnd.lineNumber, pEnd.column);
+        t.monacoEditor.setSelection(range);
+        t.monacoEditor.revealRangeInCenter(range);
+      }
+    }
+  };
+  const origSetRangeText = editor.setRangeText.bind(editor);
+  editor.setRangeText = (replacement, start, end, mode = "end") => {
+    origSetRangeText(replacement, start, end, mode);
+    if (t.monacoEditor && window.monaco) {
+      const model = t.monacoEditor.getModel();
+      if (model) {
+        const pStart = model.getPositionAt(start);
+        const pEnd = model.getPositionAt(end);
+        const range = new window.monaco.Range(pStart.lineNumber, pStart.column, pEnd.lineNumber, pEnd.column);
+        t.monacoEditor.executeEdits("smol-web", [{ range, text: replacement, forceMoveMarkers: true }]);
+      }
+    }
+  };
+  window.addEventListener("web-monaco-ready", () => {
+    const cur = t.tabStore.active();
+    if (cur) displayTab(cur);
+  });
   const gutter = document.createElement("div"); gutter.className = "filegutter";
   t.agentDiffBases = new Map();
   const minimap = document.createElement("div"); minimap.className = "fileminimap"; minimap.title = "Minimap — cliquer pour naviguer";
@@ -3917,18 +4055,47 @@ function buildFilesTab(v, t) {
     // Idem pour le listing d'une .zip et ses membres (« archive › fichier »).
     t.decompressed = /\.(?:gz|gzip|zip)$/i.test(nextPath) || nextPath.includes(" › ");
     imageEl.removeAttribute("src");
-    editor.hidden = false; code.hidden = false; gutter.hidden = false; minimap.hidden = false;
     t.diags = [];
     editor.value = tab ? tab.content : "";
     editor.dataset.original = tab ? tab.savedContent : "";
     if (tab && !t.agentDiffBases.has(tab.path)) t.agentDiffBases.set(tab.path, tab.savedContent);
     editor.dataset.diffBase = tab ? (t.agentDiffBases.get(tab.path) ?? tab.savedContent) : "";
-    folds.clear();
-    applyFoldVisibility();
-    paint();
-    updateGutter();
     editor.dataset.dirty = tab && tab.dirty ? "1" : "0";
     save.disabled = v.state.mode === "ro" || !tab || t.decompressed;
+    const med = ensureWebMonacoEditor();
+    if (med && window.monaco && tab) {
+      monacoHost.style.display = "block";
+      editor.hidden = true; code.hidden = true; gutter.hidden = true; minimap.hidden = true;
+      const uri = window.monaco.Uri.file(tab.path);
+      let model = window.monaco.editor.getModel(uri);
+      if (!model) {
+        model = window.monaco.editor.createModel(tab.content || "", monacoLanguageFor(tab.path), uri);
+        model.onDidChangeContent(() => {
+          const val = model.getValue();
+          editor.value = val;
+          const activeTab = t.tabStore.active();
+          if (activeTab && activeTab.path === tab.path) {
+            t.tabStore.update(tab.path, val);
+            activeTab.dirty = (val !== activeTab.savedContent);
+            editor.dataset.dirty = activeTab.dirty ? "1" : "0";
+            save.disabled = v.state.mode === "ro" || t.decompressed || !activeTab.dirty;
+            renderTabs();
+          }
+          try { syncCollab(); } catch (e) {}
+        });
+      } else if (model.getValue() !== (tab.content || "") && !tab.dirty) {
+        model.setValue(tab.content || "");
+      }
+      med.setModel(model);
+      med.updateOptions({ readOnly: v.state.mode === "ro" || t.decompressed });
+    } else {
+      if (monacoHost) monacoHost.style.display = "none";
+      editor.hidden = false; code.hidden = false; gutter.hidden = false; minimap.hidden = false;
+      folds.clear();
+      applyFoldVisibility();
+      paint();
+      updateGutter();
+    }
     const ext = tab && tab.path ? (tab.path.split(".").pop() || "").toLowerCase() : "";
     const langNames = {
       ts: "TypeScript", js: "JavaScript", tsx: "TypeScript JSX", jsx: "JavaScript JSX",
@@ -4190,6 +4357,20 @@ function buildFilesTab(v, t) {
       diagnosticsPanel.replaceChildren();
       t.diags = result.diagnostics || [];
       paint();
+      if (t.monacoEditor && window.monaco) {
+        const model = t.monacoEditor.getModel();
+        if (model) {
+          const markers = (t.diags || []).map((d) => ({
+            severity: d.severity === "error" ? window.monaco.MarkerSeverity.Error : window.monaco.MarkerSeverity.Warning,
+            message: d.message,
+            startLineNumber: Number(d.line) || 1,
+            startColumn: Number(d.col) || 1,
+            endLineNumber: Number(d.endLine || d.line) || 1,
+            endColumn: Number(d.endCol || (Number(d.col) + 5)) || 5,
+          }));
+          window.monaco.editor.setModelMarkers(model, "lsp", markers);
+        }
+      }
       let errCnt = 0, warnCnt = 0;
       for (const d of (result.diagnostics || [])) {
         if (d.severity === "error") errCnt++;
@@ -4211,6 +4392,13 @@ function buildFilesTab(v, t) {
           if (diagnostic.path !== t.filePath && !await t.loadFile(diagnostic.path)) return;
           const offset = editorTools.offsetForPosition(editor.value, diagnostic.line);
           editor.focus(); editor.setSelectionRange(offset, offset); updatePosition();
+          if (t.monacoEditor && window.monaco) {
+            const line = Number(diagnostic.line) || 1;
+            const col = Number(diagnostic.col) || 1;
+            t.monacoEditor.focus();
+            t.monacoEditor.setPosition({ lineNumber: line, column: col });
+            t.monacoEditor.revealPositionInCenter({ lineNumber: line, column: col });
+          }
         };
         const fix = el("button", "iconbtn", "🤖");
         fix.type = "button"; fix.title = "Corriger avec l’IA";
@@ -4304,6 +4492,7 @@ function buildFilesTab(v, t) {
       inlineRange = null; inlineBar.hidden = true; inlinePreview.hidden = true; inlineGen++;
       imageEl.src = "/workspace/asset?k=" + encodeURIComponent(k) + "&sid=" + encodeURIComponent(v.sid) + "&path=" + encodeURIComponent(rel);
       imagePreview.hidden = false;
+      if (monacoHost) monacoHost.style.display = "none";
       editor.hidden = true; code.hidden = true; gutter.hidden = true; minimap.hidden = true;
       save.disabled = true; diagnosticsPanel.replaceChildren(el("div", "filediagnostic-note", "Aperçu image — fichier en lecture seule."));
       meta.textContent = rel + " · aperçu image";
