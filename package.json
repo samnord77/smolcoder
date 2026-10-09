@@ -42,7 +42,7 @@
     "dev": "tsc -w",
     "prepublishOnly": "npm test",
     "test": "npm run build && node scripts/test.cjs",
-    "lint": "biome check --config-path=biome.json src test scripts",
+    "lint": "node scripts/lint.cjs",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.js\" \"scripts/**/*.cjs\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.js\" \"scripts/**/*.cjs\"",
     "typecheck": "tsc --noEmit",
