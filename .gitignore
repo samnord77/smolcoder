@@ -15,3 +15,7 @@ release/
 
 # editor/backup copies of tracked files
 *.bak
+
+# temporary test artifacts and playwright traces
+.playwright-mcp/
+*.png
