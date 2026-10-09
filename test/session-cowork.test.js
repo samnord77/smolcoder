@@ -74,3 +74,42 @@ test("session lifecycle leaves completed Cowork work open when no checks passed"
   assert.equal(item.status, "open");
   assert.match(item.lastReport, /no successful automated acceptance check/);
 });
+
+test("session state exposes recoverable Auto Copilot phases but clears terminal phases", async () => {
+  const session = Object.create(Session.prototype);
+  session.workspace = fs.mkdtempSync(path.join(os.tmpdir(), "smol-session-phase-"));
+  session.chosen = { id: "fake", backend: "ollama", contextWindow: 8000 };
+  session.effort = null;
+  session.agent = {
+    mode: "edit",
+    outcome: "running",
+    lastError: null,
+    autopilotPhase: "starting",
+    autopilotLabel: "",
+    autopilotDetails: null,
+    contextTokens: () => 10,
+    contextPercent: () => 1,
+    contextBudget: () => ({ window: 8000 }),
+    provider: { effortLabel: () => null },
+    tools: [],
+  };
+  session.toolCtx = {
+    plan: { exists: false },
+    filesTouched: new Set(),
+    commandsRun: [],
+  };
+  session.taskManager = { runningSummary: () => [], recentUrls: () => [] };
+  session.allSlash = [];
+  session.agent.autopilotPhase = "paused";
+  session.agent.autopilotLabel = "limite d'étapes atteinte";
+  session.agent.autopilotDetails = { step: 30, maxSteps: 30 };
+  assert.equal(session.state().autopilot.phase, "paused");
+  session.agent.autopilotPhase = "error";
+  session.agent.autopilotLabel = "backend indisponible";
+  assert.equal(session.state().autopilot.phase, "error");
+  session.agent.autopilotPhase = "completed";
+  assert.equal(session.state().autopilot, null);
+  session.agent.autopilotPhase = "cancelled";
+  assert.equal(session.state().autopilot, null);
+  fs.rmSync(session.workspace, { recursive: true, force: true });
+});

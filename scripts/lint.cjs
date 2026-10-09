@@ -19,4 +19,4 @@ if (run?.status !== 0) {
   run = spawnSync(process.platform === "win32" ? "biome.cmd" : "biome", args, { cwd: root, stdio: "inherit", shell: true });
 }
 
-process.exitCode = run ? (run.status ?? 0) : 1;
+process.exitCode = run?.status ?? 1;

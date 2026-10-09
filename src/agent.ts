@@ -42,6 +42,39 @@ const CHANGE_ACTION =
   /\b(?:implement|build|create|add|fix|repair|correct|update|refactor|improve|enhance|remove|delete|modify|change|automate|write|generate|produces?|produced|construi(?:re|r|s|t|ez|ons)|corrig(?:e|es|ez|er|ons)|repar(?:e|es|ez|er|ons)|ajout(?:e|es|ez|er|ons)|cre(?:e|es|ez|er|ons)|cri(?:e|es|ez|er|ons)|modifi(?:e|es|ez|er|ons)|amelior(?:e|es|ez|er|ons)|enrich(?:i|is|it|ir|issons|issez)|optimis(?:e|es|ez|er|ons)|automatis(?:e|es|ez|er|ons)|supprim(?:e|es|ez|er|ons)|gener(?:e|es|ez|er|ons)|ecrit(?:s)?|ecriv(?:e|es|ez|ons)|redig(?:e|es|ez|er|ons)|fabriqu(?:e|es|ez|er|ons)|produis(?:t|s|ez|ons)|install(?:e|es|ez|er|ons))\b/;
 const CHANGE_TARGET =
   /\b(?:workspace|project|repository|codebase|code|file|files|folder|src|test|copilot|autopilot|agent|cowork|ide|fichier|fichiers|dossier|dossiers|projet|projets|html|css|javascript|typescript|page|pages|site|sites|web|application|app|script|scripts|snippet|module|template|formulaire|form|composant|components|component|api|endpoint|serveur|server|preview|apercu|bundle|package|npm|calculatrice|jeu|game)\b/;
+const ACTION_TOOLS = new Set([
+  "write_file",
+  "edit_file",
+  "move_path",
+  "delete_path",
+  "create_folder",
+  "run_command",
+  "task",
+  "format",
+  "git",
+  "debug",
+  "mcp",
+]);
+function actionErrorNeedsRepair(output: string): boolean {
+  if (!output.startsWith("Error")) return false;
+  // These are deliberate harness/policy outcomes, not failed coding work:
+  // read-only restrictions, approval refusals and unavailable external
+  // services must be explained or skipped, not retried forever.
+  if (
+    /^(?:Error: )?(?:this command .*needs user approval|this command uses .*home directory|this command .*outside the workspace|the user declined|mcp server .*needs user approval|.*is not allowed for the .* role|.*is unavailable for the .* role|the tool ".*" is not available|.*is no longer available)/i.test(
+      output.trim()
+    )
+  )
+    return false;
+  return true;
+}
+function actionFamily(name: string): "mutation" | "command" | "task" | "integration" | "other" {
+  if (["write_file", "edit_file", "move_path", "delete_path", "create_folder", "format", "git"].includes(name)) return "mutation";
+  if (name === "run_command") return "command";
+  if (name === "task") return "task";
+  if (["mcp", "debug"].includes(name)) return "integration";
+  return "other";
+}
 function explicitlyRequestsWorkspaceChange(request: string): boolean {
   const normalized = request
     .normalize("NFKD")
@@ -239,6 +272,9 @@ export class Agent {
   lastTurnStats: TurnStats | null = null;
   outcome: "idle" | "running" | "completed" | "cancelled" | "error" = "idle";
   lastError: string | null = null;
+  autopilotPhase: AgentPhase = "starting";
+  autopilotLabel = "";
+  autopilotDetails: AgentPhaseDetails | null = null;
   verificationResult: { attempts: number; passed: boolean; output: string } | null = null;
   workspaceChangedThisTurn = false;
   lastClassification: TaskClassification | null = null;
@@ -274,6 +310,13 @@ export class Agent {
     this.toolCtx.canWrite = mode !== "ro";
     this.ctxMgr.setReplayThinking(provider.replaysThinking !== false);
     this.wireDelegate();
+  }
+
+  private setAutopilotPhase(phase: AgentPhase, label: string, details?: AgentPhaseDetails): void {
+    this.autopilotPhase = phase;
+    this.autopilotLabel = label.slice(0, 240);
+    this.autopilotDetails = details ? { ...details } : null;
+    this.ui.autopilotPhase?.(phase, this.autopilotLabel, this.autopilotDetails ?? undefined);
   }
 
   /** Sub-agents: one bounded child turn, same workspace and mode (never
@@ -441,7 +484,7 @@ export class Agent {
       this.tools.some((tool) => tool.name === name)
     );
     const targetRole = classification.recommendedRole || "expert";
-    this.ui.autopilotPhase?.("delegating", `pré-vol de l’expert ${targetRole}`, {
+    this.setAutopilotPhase("delegating", `pré-vol de l’expert ${targetRole}`, {
       tool: "delegate",
       message: "inspection en lecture seule avant implémentation",
     });
@@ -511,6 +554,9 @@ export class Agent {
     this.planNudged = false;
     this.outcome = "idle";
     this.lastError = null;
+    this.autopilotPhase = "starting";
+    this.autopilotLabel = "";
+    this.autopilotDetails = null;
     this.verificationResult = null;
     this.verification = this.callerVerification;
     this.progressFailure = "";
@@ -530,6 +576,9 @@ export class Agent {
     this.messages = [this.messages[0], ...messages];
     this.originalRequest = originalRequest;
     this.currentRequest = currentRequest;
+    this.autopilotPhase = "paused";
+    this.autopilotLabel = "session restaurée — vérifier la progression avant reprise";
+    this.autopilotDetails = { message: "Les outils interrompus doivent être inspectés avant de continuer." };
     this.planNudged = false;
     this.ctxMgr.resetAnchor();
     this.repairTranscript(
@@ -576,7 +625,7 @@ export class Agent {
     const command = projectVerification(this.toolCtx.workspace);
     if (!command) return false;
     this.ui.status("· checking implementation progress");
-    this.ui.autopilotPhase?.("validating", "vérification intermédiaire du projet", { tool: "verification" });
+    this.setAutopilotPhase("validating", "vérification intermédiaire du projet", { tool: "verification" });
     const executionId = nextCallId();
     this.ui.toolCall("verification", { command }, executionId);
     this.ctxMgr.prepareBackground(this.messages, this.tools, this.provider, this.compactState());
@@ -585,13 +634,16 @@ export class Agent {
     const passed = !output.startsWith("Error") && /\[exit code 0 in [^\]]+\]\s*$/.test(output);
     this.progressFailure = passed ? "" : output;
     this.ui.toolResult(output, executionId);
-    await this.bus.emit("post_progress_check", { command, passed, output });
     this.messages.push({
       role: "user",
       content: passed
         ? `[Project checks passed: ${command}. Continue the remaining work in the original request.]`
         : `[Progress checks failed. Fix the first concrete failure before further investigation. Continue the same task.\nCommand: ${command}\n${truncateMiddle(output, this.ctxMgr.toolResultCharLimit())}]`,
     });
+    // Publish only after the factual result is in the transcript. Listeners
+    // may compact immediately; they must receive the failure evidence both in
+    // compactState() and in the conversation hand-off.
+    await this.bus.emit("post_progress_check", { command, passed, output });
     return true;
   }
 
@@ -620,7 +672,7 @@ export class Agent {
     if (attempts > (check.maxAttempts ?? 6))
       throw new Error("Acceptance attempt limit reached before the agent finished. The task is incomplete.");
     this.ui.status(`· checking acceptance (${attempts}/${check.maxAttempts ?? 6})`);
-    this.ui.autopilotPhase?.("validating", `validation d’acceptance (${attempts}/${check.maxAttempts ?? 6})`, {
+    this.setAutopilotPhase("validating", `validation d’acceptance (${attempts}/${check.maxAttempts ?? 6})`, {
       tool: "verification",
       message: check.command,
     });
@@ -711,7 +763,7 @@ export class Agent {
     await this.ctxMgr.foreground();
     this.ctxMgr.cancelBackground(true);
     this.outcome = "running";
-    this.ui.autopilotPhase?.("starting", "tour de codage démarré");
+    this.setAutopilotPhase("starting", "tour de codage démarré");
     this.workspaceChangedThisTurn = false;
     this.ctxMgr.resetAnchor(); // prior-turn reasoning no longer travels on the wire
     this.lastError = null;
@@ -736,7 +788,7 @@ export class Agent {
     // Compaction keeps the request text, so the file names ride along with it.
     const requestNote = attachments.length ? `${request} [attached: ${attachments.map((a) => a.name).join(", ")}]` : request;
     this.lastClassification = classifyTask(requestNote);
-    this.ui.autopilotPhase?.("planning", "analyse de la demande et préparation du plan");
+    this.setAutopilotPhase("planning", "analyse de la demande et préparation du plan");
     if (!this.originalRequest && this.toolCtx.plan.exists) {
       this.messages.push({
         role: "user",
@@ -801,6 +853,9 @@ export class Agent {
     const repeatedReads = new Map<string, { count: number; receipt?: Msg }>();
     let readsSinceAction = 0;
     let actionOnlyCalls = 0;
+    let unresolvedActionErrors = 0;
+    let actionErrorNudges = 0;
+    let lastActionErrorFamily: ReturnType<typeof actionFamily> | null = null;
     let turnRecovery = 0;
     let reasoningExhaustions = 0;
     let wroteThisTurn = false;
@@ -842,7 +897,7 @@ export class Agent {
       stats.toolCalls = toolCallsThisTurn;
       await this.refreshLoadedWindow();
       agentLoop: while (steps++ < this.maxSteps) {
-        this.ui.autopilotPhase?.("thinking", `raisonnement du modèle — étape ${steps}/${this.maxSteps}`, {
+        this.setAutopilotPhase("thinking", `raisonnement du modèle — étape ${steps}/${this.maxSteps}`, {
           step: steps,
           maxSteps: this.maxSteps,
         });
@@ -908,6 +963,23 @@ export class Agent {
         if (result.content) this.ui.println(); // end the streamed line
 
         if (result.toolCalls.length === 0) {
+          if (unresolvedActionErrors > 0) {
+            this.messages.pop();
+            this.ctxMgr.resetAnchor();
+            this.ui.resetResponse?.();
+            if (actionErrorNudges++ === 0) {
+              this.ui.status("· une action a échoué — demande de réparation avant toute conclusion");
+              this.messages.push({
+                role: "user",
+                content:
+                  "[Une action d’exécution ou de modification a échoué dans ce tour. Ne déclare pas la tâche terminée. Inspecte l’erreur exacte, change d’approche, réessaie l’action avec des paramètres corrigés ou explique le blocage concret.]",
+              });
+              continue;
+            }
+            throw new Error(
+              "Tâche incomplète : une action de modification ou d’exécution a échoué et n’a pas été réparée avant la conclusion."
+            );
+          }
           if (evidenceRequired && !this.lastTurnWorkspaceEvidence) {
             this.messages.pop();
             this.ctxMgr.resetAnchor();
@@ -1011,7 +1083,7 @@ export class Agent {
           }
           completed = true;
           this.outcome = "completed";
-          this.ui.autopilotPhase?.("completed", "tâche terminée et résultat vérifié");
+          this.setAutopilotPhase("completed", "tâche terminée et résultat vérifié");
           try {
             const summary = gitTurnSummary(this.toolCtx.workspace, this.toolCtx.filesTouched);
             if (summary) this.ui.println(`  ${summary}`);
@@ -1053,7 +1125,7 @@ export class Agent {
               step: steps,
               maxSteps: this.maxSteps,
             };
-            this.ui.autopilotPhase?.(phase, `${call.name} en cours`, details);
+            this.setAutopilotPhase(phase, `${call.name} en cours`, details);
             this.toolCtx.resultCharLimit = this.ctxMgr.toolResultCharLimit();
             if (call.name === "run_command") {
               let end = this.messages.length - 1;
@@ -1068,6 +1140,19 @@ export class Agent {
             ) {
               changedWorkspaceThisTurn = true;
               this.workspaceChangedThisTurn = true;
+            }
+            if (ACTION_TOOLS.has(call.name)) {
+              const family = actionFamily(call.name);
+              if (actionErrorNeedsRepair(output)) {
+                unresolvedActionErrors++;
+                lastActionErrorFamily = family;
+              } else if (
+                (call.name !== "task" || call.args?.action === "start") &&
+                (lastActionErrorFamily === null || lastActionErrorFamily === family)
+              ) {
+                unresolvedActionErrors = 0;
+                lastActionErrorFamily = null;
+              }
             }
             if (call.name === "delegate" && this.workspaceChangedThisTurn) {
               changedWorkspaceThisTurn = true;
@@ -1097,7 +1182,7 @@ export class Agent {
               readsSinceAction = 0;
               try {
                 const valResult = await validateChange(call.args.path, this.toolCtx.workspace, { runTargetedTests: true });
-                this.ui.autopilotPhase?.("validating", `validation continue de ${call.args.path}`, {
+                this.setAutopilotPhase("validating", `validation continue de ${call.args.path}`, {
                   path: call.args.path,
                   tool: "continuous-validation",
                   step: steps,
@@ -1260,7 +1345,7 @@ export class Agent {
           }
         }
       }
-      this.ui.autopilotPhase?.("paused", `limite de ${this.maxSteps} étapes atteinte`, {
+      this.setAutopilotPhase("paused", `limite de ${this.maxSteps} étapes atteinte`, {
         step: steps,
         maxSteps: this.maxSteps,
         message: "Progression conservée; reprendre avec « continue ».",
@@ -1271,14 +1356,14 @@ export class Agent {
         this.ui.println();
         this.ui.status("· cancelled");
         this.ui.turnCancelled?.();
-        this.ui.autopilotPhase?.("cancelled", "tour annulé; progression conservée");
+        this.setAutopilotPhase("cancelled", "tour annulé; progression conservée");
         this.outcome = "cancelled";
         this.sanitizeAfterCancel();
         return;
       }
       this.outcome = "error";
       this.lastError = String(err?.message ?? err);
-      this.ui.autopilotPhase?.("error", this.lastError, { message: this.lastError });
+      this.setAutopilotPhase("error", this.lastError, { message: this.lastError });
       this.ui.turnError?.(this.lastError);
       this.repairTranscript("[Tool did not run because the turn stopped after an error. Inspect the preceding error before continuing.]");
       throw err;

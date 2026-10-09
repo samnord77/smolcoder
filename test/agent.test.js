@@ -188,6 +188,24 @@ test("a successful file mutation satisfies the workspace-change gate", async () 
   assert.equal(fs.readFileSync(path.join(agent.toolCtx.workspace, "feature.md"), "utf8"), "Implemented feature.");
 });
 
+test("an Auto Copilot action error cannot be hidden by a text-only completion", async () => {
+  const provider = scriptedProvider([
+    {
+      toolCalls: [{ id: "bad-edit", name: "edit_file", args: { path: "missing.js", old_text: "x", new_text: "y" } }],
+    },
+    { content: "C'est terminé, tout fonctionne.", toolCalls: [] },
+    { content: "Le fichier demandé n'existe pas; indique un chemin valide.", toolCalls: [] },
+  ]);
+  const agent = makeAgent(provider, fakeUi(), "bypass");
+
+  await assert.rejects(
+    agent.runTurn("Corrige le fichier missing.js dans le projet."),
+    /action de modification ou d’exécution a échoué/i
+  );
+  assert.equal(agent.outcome, "error");
+  assert.equal(provider.seen.length, 3, "one bounded repair nudge is sent before the hard failure");
+});
+
 test("Auto Copilot exposes a complete structured lifecycle while creating and validating work", async () => {
   const phases = [];
   const ui = fakeUi();
