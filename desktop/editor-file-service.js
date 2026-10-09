@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const { resolveInWorkspace, SandboxError } = require("../dist/sandbox.js");
 
-const MAX_EDITOR_FILE_BYTES = 1024 * 1024;
+const MAX_EDITOR_FILE_BYTES = 20 * 1024 * 1024;
 const MAX_EDITOR_IMAGE_BYTES = 8 * 1024 * 1024;
 const IMAGE_MIME_TYPES = {
   ".bmp": "image/bmp",
@@ -24,7 +24,7 @@ function readWorkspaceFile(workspace, requested) {
   const absolute = workspacePath(workspace, requested);
   const stat = fs.statSync(absolute);
   if (stat.isDirectory()) throw new Error("C’est un dossier.");
-  if (stat.size > MAX_EDITOR_FILE_BYTES) throw new Error("Fichier > 1 Mo : ouvrez-le dans un autre éditeur.");
+  if (stat.size > MAX_EDITOR_FILE_BYTES) throw new Error("Fichier > 20 Mo : ouvrez-le dans un autre éditeur.");
   return { content: fs.readFileSync(absolute, "utf8"), mtimeMs: stat.mtimeMs };
 }
 
@@ -46,7 +46,7 @@ function readWorkspaceImage(workspace, requested) {
 function saveWorkspaceFile(workspace, requested, content, expectedMtimeMs) {
   if (typeof content !== "string") throw new Error("Le contenu à enregistrer doit être du texte.");
   const bytes = Buffer.byteLength(content, "utf8");
-  if (bytes > MAX_EDITOR_FILE_BYTES) throw new Error("Fichier > 1 Mo : réduisez son contenu avant de l’enregistrer.");
+  if (bytes > MAX_EDITOR_FILE_BYTES) throw new Error("Fichier > 20 Mo : réduisez son contenu avant de l’enregistrer.");
   const absolute = workspacePath(workspace, requested);
   const exists = fs.existsSync(absolute);
   if (exists) {

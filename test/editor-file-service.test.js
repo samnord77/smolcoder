@@ -26,7 +26,7 @@ test("editor save remains workspace-confined and enforces its byte limit", (t) =
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "smol-editor-save-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   assert.throws(() => saveWorkspaceFile(root, "../outside.txt", "x"), /en dehors de l'espace de travail/i);
-  assert.throws(() => saveWorkspaceFile(root, "large.txt", "x".repeat(MAX_EDITOR_FILE_BYTES + 1)), /1 Mo/i);
+  assert.throws(() => saveWorkspaceFile(root, "large.txt", "x".repeat(MAX_EDITOR_FILE_BYTES + 1)), /20 Mo/i);
   const saved = saveWorkspaceFile(root, "src/new.js", "const ok = true;", null);
   assert.equal(fs.readFileSync(path.join(root, "src", "new.js"), "utf8"), "const ok = true;");
   assert.ok(saved.mtimeMs > 0);

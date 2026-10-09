@@ -217,7 +217,7 @@
 <div id="main">
   <div id="side"><div id="searchBox"><input id="searchInput" placeholder="Rechercher dans le projet…" aria-label="Rechercher dans le projet"><button type="button" id="searchButton" title="Rechercher">⌕</button></div><div id="results" hidden></div><div id="tree"></div></div>
         <div id="sidegrip" title="Glisser pour redimensionner" aria-hidden="true"></div>
-      <div id="editorPane"><div id="tabs" role="tablist" aria-label="Fichiers ouverts"></div><search id="findBar"><input id="findInput" aria-label="Rechercher dans le fichier" placeholder="Rechercher dans le fichier"><button id="findPrev" type="button" title="Occurrence précédente (Maj+F3)">↑</button><button id="findNext" type="button" title="Occurrence suivante (F3)">↓</button><span id="findCount" aria-live="polite"></span><div id="replaceWrap"><input id="replaceInput" aria-label="Remplacer par" placeholder="Remplacer par"><button id="replaceOne" type="button">Remplacer</button><button id="replaceAll" type="button">Tout remplacer</button></div><button id="findClose" type="button" aria-label="Fermer la recherche">×</button></search><div id="editorWrap"><pre id="codeLayer" aria-hidden="true"></pre><textarea id="ed" spellcheck="false" placeholder="Choisissez un dossier, puis un fichier…"></textarea><div id="imagePreview" hidden><img id="previewImg" alt="Aperçu visuel du fichier"><span id="imageMeta"></span></div><div id="completePop" role="listbox" aria-label="Complétions"></div></div></div>
+      <div id="editorPane"><div id="tabs" role="tablist" aria-label="Fichiers ouverts"></div><search id="findBar"><input id="findInput" aria-label="Rechercher dans le fichier" placeholder="Rechercher dans le fichier"><button id="findPrev" type="button" title="Occurrence précédente (Maj+F3)">↑</button><button id="findNext" type="button" title="Occurrence suivante (F3)">↓</button><span id="findCount" aria-live="polite"></span><div id="replaceWrap"><input id="replaceInput" aria-label="Remplacer par" placeholder="Remplacer par"><button id="replaceOne" type="button">Remplacer</button><button id="replaceAll" type="button">Tout remplacer</button></div><button id="findClose" type="button" aria-label="Fermer la recherche">×</button></search><div id="editorWrap"><div id="monacoHost" style="position:absolute;inset:0;width:100%;height:100%;"></div><pre id="codeLayer" aria-hidden="true" style="display:none;"></pre><textarea id="ed" spellcheck="false" placeholder="Choisissez un dossier, puis un fichier…" style="display:none;"></textarea><div id="imagePreview" hidden><img id="previewImg" alt="Aperçu visuel du fichier"><span id="imageMeta"></span></div><div id="completePop" role="listbox" aria-label="Complétions"></div></div></div>
 </div>
 <div id="err"></div>
 <section id="diagPanel" aria-label="Problèmes du fichier"></section>
@@ -241,9 +241,10 @@
     <button type="button" class="vsc-sb-item" id="sb-bell" title="Notifications"><span class="vsc-sb-ico">🔔</span></button>
   </div>
 </footer>
+<script src="../node_modules/monaco-editor/min/vs/loader.js"></script>
 <script>
 const $ = (id) => document.getElementById(id);
-const tree = $("tree"), ed = $("ed"), err = $("err");
+const tree = $("tree"), rawEd = $("ed"), err = $("err");
 const results = $("results"), searchInput = $("searchInput");
 const tabBar = $("tabs"), tabs = window.smolEd.tabs;
 const codeLayer = $("codeLayer");
@@ -252,6 +253,182 @@ let diagnosticRequest = 0;
 let imagePreviewRequest = 0;
 let curDiags = [];
 const IMAGE_FILE_RE = /\.(?:png|jpe?g|gif|webp|bmp|ico|svg)$/i;
+
+// Initialisation Monaco Editor
+let monacoReady = false;
+let monacoInstance = null;
+
+function monacoLanguageFor(file) {
+  if (!file) return "plaintext";
+  const ext = file.split(".").pop().toLowerCase();
+  const map = {
+    js: "javascript", mjs: "javascript", cjs: "javascript",
+    ts: "typescript", mts: "typescript", cts: "typescript",
+    jsx: "javascript", tsx: "typescript",
+    html: "html", htm: "html",
+    css: "css", scss: "scss", less: "less",
+    json: "json",
+    md: "markdown", markdown: "markdown",
+    py: "python", pyw: "python",
+    sh: "shell", bash: "shell", bat: "bat", cmd: "bat", ps1: "powershell",
+    rs: "rust", go: "go",
+    c: "c", cpp: "cpp", h: "c", hpp: "cpp",
+    java: "java",
+    yml: "yaml", yaml: "yaml",
+    toml: "ini", sql: "sql", xml: "xml"
+  };
+  return map[ext] || "plaintext";
+}
+
+function initMonaco() {
+  if (typeof window.require !== "function" || !window.require.config) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    try {
+      window.require.config({ paths: { vs: "../node_modules/monaco-editor/min/vs" } });
+      window.MonacoEnvironment = {
+        getWorkerUrl: function (_workerId, _label) {
+          return `data:text/javascript;charset=utf-8,${encodeURIComponent(`
+            self.MonacoEnvironment = {
+              baseUrl: '../node_modules/monaco-editor/min/'
+            };
+            importScripts('../node_modules/monaco-editor/min/vs/base/worker/workerMain.js');
+          `)}`;
+        }
+      };
+      window.require(["vs/editor/editor.main"], () => {
+        if (!window.monaco || !document.getElementById("monacoHost")) return resolve(null);
+        monacoInstance = window.monaco.editor.create(document.getElementById("monacoHost"), {
+          value: "",
+          language: "plaintext",
+          theme: "vs-dark",
+          automaticLayout: true,
+          fontSize: 14,
+          fontFamily: 'Consolas, "Courier New", monospace',
+          minimap: { enabled: true },
+          folding: true,
+          lineNumbers: "on",
+          roundedSelection: false,
+          scrollBeyondLastLine: false,
+          readOnly: false,
+          cursorBlinking: "smooth",
+          tabSize: 2,
+          wordWrap: "off",
+          multiCursorModifier: "alt",
+        });
+        monacoReady = true;
+
+        monacoInstance.onDidChangeCursorPosition((e) => {
+          $("sPosition").textContent = `Ln ${e.position.lineNumber}, Col ${e.position.column}`;
+        });
+
+        monacoInstance.addCommand(window.monaco.KeyMod.CtrlCmd | window.monaco.KeyCode.KeyS, () => {
+          void save();
+        });
+
+        monacoInstance.addCommand(window.monaco.KeyMod.CtrlCmd | window.monaco.KeyCode.KeyK, () => {
+          openInlineBar();
+        });
+
+        if (tabs.active()) {
+          showTab(tabs.active());
+        }
+
+        resolve(monacoInstance);
+      }, (err) => {
+        console.warn("Monaco loader repli:", err);
+        resolve(null);
+      });
+    } catch (e) {
+      console.warn("Échec init Monaco:", e);
+      resolve(null);
+    }
+  });
+}
+
+// Adaptateur universel ed pour compatibilité ascendante totale
+const ed = {
+  get value() {
+    if (monacoInstance) return monacoInstance.getValue();
+    return rawEd ? rawEd.value : "";
+  },
+  set value(v) {
+    if (rawEd) rawEd.value = v;
+    if (monacoInstance) {
+      const model = monacoInstance.getModel();
+      if (model && model.getValue() !== v) model.setValue(v);
+    }
+  },
+  get selectionStart() {
+    if (monacoInstance) {
+      const sel = monacoInstance.getSelection();
+      const model = monacoInstance.getModel();
+      return (model && sel) ? model.getOffsetAt(sel.getStartPosition()) : 0;
+    }
+    return rawEd ? rawEd.selectionStart : 0;
+  },
+  get selectionEnd() {
+    if (monacoInstance) {
+      const sel = monacoInstance.getSelection();
+      const model = monacoInstance.getModel();
+      return (model && sel) ? model.getOffsetAt(sel.getEndPosition()) : 0;
+    }
+    return rawEd ? rawEd.selectionEnd : 0;
+  },
+  setSelectionRange(start, end) {
+    if (monacoInstance) {
+      const model = monacoInstance.getModel();
+      if (model) {
+        const pStart = model.getPositionAt(start);
+        const pEnd = model.getPositionAt(end);
+        const range = new window.monaco.Range(pStart.lineNumber, pStart.column, pEnd.lineNumber, pEnd.column);
+        monacoInstance.setSelection(range);
+        monacoInstance.revealRangeInCenter(range);
+        return;
+      }
+    }
+    if (rawEd) rawEd.setSelectionRange(start, end);
+  },
+  setRangeText(replacement, start, end, mode = "end") {
+    if (monacoInstance) {
+      const model = monacoInstance.getModel();
+      if (model) {
+        const pStart = model.getPositionAt(start);
+        const pEnd = model.getPositionAt(end);
+        const range = new window.monaco.Range(pStart.lineNumber, pStart.column, pEnd.lineNumber, pEnd.column);
+        monacoInstance.executeEdits("smol-ed", [{ range, text: replacement, forceMoveMarkers: true }]);
+        return;
+      }
+    }
+    if (rawEd) rawEd.setRangeText(replacement, start, end, mode);
+  },
+  focus() {
+    if (monacoInstance) monacoInstance.focus();
+    else if (rawEd) rawEd.focus();
+  },
+  get hidden() {
+    const host = $("monacoHost");
+    return host ? host.style.display === "none" : false;
+  },
+  set hidden(h) {
+    const host = $("monacoHost");
+    if (host) host.style.display = h ? "none" : "block";
+    if (rawEd) rawEd.hidden = h;
+  },
+  get readOnly() {
+    if (monacoInstance && window.monaco) return monacoInstance.getOption(window.monaco.editor.EditorOption.readOnly);
+    return rawEd ? rawEd.readOnly : false;
+  },
+  set readOnly(ro) {
+    if (monacoInstance) monacoInstance.updateOptions({ readOnly: ro });
+    if (rawEd) rawEd.readOnly = ro;
+  },
+  dispatchEvent(e) {
+    if (rawEd) rawEd.dispatchEvent(e);
+  },
+  addEventListener(...args) {
+    if (rawEd) rawEd.addEventListener(...args);
+  }
+};
 
 // Global text size. Every size in this stylesheet is in px, so scaling the
 // root font would change nothing; Chromium's zoom is what rescales the tree.
@@ -353,7 +530,28 @@ function showTab(tab, loadedImage) {
   previewImg.removeAttribute("src");
   ed.hidden = image; codeLayer.hidden = image;
   $("bSave").disabled = image; $("bDiag").disabled = image; $("bInline").disabled = image;
-  ed.value = image ? "" : (tab?.content ?? ""); paint(); setDirty(Boolean(tab?.dirty));
+
+  if (monacoInstance && window.monaco && tab && !image) {
+    const uri = window.monaco.Uri.file(tab.path);
+    let model = window.monaco.editor.getModel(uri);
+    if (!model) {
+      model = window.monaco.editor.createModel(tab.content ?? "", monacoLanguageFor(tab.path), uri);
+      model.onDidChangeContent(() => {
+        stashCurrent();
+        const activeTab = tabs.active();
+        setDirty(Boolean(activeTab?.dirty));
+        renderTabs();
+        updateCursor();
+        updateFindCount();
+      });
+    } else if (model.getValue() !== (tab.content ?? "") && !tab.dirty) {
+      model.setValue(tab.content ?? "");
+    }
+    monacoInstance.setModel(model);
+  } else {
+    ed.value = image ? "" : (tab?.content ?? "");
+  }
+  paint(); setDirty(Boolean(tab?.dirty));
   updateCursor();
   $("sFile").textContent = tab ? tab.path : "—"; $("sMsg").textContent = "";
   const ext = tab ? (tab.path.split(".").pop() || "").toLowerCase() : "";
@@ -379,7 +577,15 @@ function showTab(tab, loadedImage) {
   }
   renderTabs(); refreshTree();
   if (tab && !image && /\.(?:[cm]?js|jsx|tsx?)$/i.test(tab.path)) void analyzeCurrent();
-  else { diagnosticRequest++; $("diagPanel").classList.remove("open"); $("diagPanel").replaceChildren(); }
+  else {
+    diagnosticRequest++;
+    $("diagPanel").classList.remove("open");
+    $("diagPanel").replaceChildren();
+    if (monacoInstance && window.monaco) {
+      const model = monacoInstance.getModel();
+      if (model) window.monaco.editor.setModelMarkers(model, "lsp", []);
+    }
+  }
 }
 function activateTab(filePath) { stashCurrent(); const tab = tabs.activate(filePath); if (tab) showTab(tab); }
 function closeTab(filePath) {
@@ -566,6 +772,20 @@ async function analyzeCurrent() {
     if (request !== diagnosticRequest || cur !== filePath) return;
     curDiags = (result.diagnostics || []).filter((d) => d && d.path === filePath);
     paint();
+    if (monacoInstance && window.monaco) {
+      const model = monacoInstance.getModel();
+      if (model) {
+        const markers = curDiags.map((d) => ({
+          severity: d.severity === "error" ? window.monaco.MarkerSeverity.Error : window.monaco.MarkerSeverity.Warning,
+          message: d.message,
+          startLineNumber: Number(d.line) || 1,
+          startColumn: Number(d.col) || 1,
+          endLineNumber: Number(d.endLine || d.line) || 1,
+          endColumn: Number(d.endCol || (Number(d.col) + 5)) || 5,
+        }));
+        window.monaco.editor.setModelMarkers(model, "lsp", markers);
+      }
+    }
     panel.replaceChildren();
     if (result.message) { const note = document.createElement("div"); note.className = "diagItem"; note.textContent = result.message; panel.appendChild(note); }
     for (const diagnostic of result.diagnostics || []) {
@@ -599,6 +819,10 @@ async function analyzeCurrent() {
   } catch (e) {
     if (request !== diagnosticRequest || cur !== filePath) return;
     curDiags = [];
+    if (monacoInstance && window.monaco) {
+      const model = monacoInstance.getModel();
+      if (model) window.monaco.editor.setModelMarkers(model, "lsp", []);
+    }
     panel.replaceChildren(); panel.textContent = String(e.message || e);
   }
 }
@@ -1087,6 +1311,10 @@ if ($("sb-backend")) {
 }
 void refreshBackendStatus();
 setInterval(() => { void refreshBackendStatus(); }, 8000);
+void initMonaco();
+window.addEventListener("resize", () => {
+  if (monacoInstance) monacoInstance.layout();
+});
 </script>
 </body>
 </html>

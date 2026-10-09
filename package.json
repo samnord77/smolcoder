@@ -63,6 +63,7 @@
     "typescript": "^5.5.0"
   },
   "dependencies": {
+    "monaco-editor": "^0.57.0",
     "undici-types": "^6.21.0"
   },
   "allowScripts": {
