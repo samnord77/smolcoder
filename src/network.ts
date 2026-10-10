@@ -24,7 +24,7 @@ export interface FlowUI {
   onCancel?: (() => void) | null;
 }
 
-const BACKEND_NAMES = { ollama: "Ollama", lmstudio: "LM Studio" } as const;
+const BACKEND_NAMES = { ollama: "Ollama", lmstudio: "LM Studio", flagship: "FlagshipRouter" } as const;
 
 function describeServers(servers: { backend: keyof typeof BACKEND_NAMES; models: number }[]): string {
   return servers.map((s) => `${BACKEND_NAMES[s.backend]} · ${s.models} modèle${s.models > 1 ? "s" : ""}`).join(" + ");

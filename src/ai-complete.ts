@@ -96,13 +96,13 @@ function endpointFromEnv(): ResolvedEndpoint | undefined {
 
 async function endpointFromLocal(): Promise<ResolvedEndpoint | undefined> {
   const models = await detectAll({ fast: true });
-  const pick = models.find((m) => m.backend === "ollama" || m.backend === "lmstudio");
+  const pick = models.find((m) => m.backend === "ollama" || m.backend === "lmstudio" || m.backend === "flagship");
   if (!pick) return undefined;
   return {
     baseUrl: `${pick.baseUrl.replace(/\/+$/, "")}/v1`,
     model: pick.id,
     apiKey: pick.apiKey,
-    source: pick.backend === "ollama" ? "Ollama local" : "LM Studio local",
+    source: pick.backend === "ollama" ? "Ollama local" : pick.backend === "flagship" ? "FlagshipRouter local" : "LM Studio local",
   };
 }
 

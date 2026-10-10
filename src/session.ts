@@ -12,7 +12,7 @@ import { type Attachment, MAX_UPLOAD_BYTES, mimeForExt } from "./attachments";
 import { listCustomCommands, loadCustomCommand } from "./commands";
 import { type Config, effortForBackend, loadConfig, updateConfig } from "./config";
 import { ContextManager } from "./context";
-import { type DetectedModel, detectAll, envKeyFor, keyAllowed, resolveContextWindow } from "./detect";
+import { type DetectedModel, detectAll, envKeyFor, isFlagshipBase, keyAllowed, resolveContextWindow } from "./detect";
 import { EventBus } from "./events";
 import { formatReview } from "./git";
 import { hostUrls } from "./hosts";
@@ -120,6 +120,7 @@ function serverNameFor(baseUrl: string): string {
   }
   if (host.endsWith("openrouter.ai")) return "OpenRouter";
   if (host.endsWith("generativelanguage.googleapis.com")) return "Gemini";
+  if (isFlagshipBase(baseUrl)) return "FlagshipRouter";
   if (host === "localhost" || host.startsWith("127.") || host === "::1") return "lmstudio";
   return host;
 }
@@ -234,9 +235,12 @@ export function noBackendsMessage(): string {
   );
 }
 
-/** "ollama" on this computer, "ollama @ gpu-box" across the network. */
+/** "ollama" on this computer, "ollama @ gpu-box" across the network.
+ * FlagshipRouter keeps its product name: "lmstudio" would blame the wrong
+ * server for a gateway failure. */
 export function backendLabel(m: DetectedModel): string {
-  return m.host ? `${m.backend} @ ${m.host}` : m.backend;
+  const name = m.backend === "flagship" ? "flagshiprouter" : m.backend;
+  return m.host ? `${name} @ ${m.host}` : name;
 }
 
 export function sessionLine(m: DetectedModel, mode: Mode): string {
@@ -343,7 +347,11 @@ export function modelOptions(models: DetectedModel[], current?: DetectedModel): 
   return models.map((m) => ({
     label: m.id,
     hint:
-      (m.backend === "ollama" ? "ollama" : `lm studio${m.loaded ? ` · ctx ${m.contextWindow.toLocaleString()}` : " · not loaded"}`) +
+      (m.backend === "ollama"
+        ? "ollama"
+        : m.backend === "flagship"
+          ? `flagshiprouter · ${m.contextWindow.toLocaleString()} ctx`
+          : `lm studio${m.loaded ? ` · ctx ${m.contextWindow.toLocaleString()}` : " · not loaded"}`) +
       (m.host ? ` · ${m.host}` : "") +
       (m.id.endsWith(":free") ? " · GRATUIT" : ""),
     current: !!current && m.id === current.id && m.backend === current.backend && m.baseUrl === current.baseUrl,

@@ -7,6 +7,8 @@ import type { SavedHost } from "./config";
 
 export const OLLAMA_PORT = 11434;
 export const LMSTUDIO_PORT = 1234;
+/** FlagshipRouter: the local free-model gateway (OpenAI-compatible). */
+export const FLAGSHIPROUTER_PORT = 20128;
 
 export interface ParsedAddress {
   /** Normalized form to save. */

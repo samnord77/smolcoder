@@ -13,7 +13,7 @@ const BUILD_STATUS_TTL_MS = Math.max(5_000, Number(process.env.SMOLCODER_STATUS_
 const buildStatusCache = new Map<string, { at: number; command: string; result: { command: string; state: string } }>();
 
 export interface LocalLoadedModel {
-  backend: "ollama" | "lmstudio";
+  backend: "ollama" | "lmstudio" | "flagship";
   name: string;
   sizeVramMb?: number;
   sizeMb?: number;

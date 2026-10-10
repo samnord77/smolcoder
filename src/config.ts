@@ -33,11 +33,11 @@ export interface Config {
   lastMode?: Mode;
   effort?: Effort | null;
   /** Backend-specific reasoning defaults, with legacy `effort` as fallback. */
-  effortByBackend?: Partial<Record<"ollama" | "lmstudio", Effort | null>>;
+  effortByBackend?: Partial<Record<"ollama" | "lmstudio" | "flagship", Effort | null>>;
   hosts?: SavedHost[];
 }
 
-export function effortForBackend(cfg: Config, backend: "ollama" | "lmstudio", override?: Effort | null): Effort | null {
+export function effortForBackend(cfg: Config, backend: "ollama" | "lmstudio" | "flagship", override?: Effort | null): Effort | null {
   if (override !== undefined) return override;
   const saved = cfg.effortByBackend;
   if (saved && Object.hasOwn(saved, backend)) return saved[backend] ?? null;
@@ -82,7 +82,7 @@ export function loadConfig(): Config {
   }
   if (cfg.effortByBackend && typeof cfg.effortByBackend === "object" && !Array.isArray(cfg.effortByBackend)) {
     const saved: Config["effortByBackend"] = {};
-    for (const backend of ["ollama", "lmstudio"] as const) {
+    for (const backend of ["ollama", "lmstudio", "flagship"] as const) {
       if (!Object.hasOwn(cfg.effortByBackend, backend)) continue;
       const value = cfg.effortByBackend[backend];
       if (value === null || (typeof value === "string" && ["off", "low", "medium", "high"].includes(value))) {

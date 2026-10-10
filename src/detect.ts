@@ -19,11 +19,11 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import type { SavedHost } from "./config";
-import { hostLabel, hostUrls, LMSTUDIO_PORT, OLLAMA_PORT } from "./hosts";
+import { FLAGSHIPROUTER_PORT, hostLabel, hostUrls, LMSTUDIO_PORT, OLLAMA_PORT } from "./hosts";
 import type { ReasoningInfo } from "./providers/lmstudio";
 import { probeJson, tryFetchJson } from "./util";
 
-export type BackendKind = "ollama" | "lmstudio";
+export type BackendKind = "ollama" | "lmstudio" | "flagship";
 
 export interface DetectedModel {
   id: string;
@@ -94,6 +94,36 @@ export function ollamaBaseUrls(env?: string): string[] {
 export function lmStudioBaseUrls(configuredPort?: number): string[] {
   const ports = [configuredPort, LMSTUDIO_PORT].filter((p, i, all): p is number => !!p && all.indexOf(p) === i);
   return ports.flatMap((port) => loopbackAliases(`http://127.0.0.1:${port}`));
+}
+
+/** FlagshipRouter: a local gateway that puts every free model — OpenRouter
+ * `:free`, NVIDIA NIM, Groq, Cloudflare, Ollama — behind ONE
+ * OpenAI-compatible endpoint (dashboard on 20127, gateway on 20128).
+ * FLAGSHIPROUTER_BASE points at another machine or another port,
+ * SMOLCODER_FLAGSHIP=0 turns the probe off. Exported for tests. */
+export function flagshipBaseUrls(configured?: string): string[] {
+  if (String(process.env.SMOLCODER_FLAGSHIP ?? "") === "0") return [];
+  const raw = String(configured ?? process.env.FLAGSHIPROUTER_BASE ?? process.env.FLAGSHIPROUTER_URL ?? "").trim();
+  if (!raw) return [`http://127.0.0.1:${FLAGSHIPROUTER_PORT}`];
+  // Callers point at the server root: every probe path is appended to it.
+  return [raw.replace(/\/+$/, "").replace(/\/v1$/, "")];
+}
+
+/** Is this address the FlagshipRouter gateway (not a plain OpenAI-compatible
+ * server that merely looks similar)? Exported for tests. */
+export function isFlagshipBase(base: string): boolean {
+  const norm = (u: string): string => {
+    try {
+      const url = new URL(u);
+      return `${url.protocol}//${url.hostname.toLowerCase()}${url.port ? `:${url.port}` : ""}${url.pathname.replace(/\/+$/, "").replace(/\/v1$/, "")}`;
+    } catch {
+      return String(u ?? "")
+        .replace(/\/+$/, "")
+        .replace(/\/v1$/, "");
+    }
+  };
+  const target = norm(base);
+  return flagshipBaseUrls().some((u) => norm(u) === target);
 }
 
 /** Exported for tests: the port in LM Studio's http-server-config.json. */
@@ -247,6 +277,9 @@ export function envKeyFor(base: string): string | undefined {
   if (host.endsWith("generativelanguage.googleapis.com"))
     return process.env.GEMINI_API_KEY?.trim() || process.env.GOOGLE_API_KEY?.trim() || undefined;
   if (host.endsWith("openrouter.ai")) return process.env.OPENROUTER_API_KEY?.trim() || undefined;
+  // FlagshipRouter mints its own key in the dashboard; localhost needs none
+  // unless the user turned authentication on.
+  if (isFlagshipBase(base)) return process.env.FLAGSHIPROUTER_KEY?.trim() || process.env.FLAGSHIPROUTER_API_KEY?.trim() || undefined;
   return undefined;
 }
 
@@ -378,6 +411,9 @@ export async function identifyServer(base: string, timeoutMs = NETWORK_PROBE_TIM
   const compat = await tryFetchJson(`${base}${compatModelsPath(base)}`, { ...(auth ? { headers: auth } : {}) }, timeoutMs);
   if (compat && Array.isArray(compat.data)) {
     const isOpenRouter = base.includes("openrouter.ai");
+    // FlagshipRouter speaks the same listing shape as any compatible server;
+    // the address is what tells them apart, so the rows carry its name too.
+    const listedBackend: BackendKind = isFlagshipBase(base) ? "flagship" : "lmstudio";
     const models = compat.data
       // "embed" models have no chat endpoint; OpenRouter's ":batch" variants
       // are deferred-batch only and answer 404 on /chat/completions.
@@ -395,14 +431,14 @@ export async function identifyServer(base: string, timeoutMs = NETWORK_PROBE_TIM
         return {
           // Google lists "models/<id>"; the chat endpoint wants the bare id.
           id: (isGoogle ? stripGooglePrefix(String(m.id)) : m.id) as string,
-          backend: "lmstudio" as const,
+          backend: listedBackend,
           baseUrl: base,
           contextWindow: ctx ?? LMSTUDIO_JIT_GUESS,
           ...(ctx ? { maxContext: ctx } : {}),
           note: ctx ? undefined : "context window unknown on this server (OpenAI-compatible) — assuming 4096 to be safe.",
         };
       });
-    return { backend: "lmstudio", baseUrl: base, models: withKey(models) };
+    return { backend: listedBackend, baseUrl: base, models: withKey(models) };
   }
   return null;
 }
@@ -469,7 +505,7 @@ export async function detectAll(opts: DetectOptions = {}): Promise<DetectedModel
   const lmPort = readLmStudioPort();
   const ports = [OLLAMA_PORT, lmPort ?? LMSTUDIO_PORT, LMSTUDIO_PORT].filter((p, i, all) => all.indexOf(p) === i);
   const local = groupServers(
-    [...ollamaBaseUrls(process.env.OLLAMA_HOST), ...lmStudioBaseUrls(lmPort), ...hostMachineUrls(ports)],
+    [...ollamaBaseUrls(process.env.OLLAMA_HOST), ...lmStudioBaseUrls(lmPort), ...flagshipBaseUrls(), ...hostMachineUrls(ports)],
     LOCAL_PROBE_TIMEOUT_MS
   );
   const covered = new Set(local.flatMap((g) => g.urls));
