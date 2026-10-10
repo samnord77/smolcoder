@@ -232,14 +232,18 @@ function sameFile(a: unknown, b: string): boolean {
 }
 
 function fmtLoc(root: string, uri: string, range: any): string {
+  let p: string;
   try {
-    const p = decodeURIComponent(new URL(uri).pathname);
-    const rel = path.relative(root, p).split(path.sep).join("/");
-    const line = (range?.start?.line ?? 0) + 1;
-    return `${rel}:${line}`;
+    p = decodeURIComponent(new URL(uri).pathname);
   } catch {
     return uri.slice(0, 120);
   }
+  // file:///C:/... — strip the leading slash so path.relative sees a real
+  // Windows absolute path instead of "../../C:/...".
+  if (/^\/[A-Za-z]:\//.test(p)) p = p.slice(1);
+  const rel = path.relative(root, p).split(path.sep).join("/");
+  const line = (range?.start?.line ?? 0) + 1;
+  return `${rel}:${line}`;
 }
 
 function fmtHover(res: any): string {

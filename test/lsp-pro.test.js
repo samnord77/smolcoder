@@ -16,6 +16,8 @@ const {
   closeLspManagers,
   queryCode,
   queryDiagStructured,
+  queryDefStructured,
+  querySymbolsStructured,
   CODE_ACTIONS,
 } = require("../dist/lsp-pro");
 
@@ -61,6 +63,7 @@ const MOCK_LINES = [
   "    return;",
   "  }",
   "  const id = msg.id;",
+  '  const symUri = process.env.SMOLCODE_MOCK_SYMBOL_URI || "file:///mock.ts";',
   '  const ok = (result) => send({ jsonrpc: "2.0", id: id, result: result });',
   '  const uri = msg.params && msg.params.textDocument ? msg.params.textDocument.uri : "file:///mock.ts";',
   "  const loc = { uri: uri, range: { start: { line: 0, character: 0 }, end: { line: 0, character: 4 } } };",
@@ -71,7 +74,7 @@ const MOCK_LINES = [
   '  else if (msg.method === "textDocument/signatureHelp") ok({ signatures: [{ label: "mock(a, b)" }], activeSignature: 0 });',
   '  else if (msg.method === "textDocument/rename") ok({ changes: {} });',
   '  else if (msg.method === "textDocument/codeAction") ok([{ title: "mock fix", kind: "quickfix" }]);',
-  '  else if (msg.method === "workspace/symbol") ok([{ name: "MockThing", kind: 7, location: { uri: "file:///mock.ts", range: { start: { line: 1, character: 0 }, end: { line: 1, character: 9 } } } }]);',
+  '  else if (msg.method === "workspace/symbol") ok([{ name: "MockThing", kind: 7, location: { uri: symUri, range: { start: { line: 1, character: 0 }, end: { line: 1, character: 9 } } } }]);',
   "  else ok(null);",
   "}",
 ];
@@ -240,6 +243,46 @@ test("diagStructured returns panel rows through the mock server", async () => {
     assert.match(bad.text, /n['’]est pas un langage pris en charge/);
   } finally {
     delete process.env.SMOLCODER_LSP_PYTHON;
+    closeLspManagers();
+  }
+});
+
+test("structured definition targets resolve to exact workspace paths", async () => {
+  const ws = scratchWs({ "a.py": "value = 1\n" });
+  process.env.SMOLCODER_LSP_PYTHON = mockCommand();
+  try {
+    const r = await queryDefStructured(ws, "a.py", 1, 1);
+    assert.equal(r.defs.length, 1);
+    assert.deepEqual([r.defs[0].path, r.defs[0].line, r.defs[0].col], ["a.py", 1, 1]);
+    assert.match(r.text, /a\.py:1/);
+    assert.ok(!r.text.includes(".."), "les chemins Windows ne montent plus vers ../../C:/...");
+    const bad = await queryDefStructured(ws, "note.txt", 1, 1);
+    assert.deepEqual(bad.defs, []);
+    assert.match(bad.text, /pas un langage pris en charge/);
+  } finally {
+    delete process.env.SMOLCODER_LSP_PYTHON;
+    closeLspManagers();
+  }
+});
+
+test("structured workspace symbols feed the editor palette", async () => {
+  const ws = scratchWs({ "a.py": "x = 1\n" });
+  process.env.SMOLCODER_LSP_PYTHON = mockCommand();
+  process.env.SMOLCODE_MOCK_SYMBOL_URI = `file:///${ws.replace(/\\/g, "/")}/a.py`;
+  try {
+    const r = await querySymbolsStructured(ws, "Mock", "python");
+    assert.ok(r.symbols.length >= 1);
+    assert.deepEqual([r.symbols[0].name, r.symbols[0].path, r.symbols[0].line, r.symbols[0].col], ["MockThing", "a.py", 2, 1]);
+    assert.match(r.text, /MockThing/);
+    const missing = await querySymbolsStructured(ws, "", "python");
+    assert.deepEqual(missing.symbols, []);
+    assert.match(missing.text, /a besoin d'une requête/);
+    // The text form used by the CLI symbols tool routes through the same path.
+    const cli = await queryCode(ws, { action: "wsymbol", query: "Mock", lang: "python" });
+    assert.match(cli, /MockThing/);
+  } finally {
+    delete process.env.SMOLCODER_LSP_PYTHON;
+    delete process.env.SMOLCODE_MOCK_SYMBOL_URI;
     closeLspManagers();
   }
 });

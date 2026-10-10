@@ -476,6 +476,17 @@ export function normLspUri(u: string): string {
   return u.replace(/\\/g, "/").toLowerCase();
 }
 
+/** Host path from a file:// URI ("/C:/..." for Windows drives). */
+export function absFromUri(uri: string): string | null {
+  try {
+    let p = decodeURIComponent(new URL(uri).pathname);
+    if (/^\/[A-Za-z]:\//.test(p)) p = p.slice(1);
+    return p || null;
+  } catch {
+    return null;
+  }
+}
+
 const LSP_TIMEOUT_MS = 30_000;
 const RESULT_CAP = 4000;
 
@@ -655,14 +666,11 @@ export class RpcClient {
 // ---------------------------------------------------------------------------
 
 function fmtLoc(root: string, uri: string, range: any): string {
-  try {
-    const p = decodeURIComponent(new URL(uri).pathname);
-    const rel = path.relative(root, p).split(path.sep).join("/");
-    const line = (range?.start?.line ?? 0) + 1;
-    return `${rel}:${line}`;
-  } catch {
-    return String(uri).slice(0, 120);
-  }
+  const p = absFromUri(uri);
+  if (!p) return String(uri).slice(0, 120);
+  const rel = path.relative(root, p).split(path.sep).join("/");
+  const line = (range?.start?.line ?? 0) + 1;
+  return `${rel}:${line}`;
 }
 
 function fmtLocList(root: string, res: any): string {
@@ -764,15 +772,9 @@ function fmtSignature(res: any): string {
 }
 
 function uriToAbs(root: string, uri: string): string | null {
-  try {
-    const p = decodeURIComponent(new URL(uri).pathname);
-    // file:///C:/... or file:///home/... — strip the leading slash on Windows.
-    const noLead = process.platform === "win32" && /^\/[A-Za-z]:\//.test(p) ? p.slice(1) : p;
-    const abs = path.resolve(root, path.relative(root, noLead));
-    return abs;
-  } catch {
-    return null;
-  }
+  const p = absFromUri(uri);
+  if (!p) return null;
+  return path.resolve(root, path.relative(root, p));
 }
 
 /** Render a WorkspaceEdit as reviewable file:line replacements with the
@@ -793,14 +795,8 @@ function fmtWorkspaceEdit(root: string, edit: any): string {
       }
     }
     let rel = uri;
-    try {
-      rel = path
-        .relative(root, decodeURIComponent(new URL(uri).pathname))
-        .split(path.sep)
-        .join("/");
-    } catch {
-      /* keep raw uri */
-    }
+    const absPath = absFromUri(uri);
+    if (absPath) rel = path.relative(root, absPath).split(path.sep).join("/");
     ones.push({
       uri: rel,
       line: (e.range.start.line ?? 0) + 1,
@@ -1170,33 +1166,132 @@ export class LspManager {
     return { text: fmtDiagList(this.root, uri, diags), diagnostics };
   }
 
-  private async workspaceSymbol(query: string, lang: string, signal?: AbortSignal): Promise<string> {
+  /** Structured definition targets for F12 / Ctrl+click: exact workspace path,
+   * line and column of the first results. Never throws. */
+  async defStructured(rel: string, line: number, col: number, signal?: AbortSignal): Promise<{ text: string; defs: DefinitionHit[] }> {
+    const none = (text: string): { text: string; defs: DefinitionHit[] } => ({ text, defs: [] });
+    if (lspDisabled()) return none("Error: symbols est désactivé (SMOLCODER_LSP_DISABLE=1).");
+    if (typeof rel !== "string" || !rel) {
+      return none('Error: le chemin est requis. Exemple : {"action": "def", "path": "src/agent.ts", "line": 3, "col": 2}');
+    }
+    let abs: string;
+    try {
+      abs = resolveInWorkspace(this.root, rel);
+    } catch (err: any) {
+      return none(`Error: ${err?.message ?? err}`);
+    }
+    const def = serverForFile(abs);
+    if (!def) {
+      return none(
+        `Error: "${rel}" n'est pas un langage pris en charge — l'intelligence de code fonctionne sur ${supportedLspExts().join(", ")}.`
+      );
+    }
+    let stat: fs.Stats;
+    try {
+      stat = fs.statSync(abs);
+    } catch {
+      return none(`Error: le fichier "${rel}" n'existe pas.`);
+    }
+    if (!stat.isFile()) return none(`Error: "${rel}" est un dossier, pas un fichier.`);
+    if (stat.size > MAX_FILE_BYTES) return none(`Error: "${rel}" est trop volumineux pour les requêtes de symboles (limite 1 Mo).`);
+    if (signal?.aborted) return none("Error: requête symbols annulée avant le démarrage.");
+    let live: LiveServer;
+    try {
+      live = await this.ensureServer(def, signal);
+    } catch (err: any) {
+      return none(
+        `Error: le serveur de langage ${def.lang} est indisponible (${String(err?.message ?? err).slice(0, 160)}). ${def.installHint}`
+      );
+    }
+    const uri = lspUri(abs);
+    try {
+      await this.ensureDoc(live, abs, uri, def, signal);
+    } catch (err: any) {
+      return none(`Error: impossible d'ouvrir "${rel}" sur le serveur de langage (${String(err?.message ?? err).slice(0, 160)}).`);
+    }
+    const position = { line: num1(line), character: num1(col) };
+    try {
+      const res = await live.client.request("textDocument/definition", { textDocument: { uri }, position });
+      const arr = Array.isArray(res) ? res : res ? [res] : [];
+      const defs: DefinitionHit[] = [];
+      for (const l of arr.slice(0, 20)) {
+        const inner = l?.location ?? l;
+        const target = inner?.uri ?? l?.targetUri ?? "";
+        const absPath = target ? absFromUri(target) : null;
+        if (!absPath) continue;
+        const range = inner?.targetSelectionRange ?? inner?.range ?? l?.targetRange ?? l?.range;
+        defs.push({
+          path: path.relative(this.root, absPath).split(path.sep).join("/"),
+          line: (range?.start?.line ?? 0) + 1,
+          col: (range?.start?.character ?? 0) + 1,
+        });
+      }
+      if (signal?.aborted) return none("Error: requête symbols annulée.");
+      return { text: fmtLocList(this.root, res), defs };
+    } catch (err: any) {
+      if (signal?.aborted || (err as any)?.name === "AbortError") return none("Error: requête symbols annulée.");
+      return none(`Error: la requête definition a échoué (${String(err?.message ?? err).slice(0, 200)}).`);
+    }
+  }
+
+  /** Structured workspace symbols for the editor palette ("@" search).
+   * Never throws: failures come back as text with an empty list. */
+  async symbolsStructured(query: string, lang: string, signal?: AbortSignal): Promise<{ text: string; symbols: SymbolHit[] }> {
+    const none = (text: string): { text: string; symbols: SymbolHit[] } => ({ text, symbols: [] });
+    if (lspDisabled()) return none("Error: symbols est désactivé (SMOLCODER_LSP_DISABLE=1).");
     const q = query.trim().slice(0, 100);
-    if (!q) return 'Error: wsymbol a besoin d\'une requête. Exemple : {"action": "wsymbol", "query": "Agent", "lang": "typescript"}';
+    if (!q) {
+      return none('Error: wsymbol a besoin d\'une requête. Exemple : {"action": "wsymbol", "query": "Agent", "lang": "typescript"}');
+    }
     const def = serverDefForLang(lang) ?? serverDefForLang("typescript")!;
     let live: LiveServer;
     try {
       live = await this.ensureServer(def, signal);
     } catch (err: any) {
-      return `Error: le serveur de langage ${def.lang} est indisponible (${String(err?.message ?? err).slice(0, 160)}). ${def.installHint}`;
+      return none(
+        `Error: le serveur de langage ${def.lang} est indisponible (${String(err?.message ?? err).slice(0, 160)}). ${def.installHint}`
+      );
     }
-    if (signal?.aborted) return "Error: requête symbols annulée.";
+    if (signal?.aborted) return none("Error: requête symbols annulée.");
     try {
       const res = await live.client.request("workspace/symbol", { query: q });
       const arr = Array.isArray(res) ? res : [];
-      if (!arr.length) return `Aucun symbole d'espace de travail correspondant à "${q}".`;
-      return arr
-        .slice(0, 20)
-        .map((s: any) => {
-          const inner = s?.location ?? s;
-          const name = String(s?.name ?? "?").slice(0, 80);
-          const kind = String(s?.kind ?? "");
-          return `${name}${kind ? ` [${kind}]` : ""} @ ${fmtLoc(this.root, inner?.uri ?? "", inner?.range)}`;
-        })
-        .join("\n");
+      const symbols: SymbolHit[] = [];
+      for (const s of arr.slice(0, 20)) {
+        const inner = s?.location ?? s;
+        const uri = inner?.uri ?? "";
+        const absPath = uri ? absFromUri(uri) : null;
+        if (!absPath) continue;
+        const range = inner?.range ?? inner?.targetSelectionRange ?? s?.range;
+        symbols.push({
+          name: String(s?.name ?? "?").slice(0, 80),
+          kind: String(s?.kind ?? ""),
+          path: path.relative(this.root, absPath).split(path.sep).join("/"),
+          line: (range?.start?.line ?? 0) + 1,
+          col: (range?.start?.character ?? 0) + 1,
+        });
+      }
+      const text = arr.length
+        ? arr
+            .slice(0, 20)
+            .map((s: any) => {
+              const inner = s?.location ?? s;
+              const name = String(s?.name ?? "?").slice(0, 80);
+              const kind = String(s?.kind ?? "");
+              return `${name}${kind ? ` [${kind}]` : ""} @ ${fmtLoc(this.root, inner?.uri ?? "", inner?.range)}`;
+            })
+            .join("\n")
+        : `Aucun symbole d'espace de travail correspondant à "${q}".`;
+      return { text, symbols };
     } catch (err: any) {
-      return `Error: la recherche de symboles d'espace de travail a échoué (${String(err?.message ?? err).slice(0, 200)}).`;
+      if (signal?.aborted || (err as any)?.name === "AbortError") return none("Error: requête symbols annulée.");
+      return none(`Error: la recherche de symboles d'espace de travail a échoué (${String(err?.message ?? err).slice(0, 200)}).`);
     }
+  }
+
+  private async workspaceSymbol(query: string, lang: string, signal?: AbortSignal): Promise<string> {
+    const r = await this.symbolsStructured(query, lang, signal);
+    return r.text;
   }
 
   shutdown(): void {
@@ -1274,6 +1369,20 @@ export interface StructuredDiag {
   message: string;
 }
 
+export interface DefinitionHit {
+  path: string;
+  line: number;
+  col: number;
+}
+
+export interface SymbolHit {
+  name: string;
+  kind: string;
+  path: string;
+  line: number;
+  col: number;
+}
+
 /** Structured file diagnostics for IDE panels (web review, desktop).
  * Never throws: failures come back as text with empty rows. */
 export async function queryDiagStructured(
@@ -1282,4 +1391,27 @@ export async function queryDiagStructured(
   signal?: AbortSignal
 ): Promise<{ text: string; diagnostics: StructuredDiag[] }> {
   return managerFor(root).diagStructured(relPath, signal);
+}
+
+/** Structured definition targets for IDE navigation (F12 / Ctrl+click).
+ * Never throws: failures come back as text with an empty list. */
+export async function queryDefStructured(
+  root: string,
+  relPath: string,
+  line: number,
+  col: number,
+  signal?: AbortSignal
+): Promise<{ text: string; defs: DefinitionHit[] }> {
+  return managerFor(root).defStructured(relPath, line, col, signal);
+}
+
+/** Structured workspace symbols for the editor palette ("@" search).
+ * Never throws: failures come back as text with an empty list. */
+export async function querySymbolsStructured(
+  root: string,
+  query: string,
+  lang: string,
+  signal?: AbortSignal
+): Promise<{ text: string; symbols: SymbolHit[] }> {
+  return managerFor(root).symbolsStructured(query, lang, signal);
 }
