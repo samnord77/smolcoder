@@ -6,7 +6,7 @@ const { spawnSync } = require("node:child_process");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { gitSyncStatus, isGitRepo, queryGit, GIT_ACTIONS } = require("../dist/git");
+const { gitSyncStatus, isGitRepo, queryGit, gitShowFile, GIT_ACTIONS } = require("../dist/git");
 
 function gitAvailable() {
   try {
@@ -291,4 +291,22 @@ test("git: turn summary counts +/-, newcomers, and status badges", () => {
   fs.unlinkSync(path.join(repo, "app.txt"));
   assert.equal(gitStatusMap(repo, repo).get("app.txt"), "D");
   assert.equal(gitStatusMap(path.join(repo, "missing-dir"), repo).size, 0);
+});
+
+test("git: gitShowFile returns the committed version and flags untracked files", () => {
+  if (!gitAvailable()) return;
+  const repo = scratchRepo();
+  const file = path.join(repo, "app.txt");
+  fs.writeFileSync(file, "v1\n");
+  spawnSync("git", ["add", "app.txt"], { cwd: repo, windowsHide: true });
+  spawnSync("git", ["commit", "-m", "initial"], { cwd: repo, windowsHide: true });
+  fs.writeFileSync(file, "v2-ajouté\n");
+  const shown = gitShowFile(repo, "app.txt");
+  assert.equal(shown.tracked, true);
+  assert.equal(shown.content, "v1\n");
+  const untracked = gitShowFile(repo, "new-file.txt");
+  assert.equal(untracked.tracked, false);
+  assert.equal(untracked.content, null);
+  const outside = gitShowFile(repo, "../outside.txt");
+  assert.equal(outside.tracked, false);
 });

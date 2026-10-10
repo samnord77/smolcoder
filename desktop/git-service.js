@@ -76,6 +76,28 @@ async function blame(workspace, requestedPath, line) {
   return require("../dist/git.js").gitBlame(root, requestedPath, line);
 }
 
+/** Content of a tracked file at HEAD (original side of the editor's Git diff).
+ * Untracked or unreadable files come back { tracked: false }. Never throws. */
+async function showFile(workspace, requestedPath) {
+  if (typeof requestedPath !== "string" || !requestedPath.trim() || requestedPath.includes("..")) {
+    return { tracked: false, content: null };
+  }
+  try {
+    const root = await repoRoot(workspace);
+    const normalized = requestedPath.split(path.sep).join("/");
+    let content;
+    try {
+      content = await git(root, ["show", `HEAD:${normalized}`]);
+    } catch {
+      return { tracked: false, content: null };
+    }
+    const fileCap = 1024 * 1024;
+    return { tracked: true, content: content.length > fileCap ? content.slice(0, fileCap) : content };
+  } catch {
+    return { tracked: false, content: null };
+  }
+}
+
 async function diff(workspace, requestedPath) {
   if (typeof requestedPath !== "string" || !requestedPath.trim()) throw new Error("Choisissez d'abord un fichier modifié.");
   const root = await repoRoot(workspace);
@@ -100,4 +122,4 @@ async function commit(workspace, requestedPath, message) {
   return { summary: (await git(root, ["log", "-1", "--format=%h %s"])).trim() };
 }
 
-module.exports = { status, syncStatus, blame, diff, commit };
+module.exports = { status, syncStatus, blame, diff, commit, showFile };

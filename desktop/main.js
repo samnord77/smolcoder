@@ -627,6 +627,7 @@ async function activeWorkspace() {
 ipcMain.handle("ed:gitStatus", async () => gitService.status(assertRoot()));
 ipcMain.handle("ed:gitSyncStatus", async () => gitService.syncStatus(assertRoot()));
 ipcMain.handle("ed:gitBlame", async (_event, rel, line) => gitService.blame(assertRoot(), rel, line));
+ipcMain.handle("ed:gitShow", async (_event, rel) => gitService.showFile(assertRoot(), rel));
 ipcMain.handle("git:status", async () => gitService.status(await activeWorkspace()));
 ipcMain.handle("git:diff", async (_event, rel) => ({ diff: await gitService.diff(await activeWorkspace(), rel) }));
 ipcMain.handle("git:commit", async (_event, message, rel) => gitService.commit(await activeWorkspace(), rel, message));

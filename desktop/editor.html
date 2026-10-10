@@ -104,6 +104,14 @@
   #inlinePreview .row button.reject { background: #5a5a5a; }
   #completePop { display: none; position: absolute; z-index: 6; left: 12px; top: 44px; min-width: 260px; max-width: 70%; max-height: 220px; overflow: auto; background: #252526; border: 1px solid #007acc; box-shadow: 0 8px 24px #0008; }
   #completePop.open { display: block; }
+  #splitHost { position: absolute; inset: 0 0 0 50%; width: 50%; display: none; background: #1e1e1e; border-left: 1px solid #3c3c3c; }
+  #splitHost.open { display: block; }
+  #diffView { position: absolute; inset: 0; display: none; background: #1e1e1e; z-index: 3; }
+  #diffView.open { display: block; }
+  .pane-banner { position: absolute; left: 8px; top: 6px; z-index: 5; font: 11px "Segoe UI", sans-serif; color: #9cdcfe; background: #252526; border: 1px solid #3c3c3c; padding: 2px 8px; border-radius: 4px; pointer-events: none; }
+  .pane-close { position: absolute; right: 8px; top: 6px; z-index: 6; background: #3a3a3a; color: #fff; border: 1px solid #3c3c3c; border-radius: 4px; padding: 2px 8px; cursor: pointer; font: 11px "Segoe UI", sans-serif; }
+  .pane-close:hover { background: #e51400; }
+  #bSplit.active, #bDiff.active { background: #094771; border-color: #007acc; }
   .completeItem { display: block; width: 100%; text-align: left; background: transparent; border: 0; border-bottom: 1px solid #2d2d2d; color: #d4d4d4; padding: 5px 10px; cursor: pointer; font: 12.5px Consolas, monospace; }
   .completeItem:hover, .completeItem.sel { background: #094771; }
   .completeItem .kind { color: #858585; margin-left: 8px; }
@@ -360,6 +368,8 @@
   <button type="button" id="bFolder">📁 Dossier</button>
   <button type="button" id="bSave">💾 Enregistrer (Ctrl+S)</button>
   <button type="button" id="bDiag" title="Analyser le fichier avec le serveur de langage">✓ Problèmes</button>
+  <button type="button" id="bSplit" title="Afficher deux fichiers côte à côte — cliquer un onglet charge le volet droit">⊞</button>
+  <button type="button" id="bDiff" title="Comparer le fichier ouvert avec sa version Git (HEAD)">Δ Diff</button>
   <button type="button" id="bInline" title="Modifier la sélection avec l'IA (Ctrl+K)">✨ Inline</button>
   <button type="button" id="bTerminal" title="Terminal intégré interactif (Ctrl+`)">💻 Terminal</button>
   <button type="button" id="bPalette" title="Palette de commandes et recherche de fichiers (Ctrl+P / Ctrl+Maj+P)">⌘ Palette</button>
@@ -374,7 +384,7 @@
 <div id="main">
   <div id="side"><div id="searchBox"><input id="searchInput" placeholder="Rechercher dans le projet…" aria-label="Rechercher dans le projet"><button type="button" id="searchButton" title="Rechercher">⌕</button></div><div id="results" hidden></div><div id="tree"></div></div>
         <div id="sidegrip" title="Glisser pour redimensionner" aria-hidden="true"></div>
-      <div id="editorPane"><div id="tabs" role="tablist" aria-label="Fichiers ouverts"></div><search id="findBar"><input id="findInput" aria-label="Rechercher dans le fichier" placeholder="Rechercher dans le fichier"><button id="findPrev" type="button" title="Occurrence précédente (Maj+F3)">↑</button><button id="findNext" type="button" title="Occurrence suivante (F3)">↓</button><span id="findCount" aria-live="polite"></span><div id="replaceWrap"><input id="replaceInput" aria-label="Remplacer par" placeholder="Remplacer par"><button id="replaceOne" type="button">Remplacer</button><button id="replaceAll" type="button">Tout remplacer</button></div><button id="findClose" type="button" aria-label="Fermer la recherche">×</button></search><div id="editorWrap"><div id="monacoHost" style="position:absolute;inset:0;width:100%;height:100%;"></div><pre id="codeLayer" aria-hidden="true" style="display:none;"></pre><textarea id="ed" spellcheck="false" placeholder="Choisissez un dossier, puis un fichier…" style="display:none;"></textarea><div id="imagePreview" hidden><img id="previewImg" alt="Aperçu visuel du fichier"><span id="imageMeta"></span></div><div id="completePop" role="listbox" aria-label="Complétions"></div></div><div id="termDrawer" aria-label="Terminal intégré"><div id="termHeader"><span class="term-title">💻 Terminal</span><span id="termCwd">—</span><button type="button" class="term-btn" id="bTermClear" title="Effacer l'affichage">Effacer</button><button type="button" class="term-btn" id="bTermClose" title="Fermer le tiroir terminal">✕</button></div><div id="termOut" role="log" aria-live="polite"></div><form id="termForm" autocomplete="off"><span class="term-prompt">❯</span><input id="termInput" type="text" placeholder="Entrez une commande (ex: git status, npm test, dir)..." aria-label="Commande shell" spellcheck="false"><button type="submit" id="bTermSend">Exécuter</button></form></div></div>
+      <div id="editorPane"><div id="tabs" role="tablist" aria-label="Fichiers ouverts"></div><search id="findBar"><input id="findInput" aria-label="Rechercher dans le fichier" placeholder="Rechercher dans le fichier"><button id="findPrev" type="button" title="Occurrence précédente (Maj+F3)">↑</button><button id="findNext" type="button" title="Occurrence suivante (F3)">↓</button><span id="findCount" aria-live="polite"></span><div id="replaceWrap"><input id="replaceInput" aria-label="Remplacer par" placeholder="Remplacer par"><button id="replaceOne" type="button">Remplacer</button><button id="replaceAll" type="button">Tout remplacer</button></div><button id="findClose" type="button" aria-label="Fermer la recherche">×</button></search><div id="editorWrap"><div id="monacoHost" style="position:absolute;inset:0;width:100%;height:100%;"></div><div id="splitHost" aria-label="Volet secondaire : fichier côte à côte"><span id="splitStatus" class="pane-banner">Cliquez un onglet pour l'afficher ici</span></div><div id="diffView" aria-label="Comparaison Git avec HEAD"><span id="diffStatus" class="pane-banner">Δ Comparaison avec HEAD — les modifications restent éditables</span><button type="button" id="bDiffClose" class="pane-close" title="Fermer la comparaison">✕</button></div><pre id="codeLayer" aria-hidden="true" style="display:none;"></pre><textarea id="ed" spellcheck="false" placeholder="Choisissez un dossier, puis un fichier…" style="display:none;"></textarea><div id="imagePreview" hidden><img id="previewImg" alt="Aperçu visuel du fichier"><span id="imageMeta"></span></div><div id="completePop" role="listbox" aria-label="Complétions"></div></div><div id="termDrawer" aria-label="Terminal intégré"><div id="termHeader"><span class="term-title">💻 Terminal</span><span id="termCwd">—</span><button type="button" class="term-btn" id="bTermClear" title="Effacer l'affichage">Effacer</button><button type="button" class="term-btn" id="bTermClose" title="Fermer le tiroir terminal">✕</button></div><div id="termOut" role="log" aria-live="polite"></div><form id="termForm" autocomplete="off"><span class="term-prompt">❯</span><input id="termInput" type="text" placeholder="Entrez une commande (ex: git status, npm test, dir)..." aria-label="Commande shell" spellcheck="false"><button type="submit" id="bTermSend">Exécuter</button></form></div></div>
 </div>
 <div id="err"></div>
 <section id="diagPanel" aria-label="Problèmes du fichier"></section>
@@ -565,6 +575,7 @@ function initMonaco() {
           window.monaco.languages.registerInlineCompletionsProvider(langId, {
             provideInlineCompletions: async function (model, position) {
               if (!cur || !window.smolEd?.completion) return { items: [] };
+              if (splitInstance && model === splitInstance.getModel()) return { items: [] };
               const lineContent = model.getLineContent(position.lineNumber);
               if (lineContent.slice(position.column - 1).trim().length > 0) return { items: [] };
               const prefix = lineContent.slice(0, position.column - 1);
@@ -873,12 +884,26 @@ function showTab(tab, loadedImage) {
     }
   }
 }
-function activateTab(filePath) { stashCurrent(); const tab = tabs.activate(filePath); if (tab) showTab(tab); }
+function activateTab(filePath) {
+  if (splitMode && splitInstance && filePath !== cur) {
+    stashCurrent();
+    loadSplitTab(filePath);
+    return;
+  }
+  stashCurrent();
+  const tab = tabs.activate(filePath);
+  if (tab) showTab(tab);
+}
 function closeTab(filePath) {
   stashCurrent();
   const tab = tabs.list().find((item) => item.path === filePath);
   if (!tab || (tab.dirty && !confirm(`Fermer ${filePath} sans enregistrer ses modifications ?`))) return;
   const result = tabs.close(filePath, tab.dirty);
+  if (splitMode && splitPath === filePath && splitInstance) {
+    splitPath = null;
+    splitInstance.setModel(null);
+    updateSplitBanner();
+  }
   if (result.closed) showTab(result.active);
 }
 
@@ -1251,6 +1276,9 @@ $("bDelete").onclick = async () => {
 };
 $("bSave").onclick = save;
 $("bDiag").onclick = analyzeCurrent;
+$("bSplit").onclick = toggleSplit;
+$("bDiff").onclick = toggleDiff;
+$("bDiffClose").onclick = () => { if (diffOpen) closeDiff(); };
 
 // ---- Cmd+K : modifier la sélection avec l'IA, aperçu avant/après ----
 let inlineRange = null;
@@ -1906,6 +1934,155 @@ if (paletteInput) {
     }
   };
 }
+
+// ---- Pilier 1 : vue fractionnée (⊞) et comparaison Git (Δ) --------------
+let splitMode = false;
+let splitInstance = null;
+let splitPath = null;
+const splitSynced = new Set();
+let diffEditor = null;
+let diffOriginal = null;
+let diffOpen = false;
+
+function updateSplitBanner() {
+  const el = $("splitStatus");
+  if (el) el.textContent = splitPath ? "◧ " + splitPath : "Cliquez un onglet pour l'afficher ici";
+}
+
+function ensureSplitModel(tab) {
+  const uri = window.monaco.Uri.file(tab.path);
+  let model = window.monaco.editor.getModel(uri);
+  if (!model) {
+    model = window.monaco.editor.createModel(tab.content ?? "", monacoLanguageFor(tab.path), uri);
+  } else if (model.getValue() !== (tab.content ?? "") && !tab.dirty) {
+    model.setValue(tab.content ?? "");
+  }
+  if (!splitSynced.has(uri.toString())) {
+    splitSynced.add(uri.toString());
+    model.onDidChangeContent(() => {
+      if (splitPath !== tab.path || !splitInstance || splitInstance.getModel() !== model) return;
+      tabs.update(tab.path, model.getValue());
+      renderTabs();
+    });
+  }
+  return model;
+}
+
+function loadSplitTab(filePath) {
+  if (!splitMode || !splitInstance) return;
+  const tab = tabs.list().find((t) => t.path === filePath);
+  if (!tab) { showErr("Ouvrez d'abord ce fichier, puis il apparaîtra dans le volet droit."); return; }
+  if (IMAGE_FILE_RE.test(tab.path)) { showErr("Les images s'affichent dans le volet principal."); return; }
+  splitPath = tab.path;
+  splitInstance.setModel(ensureSplitModel(tab));
+  updateSplitBanner();
+  splitInstance.focus();
+}
+
+async function saveSplit() {
+  if (!splitMode || !splitInstance || !splitPath) { showErr("Le volet secondaire n'affiche aucun fichier."); return; }
+  if (IMAGE_FILE_RE.test(splitPath)) { showErr("Les images sont en lecture seule."); return; }
+  const content = splitInstance.getValue();
+  const tab = tabs.list().find((t) => t.path === splitPath);
+  try {
+    const result = await window.smolEd.save(splitPath, content, tab ? tab.mtimeMs : undefined);
+    const saved = tabs.saved(splitPath, result.mtimeMs, content);
+    renderTabs();
+    $("sMsg").textContent = (saved?.dirty ? "volet secondaire · enregistré · modifications restantes " : "volet secondaire · enregistré ✓ ") + new Date().toLocaleTimeString();
+  } catch (e) { showErr(e.message); }
+}
+
+function toggleSplit() {
+  if (!window.monaco || !monacoInstance) { showErr("L'éditeur n'est pas encore prêt."); return; }
+  splitMode = !splitMode;
+  const host = $("splitHost");
+  if (!splitMode) {
+    host.classList.remove("open");
+    $("monacoHost").style.width = "";
+    splitPath = null;
+    if (splitInstance) { splitInstance.dispose(); splitInstance = null; }
+    updateSplitBanner();
+    $("bSplit").classList.remove("active");
+    return;
+  }
+  splitInstance = window.monaco.editor.create(host, {
+    value: "",
+    language: "plaintext",
+    theme: "vs-dark",
+    automaticLayout: true,
+    fontSize: 14,
+    fontFamily: 'Consolas, "Courier New", monospace',
+    minimap: { enabled: false },
+    folding: true,
+    lineNumbers: "on",
+    scrollBeyondLastLine: false,
+    readOnly: false,
+    cursorBlinking: "smooth",
+    tabSize: 2,
+    wordWrap: "off",
+    inlineSuggest: { enabled: true, showToolbar: "onHover" },
+  });
+  splitInstance.addCommand(window.monaco.KeyMod.CtrlCmd | window.monaco.KeyCode.KeyS, () => { void saveSplit(); });
+  host.classList.add("open");
+  $("monacoHost").style.width = "50%";
+  $("bSplit").classList.add("active");
+  if (cur) loadSplitTab(cur);
+  else updateSplitBanner();
+}
+
+function closeDiff() {
+  if (diffEditor) { diffEditor.dispose(); diffEditor = null; }
+  if (diffOriginal) { diffOriginal.dispose(); diffOriginal = null; }
+  $("diffView").classList.remove("open");
+  diffOpen = false;
+  $("bDiff").classList.remove("active");
+  if (monacoInstance) monacoInstance.layout();
+}
+
+async function toggleDiff() {
+  if (!window.monaco || !monacoInstance) { showErr("L'éditeur n'est pas encore prêt."); return; }
+  if (diffOpen) { closeDiff(); return; }
+  if (!cur) { showErr("Ouvrez d'abord un fichier."); return; }
+  if (IMAGE_FILE_RE.test(cur)) { showErr("Les images ne se comparent pas."); return; }
+  const filePath = cur;
+  const mainModel = monacoInstance.getModel();
+  if (!mainModel) return;
+  $("diffView").classList.add("open");
+  diffOpen = true;
+  $("bDiff").classList.add("active");
+  $("diffStatus").textContent = "Δ Chargement de la version Git…";
+  try {
+    const r = await window.smolEd.gitShow(filePath);
+    if (!diffOpen || cur !== filePath) return;
+    const source = r && r.tracked ? String(r.content ?? "") : "";
+    diffOriginal = window.monaco.editor.createModel(
+      source,
+      monacoLanguageFor(filePath),
+      window.monaco.Uri.parse("inmemory://githead/" + encodeURIComponent(filePath))
+    );
+    diffEditor = window.monaco.editor.createDiffEditor($("diffView"), {
+      theme: "vs-dark",
+      automaticLayout: true,
+      fontSize: 14,
+      fontFamily: 'Consolas, "Courier New", monospace',
+      renderSideBySide: true,
+      originalEditable: false,
+      readOnly: false,
+      minimap: { enabled: false },
+      scrollBeyondLastLine: false,
+    });
+    diffEditor.setModel({ original: diffOriginal, modified: mainModel });
+    $("diffStatus").textContent = r && r.tracked ? "Δ HEAD — " + filePath : "Δ Fichier non suivi — comparaison avec un fichier vide";
+  } catch (e) {
+    closeDiff();
+    showErr(e.message || String(e));
+  }
+}
+
+window.addEventListener("resize", () => {
+  if (splitInstance) splitInstance.layout();
+  if (diffEditor) diffEditor.layout();
+});
 
 void refreshBackendStatus();
 setInterval(() => { void refreshBackendStatus(); }, 8000);

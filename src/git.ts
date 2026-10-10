@@ -635,6 +635,33 @@ export function gitRevertFile(root: string, relPath: string): string {
   return `"${rel}" restauré à HEAD.`;
 }
 
+/** Content of a tracked file at HEAD — the "original" side of a Git diff in
+ * the editor. Untracked files (added, deleted, or a git that cannot answer)
+ * come back { tracked: false }. Read-only, never throws. The editor's own
+ * byte cap (1 Mo) applies so a huge generated file cannot freeze the UI. */
+export function gitShowFile(root: string, relPath: string): { tracked: boolean; content: string | null } {
+  if (!isGitRepo(root) || typeof relPath !== "string" || !relPath || relPath.includes("..")) {
+    return { tracked: false, content: null };
+  }
+  const rel = relPath.split(path.sep).join("/");
+  let res: ReturnType<typeof spawnSync>;
+  try {
+    res = spawnSync("git", ["show", `HEAD:${rel}`], {
+      cwd: root,
+      encoding: "utf8",
+      timeout: GIT_TIMEOUT_MS,
+      windowsHide: true,
+      maxBuffer: 4 * 1024 * 1024,
+    });
+  } catch {
+    return { tracked: false, content: null };
+  }
+  if (res.error || res.status !== 0) return { tracked: false, content: null };
+  const output = String(res.stdout ?? "");
+  const fileCap = 1024 * 1024;
+  return { tracked: true, content: output.length > fileCap ? output.slice(0, fileCap) : output };
+}
+
 /** Short status per direct child of one directory: name -> "A", "U", "D", "M", ...
  * Powers file-tree badges. One bounded git call. Never throws. */
 export function gitStatusMap(root: string, dirAbs: string): Map<string, string> {

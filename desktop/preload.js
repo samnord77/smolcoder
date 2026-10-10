@@ -27,6 +27,7 @@ contextBridge.exposeInMainWorld("smolEd", {
   gitStatus: () => ipcRenderer.invoke("ed:gitStatus"),
   gitSyncStatus: () => ipcRenderer.invoke("ed:gitSyncStatus"),
   gitBlame: (rel, line) => ipcRenderer.invoke("ed:gitBlame", rel, line),
+  gitShow: (rel) => ipcRenderer.invoke("ed:gitShow", rel),
   backendStatus: () => ipcRenderer.invoke("ed:backendStatus"),
   runCommand: (cmd) => ipcRenderer.invoke("ed:runCommand", cmd),
   highlightCode: (source, language) => highlightHtml(source, language),
