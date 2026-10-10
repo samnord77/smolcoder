@@ -1,6 +1,6 @@
 {
   "name": "smolcoder-desktop",
-  "version": "0.1.0",
+  "version": "0.7.3",
   "description": "IDE bureau Electron pour smolcoder (editeur, terminal, chat, taches).",
   "license": "MIT",
   "main": "main.js"

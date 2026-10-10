@@ -52,7 +52,10 @@ test("detach keeps the process alive as a real background task", async () => {
   assert.match(out, /debut/, "and it is the real output");
   assert.ok(!liveShellList().some((i) => i.command === cmd), "a detached run stops counting down");
   assert.match(tm.list(), new RegExp(`\\b${id}\\s+running`), "the manager now owns a running task");
-  const finishDeadline = Date.now() + 10_000;
+  // Sous forte charge (suite complète), le démarrage de node et la sortie du
+  // processus détaché peuvent dépasser 10 s : on borne plus large sans
+  // changer ce que le test prouve.
+  const finishDeadline = Date.now() + 25_000;
   while (exits.length === 0 && Date.now() < finishDeadline) await sleep(100);
   assert.deepEqual(exits, [`${id}:0`], "the adopted process exits successfully within the bounded wait");
   const log = tm.logs(id);

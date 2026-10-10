@@ -162,8 +162,14 @@ test("a slow server gets one background retry, then the cache tells the truth", 
   const first = await bridge.status(250); // too fast for a 700 ms boot
   assert.equal(first[0]?.ok, false, JSON.stringify(first));
   assert.match(first[0]?.error ?? "", /too slow/);
-  await new Promise((r) => setTimeout(r, 1400)); // background retry lands
-  const second = await bridge.status(250);
+  // Le retry d'arrière-plan aboutit : on l'attend par sondage (jusqu'à 8 s)
+  // au lieu d'un délai fixe, pour ne pas échouer sous forte charge CPU.
+  const retryDeadline = Date.now() + 8000;
+  let second = await bridge.status(250);
+  while (second[0]?.ok !== true && Date.now() < retryDeadline) {
+    await new Promise((r) => setTimeout(r, 200));
+    second = await bridge.status(250);
+  }
   assert.equal(second[0]?.ok, true, JSON.stringify(second));
   assert.ok(second[0]?.tools?.includes("echo"));
 });

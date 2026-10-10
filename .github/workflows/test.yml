@@ -5,10 +5,16 @@ on:
     branches: [main]
   pull_request:
 
+# One run per branch/PR at a time: a newer push cancels the stale one.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     name: ${{ matrix.os }} · node ${{ matrix.node }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -25,4 +31,21 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: npm
       - run: npm ci
-      - run: npm test
+      # TypeScript strict, lint Biome et format Prettier : le garde-fou rapide.
+      - name: Contrôle qualité (typecheck + lint + format)
+        run: npm run qa
+        timeout-minutes: 10
+      # Build strict + suite complète (442 tests, concurrency=1) : le socle
+      # « zéro régression » sur les 3 OS.
+      - name: Suite complète de tests
+        run: npm test
+        timeout-minutes: 50
+      - name: Remonter les journaux en cas d'échec
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs-${{ matrix.os }}-${{ matrix.node }}
+          path: |
+            *.log
+            test/*.log
+          if-no-files-found: ignore
