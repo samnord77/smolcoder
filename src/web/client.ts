@@ -3471,6 +3471,42 @@ function buildFilesTab(v, t) {
         openInlineBar();
       });
 
+      const webGoToDefinitionAt = async (tab, line, col) => {
+        if (!tab || !tab.filePath) return;
+        const url =
+          "/code/definition?k=" + k + "&sid=" + encodeURIComponent(v.sid) +
+          "&path=" + encodeURIComponent(tab.filePath) + "&line=" + line + "&col=" + col;
+        let data = null;
+        try { data = await (await fetch(url)).json(); } catch (e) { data = null; }
+        const defs = (data && data.defs) || [];
+        if (!defs.length) return;
+        const d = defs[0];
+        if (d.path && d.path !== tab.filePath) {
+          try { await tab.loadFile(d.path); } catch (e) { return; }
+        }
+        const me = monacoEditorInstance;
+        if (me && window.monaco) {
+          me.focus();
+          me.setPosition({ lineNumber: Number(d.line) || 1, column: Number(d.col) || 1 });
+          me.revealPositionInCenter({ lineNumber: Number(d.line) || 1, column: Number(d.col) || 1 });
+        }
+      };
+
+      monacoEditorInstance.addCommand(window.monaco.KeyCode.F12, () => {
+        const pos = monacoEditorInstance.getPosition();
+        if (pos) void webGoToDefinitionAt(t, pos.lineNumber, pos.column);
+      });
+
+      // Ctrl+Clic (souris libre : multiCurseur sur Alt) → définition.
+      monacoEditorInstance.onMouseDown((e) => {
+        const mod = e && e.event && (e.event.ctrlKey || e.event.metaKey);
+        if (!mod) return;
+        const cont = e && e.target && e.target.type === window.monaco.editor.MouseTargetType.CONTENT_TEXT;
+        if (!cont) return;
+        const p = (e.target && e.target.position) || monacoEditorInstance.getPosition();
+        if (p) void webGoToDefinitionAt(t, p.lineNumber, p.column);
+      });
+
       window.addEventListener("resize", () => {
         if (monacoEditorInstance) monacoEditorInstance.layout();
       });
@@ -6988,12 +7024,59 @@ function executeWebPaletteItem(it) {
   if (it.run) it.run();
 }
 
+let webSymbolTimer = null;
+let webSymbolSeq = 0;
+
+async function webSymbolSearch(q, v) {
+  const search = q.slice(1).trim();
+  const seq = ++webSymbolSeq;
+  if (webSymbolTimer) clearTimeout(webSymbolTimer);
+  webPaletteItems = [];
+  if (!search || !v) { webPaletteIdx = 0; renderWebPaletteItems(); return; }
+  webSymbolTimer = setTimeout(async () => {
+    if (seq !== webSymbolSeq) return;
+    let symbols = [];
+    try {
+      const url = "/code/wsymbol?k=" + encodeURIComponent(k) + "&sid=" + encodeURIComponent(v.sid) + "&q=" + encodeURIComponent(search) + "&lang=typescript";
+      const data = await (await fetch(url)).json();
+      symbols = (data && data.symbols) || [];
+    } catch (e) { symbols = []; }
+    if (seq !== webSymbolSeq) return;
+    webPaletteItems = symbols.map((s) => ({
+      label: s.name || "?",
+      detail: (s.path || "") + ":" + (s.line || 1),
+      icon: "◎",
+      run: () => { void webJumpTo(s, v); },
+    }));
+    webPaletteIdx = 0;
+    renderWebPaletteItems();
+  }, 220);
+}
+
+async function webJumpTo(s, v) {
+  if (!s || !s.path || !v) return;
+  const ft = v.tabs.find((tb) => tb.kind === "files");
+  if (!ft) return;
+  try { if (ft.filePath !== s.path) await ft.loadFile(s.path); } catch (e) { return; }
+  const me = ft.monacoEditor;
+  if (me && window.monaco) {
+    me.focus();
+    me.setPosition({ lineNumber: Number(s.line) || 1, column: Number(s.col) || 1 });
+    me.revealPositionInCenter({ lineNumber: Number(s.line) || 1, column: Number(s.col) || 1 });
+  }
+}
+
 function filterWebPalette() {
   const q = (webPaletteInput ? webPaletteInput.value : "").trim();
   const isCmd = q.startsWith(">");
-  if (webPaletteIcon) webPaletteIcon.textContent = isCmd ? ">" : "📄";
+  const isSym = q.startsWith("@");
+  if (webPaletteIcon) webPaletteIcon.textContent = isCmd ? ">" : isSym ? "@" : "📄";
 
   const v = active;
+  if (isSym) {
+    webSymbolSearch(q, v);
+    return;
+  }
   const commands = [
     { label: "Basculer le Terminal & Dock Pro", detail: "Ctrl+Tilde", icon: "💻", run: () => togglePanelKind("term") },
     { label: "Fichiers & Explorateur de projet", detail: "Onglet fichiers", icon: "📁", run: () => togglePanelKind("files") },

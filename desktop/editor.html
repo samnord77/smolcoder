@@ -500,6 +500,21 @@ function initMonaco() {
           openInlineBar();
         });
 
+        monacoInstance.addCommand(window.monaco.KeyCode.F12, () => {
+          const pos = monacoInstance.getPosition();
+          if (pos) void goToDefinitionAt(pos.lineNumber, pos.column);
+        });
+
+        // Ctrl+Clic (la souris est libre : multiCurseur sur Alt) → définition.
+        monacoInstance.onMouseDown((e) => {
+          const mod = e && e.event && (e.event.ctrlKey || e.event.metaKey);
+          if (!mod) return;
+          const cont = e && e.target && e.target.type === window.monaco.editor.MouseTargetType.CONTENT_TEXT;
+          if (!cont) return;
+          const p = (e.target && e.target.position) || monacoInstance.getPosition();
+          if (p) void goToDefinitionAt(p.lineNumber, p.column);
+        });
+
         // ---- ghost-text (Auto-Copilot) : état partagé, une seule instance ----
         const ghostCache = new Map();
         const GHOST_CACHE_MAX = 120;
@@ -1915,10 +1930,74 @@ function executePaletteItem(it) {
   }
 }
 
+let paletteSymbolTimer = null;
+let paletteSymbolSeq = 0;
+
+// Place le curseur sur un fichier/ligne/colonne (volet Monaco ou zone texte).
+async function jumpToLine(rel, line, col) {
+  if (!rel) return;
+  if (cur !== rel) {
+    try { await openFile(rel); } catch (e) { return; }
+  }
+  const ln = Number(line) || 1;
+  const cn = Number(col) || 1;
+  if (monacoInstance) {
+    monacoInstance.focus();
+    monacoInstance.setPosition({ lineNumber: ln, column: cn });
+    monacoInstance.revealPositionInCenter({ lineNumber: ln, column: cn });
+  } else if (ed) {
+    const lines = ed.value.split("\n");
+    const li = Math.max(0, Math.min(ln - 1, lines.length - 1));
+    const off = lines.slice(0, li).join("\n").length + (li > 0 ? 1 : 0);
+    ed.focus(); ed.setSelectionRange(off, off); updateCursor();
+  }
+}
+
+async function goToDefinitionAt(line, col) {
+  if (!cur || !window.smolEd || !window.smolEd.definition) return;
+  let r = null;
+  try { r = await window.smolEd.definition(cur, line, col); } catch (e) { r = null; }
+  const defs = (r && r.defs) || [];
+  if (!defs.length) return;
+  await jumpToLine(defs[0].path, defs[0].line, defs[0].col);
+}
+
 function filterPalette() {
   const q = (paletteInput ? paletteInput.value : "").trim();
   const isCmd = q.startsWith(">");
-  if (palettePromptIcon) palettePromptIcon.textContent = isCmd ? ">" : "📄";
+  const isSym = q.startsWith("@");
+  if (palettePromptIcon) palettePromptIcon.textContent = isCmd ? ">" : isSym ? "@" : "📄";
+
+  if (isSym) {
+    const search = q.slice(1).trim();
+    const seq = ++paletteSymbolSeq;
+    if (paletteSymbolTimer) clearTimeout(paletteSymbolTimer);
+    paletteItems = [];
+    if (search) {
+      paletteSymbolTimer = setTimeout(async () => {
+        if (seq !== paletteSymbolSeq) return;
+        let symbols = [];
+        if (window.smolEd && window.smolEd.wsymbol) {
+          try {
+            const r = await window.smolEd.wsymbol(search, "typescript");
+            symbols = (r && r.symbols) || [];
+          } catch (e) { symbols = []; }
+        }
+        if (seq !== paletteSymbolSeq) return;
+        paletteItems = symbols.map((s) => ({
+          label: s.name || "?",
+          detail: `${s.path || ""}:${s.line || 1}`,
+          icon: "◎",
+          run: () => { void jumpToLine(s.path, s.line, s.col); },
+        }));
+        paletteSelectedIndex = 0;
+        renderPaletteList();
+      }, 220);
+    }
+    paletteSelectedIndex = 0;
+    renderPaletteList();
+    return;
+  }
 
   if (isCmd) {
     const search = q.slice(1).trim().toLowerCase();

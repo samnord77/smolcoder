@@ -40,7 +40,15 @@ import {
 } from "../git";
 import { appendSmolLog, readRecentLogs } from "../logger";
 import { installLspServer } from "../lsp-install";
-import { LSP_LANGS, lspAvailability, queryCode, queryDiagStructured, serverDefForLang } from "../lsp-pro";
+import {
+  LSP_LANGS,
+  lspAvailability,
+  queryCode,
+  queryDefStructured,
+  queryDiagStructured,
+  querySymbolsStructured,
+  serverDefForLang,
+} from "../lsp-pro";
 import { loadMcpConfig, setMcpEnabled } from "../mcp";
 import { Plan } from "../plan";
 import { resolveInWorkspace, SandboxError } from "../sandbox";
@@ -1373,6 +1381,39 @@ export class WebHub {
             return;
           }
           void queryDiagStructured(live.workspace, rel)
+            .then((result) => json(200, result))
+            .catch((err: any) => json(400, { error: String(err?.message ?? err).slice(0, 500) }));
+          return;
+        }
+        case "/code/definition": {
+          const sid = String(url.searchParams.get("sid") ?? "");
+          const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
+          if (!live) {
+            json(404, { error: "session inexistante" });
+            return;
+          }
+          const rel = String(url.searchParams.get("path") ?? "");
+          const line = Number(url.searchParams.get("line"));
+          const col = Number(url.searchParams.get("col"));
+          if (!rel || !Number.isSafeInteger(line) || !Number.isSafeInteger(col) || line < 1 || col < 1) {
+            json(400, { error: "path, line et col (>=1) sont requis" });
+            return;
+          }
+          void queryDefStructured(live.workspace, rel, line, col)
+            .then((result) => json(200, result))
+            .catch((err: any) => json(400, { error: String(err?.message ?? err).slice(0, 500) }));
+          return;
+        }
+        case "/code/wsymbol": {
+          const sid = String(url.searchParams.get("sid") ?? "");
+          const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
+          if (!live) {
+            json(404, { error: "session inexistante" });
+            return;
+          }
+          const q = String(url.searchParams.get("q") ?? "");
+          const lang = String(url.searchParams.get("lang") ?? "typescript");
+          void querySymbolsStructured(live.workspace, q, lang)
             .then((result) => json(200, result))
             .catch((err: any) => json(400, { error: String(err?.message ?? err).slice(0, 500) }));
           return;

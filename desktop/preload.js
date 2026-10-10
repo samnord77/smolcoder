@@ -23,6 +23,8 @@ contextBridge.exposeInMainWorld("smolEd", {
   completion: (rel, line, col) => ipcRenderer.invoke("ed:completion", rel, line, col),
   aiComplete: (rel, line, col) => ipcRenderer.invoke("ed:aiComplete", rel, line, col),
   hover: (rel, line, col) => ipcRenderer.invoke("ed:hover", rel, line, col),
+  definition: (rel, line, col) => ipcRenderer.invoke("ed:definition", rel, line, col),
+  wsymbol: (query, lang) => ipcRenderer.invoke("ed:wsymbol", query, lang),
   inlineStart: (payload) => ipcRenderer.invoke("ed:inlineStart", payload),
   inlineResult: (op) => ipcRenderer.invoke("ed:inlineResult", op),
   gitStatus: () => ipcRenderer.invoke("ed:gitStatus"),

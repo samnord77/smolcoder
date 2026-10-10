@@ -43,4 +43,27 @@ la fois avec validation (build + QA + tests) et commit de sauvegarde.
 - **Validation** : build exit 0, qa vert, `term-fix.test.js` 7/7, `editor-ui`
   2/2, `desktop:smoke` 7/7.
 
-## Pilier 3 — Navigation chirurgicale (F12 / Ctrl+Clic + symboles @ dans Ctrl+P) — À FAIRE
+## Pilier 3 — Navigation chirurgicale (F12 / Ctrl+Clic + symboles @ dans Ctrl+P) — FAIT 2026-10-10
+
+- **Cœur LSP (`src/lsp-pro.ts`, commit `aef57a7`)** : nouvelles requêtes
+  structurées `queryDefStructured` (définition → chemin/ligne/colonne) et
+  `querySymbolsStructured` (symboles d'espace de travail bornés à 20) ; les
+  anciennes réponses texte (`fmtLoc`, `fmtWorkspaceEdit`) passent désormais par
+  `uriToAbs`, ce qui corrige la conversion des URI `file:///C:/…` sous Windows
+  (avant : `../../C:/…`, un chemin inexploitable pour ouvrir le fichier).
+- **Routes du hub** : `/code/definition` (`rel`, `line`, `col`) et
+  `/code/wsymbol` (`q`, `lang`), réponses JSON bornées par session.
+- **Pont desktop** : IPC `ed:definition` / `ed:wsymbol` dans `desktop/main.js`,
+  exposés en `window.smolEd.definition` / `window.smolEd.wsymbol`
+  (`desktop/preload.js`).
+- **Rendu Bureau (`desktop/editor.html`)** : `F12` et `Ctrl+Clic` sautent à la
+  définition LSP (le volet fractionné et la vue texte ont leur repli) ; la
+  palette (`Ctrl+P`) accepte le préfixe `@` et cherche les symboles du
+  workspace (debounce 220 ms, garde anti-réponses obsolètes, entrée → ouverture
+  du fichier, curseur posé sur la ligne/colonne et recentrage).
+- **Rendu Web (`src/web/client.ts`)** : mêmes raccourcis sur l'éditeur Monaco
+  de l'onglet actif et même mode `@` dans la palette, alimentés par les routes
+  `/code/definition` et `/code/wsymbol`.
+- **Validation** : `npm run build` exit 0, `npm run qa` (typecheck + lint +
+  format) vert, suites ciblées 69/69 (`lsp-pro`, `editor-ui`, `web`, `git`,
+  `term-fix`, `desktop-startup`), suite complète 458/458, `desktop:smoke` 7/7.

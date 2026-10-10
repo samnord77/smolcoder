@@ -570,6 +570,26 @@ ipcMain.handle("ed:hover", async (_e, rel, line, col) => {
   }
 });
 
+ipcMain.handle("ed:definition", async (_e, rel, line, col) => {
+  const root = assertRoot();
+  const { queryDefStructured } = require(path.join(ROOT, "dist", "lsp-pro.js"));
+  try {
+    return await queryDefStructured(root, rel, line, col);
+  } catch (err) {
+    return { text: err?.message || String(err), defs: [] };
+  }
+});
+
+ipcMain.handle("ed:wsymbol", async (_e, query, lang) => {
+  const root = assertRoot();
+  const { querySymbolsStructured } = require(path.join(ROOT, "dist", "lsp-pro.js"));
+  try {
+    return await querySymbolsStructured(root, String(query ?? ""), String(lang ?? "typescript"));
+  } catch (err) {
+    return { text: err?.message || String(err), symbols: [] };
+  }
+});
+
 ipcMain.handle("ed:runCommand", async (_e, cmd) => {
   const root = assertRoot();
   const { execSync } = require("child_process");
