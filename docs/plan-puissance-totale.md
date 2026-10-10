@@ -67,3 +67,56 @@ la fois avec validation (build + QA + tests) et commit de sauvegarde.
 - **Validation** : `npm run build` exit 0, `npm run qa` (typecheck + lint +
   format) vert, suites ciblées 69/69 (`lsp-pro`, `editor-ui`, `web`, `git`,
   `term-fix`, `desktop-startup`), suite complète 458/458, `desktop:smoke` 7/7.
+
+## Enrichissements — gouttière Git, bouton « + », FlagshipRouter, correctif Ollama (2026-10-10)
+
+### Gouttière Git dans Monaco (Bureau + Web)
+
+- **Cœur partagé (`src/editor-gutter.ts`)** : `diffLines(head, current)` puis
+  `gutterDecorations(head, current)` donnent, pour chaque ligne du fichier
+  ouvert, un marqueur `added` / `modified` / `removed` par rapport à la version
+  commitée. LCS borné (1 200 × 1 200 cellules, au-delà : « tout a changé »),
+  fins de ligne CRLF normalisées, fichier non suivi (`head === null`) = toutes
+  les lignes ajoutées. `editorGutterBrowserSource` fournit la version à inliner
+  dans la page web ; le preload Electron charge la version compilée depuis
+  `dist/`.
+- **Bureau (`desktop/editor.html` + `desktop/preload.js`)** : barres verte
+  (ajout), bleue (modification), rouge (suppression) à gauche des numéros via
+  `linesDecorationsClassName` ; un « + » apparaît au survol d'une ligne dans la
+  marge et un clic dessus sélectionne la ligne et ouvre l'édition IA (Ctrl+K).
+  Rafraîchissement différé (450 ms) après chaque frappe, immédiat au changement
+  d'onglet et à l'enregistrement.
+- **Web (`src/web/client.ts` + `src/web/styles.ts`)** : mêmes barres et même
+  bouton « + » sur l'éditeur Monaco de l'onglet actif, alimentés par la nouvelle
+  route `/code/git-show` (`sid` + `path`) ; `glyphMargin` est activé, le survol
+  de la marge à numéros affiche le « + » et le clic prépare la sélection puis
+  ouvre la barre inline existante.
+- **Validation** : `editor-gutter.test.js` 9/9 (dont une réécriture de
+  4 000 lignes bornée dans le temps), `editor-ui` 2/2 (les deux bundles
+  d'éditeur sont du JavaScript navigateur valide), suite ciblée 34/34.
+
+### FlagshipRouter (137 modèles, `gpt-6-astra`)
+
+- **Détection** : `src/hosts.ts` (`FLAGSHIPROUTER_PORT = 20128`),
+  `src/detect.ts` (nouveau `BackendKind` `"flagship"`, `flagshipBaseUrls()`,
+  `isFlagshipBase()`, sonde ajoutée à `detectAll()`). Le routeur répond en
+  OpenAI-compatible sans clé sur `localhost`.
+- **Affichage** : `src/session.ts` nomme le fournisseur « FlagshipRouter » et
+  l'indice de contexte `flagshiprouter · <ctx> ctx` ; `src/network.ts`
+  (`BACKEND_NAMES.flagship`), `src/config.ts`, `src/status.ts`,
+  `src/ai-complete.ts` acceptent la même valeur.
+- **Réglages** : `FLAGSHIPROUTER_BASE` ou `FLAGSHIPROUTER_URL` pour une autre
+  adresse, `FLAGSHIPROUTER_KEY` / `FLAGSHIPROUTER_API_KEY` pour une clé,
+  `SMOLCODER_FLAGSHIP=0` pour couper la sonde.
+- **Validation** : `flagship.test.js` 5/5, plus une tâche réelle corrigée de
+  bout en bout par `gpt-6-astra` (13 appels modèle, 14 appels outil,
+  vérification réussie du premier coup).
+
+### Correctif Ollama
+
+- `src/providers/transport.ts` parlait déjà français, mais
+  `src/providers/ollama.ts` cherchait encore le texte anglais des erreurs HTTP,
+  donc ses échelles de repli ne se déclenchaient jamais : lancer un modèle sans
+  commutateur « thinking » (`qwen2.5:3b`) tuait le CLI aussitôt. Les trois sites
+  utilisent désormais `isHttp4xx(err)` exporté par transport, et deux tests à
+  faux serveur Ollama échouent avec l'ancien code.
