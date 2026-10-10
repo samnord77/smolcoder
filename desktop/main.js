@@ -548,6 +548,16 @@ ipcMain.handle("ed:completion", async (_e, rel, line, col) => {
   return { items };
 });
 
+ipcMain.handle("ed:aiComplete", async (_e, rel, line, col) => {
+  const root = assertRoot();
+  try {
+    const { aiComplete } = require(path.join(ROOT, "dist", "ai-complete.js"));
+    return await aiComplete(root, rel, line, col);
+  } catch (err) {
+    return { ok: false, error: err?.message || String(err) };
+  }
+});
+
 ipcMain.handle("ed:hover", async (_e, rel, line, col) => {
   const root = assertRoot();
   const { queryCode } = require(path.join(ROOT, "dist", "lsp-pro.js"));

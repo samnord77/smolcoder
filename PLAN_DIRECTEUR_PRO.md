@@ -156,6 +156,18 @@ traiter avant de considérer le plan entièrement clos :
   protocolaires partagés (`encodeLsp`, `splitCommand`, `isTsLike`,
   `lspDisabled`), son `querySymbols()` restant exporté pour les tests hérités
   mais hors du chemin de production.
+- **Étape 3.3 renforcée le 2026-10-10 (Auto-Copilot PRO)** : le ghost-text
+  Monaco (Web + Electron) est durci — `inlineSuggest` activé explicitement,
+  debounce + annulation AbortController, garde anti-réponses obsolètes, cache
+  LRU, `freeInlineCompletions` qui coupe la requête en vol — et enrichi d'une
+  **complétion IA de ligne hybride** : quand le LSP n'étend pas le mot tapé,
+  `src/ai-complete.ts` (route hub `/code/ai-complete`, IPC desktop
+  `ed:aiComplete`) demande au modèle configuré la fin de la ligne (timeout
+  1,6 s, 64 tokens max). Modèles : `SMOLCODER_COMPLETION_BASE` (Kaggle /
+  serveurs OpenAI-compatible), `OPENROUTER_API_KEY` (`:free`), `GEMINI_API_KEY`,
+  ou Ollama/LM Studio locaux ; sans modèle, le serveur répond 501 et l'éditeur
+  retombe sur la complétion LSP. Validé : build exit 0, qa vert, tests IA 6/6,
+  web 30/30, i18n 2/2, client-smoke 23/23, desktop:smoke 7/7.
 - **Vitesse de la suite de tests** : ~45–60 min à cause de timeouts réseau
   réels (tests `/status`, LSP, recovery). Un mode « rapide » piloté par
   l'environnement est recommandé pour boucler la validation en CI.

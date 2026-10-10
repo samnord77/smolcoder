@@ -20,6 +20,7 @@ contextBridge.exposeInMainWorld("smolEd", {
   renameEntry: (rel, to) => ipcRenderer.invoke("ed:rename", rel, to),
   deleteEntry: (rel) => ipcRenderer.invoke("ed:delete", rel),
   completion: (rel, line, col) => ipcRenderer.invoke("ed:completion", rel, line, col),
+  aiComplete: (rel, line, col) => ipcRenderer.invoke("ed:aiComplete", rel, line, col),
   hover: (rel, line, col) => ipcRenderer.invoke("ed:hover", rel, line, col),
   inlineStart: (payload) => ipcRenderer.invoke("ed:inlineStart", payload),
   inlineResult: (op) => ipcRenderer.invoke("ed:inlineResult", op),

@@ -471,6 +471,7 @@ function initMonaco() {
           tabSize: 2,
           wordWrap: "off",
           multiCursorModifier: "alt",
+          inlineSuggest: { enabled: true, showToolbar: "onHover" },
         });
         monacoReady = true;
 
@@ -485,6 +486,22 @@ function initMonaco() {
         monacoInstance.addCommand(window.monaco.KeyMod.CtrlCmd | window.monaco.KeyCode.KeyK, () => {
           openInlineBar();
         });
+
+        // ---- ghost-text (Auto-Copilot) : état partagé, une seule instance ----
+        const ghostCache = new Map();
+        const GHOST_CACHE_MAX = 120;
+        let ghostSeq = 0;         // identifie la requête la plus récente
+        let ghostAiOff = false;   // l'IA n'est pas disponible : on n'insiste pas
+        let ghostAiAt = 0;        // dernier appel IA (throttle réseau)
+        const ghostStop = () => { ghostSeq++; };
+        const ghostRemember = (key, item) => {
+          ghostCache.delete(key);
+          ghostCache.set(key, item);
+          if (ghostCache.size > GHOST_CACHE_MAX) {
+            const oldest = ghostCache.keys().next().value;
+            if (oldest !== undefined) ghostCache.delete(oldest);
+          }
+        };
 
         const supportedLangs = [
           "typescript", "javascript", "python", "rust", "go",
@@ -549,33 +566,52 @@ function initMonaco() {
             provideInlineCompletions: async function (model, position) {
               if (!cur || !window.smolEd?.completion) return { items: [] };
               const lineContent = model.getLineContent(position.lineNumber);
-              const suffix = lineContent.slice(position.column - 1);
-              if (suffix.trim().length > 0) return { items: [] };
+              if (lineContent.slice(position.column - 1).trim().length > 0) return { items: [] };
+              const prefix = lineContent.slice(0, position.column - 1);
+              if (prefix.trim().length < 3) return { items: [] };
               const word = model.getWordUntilPosition(position);
-              if (!word || word.word.length < 2) return { items: [] };
+              const wordText = (word && word.word) || "";
+              const wordStart = word ? word.startColumn : position.column;
+              const key = cur + "|" + position.lineNumber + "|" + position.column + "|" + prefix;
+              const cached = ghostCache.get(key);
+              if (cached) return { items: [cached] };
+              ghostStop();
+              const seq = ++ghostSeq;
+              const stale = () => seq !== ghostSeq;
               try {
                 const res = await window.smolEd.completion(cur, position.lineNumber, position.column);
+                if (stale()) return { items: [] };
                 const items = res?.items || [];
-                if (!items.length || !items[0]?.label) return { items: [] };
-                const top = items[0];
-                return {
-                  items: [
-                    {
-                      insertText: top.label,
-                      range: new window.monaco.Range(
-                        position.lineNumber,
-                        word.startColumn,
-                        position.lineNumber,
-                        position.column
-                      ),
-                    },
-                  ],
+                const top = items.find((it) => it?.label && it.label.length > wordText.length);
+                if (top) {
+                  const item = {
+                    insertText: top.label,
+                    range: new window.monaco.Range(position.lineNumber, wordStart, position.lineNumber, position.column),
+                  };
+                  ghostRemember(key, item);
+                  return { items: [item] };
+                }
+                // LSP n'apporte rien de plus : tentative de complétion IA.
+                if (ghostAiOff || Date.now() - ghostAiAt < 600) return { items: [] };
+                ghostAiAt = Date.now();
+                const ai = await window.smolEd.aiComplete(cur, position.lineNumber, position.column);
+                if (stale() || !ai || !ai.ok) {
+                  if (ai && !ai.ok && /aucun mod[èe]le/.test(String(ai.error || ""))) ghostAiOff = true;
+                  return { items: [] };
+                }
+                const cont = String(ai.continuation || "");
+                if (!cont || stale()) return { items: [] };
+                const item = {
+                  insertText: cont,
+                  range: new window.monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column),
                 };
-              } catch {
+                ghostRemember(key, item);
+                return { items: [item] };
+              } catch (e) {
                 return { items: [] };
               }
             },
-            freeInlineCompletions: function () {},
+            freeInlineCompletions: function () { ghostStop(); },
           });
         }
 

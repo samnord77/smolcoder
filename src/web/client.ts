@@ -3404,6 +3404,7 @@ function buildFilesTab(v, t) {
         tabSize: 2,
         wordWrap: "off",
         multiCursorModifier: "alt",
+        inlineSuggest: { enabled: true, showToolbar: "onHover" },
       });
       t.monacoEditor = monacoEditorInstance;
 
@@ -3473,6 +3474,25 @@ function buildFilesTab(v, t) {
       window.addEventListener("resize", () => {
         if (monacoEditorInstance) monacoEditorInstance.layout();
       });
+
+      // ---- ghost-text (Auto-Copilot) : état partagé, une seule instance ----
+      const ghostCache = new Map();
+      const GHOST_CACHE_MAX = 120;
+      let ghostReq = null;      // AbortController de la requête en vol
+      let ghostSeq = 0;         // identifie la requête la plus récente
+      let ghostAiOff = false;   // l'IA n'est pas disponible : on n'insiste pas
+      let ghostAiAt = 0;        // dernier appel IA (throttle réseau)
+      const ghostStop = () => {
+        if (ghostReq) { try { ghostReq.abort(); } catch (e) {} ghostReq = null; }
+      };
+      const ghostRemember = (key, item) => {
+        ghostCache.delete(key);
+        ghostCache.set(key, item);
+        if (ghostCache.size > GHOST_CACHE_MAX) {
+          const oldest = ghostCache.keys().next().value;
+          if (oldest !== undefined) ghostCache.delete(oldest);
+        }
+      };
 
       if (!window.__monacoProvidersRegistered) {
         window.__monacoProvidersRegistered = true;
@@ -3548,42 +3568,61 @@ function buildFilesTab(v, t) {
             provideInlineCompletions: async function (model, position) {
               if (!t.filePath) return { items: [] };
               const lineContent = model.getLineContent(position.lineNumber);
-              const suffix = lineContent.slice(position.column - 1);
-              if (suffix.trim().length > 0) return { items: [] };
+              if (lineContent.slice(position.column - 1).trim().length > 0) return { items: [] };
+              const prefix = lineContent.slice(0, position.column - 1);
+              if (prefix.trim().length < 3) return { items: [] };
               const word = model.getWordUntilPosition(position);
-              if (!word || word.word.length < 2) return { items: [] };
+              const wordText = (word && word.word) || "";
+              const wordStart = word ? word.startColumn : position.column;
+              const key = t.filePath + "|" + position.lineNumber + "|" + position.column + "|" + prefix;
+              const cached = ghostCache.get(key);
+              if (cached) return { items: [cached] };
+              ghostStop();
+              const ac = new AbortController();
+              ghostReq = ac;
+              const seq = ++ghostSeq;
+              const stale = () => seq !== ghostSeq || ac.signal.aborted;
               try {
-                const res = await fetch("/code/lsp?k=" + k + "&sid=" + encodeURIComponent(v.sid) + "&action=completion&path=" + encodeURIComponent(t.filePath) + "&line=" + position.lineNumber + "&col=" + position.column);
+                const res = await fetch("/code/lsp?k=" + k + "&sid=" + encodeURIComponent(v.sid) + "&action=completion&path=" + encodeURIComponent(t.filePath) + "&line=" + position.lineNumber + "&col=" + position.column, { signal: ac.signal });
                 const d = await res.json();
-                const lines = String((d && d.result) || "").split("\n");
+                if (stale()) return { items: [] };
                 let topLabel = "";
-                for (const ln of lines) {
-                  if (ln.startsWith("- ")) {
-                    const body = ln.slice(2);
-                    const mm = /^(.+?)(?: \(([^)]*)\))?(?: — (.*))?$/.exec(body);
-                    topLabel = (mm ? mm[1] : body).trim();
-                    if (topLabel) break;
-                  }
+                for (const ln of String((d && d.result) || "").split("\n")) {
+                  if (!ln.startsWith("- ")) continue;
+                  const body = ln.slice(2);
+                  const mm = /^(.+?)(?: \(([^)]*)\))?(?: — (.*))?$/.exec(body);
+                  const label = (mm ? mm[1] : body).trim();
+                  if (label) { topLabel = label; break; }
                 }
-                if (!topLabel) return { items: [] };
-                return {
-                  items: [
-                    {
-                      insertText: topLabel,
-                      range: new window.monaco.Range(
-                        position.lineNumber,
-                        word.startColumn,
-                        position.lineNumber,
-                        position.column
-                      ),
-                    },
-                  ],
+                // Le LSP complète le mot en cours quand il fait mieux que ce
+                // qui est déjà tapé ; sinon on laisse l'IA tenter la ligne.
+                if (topLabel && topLabel.length > wordText.length) {
+                  const item = {
+                    insertText: topLabel,
+                    range: new window.monaco.Range(position.lineNumber, wordStart, position.lineNumber, position.column),
+                  };
+                  ghostRemember(key, item);
+                  return { items: [item] };
+                }
+                if (ghostAiOff || Date.now() - ghostAiAt < 600) return { items: [] };
+                ghostAiAt = Date.now();
+                const ai = await fetch("/code/ai-complete?k=" + k + "&sid=" + encodeURIComponent(v.sid) + "&path=" + encodeURIComponent(t.filePath) + "&line=" + position.lineNumber + "&col=" + position.column, { signal: ac.signal });
+                if (ai.status === 501) { ghostAiOff = true; return { items: [] }; }
+                if (!ai.ok || stale()) return { items: [] };
+                const ad = await ai.json();
+                const cont = String((ad && ad.continuation) || "");
+                if (!cont || stale()) return { items: [] };
+                const item = {
+                  insertText: cont,
+                  range: new window.monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column),
                 };
-              } catch {
+                ghostRemember(key, item);
+                return { items: [item] };
+              } catch (e) {
                 return { items: [] };
               }
             },
-            freeInlineCompletions: function () {},
+            freeInlineCompletions: function () { ghostStop(); },
           });
         }
       }

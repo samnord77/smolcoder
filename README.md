@@ -18,6 +18,8 @@ You need two things.
 
 Prefer not to run models locally? smolcoder also talks to hosted OpenAI-compatible servers. Free Gemini models (set `GEMINI_API_KEY`) and OpenRouter's `:free` models (set `OPENROUTER_API_KEY`) show up in `/models` automatically, and any remote Ollama or LM Studio server — including a GPU notebook on Kaggle — can be added by address from the model picker. Keys live in environment variables only, are never written to disk, and are never sent to private or plain-HTTP hosts.
 
+The IDE's inline AI completion (ghost text, Auto-Copilot) follows the same rule: it uses `SMOLCODER_COMPLETION_BASE` (+ `SMOLCODER_COMPLETION_KEY` / `SMOLCODER_COMPLETION_MODEL`) for any OpenAI-compatible server, otherwise `OPENROUTER_API_KEY` or `GEMINI_API_KEY`, otherwise a local Ollama/LM Studio model — and falls back to LSP completion when no model is configured.
+
 Then install smolcoder and start it inside a project:
 
 ```bash

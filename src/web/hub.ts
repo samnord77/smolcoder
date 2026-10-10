@@ -17,6 +17,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import * as zlib from "node:zlib";
 import { Agent } from "../agent";
+import { aiComplete } from "../ai-complete";
 import { type Attachment, classifyUpload, extOf, MAX_UPLOAD_BYTES, mimeForExt, safeName } from "../attachments";
 import { queryIndex } from "../codeindex";
 import { DATA_DIR, loadConfig } from "../config";
@@ -1304,6 +1305,29 @@ export class WebHub {
           })
             .then((result) => json(200, { result }))
             .catch((err: any) => json(400, { error: String(err?.message ?? err).slice(0, 500) }));
+          return;
+        }
+        case "/code/ai-complete": {
+          const sid = String(url.searchParams.get("sid") ?? "");
+          const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
+          if (!live) {
+            json(404, { error: "session inexistante" });
+            return;
+          }
+          const num = (v: string | null): number | undefined => {
+            const n = Number(v);
+            return Number.isSafeInteger(n) && n >= 1 ? n : undefined;
+          };
+          const rel = String(url.searchParams.get("path") ?? "");
+          const line = num(url.searchParams.get("line"));
+          const col = num(url.searchParams.get("col"));
+          if (!rel || !line || !col) {
+            json(400, { error: "path, line et col sont requis" });
+            return;
+          }
+          aiComplete(live.workspace, rel, line, col)
+            .then((r) => json(r.ok ? 200 : 501, r))
+            .catch((err: any) => json(400, { error: String(err?.message ?? err).slice(0, 300) }));
           return;
         }
         case "/code/symbols": {
