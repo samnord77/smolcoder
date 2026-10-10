@@ -23,6 +23,24 @@ la fois avec validation (build + QA + tests) et commit de sauvegarde.
   13/13 (dont `gitShowFile`), `desktop-startup` 4/4, `editor-ui` 2/2,
   `i18n` 2/2, `web.test` 30/30, `desktop:smoke` 7/7.
 
-## Pilier 2 — Auto-Réparation Terminal 1 clic (🤖 Réparer l'erreur) — À FAIRE
+## Pilier 2 — Auto-Réparation Terminal 1 clic (🤖 Réparer l'erreur) — FAIT 2026-10-10
+
+- **Bouton `🤖 Réparer l'erreur`** : toute commande qui échoue dans le tiroir
+  terminal affiche ce bouton sous la trace d'erreur. Un clic construit un
+  contexte IA borné (commande + sortie/erreur, 4 000 caractères), ouvre le
+  fichier fautif extrait de la trace et pré-remplit la barre inline avec la
+  demande de correction (aperçu à valider avec Ctrl+S).
+- **Module partagé `src/term-fix.ts`** : `extractSourcePath(trace, root)` lit
+  les chemins Windows/Posix absolus, `src/…`, `test/…`, les rapports Python
+  `File "…"` et les chemins contenant des espaces ; ignore `node_modules`,
+  `dist`, `build`, `coverage`, `app.asar` ; ne retourne jamais un fichier hors
+  du workspace (les chemins absolus sous `root` sont convertis en chemins
+  relatifs) ; `buildTermErrorText(cmd, output, errText)` borne la commande à
+  1 000 caractères et la trace à 4 000.
+- **Pont** : `desktop/preload.js` expose `window.smolEd.buildTermErrorText` et
+  `window.smolEd.extractSourcePath` (rendu Electron) ; `editor.html` garde un
+  repli minimal hors Electron.
+- **Validation** : build exit 0, qa vert, `term-fix.test.js` 7/7, `editor-ui`
+  2/2, `desktop:smoke` 7/7.
 
 ## Pilier 3 — Navigation chirurgicale (F12 / Ctrl+Clic + symboles @ dans Ctrl+P) — À FAIRE

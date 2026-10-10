@@ -112,6 +112,9 @@
   .pane-close { position: absolute; right: 8px; top: 6px; z-index: 6; background: #3a3a3a; color: #fff; border: 1px solid #3c3c3c; border-radius: 4px; padding: 2px 8px; cursor: pointer; font: 11px "Segoe UI", sans-serif; }
   .pane-close:hover { background: #e51400; }
   #bSplit.active, #bDiff.active { background: #094771; border-color: #007acc; }
+  .term-fix-row { margin: 4px 0; }
+  .term-fix-btn { background: #0e639c; color: #fff; border: 0; border-radius: 6px; padding: 5px 10px; cursor: pointer; font: 12px "Segoe UI", sans-serif; }
+  .term-fix-btn:hover { background: #1177bb; }
   .completeItem { display: block; width: 100%; text-align: left; background: transparent; border: 0; border-bottom: 1px solid #2d2d2d; color: #d4d4d4; padding: 5px 10px; cursor: pointer; font: 12.5px Consolas, monospace; }
   .completeItem:hover, .completeItem.sel { background: #094771; }
   .completeItem .kind { color: #858585; margin-left: 8px; }
@@ -1654,6 +1657,58 @@ function termClear() {
   termAppend(`[Terminal Smolcoder prêt · ${root || "aucun dossier"}]`);
 }
 
+function buildTermErrorText(cmd, output, errText) {
+  const bridge = window.smolEd && window.smolEd.buildTermErrorText;
+  if (bridge) return bridge(cmd, output, errText);
+  const pieces = [];
+  if (cmd) pieces.push("Commande : " + cmd);
+  const trace = [output, errText].filter(Boolean).join("\n").trim().slice(0, 4000);
+  if (trace) pieces.push("Sortie :\n" + trace);
+  return pieces.join("\n\n");
+}
+
+// Chemin du fichier fautif d'une trace : le pont partagé si disponible, sinon
+// une heuristique minimale (mêmes racines projet) hors Electron.
+function termSourcePath(errorText) {
+  const bridge = window.smolEd && window.smolEd.extractSourcePath;
+  if (bridge) return bridge(errorText, root || undefined);
+  const exts = "(?:ts|js|jsx|tsx|mjs|cjs|py|rs|go|java|c|cc|cpp|h|hpp|json|html|css|md|sh)";
+  const hit =
+    new RegExp(String.raw`(?:^|[(\s"'=])((?:[A-Za-z]:[\\/]|/)[^\n:*?"<>|]{1,200}\.${exts})`, "i").exec(errorText) ||
+    new RegExp(String.raw`(?:^|[(\s"'=])((?:src|test|tests|desktop|scripts|lib|app|pages|packages)[\\/][^\n:*?"<>|]{1,200}\.${exts})`, "i").exec(errorText);
+  return hit && hit[1] ? hit[1] : null;
+}
+
+function offerTermFix(rawCmd, output, errText) {
+  if (!termOut || !root) return;
+  const row = document.createElement("div");
+  row.className = "term-fix-row";
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "term-fix-btn";
+  btn.textContent = "🤖 Réparer l'erreur";
+  btn.title = "Transmet la trace au correcteur IA — l'aperçu s'ouvre dans l'éditeur, à valider là.";
+  btn.onclick = async () => {
+    row.remove();
+    const errorText = buildTermErrorText(rawCmd, output, errText);
+    const hit = termSourcePath(errorText);
+    const rel = hit ? hit.replace(/\\/g, "/") : "";
+    if (rel && root && cur !== rel) {
+      try { await openFile(rel); } catch (e) { /* échec d'ouverture : on garde le fichier courant */ }
+    }
+    $("inlineInput").value =
+      "Une commande lancée dans le terminal a échoué. Corrige le code de ce fichier pour résoudre cette erreur.\n\n" + errorText;
+    openInlineBar();
+    ed.setSelectionRange(0, ed.value.length);
+    updateCursor();
+    $("inlineInput").focus();
+    void runInline();
+  };
+  row.appendChild(btn);
+  termOut.appendChild(row);
+  termOut.scrollTop = termOut.scrollHeight;
+}
+
 function toggleTerminalDrawer() {
   if (!termDrawer) return;
   const isOpen = termDrawer.classList.toggle("open");
@@ -1698,9 +1753,11 @@ if (termForm) {
       } else {
         if (res.output) termAppend(res.output, true);
         if (res.error) termAppend(`Erreur : ${res.error}`, true);
+        offerTermFix(rawCmd, res.output, res.error);
       }
     } catch (err) {
       termAppend(`Échec d'exécution : ${err?.message || err}`, true);
+      offerTermFix(rawCmd, "", err?.message || String(err));
     }
   };
 }

@@ -4,6 +4,7 @@ const { contextBridge, ipcRenderer } = require("electron");
 const { highlightHtml } = require("../dist/highlight.js");
 const { makeEditorTabStore } = require("../dist/editor-tabs.js");
 const editorTools = require("../dist/editor-tools.js");
+const termFix = require("../dist/term-fix.js");
 const tabs = makeEditorTabStore();
 
 contextBridge.exposeInMainWorld("smolEd", {
@@ -31,13 +32,16 @@ contextBridge.exposeInMainWorld("smolEd", {
   backendStatus: () => ipcRenderer.invoke("ed:backendStatus"),
   runCommand: (cmd) => ipcRenderer.invoke("ed:runCommand", cmd),
   highlightCode: (source, language) => highlightHtml(source, language),
+  buildTermErrorText: (cmd, output, errText) => termFix.buildTermErrorText(cmd, output, errText),
+  extractSourcePath: (text, root) => termFix.extractSourcePath(text, root),
   editorTools: {
     cursorPosition: (text, offset) => editorTools.cursorPosition(text, offset),
     offsetForPosition: (text, line, column) => editorTools.offsetForPosition(text, line, column),
     changeIndent: (text, start, end, direction) => editorTools.changeIndent(text, start, end, direction),
     insertNewlineWithIndent: (text, start, end) => editorTools.insertNewlineWithIndent(text, start, end),
     findMatches: (text, query, options) => editorTools.findMatches(text, query, options),
-    findNextMatch: (text, query, offset, backwards, caseSensitive) => editorTools.findNextMatch(text, query, offset, backwards, caseSensitive),
+    findNextMatch: (text, query, offset, backwards, caseSensitive) =>
+      editorTools.findNextMatch(text, query, offset, backwards, caseSensitive),
     replaceAllLiteral: (text, query, replacement, caseSensitive) => editorTools.replaceAllLiteral(text, query, replacement, caseSensitive),
   },
   tabs: {
