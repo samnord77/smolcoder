@@ -605,7 +605,7 @@ export async function executeTool(name: string, args: Record<string, any>, ctx: 
         result = await runCommand(args.command, ctx.workspace, signal, (ctl: ShellControl) => {
           // Offload path: the UI hands this live process to the background
           // runner instead of waiting for the 120s kill.
-          ctl.adopt = (proc, cmd, seed) => ctx.taskManager.adopt(proc, cmd, seed);
+          ctl.adopt = (proc, cmd, seed, bgToken) => ctx.taskManager.adopt(proc, cmd, seed, bgToken);
         });
         ctx.commandsRun.push(`${args.command} → ${result.split("\n").at(-1)}`);
         if (ctx.commandsRun.length > 50) ctx.commandsRun.splice(0, ctx.commandsRun.length - 50);

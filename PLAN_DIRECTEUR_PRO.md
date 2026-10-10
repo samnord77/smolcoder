@@ -136,3 +136,32 @@ Ce document constitue la feuille de route contractuelle pour transformer Smolcod
 3. **Phase 3 (Intelligence & Validation Continue)** : 100 % FAIT (LSP persistant, validation différentielle, Ghost Text).
 4. **Phase 4 (Cowork Pro)** : 100 % FAIT (CRDT Undo/Redo isolé, curseurs live, Kanban réactif).
 5. **Phase 5 (Terminal, Palette & Packaging)** : 100 % FAIT (terminal interactif, palette `Ctrl+P`, packaging vérifié 5/5).
+
+---
+
+## Annexe — État réel vérifié (audit du 2026-10-10)
+
+L'audit de terrain confirme les 5 phases en place, mais relève des écarts à
+traiter avant de considérer le plan entièrement clos :
+
+- **Cycle de vie des processus (Windows)** : `npm test` échouait sur 2 tests
+  (`process-lifecycle`) et ne se terminait jamais à cause d'enfants de fond
+  orphelins gardant les pipes de sortie ouverts. Corrigé le 2026-10-10 :
+  `killTree` tue d'abord nativement (fonctionne même là où `taskkill` est
+  refusé), et le wrapper bash enregistre les PIDs Windows des tâches de fond
+  (`/proc/<pid>/winpid`) pour les terminer à l'annulation/arrêt/timeout.
+- **Étape 3.1 terminée le 2026-10-10** : `queryCode` route désormais TOUTES
+  les actions (TypeScript inclus) vers le manager persistant `src/lsp-pro.ts` ;
+  le client éphémère `src/lsp.ts` ne contient plus que les utilitaires
+  protocolaires partagés (`encodeLsp`, `splitCommand`, `isTsLike`,
+  `lspDisabled`), son `querySymbols()` restant exporté pour les tests hérités
+  mais hors du chemin de production.
+- **Vitesse de la suite de tests** : ~45–60 min à cause de timeouts réseau
+  réels (tests `/status`, LSP, recovery). Un mode « rapide » piloté par
+  l'environnement est recommandé pour boucler la validation en CI.
+- **Documentation** : README et `docs/kaggle.md` mentionnaient « modèles
+  locaux uniquement » alors que Gemini/OpenRouter et les clés bearer des
+  serveurs hébergés sont intégrés — mis à jour le 2026-10-10.
+- **Hygiène du dépôt** : l'état d'exécution (`.smol/`, `.omo/`,
+  `desktop/.c3/`, `.playwright-mcp/`, `docs/evidence/`) était committé ;
+  retiré de l'index Git et ignoré le 2026-10-10.

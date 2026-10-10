@@ -188,7 +188,7 @@ test("live mock server: all manager actions over one persistent process", async 
   }
 });
 
-test("live mock servers through queryCode routing (python manager + ts legacy)", async () => {
+test("live mock servers through queryCode routing (persistent manager, python + typescript)", async () => {
   const ws = scratchWs({ "a.py": "value = 1\n", "b.ts": "const v = 1;\n" });
   process.env.SMOLCODER_LSP_PYTHON = mockCommand();
   process.env.SMOLCODER_LSP_COMMAND = mockCommand();

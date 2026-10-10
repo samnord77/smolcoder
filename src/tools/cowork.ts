@@ -34,9 +34,10 @@ const MAX_FILE_BYTES = 512 * 1024;
 const MAX_ITEMS = 1000;
 // Concurrent agent workers can be CPU-starved while the model, LSP and test
 // processes are active. Five seconds caused false "busy" failures even though
-// the lock owner was healthy. Keep the wait bounded, but give a real
-// cross-process write burst enough time to drain.
-const LOCK_TIMEOUT_MS = 15_000;
+// the lock owner was healthy; fifteen still did under a loaded full test
+// suite. Keep the wait bounded, but give a real cross-process write burst
+// enough time to drain.
+const LOCK_TIMEOUT_MS = 30_000;
 const STALE_LOCK_AGE_MS = 60_000;
 const PRIORITIES: WorkPriority[] = ["low", "normal", "high", "urgent"];
 const STATUSES: WorkStatus[] = ["open", "completed", "archived"];

@@ -2,11 +2,12 @@
 // actions (hover, definition, references, diagnostics, rename, completion,
 // signature help, workspace symbols, quick fixes).
 //
-// This module never touches src/lsp.ts: the legacy one-shot querySymbols()
-// keeps serving the four classic TypeScript actions with byte-identical
-// messages (tests assert them), while queryCode() routes everything else —
-// Python, Rust, Go and the new actions — through a cached LspManager that
-// starts each server ONCE per workspace and reuses it (open, query, keep).
+// The cached LspManager starts each server ONCE per workspace and reuses it
+// (open, query, keep), so every action — TypeScript included — answers in
+// milliseconds instead of cold npx spawns. src/lsp.ts keeps only the shared
+// protocol utilities (encodeLsp, splitCommand, isTsLike, lspDisabled); its
+// legacy one-shot querySymbols() remains exported for the older tests but is
+// no longer on the production routing path.
 // Zero new dependencies: JSON-RPC with Content-Length framing over stdio,
 // exactly like the existing client.
 //
@@ -18,7 +19,7 @@
 import { type ChildProcess, spawn } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { encodeLsp, isTsLike, lspDisabled, querySymbols, splitCommand } from "./lsp";
+import { encodeLsp, lspDisabled, splitCommand } from "./lsp";
 import { findCommand, resolveCommand } from "./mcp";
 import { resolveInWorkspace } from "./sandbox";
 
@@ -1247,12 +1248,9 @@ if (typeof process !== "undefined" && typeof process.on === "function") {
   }
 }
 
-const LEGACY_TS_ACTIONS = new Set(["hover", "def", "refs", "diag"]);
-
-/** Answer one code-intelligence question in any supported language. Legacy
- * TypeScript hover/def/refs/diag go through the original one-shot client so
- * its messages stay byte-identical; everything else uses the persistent
- * manager. Never throws. */
+/** Answer one code-intelligence question in any supported language. Every
+ * action goes through the persistent manager, keeping one warm server per
+ * workspace and language. Never throws. */
 export async function queryCode(root: string, args: CodeQuery, signal?: AbortSignal): Promise<string> {
   const action = String((args as any)?.action ?? "");
   if (!CODE_ACTIONS.includes(action)) {
@@ -1264,19 +1262,6 @@ export async function queryCode(root: string, args: CodeQuery, signal?: AbortSig
   const rel = typeof (args as any)?.path === "string" ? (args as any).path : "";
   if (!rel && action !== "wsymbol") {
     return `Error: le chemin est requis. Exemple : {"action": "${action}", "path": "src/agent.ts"${action === "diag" ? "" : ', "line": 10, "col": 15'}}`;
-  }
-  let lang: string | null = null;
-  if (rel) {
-    try {
-      lang = serverForFile(resolveInWorkspace(root, rel))?.lang ?? (isTsLike(rel) ? "typescript" : null);
-    } catch {
-      lang = null;
-    }
-  } else if (typeof (args as any)?.lang === "string") {
-    lang = (args as any).lang;
-  }
-  if (lang === "typescript" && LEGACY_TS_ACTIONS.has(action)) {
-    return querySymbols(root, args as any, signal);
   }
   return managerFor(root).query(args, signal);
 }

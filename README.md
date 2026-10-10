@@ -16,6 +16,8 @@ You need two things.
 1. **Node.js 18 or newer** from [nodejs.org](https://nodejs.org).
 2. **A local model server.** Either [Ollama](https://ollama.com) with a tool-capable model pulled (`ollama pull qwen3` is a good start), or [LM Studio](https://lmstudio.ai) with a model loaded and its local server running (Developer tab, then Start Server).
 
+Prefer not to run models locally? smolcoder also talks to hosted OpenAI-compatible servers. Free Gemini models (set `GEMINI_API_KEY`) and OpenRouter's `:free` models (set `OPENROUTER_API_KEY`) show up in `/models` automatically, and any remote Ollama or LM Studio server — including a GPU notebook on Kaggle — can be added by address from the model picker. Keys live in environment variables only, are never written to disk, and are never sent to private or plain-HTTP hosts.
+
 Then install smolcoder and start it inside a project:
 
 ```bash

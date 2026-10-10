@@ -61,9 +61,15 @@ test("concurrent Smolcoder processes do not overwrite shared work-item updates",
   `;
   const runWorker = (prefix) =>
     new Promise((resolve, reject) => {
-      const child = spawn(process.execPath, ["-e", script, modulePath, root, prefix], { stdio: "ignore" });
+      const child = spawn(process.execPath, ["-e", script, modulePath, root, prefix], { stdio: ["ignore", "ignore", "pipe"] });
+      let stderr = "";
+      child.stderr.on("data", (chunk) => (stderr += chunk.toString()));
       child.once("error", reject);
-      child.once("exit", (code) => (code === 0 ? resolve() : reject(new Error(`work-item worker exited ${code}`))));
+      child.once("exit", (code) =>
+        code === 0
+          ? resolve()
+          : reject(new Error(`work-item worker exited ${code}${stderr.trim() ? `: ${stderr.trim().slice(0, 300)}` : ""}`))
+      );
     });
 
   await Promise.all([runWorker("first"), runWorker("second")]);

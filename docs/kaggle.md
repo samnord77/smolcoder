@@ -22,5 +22,9 @@ c'est le même circuit que « les modèles d'une autre machine ».
   `http://` sur internet (smolcoder prévient avant d'ajouter).
 - Une machine éteinte est simplement sautée au démarrage ; ses modèles
   reviennent quand elle se rallume.
-- Dites-nous vos modèles exacts si l'adresse demande une clé : on ajoutera
-  l'authentification par jeton aux serveurs distants.
+- Si le serveur demande une clé (portail hébergé, OpenRouter, passerelle…),
+  smolcoder la présente en bearer : fournissez-la au moment d'ajouter
+  l'adresse, dans `/models`, ou via la variable d'environnement correspondante
+  (`GEMINI_API_KEY`, `OPENROUTER_API_KEY`…). Une clé n'est jamais envoyée à un
+  hôte privé ni à une adresse en HTTPS/HTTP non vérifiée, et rien n'est écrit
+  dans les fichiers de configuration.

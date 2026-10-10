@@ -198,10 +198,7 @@ test("an Auto Copilot action error cannot be hidden by a text-only completion", 
   ]);
   const agent = makeAgent(provider, fakeUi(), "bypass");
 
-  await assert.rejects(
-    agent.runTurn("Corrige le fichier missing.js dans le projet."),
-    /action de modification ou d’exécution a échoué/i
-  );
+  await assert.rejects(agent.runTurn("Corrige le fichier missing.js dans le projet."), /action de modification ou d’exécution a échoué/i);
   assert.equal(agent.outcome, "error");
   assert.equal(provider.seen.length, 3, "one bounded repair nudge is sent before the hard failure");
 });

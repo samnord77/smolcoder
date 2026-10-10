@@ -1,4 +1,0 @@
-[  311824ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_RESET @ http://127.0.0.1:7433/events?k=579Y71-H_zBe:0
-[  313840ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:7433/events?k=579Y71-H_zBe:0
-[  318859ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:7433/events?k=579Y71-H_zBe:0
-[  333870ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:7433/events?k=579Y71-H_zBe:0

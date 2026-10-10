@@ -93,20 +93,89 @@ export function pickShell(): ShellInfo {
 }
 
 export function killTree(pid: number): void {
-  try {
-    if (process.platform === "win32") {
-      spawnSync("taskkill", ["/pid", String(pid), "/t", "/f"], {
-        stdio: "ignore",
-      });
-    } else {
+  if (process.platform !== "win32") {
+    try {
       process.kill(-pid, "SIGKILL");
+    } catch {
+      try {
+        process.kill(pid, "SIGKILL");
+      } catch {
+        /* already gone */
+      }
     }
+    return;
+  }
+  // Native termination first: it also works where taskkill is denied (some
+  // sandboxed or non-interactive logons answer it with Access denied) and it
+  // never depends on the process still being part of the original tree.
+  try {
+    process.kill(pid, "SIGKILL");
   } catch {
+    /* already gone */
+  }
+  // Then the real tree killer, which reaches grandchildren on a normal host.
+  try {
+    spawnSync("taskkill", ["/pid", String(pid), "/t", "/f"], {
+      stdio: "ignore",
+    });
+  } catch {
+    /* taskkill missing or denied */
+  }
+}
+
+// --- Windows background-child tracking --------------------------------------
+// taskkill /T is the normal way to kill a shell's whole tree, but restricted
+// environments (sandboxed logons, hardened enterprise hosts) deny it even for
+// our own children, and a `cmd &` grandchild outlives the shell that started
+// it. The bash wrapper therefore records the Windows PIDs of the jobs it
+// starts, so a cancelled or timed-out run can still terminate them natively.
+const BG_PIDS_ENV = "SMOLCODER_BG_PIDS_FILE";
+
+function bgPidsFile(token: string): string {
+  return path.join(os.tmpdir(), `smolcoder-bg-${token}.txt`);
+}
+
+/** A unique, filesystem-safe token for one spawned shell. */
+export function newBackgroundToken(): string {
+  return `${process.pid.toString(36)}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+/** Environment additions that let the bash wrapper record its background jobs.
+ * Empty on non-Windows hosts, where a process-group kill already covers them. */
+export function backgroundEnv(token: string): NodeJS.ProcessEnv {
+  return process.platform === "win32" && token ? { [BG_PIDS_ENV]: bgPidsFile(token) } : {};
+}
+
+/** Kill the Windows PIDs a shell wrapper recorded for its background jobs. */
+export function killBackgroundChildren(token: string | undefined): void {
+  if (process.platform !== "win32" || !token) return;
+  const file = bgPidsFile(token);
+  let pids: number[] = [];
+  try {
+    pids = fs
+      .readFileSync(file, "utf8")
+      .split(/\s+/)
+      .map((s) => Number(s))
+      .filter((n) => Number.isSafeInteger(n) && n > 0);
+  } catch {
+    return; // nothing was recorded
+  }
+  for (const pid of pids) {
     try {
       process.kill(pid, "SIGKILL");
     } catch {
       /* already gone */
     }
+    try {
+      spawnSync("taskkill", ["/pid", String(pid), "/t", "/f"], { stdio: "ignore" });
+    } catch {
+      /* taskkill missing or denied */
+    }
+  }
+  try {
+    fs.rmSync(file, { force: true });
+  } catch {
+    /* best effort */
   }
 }
 
@@ -129,7 +198,7 @@ export interface ShellControl {
   /** Absolute ms epoch of the auto-kill; null once detached or finished. */
   deadline: number | null;
   /** Assigned by the caller: hands the still-running process to the task runner. */
-  adopt?: (proc: import("child_process").ChildProcess, command: string, seed: string) => string;
+  adopt?: (proc: import("child_process").ChildProcess, command: string, seed: string, backgroundToken?: string) => string;
   /** Push the auto-kill deadline out by `ms`; false when the run is over. */
   extend(ms: number): boolean;
   /** Stop waiting, keep the process alive in the background; returns its task id. */
@@ -152,11 +221,25 @@ export function findLiveShell(command: string): ShellControl | null {
 }
 
 /** Keep bash alive while ordinary background jobs own its output pipes. On
- * Windows taskkill cannot find descendants after their shell has exited. */
+ * Windows this also records the Windows PIDs of background jobs, so a
+ * cancelled, stopped or timed-out run can terminate them directly even where
+ * taskkill is denied or the shell has already exited. */
 export function managedCommand(shell: ShellInfo, command: string): string {
-  return /(?:^|[\\/])bash(?:\.exe)?$/.test(shell.exe)
-    ? `${command}\n__smol_command_status=$?\nwait\nexit "$__smol_command_status"`
-    : command;
+  if (!/(?:^|[\\/])bash(?:\.exe)?$/.test(shell.exe)) return command;
+  if (process.platform === "win32") {
+    return (
+      command +
+      "\n__smol_rc=$?" +
+      '\n__smol_pids="$(jobs -p)"' +
+      '\n__smol_winpids=""' +
+      '\nfor __smol_p in $__smol_pids; do __smol_w=$(cat /proc/$__smol_p/winpid 2>/dev/null); [ -n "$__smol_w" ] && __smol_winpids="$__smol_winpids $__smol_w"; done' +
+      '\nif [ -n "$SMOLCODER_BG_PIDS_FILE" ] && [ -n "$__smol_winpids" ]; then echo "$__smol_winpids" > "$SMOLCODER_BG_PIDS_FILE"; fi' +
+      "\nwait" +
+      '\nif [ -n "$SMOLCODER_BG_PIDS_FILE" ]; then rm -f "$SMOLCODER_BG_PIDS_FILE"; fi' +
+      '\nexit "$__smol_rc"'
+    );
+  }
+  return `${command}\n__smol_command_status=$?\nwait\nexit "$__smol_command_status"`;
 }
 
 /** Windows-only folders that are not generic tool dirs: Ollama, PowerShell 7,
@@ -214,13 +297,14 @@ export function runCommand(command: string, cwd: string, signal?: AbortSignal, o
     const started = Date.now();
     let timeoutMs = DEFAULT_TIMEOUT_MS;
     const procEnv = shellEnv();
+    const bgToken = process.platform === "win32" ? newBackgroundToken() : "";
     const projectCommand = process.platform === "win32" && /(?:^|[\s;&|])(?:npm|npx|pnpm|yarn)(?:\.cmd)?(?:\s|$)/i.test(command);
     const exe = projectCommand ? (process.env.ComSpec ?? "cmd.exe") : shell.exe;
     const args = projectCommand ? ["/d", "/s", "/c", command] : shell.argsFor(managedCommand(shell, command));
 
     const proc = spawn(exe, args, {
       cwd,
-      env: procEnv,
+      env: bgToken ? { ...procEnv, ...backgroundEnv(bgToken) } : procEnv,
       detached: process.platform !== "win32", // process group for killTree
       windowsHide: true,
       stdio: ["ignore", "pipe", "pipe"],
@@ -244,6 +328,7 @@ export function runCommand(command: string, cwd: string, signal?: AbortSignal, o
     const destroy = () => {
       try {
         killTree(proc.pid!);
+        killBackgroundChildren(bgToken);
         proc.stdout.destroy();
         proc.stderr.destroy();
       } catch {
@@ -292,7 +377,7 @@ export function runCommand(command: string, cwd: string, signal?: AbortSignal, o
         stopWaiting();
         release();
         ctl.deadline = null;
-        const id = ctl.adopt(proc, command, output);
+        const id = ctl.adopt(proc, command, output, bgToken);
         const seed = output.trim() ? truncateMiddle(output, OUTPUT_CAP) : "";
         resolve(
           `[moved to background as task ${id} — the process keeps running. ` +

@@ -1,8 +1,11 @@
-// Minimal LSP client for real code intelligence (hover, definition,
-// references, diagnostics) via typescript-language-server --stdio.
+// Shared LSP protocol utilities (Content-Length framing, command splitting,
+// file classification, disable switch) plus the original one-shot LSP client
+// (hover, definition, references, diagnostics) for TypeScript.
+//
+// Production code now uses the persistent manager in src/lsp-pro.ts; the
+// one-shot querySymbols() below is kept for its older tests and as a
+// byte-identical fallback contract, but is no longer on the routing path.
 // Zero new dependencies: JSON-RPC with Content-Length framing over stdio.
-// One server per call (open, query, close) — slow but stateless and safe.
-// Only TypeScript-flavored files; anything else is refused with coaching.
 //
 // Config (no password anywhere, env only):
 //   SMOLCODER_LSP_DISABLE=1 — the symbols tool answers "désactivé", no spawn.

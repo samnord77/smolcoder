@@ -5,7 +5,7 @@
 // visibility. All tasks are killed when smolcoder exits.
 
 import { type ChildProcess, spawn } from "node:child_process";
-import { killTree, managedCommand, pickShell, shellEnv } from "./shell";
+import { backgroundEnv, killBackgroundChildren, killTree, managedCommand, newBackgroundToken, pickShell, shellEnv } from "./shell";
 
 export interface Task {
   id: string;
@@ -17,6 +17,8 @@ export interface Task {
   startedAt: number;
   /** Started life as a shell run the user moved to the background. */
   adopted?: boolean;
+  /** Windows background-job tracker file token, when the task owns one. */
+  bgToken?: string;
 }
 
 const RING_SIZE = 300;
@@ -76,9 +78,10 @@ export class TaskManager {
   start(command: string): string {
     const shell = pickShell();
     const id = `t${++this.counter}`;
+    const bgToken = process.platform === "win32" ? newBackgroundToken() : undefined;
     const proc = spawn(shell.exe, shell.argsFor(managedCommand(shell, command)), {
       cwd: this.cwd,
-      env: shellEnv(),
+      env: bgToken ? { ...shellEnv(), ...backgroundEnv(bgToken) } : shellEnv(),
       detached: process.platform !== "win32",
       windowsHide: true,
       stdio: ["ignore", "pipe", "pipe"],
@@ -91,6 +94,7 @@ export class TaskManager {
       status: "running",
       exitCode: null,
       startedAt: Date.now(),
+      bgToken,
     };
     this.tasks.set(id, task);
     this.attach(task);
@@ -99,7 +103,7 @@ export class TaskManager {
   }
 
   /** Take over a process that was already running (a shell run moved to the background). */
-  adopt(proc: ChildProcess, command: string, seed = ""): string {
+  adopt(proc: ChildProcess, command: string, seed = "", bgToken?: string): string {
     const id = `t${++this.counter}`;
     const task: Task = {
       id,
@@ -110,6 +114,7 @@ export class TaskManager {
       exitCode: null,
       startedAt: Date.now(),
       adopted: true,
+      bgToken,
     };
     this.tasks.set(id, task);
     this.attach(task, seed);
@@ -145,6 +150,7 @@ export class TaskManager {
     task.status = "stopped";
     try {
       if (task.proc.pid !== undefined) killTree(task.proc.pid);
+      killBackgroundChildren(task.bgToken);
       task.proc.stdout?.destroy();
       task.proc.stderr?.destroy();
     } catch {
@@ -191,6 +197,7 @@ export class TaskManager {
         t.status = "stopped";
         try {
           if (t.proc.pid !== undefined) killTree(t.proc.pid);
+          killBackgroundChildren(t.bgToken);
           t.proc.stdout?.destroy();
           t.proc.stderr?.destroy();
         } catch {

@@ -31,6 +31,18 @@ function fail(message, detail) {
 
 const copiedEntries = ["dist", "desktop", "LICENSE", "README.md"];
 
+/** Recursive copy that skips dependency folders: `require("electron")` in a
+ * packaged app is provided by the Electron runtime itself, so the ~260 Mo
+ * `node_modules/electron` tree (and the duplicate one under desktop/) would
+ * only bloat the release. */
+function copyEntry(entry, stageDir) {
+  const from = path.join(repoRoot, entry);
+  fs.cpSync(from, path.join(stageDir, entry), {
+    recursive: true,
+    filter: (src) => src !== path.join(from, "node_modules") && !src.startsWith(path.join(from, "node_modules", path.sep)),
+  });
+}
+
 function stageProject(stageDir) {
   fs.mkdirSync(stageDir, { recursive: true });
 
@@ -39,17 +51,8 @@ function stageProject(stageDir) {
     if (!fs.existsSync(from)) {
       fail(`missing ${entry} - run \`npm run build\` before packaging.`);
     }
-    fs.cpSync(from, path.join(stageDir, entry), { recursive: true });
+    copyEntry(entry, stageDir);
   }
-
-  // Electron resolves its own binary from node_modules at runtime.
-  const electronFrom = path.join(repoRoot, "node_modules", "electron");
-  if (!fs.existsSync(electronFrom)) fail("electron is not installed in node_modules.");
-  fs.mkdirSync(path.join(stageDir, "node_modules"), { recursive: true });
-  fs.cpSync(electronFrom, path.join(stageDir, "node_modules", "electron"), {
-    recursive: true,
-    filter: (src) => !src.includes(`${path.sep}node_modules${path.sep}electron${path.sep}node_modules`),
-  });
 
   const real = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"));
   const staged = {

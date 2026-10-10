@@ -13,6 +13,17 @@ release/
 # scratch logs and one-off debug scripts
 .scratch/
 
+# other assistants' runtime state (continuations, skills, plans, memory)
+.omo/
+.opencode/
+.impeccable/
+.skywork-local/
+*.jsonl
+*.sqlite
+
+# demo/evidence binaries and archives (kept out of clones)
+docs/evidence/
+
 # editor/backup copies of tracked files
 *.bak
 

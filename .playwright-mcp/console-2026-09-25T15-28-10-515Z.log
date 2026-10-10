@@ -1,6 +1,0 @@
-[ 1272892ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_RESET @ http://127.0.0.1:7433/events?k=TvR75iOOGtve:0
-[ 1275901ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:7433/events?k=TvR75iOOGtve:0
-[ 1278911ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:7433/events?k=TvR75iOOGtve:0
-[ 1281920ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:7433/events?k=TvR75iOOGtve:0
-[ 1284928ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:7433/events?k=TvR75iOOGtve:0
-[ 1287949ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://127.0.0.1:7433/events?k=TvR75iOOGtve:0
