@@ -94,15 +94,22 @@ function endpointFromEnv(): ResolvedEndpoint | undefined {
   return undefined;
 }
 
+/** Which detected servers may serve ghost text. Only servers that answer from
+ * the machine: the 1.6 s budget cannot survive a router fronting remote free
+ * providers, and a slow completion makes typing feel frozen. Exported for tests. */
+export function pickCompletionModel<T extends { backend: string }>(models: T[]): T | undefined {
+  return models.find((m) => m.backend === "ollama" || m.backend === "lmstudio");
+}
+
 async function endpointFromLocal(): Promise<ResolvedEndpoint | undefined> {
   const models = await detectAll({ fast: true });
-  const pick = models.find((m) => m.backend === "ollama" || m.backend === "lmstudio" || m.backend === "flagship");
+  const pick = pickCompletionModel(models);
   if (!pick) return undefined;
   return {
     baseUrl: `${pick.baseUrl.replace(/\/+$/, "")}/v1`,
     model: pick.id,
     apiKey: pick.apiKey,
-    source: pick.backend === "ollama" ? "Ollama local" : pick.backend === "flagship" ? "FlagshipRouter local" : "LM Studio local",
+    source: pick.backend === "ollama" ? "Ollama local" : "LM Studio local",
   };
 }
 

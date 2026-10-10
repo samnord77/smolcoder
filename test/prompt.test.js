@@ -36,3 +36,10 @@ test("built-in direct-style skill is readable", () => {
   const ws = scratch({});
   assert.match(readSkill(ws, "direct-style"), /next action/);
 });
+
+test("a greeting stays tool-free in the system prompt", () => {
+  const p = buildSystemPrompt({ workspace: "w", mode: "edit", shellLabel: "bash" });
+  assert.match(p, /bonjour/);
+  assert.match(p, /WITHOUT calling any tool/i);
+  assert.match(p, /never to a simple "hello"/);
+});

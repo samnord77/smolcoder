@@ -98,3 +98,11 @@ test("aiComplete round-trip against a fake OpenAI-compatible server", async () =
     await new Promise((resolve) => server.close(resolve));
   }
 });
+
+test("pickCompletionModel keeps the router out and keeps local servers in", () => {
+  const { pickCompletionModel } = require("../dist/ai-complete");
+  assert.equal(pickCompletionModel([{ backend: "flagship", id: "gpt-6-astra" }]), undefined);
+  assert.equal(pickCompletionModel([{ backend: "flagship" }, { backend: "lmstudio", id: "qwen" }]).id, "qwen");
+  assert.equal(pickCompletionModel([{ backend: "ollama", id: "qwen3" }]).id, "qwen3");
+  assert.equal(pickCompletionModel([]), undefined);
+});
