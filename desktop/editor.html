@@ -102,6 +102,20 @@
   #inlinePreview .row { display: flex; gap: 6px; margin-top: 6px; }
   #inlinePreview .row button { background: #0e639c; color: #fff; border: 0; border-radius: 6px; padding: 6px 12px; cursor: pointer; }
   #inlinePreview .row button.reject { background: #5a5a5a; }
+  /* Gouttiere Git : vert = ligne ajoutee, bleu = modifiee, rouge = supprimee. */
+  .gtl-added { border-left: 3px solid #2ea043; margin-left: 4px; }
+  .gtl-modified { border-left: 3px solid #1f6feb; margin-left: 4px; }
+  .gtl-removed { border-left: 3px solid #f85149; margin-left: 4px; }
+  /* "+" sur la ligne survolee : ouvrir l'edition IA sur cette ligne. */
+  .smol-add-glyph { cursor: pointer; }
+  .smol-add-glyph::before {
+    content: "+";
+    display: flex; align-items: center; justify-content: center;
+    width: 14px; height: 14px; margin: 2px 2px 2px 4px;
+    border-radius: 3px; background: #0e639c; color: #fff;
+    font: 700 12px/1 Consolas, monospace;
+  }
+  .smol-add-glyph:hover::before { background: #1177bb; }
   #completePop { display: none; position: absolute; z-index: 6; left: 12px; top: 44px; min-width: 260px; max-width: 70%; max-height: 220px; overflow: auto; background: #252526; border: 1px solid #007acc; box-shadow: 0 8px 24px #0008; }
   #completePop.open { display: block; }
   #splitHost { position: absolute; inset: 0 0 0 50%; width: 50%; display: none; background: #1e1e1e; border-left: 1px solid #3c3c3c; }
@@ -484,6 +498,7 @@ function initMonaco() {
           tabSize: 2,
           wordWrap: "off",
           multiCursorModifier: "alt",
+          glyphMargin: true,
           inlineSuggest: { enabled: true, showToolbar: "onHover" },
         });
         monacoReady = true;
@@ -499,6 +514,27 @@ function initMonaco() {
         monacoInstance.addCommand(window.monaco.KeyMod.CtrlCmd | window.monaco.KeyCode.KeyK, () => {
           openInlineBar();
         });
+
+        // Survole une ligne -> un "+" apparait dans la marge ; un clic dessus
+        // selectionne la ligne et ouvre la barre d'edition IA (Ctrl+K).
+        monacoInstance.onMouseMove((e) => {
+          const t = e && e.target;
+          const type = t && t.type;
+          const line = t && (t.position ? t.position.lineNumber : t.range ? t.range.startLineNumber : 0);
+          const T = window.monaco.editor.MouseTargetType;
+          showAddGlyph(line && (type === T.GUTTER_GLYPH_MARGIN || type === T.CONTENT_TEXT) ? line : 0);
+        });
+        monacoInstance.onMouseLeave(() => showAddGlyph(0));
+        monacoInstance.onMouseDown((e) => {
+          const t = e && e.target;
+          if (!t || t.type !== window.monaco.editor.MouseTargetType.GUTTER_GLYPH_MARGIN) return;
+          const line = t.position ? t.position.lineNumber : t.range ? t.range.startLineNumber : 0;
+          if (!line) return;
+          monacoInstance.setPosition({ lineNumber: line, column: 1 });
+          monacoInstance.revealLineInCenterIfOutsideViewport(line);
+          openInlineBar();
+        });
+        scheduleGutter(0);
 
         monacoInstance.addCommand(window.monaco.KeyCode.F12, () => {
           const pos = monacoInstance.getPosition();
@@ -858,11 +894,13 @@ function showTab(tab, loadedImage) {
         renderTabs();
         updateCursor();
         updateFindCount();
+        scheduleGutter();
       });
     } else if (model.getValue() !== (tab.content ?? "") && !tab.dirty) {
       model.setValue(tab.content ?? "");
     }
     monacoInstance.setModel(model);
+    scheduleGutter(0);
   } else {
     ed.value = image ? "" : (tab?.content ?? "");
   }
@@ -1297,6 +1335,56 @@ $("bDiag").onclick = analyzeCurrent;
 $("bSplit").onclick = toggleSplit;
 $("bDiff").onclick = toggleDiff;
 $("bDiffClose").onclick = () => { if (diffOpen) closeDiff(); };
+
+// ---- Gouttiere Git : lignes ajoutees / modifiees / supprimees ----
+// Le calcul vit dans src/editor-gutter.ts (partage avec l'editeur web et
+// teste sans navigateur) ; ici on ne fait que le traduire en decorations.
+let gutterDecs = [];
+let gutterTimer = null;
+let gutterSeq = 0;
+function scheduleGutter(delay) {
+  if (gutterTimer) clearTimeout(gutterTimer);
+  gutterTimer = setTimeout(() => { gutterTimer = null; void refreshGutter(); }, delay === undefined ? 450 : delay);
+}
+async function refreshGutter() {
+  if (!monacoInstance || !window.monaco || !cur) return;
+  const model = monacoInstance.getModel();
+  if (!model) return;
+  const seq = ++gutterSeq;
+  let head = null;
+  try {
+    const shown = await window.smolEd.gitShow(cur);
+    if (shown && shown.tracked) head = shown.content ?? "";
+  } catch (e) { head = null; }
+  const current = monacoInstance.getModel();
+  if (seq !== gutterSeq || !current || !cur) return;
+  let rows = [];
+  try { rows = window.smolEd.gutterDecorations(head, current.getValue()) || []; } catch (e) { rows = []; }
+  const lane = window.monaco.editor.OverviewRulerLane ? window.monaco.editor.OverviewRulerLane.Left : 1;
+  const color = (kind) => (kind === "added" ? "#2ea043" : kind === "modified" ? "#1f6feb" : "#f85149");
+  const decs = rows.map((r) => ({
+    range: new window.monaco.Range(r.line, 1, r.line, 1),
+    options: {
+      isWholeLine: true,
+      linesDecorationsClassName: "gtl-" + r.kind,
+      overviewRuler: { color: color(r.kind), position: lane },
+    },
+  }));
+  gutterDecs = monacoInstance.deltaDecorations(gutterDecs, decs);
+}
+
+let addGlyphDecs = [];
+let addGlyphLine = 0;
+function showAddGlyph(line) {
+  if (!monacoInstance || !window.monaco || line === addGlyphLine) return;
+  addGlyphLine = line;
+  addGlyphDecs = monacoInstance.deltaDecorations(
+    addGlyphDecs,
+    line > 0
+      ? [{ range: new window.monaco.Range(line, 1, line, 1), options: { isWholeLine: true, glyphMarginClassName: "smol-add-glyph" } }]
+      : []
+  );
+}
 
 // ---- Cmd+K : modifier la sélection avec l'IA, aperçu avant/après ----
 let inlineRange = null;

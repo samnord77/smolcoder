@@ -5,6 +5,7 @@ const { highlightHtml } = require("../dist/highlight.js");
 const { makeEditorTabStore } = require("../dist/editor-tabs.js");
 const editorTools = require("../dist/editor-tools.js");
 const termFix = require("../dist/term-fix.js");
+const gutter = require("../dist/editor-gutter.js");
 const tabs = makeEditorTabStore();
 
 contextBridge.exposeInMainWorld("smolEd", {
@@ -31,6 +32,7 @@ contextBridge.exposeInMainWorld("smolEd", {
   gitSyncStatus: () => ipcRenderer.invoke("ed:gitSyncStatus"),
   gitBlame: (rel, line) => ipcRenderer.invoke("ed:gitBlame", rel, line),
   gitShow: (rel) => ipcRenderer.invoke("ed:gitShow", rel),
+  gutterDecorations: (head, current) => gutter.gutterDecorations(head, current),
   backendStatus: () => ipcRenderer.invoke("ed:backendStatus"),
   runCommand: (cmd) => ipcRenderer.invoke("ed:runCommand", cmd),
   highlightCode: (source, language) => highlightHtml(source, language),

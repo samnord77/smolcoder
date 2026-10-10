@@ -592,6 +592,20 @@ export const STYLES = `
   .fileminimap { position: absolute; top: 35px; right: 0; bottom: 0; width: 30px; padding: 10px 4px; overflow: hidden; background: #0d1114; border-left: 1px solid var(--line); cursor: pointer; }
   .fileminimap i { display: block; height: 2px; margin-bottom: 1px; background: var(--gray); opacity: .45; border-radius: 1px; }
   .fileminimap i:nth-child(3n) { opacity: .7; }
+  /* Gouttiere Git (editeur Monaco) : ligne ajoutee = barre verte, modifiee = bleue, supprimee = rouge. */
+  .monaco-editor .gtl-added { border-left: 3px solid #2ea043; margin-left: 4px; }
+  .monaco-editor .gtl-modified { border-left: 3px solid #1f6feb; margin-left: 4px; }
+  .monaco-editor .gtl-removed { border-left: 3px solid #f85149; margin-left: 4px; }
+  /* "+" au survol d une ligne : ouvrir l edition IA sur cette ligne. */
+  .monaco-editor .smol-add-glyph { cursor: pointer; }
+  .monaco-editor .smol-add-glyph::before {
+    content: "+";
+    display: flex; align-items: center; justify-content: center;
+    width: 14px; height: 14px; margin: 2px 2px 2px 4px;
+    border-radius: 3px; background: #0e639c; color: #fff;
+    font: 700 12px/1 Consolas, monospace;
+  }
+  .monaco-editor .smol-add-glyph:hover::before { background: #1177bb; }
   .minimap-bars { position: absolute; inset: 10px 4px; }
   .minimap-box { position: absolute; left: 0; right: 0; top: 0; background: rgba(56,189,248,.14); border-top: 1px solid rgba(56,189,248,.5); border-bottom: 1px solid rgba(56,189,248,.5); pointer-events: none; }
   .filecode { pointer-events: none; color: #9cdcfe; }

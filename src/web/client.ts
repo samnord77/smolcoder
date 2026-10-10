@@ -1,4 +1,5 @@
 import { browserCrdtSource } from "../crdt";
+import { editorGutterBrowserSource } from "../editor-gutter";
 import { editorTabStoreBrowserSource } from "../editor-tabs";
 import { editorToolsBrowserSource } from "../editor-tools";
 import { browserHighlighterSource } from "../highlight";
@@ -21,6 +22,7 @@ ${browserCrdtSource}
 const makeEditorTabStore = ${editorTabStoreBrowserSource};
 const editorTools = ${editorToolsBrowserSource};
 ${browserNotifySource}
+${editorGutterBrowserSource}
 const k = new URLSearchParams(location.search).get("k") || "";
 // Drop ?k= from the address bar immediately after reading it: any page running
 // on this origin (a workspace HTML preview) must not find the hub token in
@@ -3384,6 +3386,8 @@ function buildFilesTab(v, t) {
   t.editor = editor;
   editor.className = "fileeditor"; editor.spellcheck = false; editor.placeholder = "Sélectionnez un fichier…";
   let monacoEditorInstance = null;
+  let webGutterRefresh = null;
+  let webGutterSchedule = null;
   const ensureWebMonacoEditor = () => {
     if (monacoEditorInstance || !window.monaco || !webMonacoReady) return monacoEditorInstance;
     try {
@@ -3404,6 +3408,7 @@ function buildFilesTab(v, t) {
         tabSize: 2,
         wordWrap: "off",
         multiCursorModifier: "alt",
+        glyphMargin: true,
         inlineSuggest: { enabled: true, showToolbar: "onHover" },
       });
       t.monacoEditor = monacoEditorInstance;
@@ -3505,6 +3510,120 @@ function buildFilesTab(v, t) {
         if (!cont) return;
         const p = (e.target && e.target.position) || monacoEditorInstance.getPosition();
         if (p) void webGoToDefinitionAt(t, p.lineNumber, p.column);
+      });
+
+      // ---- Gouttiere Git (barres vertes / bleues / rouges) + bouton "+" ----
+      // Le calcul du diff vit dans src/editor-gutter.ts (inlined plus haut sous
+      // le nom gutterDecorations) ; ici on le traduit en decorations Monaco.
+      let gutterHead = null;      // contenu HEAD du fichier (null = non suivi)
+      let gutterHeadFor = null;   // chemin auquel gutterHead correspond
+      let gutterHeadAt = 0;       // date du dernier HEAD recupere (re-sonde apres 15 s)
+      let gutterColl = null;      // collection des barres
+      let gutterGlyph = null;     // decoration du "+" sur la ligne survolee
+      let gutterTimer = null;
+      const gutterRange = (line) => new window.monaco.Range(line, 1, line, 1);
+      // Monaco 0.34+ : une collection se met a jour avec .set(), on ne la
+      // recree pas (sinon les barres clignotent a chaque frappe).
+      const setDecorations = (previous, decos) => {
+        if (previous && typeof previous.set === "function") { previous.set(decos); return previous; }
+        if (previous && typeof previous.clear === "function") previous.clear();
+        return decos.length ? monacoEditorInstance.createDecorationsCollection(decos) : null;
+      };
+      const applyGutter = () => {
+        const me = monacoEditorInstance;
+        const model = me && me.getModel();
+        if (!me || !model || !window.monaco) return;
+        let rows = [];
+        try { rows = gutterDecorations(gutterHead, model.getValue()) || []; } catch (e) { rows = []; }
+        const lane = window.monaco.editor.OverviewRulerLane ? window.monaco.editor.OverviewRulerLane.Left : 1;
+        const color = (kind) => (kind === "added" ? "#2ea043" : kind === "modified" ? "#1f6feb" : "#f85149");
+        const decos = rows.map((r) => ({
+          range: gutterRange(r.line),
+          options: {
+            isWholeLine: true,
+            linesDecorationsClassName: "gtl-" + r.kind,
+            overviewRuler: { color: color(r.kind), position: lane },
+          },
+        }));
+        gutterColl = setDecorations(gutterColl, decos);
+      };
+      // Rafraichit les barres : premier appel immediat (lignes non suivies =
+      // tout vert), puis contenu HEAD du fichier. Un changement de fichier
+      // pendant la requete est ignore (gutterHeadFor).
+      const refreshGutter = () => {
+        const me = monacoEditorInstance;
+        const model = me && me.getModel();
+        const rel = t.filePath;
+        if (!me || !model || !rel) {
+          if (gutterColl) { gutterColl.clear(); gutterColl = null; }
+          gutterHeadFor = null;
+          return;
+        }
+        // Le contenu HEAD ne change qu a un commit : on le garde 15 s plutot
+        // que de le redemander a chaque frappe, puis on re-sonde pour ne
+        // jamais afficher des barres perimees apres un commit.
+        if (gutterHeadFor === rel && Date.now() - gutterHeadAt < 15000) { applyGutter(); return; }
+        gutterHeadFor = rel;
+        gutterHeadAt = Date.now();
+        gutterHead = null;
+        applyGutter();
+        fetch("/code/git-show?k=" + k + "&sid=" + encodeURIComponent(v.sid) + "&path=" + encodeURIComponent(rel))
+          .then((r) => r.json())
+          .then((d) => {
+            if (gutterHeadFor !== rel) return;
+            gutterHead = d && d.tracked === true ? (typeof d.content === "string" ? d.content : "") : null;
+            applyGutter();
+          })
+          .catch(() => {});
+      };
+      webGutterRefresh = refreshGutter;
+      webGutterSchedule = (delay) => {
+        if (gutterTimer) clearTimeout(gutterTimer);
+        gutterTimer = setTimeout(() => { gutterTimer = null; refreshGutter(); }, delay === undefined ? 450 : delay);
+      };
+      monacoEditorInstance.onDidChangeModelContent(() => { if (webGutterSchedule) webGutterSchedule(); });
+      let gutterGlyphLine = 0;
+      const showAddGlyph = (line) => {
+        const me = monacoEditorInstance;
+        if (!me || !window.monaco || !me.createDecorationsCollection) return;
+        const wanted = Number(line) || 0;
+        if (wanted === gutterGlyphLine) return;
+        gutterGlyphLine = wanted;
+        const decos = wanted > 0 ? [{
+          range: gutterRange(wanted),
+          options: {
+            isWholeLine: true,
+            glyphMarginClassName: "smol-add-glyph",
+            glyphMarginHoverMessage: { value: "Modifier cette ligne avec l'IA (Ctrl+K)" },
+          },
+        }] : [];
+        gutterGlyph = setDecorations(gutterGlyph, decos);
+      };
+      // Survol de la marge a numeros -> "+" ; clic -> ligne selectionnee et
+      // barre d'edition IA ouverte, exactement comme Ctrl+K.
+      monacoEditorInstance.onMouseMove((e) => {
+        const M = window.monaco;
+        const tgt = e && e.target;
+        if (!tgt || !M || !M.editor || !M.editor.MouseTargetType) return;
+        if (tgt.type === M.editor.MouseTargetType.GUTTER_GLYPH_MARGIN || tgt.type === M.editor.MouseTargetType.CONTENT_TEXT) {
+          const line = tgt.position ? tgt.position.lineNumber : (tgt.range ? tgt.range.startLineNumber : 0);
+          showAddGlyph(line);
+        } else {
+          showAddGlyph(0);
+        }
+      });
+      monacoEditorInstance.onMouseLeave(() => showAddGlyph(0));
+      monacoEditorInstance.onMouseDown((e) => {
+        const M = window.monaco;
+        const tgt = e && e.target;
+        if (!tgt || !M || !M.editor || tgt.type !== M.editor.MouseTargetType.GUTTER_GLYPH_MARGIN) return;
+        const line = tgt.position ? tgt.position.lineNumber : (tgt.range ? tgt.range.startLineNumber : 0);
+        const model = monacoEditorInstance.getModel();
+        if (!line || !model) return;
+        const start = model.getOffsetAt({ lineNumber: line, column: 1 });
+        const end = model.getOffsetAt({ lineNumber: line, column: model.getLineMaxColumn(line) });
+        editor.setSelectionRange(start, end);
+        openInlineBar();
       });
 
       window.addEventListener("resize", () => {
@@ -4324,6 +4443,7 @@ function buildFilesTab(v, t) {
       }
       med.setModel(model);
       med.updateOptions({ readOnly: v.state.mode === "ro" || t.decompressed });
+      if (webGutterRefresh) { try { webGutterRefresh(); } catch (e) {} }
     } else {
       if (monacoHost) monacoHost.style.display = "none";
       editor.hidden = false; code.hidden = false; gutter.hidden = false; minimap.hidden = false;

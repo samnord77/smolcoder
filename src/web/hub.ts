@@ -32,6 +32,7 @@ import {
   gitCommit,
   gitDiffFiles,
   gitRevertFile,
+  gitShowFile,
   gitStage,
   gitStageLines,
   gitStatusMap,
@@ -1427,6 +1428,25 @@ export class WebHub {
           }
           try {
             json(200, gitDiffFiles(live.workspace, url.searchParams.get("staged") === "1"));
+          } catch (err: any) {
+            json(400, { error: String(err?.message ?? err).slice(0, 500) });
+          }
+          return;
+        }
+        case "/code/git-show": {
+          const sid = String(url.searchParams.get("sid") ?? "");
+          const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
+          if (!live) {
+            json(404, { error: "session inexistante" });
+            return;
+          }
+          const path = String(url.searchParams.get("path") ?? "");
+          if (!path || path.includes("..")) {
+            json(400, { error: "path est requis" });
+            return;
+          }
+          try {
+            json(200, gitShowFile(live.workspace, path));
           } catch (err: any) {
             json(400, { error: String(err?.message ?? err).slice(0, 500) });
           }
