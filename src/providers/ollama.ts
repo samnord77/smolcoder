@@ -10,7 +10,7 @@
 import { imageBase64 } from "../attachments";
 import { tryFetchJson } from "../util";
 import { scheduleInference } from "./scheduler";
-import { fetchOrCause, HttpError, httpErrorDetail, responseLines, streamJson, withDeadline } from "./transport";
+import { fetchOrCause, HttpError, httpErrorDetail, isHttp4xx, responseLines, streamJson, withDeadline } from "./transport";
 import {
   type ChatOptions,
   type ChatResult,
@@ -144,7 +144,7 @@ export class OllamaProvider implements Provider {
       // double-emits. Let agent.ts's chatWithRetry handle mid-stream failures.
       if (started.streaming) throw err;
       const msg = String(err?.message ?? "");
-      const paramRejected = /returned 4\d\d/.test(msg) && /think/i.test(msg);
+      const paramRejected = isHttp4xx(err) && /think/i.test(msg);
       // Only treat the think param as unsupported on an actual param rejection;
       // a transient 5xx/network error must NOT permanently disable reasoning.
       if (think !== undefined && paramRejected) {
@@ -157,7 +157,7 @@ export class OllamaProvider implements Provider {
           } catch (err2: any) {
             if (err2?.name === "AbortError" || started.streaming) throw err2;
             const msg2 = String(err2?.message ?? "");
-            if (!(/returned 4\d\d/.test(msg2) && /think/i.test(msg2))) throw err2;
+            if (!(isHttp4xx(err2) && /think/i.test(msg2))) throw err2;
           }
         }
         this.thinkUnsupported = true;
@@ -166,7 +166,7 @@ export class OllamaProvider implements Provider {
       }
       // Older Ollama versions reject stream+tools together; retry non-streaming
       // once, but only for a pre-stream rejection (not a transient error).
-      if (/returned 4\d\d/.test(msg)) {
+      if (isHttp4xx(err)) {
         return await this.request(makeBody(false, think), opts, started);
       }
       throw err;

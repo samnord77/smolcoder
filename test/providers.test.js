@@ -2,8 +2,9 @@
 // nothing here talks to a backend.
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const http = require("node:http");
 const { mapEffort } = require("../dist/providers/lmstudio");
-const { toWire } = require("../dist/providers/ollama");
+const { OllamaProvider, toWire } = require("../dist/providers/ollama");
 const { estimateReplayTokens, lastUserIndex } = require("../dist/providers/types");
 const { parseLmStudioV1 } = require("../dist/detect");
 
@@ -96,4 +97,78 @@ test("parseLmStudioV1 reads loaded context, id, and reasoning options", () => {
   assert.equal(models[1].contextWindow, 4096);
   assert.ok(models[1].note);
   assert.equal(parseLmStudioV1({ data: [] }), null, "v0 shape is not accepted");
+});
+
+// --- Ollama HTTP fallbacks -------------------------------------------------
+// The transport reports rejections as HttpError (status field + French text),
+// so the provider ladder must key on the status, never on message wording.
+// Regression: matching /returned 4xx/ silently disabled every fallback once
+// the message became "Ollama : erreur 400 — ...".
+
+function fakeOllama(handler) {
+  return new Promise((resolve) => {
+    const server = http.createServer((req, res) => {
+      let body = "";
+      req.on("data", (c) => (body += c));
+      req.on("end", () => handler(JSON.parse(body || "{}"), res));
+    });
+    server.listen(0, "127.0.0.1", () => resolve({ server, port: server.address().port }));
+  });
+}
+
+function ollamaOk(res) {
+  res.writeHead(200, { "content-type": "application/x-ndjson" });
+  res.end(JSON.stringify({ message: { content: "OK" }, done: true, prompt_eval_count: 1, eval_count: 1 }) + "\n");
+}
+
+function ollamaReject(res, message) {
+  res.writeHead(400, { "content-type": "application/json" });
+  res.end(JSON.stringify({ error: message }));
+}
+
+test("ollama: a model without a thinking switch is retried without the think param", async () => {
+  const seen = [];
+  const { server, port } = await fakeOllama((body, res) => {
+    seen.push(body);
+    if (body.think !== undefined) return ollamaReject(res, '"fake-model" does not support thinking');
+    ollamaOk(res);
+  });
+  try {
+    const provider = new OllamaProvider(`http://127.0.0.1:${port}`, "fake-model", 32768);
+    provider.setEffort("high");
+    const result = await provider.chat([{ role: "user", content: "salut" }], []);
+    assert.equal(result.content, "OK");
+    assert.equal(seen.length, 2, "one rejection, then one retry");
+    assert.equal(seen[0].think, true, "thinking is requested first");
+    assert.ok(!("think" in seen[1]), "the retry drops the think param");
+    assert.match(String(provider.effortLabel()), /no thinking switch/);
+
+    // The model is remembered as thinking-unsupported: no third probe.
+    const again = await provider.chat([{ role: "user", content: "encore" }], []);
+    assert.equal(again.content, "OK");
+    assert.equal(seen.length, 3);
+    assert.ok(!("think" in seen[2]), "later turns skip the rejected param");
+  } finally {
+    await new Promise((r) => server.close(r));
+  }
+});
+
+test("ollama: a 4xx on a streaming request is retried without streaming", async () => {
+  const seen = [];
+  const { server, port } = await fakeOllama((body, res) => {
+    seen.push(body);
+    if (body.stream === true) return ollamaReject(res, "cannot use tools with stream");
+    ollamaOk(res);
+  });
+  try {
+    const provider = new OllamaProvider(`http://127.0.0.1:${port}`, "fake-model", 32768);
+    const tools = [{ name: "read_file", description: "lit un fichier", parameters: { type: "object", properties: {} } }];
+    const result = await provider.chat([{ role: "user", content: "salut" }], tools);
+    assert.equal(result.content, "OK");
+    assert.equal(seen.length, 2);
+    assert.equal(seen[0].stream, true);
+    assert.equal(seen[1].stream, false, "the retry is non-streaming");
+  } finally {
+    await new Promise((r) => server.close(r));
+  }
 });
