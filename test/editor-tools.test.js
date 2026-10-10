@@ -78,3 +78,16 @@ test("replace all is literal, bounded, and leaves the original untouched on over
   assert.equal(overflow.count, 0);
   assert.match(overflow.error, /1 Mo/i);
 });
+
+test("linePopupTop sits under the line, stays visible, flips above when needed", () => {
+  const { linePopupTop } = require("../dist/editor-tools");
+  // Ligne 3, defilement 0, hauteur 20 : sous la ligne (60).
+  assert.equal(linePopupTop({ lineTop: 60, scrollTop: 0, lineHeight: 20, hostHeight: 600, popupHeight: 120 }), 86);
+  // Le defilement est deduit : meme position visuelle.
+  assert.equal(linePopupTop({ lineTop: 560, scrollTop: 500, lineHeight: 20, hostHeight: 600, popupHeight: 120 }), 86);
+  // Pas de place en dessous -> au-dessus de la ligne.
+  assert.equal(linePopupTop({ lineTop: 560, scrollTop: 0, lineHeight: 20, hostHeight: 600, popupHeight: 120 }), 434);
+  // Toujours borne dans la zone visible.
+  assert.ok(linePopupTop({ lineTop: 10, scrollTop: 0, lineHeight: 20, hostHeight: 100, popupHeight: 120 }) >= 6);
+  assert.ok(linePopupTop({ lineTop: 10, scrollTop: 0, lineHeight: 20, hostHeight: 100, popupHeight: 120 }) <= 6);
+});

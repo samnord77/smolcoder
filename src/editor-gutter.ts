@@ -35,6 +35,43 @@ export function makeGutterHelpers() {
    * file fall back to "everything changed", which is what the eye sees anyway. */
   const MAX_ALIGN_CELLS = 1200 * 1200;
 
+  /** Past a few thousand marks the bars stop informing anyone and Monaco starts
+   * to cost more than the eye gain: a brand-new 30k-line file is one green block.
+   */
+  const MAX_MARKS = 4000;
+
+  /** Cache of "the file at HEAD": one fetch per path per TTL. Computing the bars
+   * is local and cheap, but re-reading HEAD is not (a `git show` costs ~200 ms
+   * on Windows), so editors must not do it on every keystroke. */
+  const makeHeadCache = (opts?: { ttlMs?: number }) => {
+    const ttl = Number(opts?.ttlMs) > 0 ? Number(opts?.ttlMs) : 15000;
+    const entries = new Map<string, { content: string | null; at: number }>();
+    return {
+      /** HEAD text for `path`; the fetch is skipped while the entry is fresh. */
+      async head(path: string, fetchHead: (p: string) => any): Promise<string | null> {
+        const hit = entries.get(path);
+        if (hit && Date.now() - hit.at < ttl) return hit.content;
+        let content: string | null = null;
+        try {
+          const shown = await fetchHead(path);
+          content = shown && shown.tracked === true ? (typeof shown.content === "string" ? shown.content : "") : null;
+        } catch {
+          content = null;
+        }
+        entries.set(path, { content: content, at: Date.now() });
+        return content;
+      },
+      /** Forget one path (after a commit) or everything. */
+      invalidate(path?: string): void {
+        if (path === undefined) entries.clear();
+        else entries.delete(path);
+      },
+      size(): number {
+        return entries.size;
+      },
+    };
+  };
+
   const splitLines = (text: string): string[] => {
     const normalized = String(text === undefined || text === null ? "" : text).replace(/\r\n?/g, "\n");
     const lines = normalized.split("\n");
@@ -152,10 +189,11 @@ export function makeGutterHelpers() {
     for (const line of diff.added) rows.push({ line: line, kind: "added" });
     for (const line of diff.modified) rows.push({ line: line, kind: "modified" });
     for (const line of diff.removed) rows.push({ line: line, kind: "removed" });
-    return rows.sort((p, q) => p.line - q.line);
+    rows.sort((p, q) => p.line - q.line);
+    return rows.length > MAX_MARKS ? rows.slice(0, MAX_MARKS) : rows;
   };
 
-  return { diffLines: diffLines, gutterDecorations: gutterDecorations };
+  return { diffLines: diffLines, gutterDecorations: gutterDecorations, makeHeadCache: makeHeadCache };
 }
 
 const gutterHelpers = makeGutterHelpers();
@@ -166,8 +204,11 @@ export const diffLines = gutterHelpers.diffLines;
 /** Rows ready for Monaco: one entry per marked line, sorted by line. */
 export const gutterDecorations = gutterHelpers.gutterDecorations;
 
+/** One HEAD fetch per path per TTL, shared by the web and Electron editors. */
+export const makeHeadCache = gutterHelpers.makeHeadCache;
+
 /**
  * Browser-side source of the gutter comparison, inlined into the served page
  * by the web client. Exposes a page-global `gutterDecorations(head, current)`.
  */
-export const editorGutterBrowserSource = "const gutterDecorations = (" + makeGutterHelpers.toString() + ")().gutterDecorations;";
+export const editorGutterBrowserSource = `const { gutterDecorations, makeHeadCache } = (${makeGutterHelpers.toString()})();`;

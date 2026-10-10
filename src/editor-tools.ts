@@ -230,4 +230,27 @@ export function insertNewlineWithIndent(text: string, start: number, end: number
   };
 }
 
-export const editorToolsBrowserSource = `(() => { const MAX_FIND_TEXT_CHARS=${MAX_FIND_TEXT_CHARS}, MAX_FIND_RESULTS=${MAX_FIND_RESULTS}, MAX_REPLACED_CHARS=${MAX_REPLACED_CHARS}, MAX_REPLACEMENTS=${MAX_REPLACEMENTS}; const literalPattern=${literalPattern.toString()}; return ({cursorPosition:${cursorPosition.toString()},offsetForPosition:${offsetForPosition.toString()},changeIndent:${changeIndent.toString()},insertNewlineWithIndent:${insertNewlineWithIndent.toString()},findMatches:${findMatches.toString()},findNextMatch:${findNextMatch.toString()},replaceAllLiteral:${replaceAllLiteral.toString()}}); })()`;
+/**
+ * Anchor for the small "edit this line" popup: right under the clicked line,
+ * kept inside the visible area, and flipped above the line when there is no
+ * room below. Pure maths so both editors place the popup the same way.
+ */
+export function linePopupTop(opts: {
+  lineTop: number;
+  scrollTop: number;
+  lineHeight: number;
+  hostHeight: number;
+  popupHeight?: number;
+}): number {
+  const lineTop = Number(opts.lineTop) || 0;
+  const scrollTop = Number(opts.scrollTop) || 0;
+  const lineHeight = Number(opts.lineHeight) > 0 ? Number(opts.lineHeight) : 20;
+  const hostHeight = Number(opts.hostHeight) > 0 ? Number(opts.hostHeight) : 400;
+  const popupHeight = Number(opts.popupHeight) > 0 ? Number(opts.popupHeight) : 120;
+  const max = Math.max(6, hostHeight - popupHeight - 8);
+  const below = lineTop - scrollTop + lineHeight + 6;
+  if (below <= max) return Math.max(6, below);
+  const above = lineTop - scrollTop - popupHeight - 6;
+  return Math.max(6, Math.min(above, max));
+}
+export const editorToolsBrowserSource = `(() => { const MAX_FIND_TEXT_CHARS=${MAX_FIND_TEXT_CHARS}, MAX_FIND_RESULTS=${MAX_FIND_RESULTS}, MAX_REPLACED_CHARS=${MAX_REPLACED_CHARS}, MAX_REPLACEMENTS=${MAX_REPLACEMENTS}; const literalPattern=${literalPattern.toString()}; return ({cursorPosition:${cursorPosition.toString()},offsetForPosition:${offsetForPosition.toString()},changeIndent:${changeIndent.toString()},insertNewlineWithIndent:${insertNewlineWithIndent.toString()},findMatches:${findMatches.toString()},findNextMatch:${findNextMatch.toString()},replaceAllLiteral:${replaceAllLiteral.toString()},linePopupTop:${linePopupTop.toString()}}); })()`;

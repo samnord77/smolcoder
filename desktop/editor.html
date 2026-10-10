@@ -116,6 +116,15 @@
     font: 700 12px/1 Consolas, monospace;
   }
   .smol-add-glyph:hover::before { background: #1177bb; }
+  /* Petite fenetre ancree sous la ligne : instruction IA pour cette ligne. */
+  .linepop { position: absolute; z-index: 40; width: 340px; max-width: calc(100% - 24px); background: #1f1f1f; border: 1px solid #007acc; border-radius: 6px; box-shadow: 0 8px 24px #0009; padding: 8px; font: 12.5px/1.45 Consolas, monospace; color: #d4d4d4; }
+  .linepop-head { display: flex; align-items: center; gap: 6px; color: #9cdcfe; margin-bottom: 6px; }
+  .linepop-head .ln { color: #858585; }
+  .linepop input { width: 100%; box-sizing: border-box; background: #141414; color: #d4d4d4; border: 1px solid #555; border-radius: 4px; padding: 6px 8px; font: inherit; }
+  .linepop-row { display: flex; gap: 6px; align-items: center; margin-top: 6px; }
+  .linepop-row button { background: #0e639c; color: #fff; border: 0; border-radius: 4px; padding: 5px 10px; cursor: pointer; font: inherit; }
+  .linepop-row button.ghost { background: #3a3a3a; }
+  .linepop-status { flex: 1; color: #9cdcfe; font-size: 11.5px; }
   #completePop { display: none; position: absolute; z-index: 6; left: 12px; top: 44px; min-width: 260px; max-width: 70%; max-height: 220px; overflow: auto; background: #252526; border: 1px solid #007acc; box-shadow: 0 8px 24px #0008; }
   #completePop.open { display: block; }
   #splitHost { position: absolute; inset: 0 0 0 50%; width: 50%; display: none; background: #1e1e1e; border-left: 1px solid #3c3c3c; }
@@ -459,6 +468,10 @@ function monacoLanguageFor(file) {
     c: "c", cpp: "cpp", h: "c", hpp: "cpp",
     java: "java",
     yml: "yaml", yaml: "yaml",
+    cs: "csharp", php: "php", rb: "ruby", kt: "kotlin", kts: "kotlin", swift: "swift", dart: "dart",
+    r: "r", lua: "lua", pl: "perl", scala: "scala", fs: "fsharp", vb: "vb", mm: "objective-c",
+    clj: "clojure", ex: "elixir", exs: "elixir", jl: "julia", graphql: "graphql", gql: "graphql",
+    proto: "protobuf", hcl: "hcl", tf: "hcl", dockerfile: "dockerfile",
     toml: "ini", sql: "sql", xml: "xml"
   };
   return map[ext] || "plaintext";
@@ -532,7 +545,7 @@ function initMonaco() {
           if (!line) return;
           monacoInstance.setPosition({ lineNumber: line, column: 1 });
           monacoInstance.revealLineInCenterIfOutsideViewport(line);
-          openInlineBar();
+          openLinePop(line);
         });
         scheduleGutter(0);
 
@@ -778,6 +791,15 @@ const ed = {
   },
   addEventListener(...args) {
     if (rawEd) rawEd.addEventListener(...args);
+  },
+  // Sans ces deux relais, ed.oninput/ed.onkeydown (assignes plus bas) restaient
+  // des proprietes du proxy : en repli sans Monaco, taper ne mettait rien a jour
+  // (ni surlignage, ni etat modifie) et l editeur paraissait mort.
+  set oninput(fn) {
+    if (rawEd) rawEd.oninput = fn;
+  },
+  set onkeydown(fn) {
+    if (rawEd) rawEd.onkeydown = fn;
   }
 };
 
@@ -1346,15 +1368,29 @@ function scheduleGutter(delay) {
   if (gutterTimer) clearTimeout(gutterTimer);
   gutterTimer = setTimeout(() => { gutterTimer = null; void refreshGutter(); }, delay === undefined ? 450 : delay);
 }
+let gutterHeadCache = null;
+function gutterCache() {
+  if (gutterHeadCache) return gutterHeadCache;
+  try {
+    gutterHeadCache = window.smolEd.makeHeadCache ? window.smolEd.makeHeadCache({ ttlMs: 15000 }) : null;
+  } catch (e) { gutterHeadCache = null; }
+  return gutterHeadCache;
+}
+// Un seul git show par fichier et par 15 s : le diff des barres est recalculé
+// localement, sinon chaque frappe lançait un processus git (~200 ms) et gelait
+// l édition.
 async function refreshGutter() {
   if (!monacoInstance || !window.monaco || !cur) return;
   const model = monacoInstance.getModel();
   if (!model) return;
   const seq = ++gutterSeq;
+  const rel = cur;
   let head = null;
   try {
-    const shown = await window.smolEd.gitShow(cur);
-    if (shown && shown.tracked) head = shown.content ?? "";
+    const cache = gutterCache();
+    head = cache
+      ? await cache.head(rel, (p) => window.smolEd.gitShow(p))
+      : await (async () => { const shown = await window.smolEd.gitShow(rel); return shown && shown.tracked ? (shown.content ?? null) : null; })();
   } catch (e) { head = null; }
   const current = monacoInstance.getModel();
   if (seq !== gutterSeq || !current || !cur) return;
@@ -1386,6 +1422,90 @@ function showAddGlyph(line) {
   );
 }
 
+// ---- Petite fenetre ancree sous la ligne survolee (bouton "+") ----
+// Le "+" ouvre une mini fenetre juste sous la ligne cliquee : on y decrit la
+// modification, Entree la lance via la meme chaine IA que Ctrl+K, et le diff
+// s'affiche dans l'apercu existant.
+let linePop = null;
+let linePopCtx = null;
+function closeLinePop() {
+  if (linePop && linePop.parentNode) linePop.parentNode.removeChild(linePop);
+  linePop = null;
+  linePopCtx = null;
+}
+function openLinePop(line) {
+  if (!monacoInstance || !window.monaco || !cur || !line) return;
+  closeLinePop();
+  const host = document.getElementById("editorWrap");
+  if (!host) return;
+  const el = document.createElement("div");
+  el.className = "linepop";
+  el.setAttribute("role", "dialog");
+  el.setAttribute("aria-label", "Modifier cette ligne avec l'IA");
+  const head = document.createElement("div");
+  head.className = "linepop-head";
+  const title = document.createElement("span");
+  title.textContent = "✨ Modifier cette ligne";
+  const ln = document.createElement("span");
+  ln.className = "ln";
+  ln.textContent = "L" + line;
+  head.append(title, ln);
+  const input = document.createElement("input");
+  input.type = "text";
+  input.spellcheck = false;
+  input.placeholder = "Ex. ajouter la gestion d'erreur, renommer, typer…";
+  input.setAttribute("aria-label", "Instruction d'edition IA");
+  const row = document.createElement("div");
+  row.className = "linepop-row";
+  const go = document.createElement("button");
+  go.type = "button";
+  go.textContent = "Générer";
+  const cancel = document.createElement("button");
+  cancel.type = "button";
+  cancel.className = "ghost";
+  cancel.textContent = "Fermer";
+  const status = document.createElement("span");
+  status.className = "linepop-status";
+  row.append(go, cancel, status);
+  el.append(head, input, row);
+  host.appendChild(el);
+  const wrapRect = host.getBoundingClientRect();
+  const lineHeight = (monacoInstance.getOption(window.monaco.editor.EditorOption.lineHeight) || 20);
+  const offset = window.smolEd.editorTools.linePopupTop({
+    lineTop: monacoInstance.getTopForLineNumber(line),
+    scrollTop: monacoInstance.getScrollTop(),
+    lineHeight,
+    hostHeight: wrapRect.height,
+    popupHeight: el.offsetHeight || 120,
+  });
+  el.style.top = offset + "px";
+  el.style.left = "56px";
+  linePop = el;
+  linePopCtx = { line, input, status };
+  cancel.onclick = () => { closeLinePop(); if (monacoInstance) monacoInstance.focus(); };
+  go.onclick = () => submitLinePop();
+  input.onkeydown = (e) => {
+    if (e.key === "Enter") { e.preventDefault(); submitLinePop(); }
+    if (e.key === "Escape") { e.preventDefault(); closeLinePop(); if (monacoInstance) monacoInstance.focus(); }
+  };
+  input.focus();
+}
+function submitLinePop() {
+  if (!linePopCtx) return;
+  const instruction = linePopCtx.input.value.trim();
+  if (!instruction) { linePopCtx.status.textContent = "Décrivez la modification."; linePopCtx.input.focus(); return; }
+  const line = linePopCtx.line;
+  const model = monacoInstance && monacoInstance.getModel();
+  if (!model) { closeLinePop(); return; }
+  const start = model.getOffsetAt({ lineNumber: line, column: 1 });
+  const end = model.getOffsetAt({ lineNumber: line, column: model.getLineMaxColumn(line) });
+  closeLinePop();
+  ed.setSelectionRange(start, end);
+  $("inlineInput").value = instruction;
+  $("inlineBar").classList.add("open");
+  $("inlinePreview").classList.remove("open");
+  void runInline();
+}
 // ---- Cmd+K : modifier la sélection avec l'IA, aperçu avant/après ----
 let inlineRange = null;
 function openInlineBar() {

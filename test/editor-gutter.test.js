@@ -59,3 +59,45 @@ test("a trailing newline is a terminator, not an extra empty line", () => {
   assert.deepEqual(gutterDecorations("a\nb\n", "a\nb"), []);
   assert.deepEqual(diffLines("a\nb", "a\nb\n").added, []);
 });
+
+test("makeHeadCache reads HEAD once per TTL, then refreshes", async () => {
+  const { makeHeadCache } = require("../dist/editor-gutter");
+  let calls = 0;
+  const fetchHead = async () => {
+    calls++;
+    return { tracked: true, content: "a\n" };
+  };
+  const cache = makeHeadCache({ ttlMs: 60_000 });
+  assert.equal(await cache.head("x.ts", fetchHead), "a\n");
+  assert.equal(await cache.head("x.ts", fetchHead), "a\n");
+  assert.equal(calls, 1, "un second appel dans le delai ne doit pas relire git");
+  assert.equal(cache.size(), 1);
+  cache.invalidate("x.ts");
+  assert.equal(cache.size(), 0);
+});
+
+test("makeHeadCache re-reads after the TTL and never throws on a failed fetch", async () => {
+  const { makeHeadCache } = require("../dist/editor-gutter");
+  let calls = 0;
+  const cache = makeHeadCache({ ttlMs: 1 });
+  const ok = async () => {
+    calls++;
+    return { tracked: true, content: "b\n" };
+  };
+  await cache.head("y.ts", ok);
+  await new Promise((r) => setTimeout(r, 10));
+  await cache.head("y.ts", ok);
+  assert.equal(calls, 2, "apres le delai, HEAD est relu");
+  const boom = async () => {
+    throw new Error("git indisponible");
+  };
+  assert.equal(await cache.head("z.ts", boom), null);
+  assert.equal(await cache.head("untracked.ts", async () => ({ tracked: false, content: null })), null);
+});
+
+test("a giant new file is capped so Monaco stays responsive", () => {
+  const huge = Array.from({ length: 5000 }, (_, i) => `ligne ${i}`).join("\n");
+  const rows = gutterDecorations(null, huge);
+  assert.equal(rows.length, 4000, "au-dela de 4000 marques, Monaco n'affiche plus rien d'utile");
+  assert.ok(rows.every((r) => r.kind === "added"));
+});

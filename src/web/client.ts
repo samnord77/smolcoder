@@ -51,6 +51,10 @@ function monacoLanguageFor(file) {
     c: "c", cpp: "cpp", h: "c", hpp: "cpp",
     java: "java",
     yml: "yaml", yaml: "yaml",
+    cs: "csharp", php: "php", rb: "ruby", kt: "kotlin", kts: "kotlin", swift: "swift", dart: "dart",
+    r: "r", lua: "lua", pl: "perl", scala: "scala", fs: "fsharp", vb: "vb", mm: "objective-c",
+    clj: "clojure", ex: "elixir", exs: "elixir", jl: "julia", graphql: "graphql", gql: "graphql",
+    proto: "protobuf", hcl: "hcl", tf: "hcl", dockerfile: "dockerfile",
     toml: "ini", sql: "sql", xml: "xml"
   };
   return map[ext] || "plaintext";
@@ -3517,7 +3521,7 @@ function buildFilesTab(v, t) {
       // le nom gutterDecorations) ; ici on le traduit en decorations Monaco.
       let gutterHead = null;      // contenu HEAD du fichier (null = non suivi)
       let gutterHeadFor = null;   // chemin auquel gutterHead correspond
-      let gutterHeadAt = 0;       // date du dernier HEAD recupere (re-sonde apres 15 s)
+      let gutterSeq = 0;          // garde anti-reponses obsoletes
       let gutterColl = null;      // collection des barres
       let gutterGlyph = null;     // decoration du "+" sur la ligne survolee
       let gutterTimer = null;
@@ -3550,6 +3554,11 @@ function buildFilesTab(v, t) {
       // Rafraichit les barres : premier appel immediat (lignes non suivies =
       // tout vert), puis contenu HEAD du fichier. Un changement de fichier
       // pendant la requete est ignore (gutterHeadFor).
+      const fetchHead = (p) =>
+        fetch("/code/git-show?k=" + k + "&sid=" + encodeURIComponent(v.sid) + "&path=" + encodeURIComponent(p)).then((r) => r.json());
+      // Un seul /code/git-show par fichier et par 15 s : recalculer les barres
+      // est local et rapide, relire HEAD ne l est pas.
+      const headCache = (typeof makeHeadCache === "function") ? makeHeadCache({ ttlMs: 15000 }) : null;
       const refreshGutter = () => {
         const me = monacoEditorInstance;
         const model = me && me.getModel();
@@ -3559,22 +3568,19 @@ function buildFilesTab(v, t) {
           gutterHeadFor = null;
           return;
         }
-        // Le contenu HEAD ne change qu a un commit : on le garde 15 s plutot
-        // que de le redemander a chaque frappe, puis on re-sonde pour ne
-        // jamais afficher des barres perimees apres un commit.
-        if (gutterHeadFor === rel && Date.now() - gutterHeadAt < 15000) { applyGutter(); return; }
         gutterHeadFor = rel;
-        gutterHeadAt = Date.now();
-        gutterHead = null;
         applyGutter();
-        fetch("/code/git-show?k=" + k + "&sid=" + encodeURIComponent(v.sid) + "&path=" + encodeURIComponent(rel))
-          .then((r) => r.json())
-          .then((d) => {
-            if (gutterHeadFor !== rel) return;
-            gutterHead = d && d.tracked === true ? (typeof d.content === "string" ? d.content : "") : null;
-            applyGutter();
-          })
-          .catch(() => {});
+        const seq = ++gutterSeq;
+        const loaded = headCache
+          ? headCache.head(rel, fetchHead)
+          : fetchHead(rel)
+              .then((d) => (d && d.tracked === true ? (typeof d.content === "string" ? d.content : "") : null))
+              .catch(() => null);
+        Promise.resolve(loaded).then((head) => {
+          if (seq !== gutterSeq || t.filePath !== rel) return;
+          gutterHead = head;
+          applyGutter();
+        });
       };
       webGutterRefresh = refreshGutter;
       webGutterSchedule = (delay) => {
@@ -3613,6 +3619,87 @@ function buildFilesTab(v, t) {
         }
       });
       monacoEditorInstance.onMouseLeave(() => showAddGlyph(0));
+      // ---- Petite fenetre ancree sous la ligne (bouton "+") : on y decrit la
+      // modification, Entree la lance via la meme chaine IA que Ctrl+K.
+      let linePop = null;
+      let linePopCtx = null;
+      const closeLinePop = () => {
+        if (linePop && linePop.parentNode) linePop.parentNode.removeChild(linePop);
+        linePop = null;
+        linePopCtx = null;
+      };
+      const submitLinePop = () => {
+        if (!linePopCtx) return;
+        const instruction = linePopCtx.input.value.trim();
+        if (!instruction) { linePopCtx.status.textContent = "Décrivez la modification."; linePopCtx.input.focus(); return; }
+        const line = linePopCtx.line;
+        const me = monacoEditorInstance;
+        const model = me && me.getModel();
+        if (!model) { closeLinePop(); return; }
+        const start = model.getOffsetAt({ lineNumber: line, column: 1 });
+        const end = model.getOffsetAt({ lineNumber: line, column: model.getLineMaxColumn(line) });
+        closeLinePop();
+        editor.setSelectionRange(start, end);
+        openInlineBar();
+        inlineInput.value = instruction;
+        void runInline();
+      };
+      const openLinePop = (line) => {
+        const me = monacoEditorInstance;
+        if (!me || !window.monaco || !t.filePath || !line) return;
+        closeLinePop();
+        const host = monacoHost.parentElement || monacoHost;
+        const box = document.createElement("div");
+        box.className = "linepop";
+        box.setAttribute("role", "dialog");
+        box.setAttribute("aria-label", "Modifier cette ligne avec l'IA");
+        const head = document.createElement("div");
+        head.className = "linepop-head";
+        const title = document.createElement("span");
+        title.textContent = "✨ Modifier cette ligne";
+        const ln = document.createElement("span");
+        ln.className = "ln";
+        ln.textContent = "L" + line;
+        head.append(title, ln);
+        const input = document.createElement("input");
+        input.type = "text";
+        input.spellcheck = false;
+        input.placeholder = "Ex. ajouter la gestion d'erreur, renommer, typer…";
+        input.setAttribute("aria-label", "Instruction d'edition IA");
+        const row = document.createElement("div");
+        row.className = "linepop-row";
+        const go = document.createElement("button");
+        go.type = "button";
+        go.textContent = "Générer";
+        const cancel = document.createElement("button");
+        cancel.type = "button";
+        cancel.className = "ghost";
+        cancel.textContent = "Fermer";
+        const status = document.createElement("span");
+        status.className = "linepop-status";
+        row.append(go, cancel, status);
+        box.append(head, input, row);
+        host.appendChild(box);
+        const lineHeight = me.getOption(window.monaco.editor.EditorOption.lineHeight) || 20;
+        const offset = editorTools.linePopupTop({
+          lineTop: me.getTopForLineNumber(line),
+          scrollTop: me.getScrollTop(),
+          lineHeight: lineHeight,
+          hostHeight: host.clientHeight,
+          popupHeight: box.offsetHeight || 120,
+        });
+        box.style.top = offset + "px";
+        box.style.left = "56px";
+        linePop = box;
+        linePopCtx = { line: line, input: input, status: status };
+        cancel.onclick = () => { closeLinePop(); if (monacoEditorInstance) monacoEditorInstance.focus(); };
+        go.onclick = () => submitLinePop();
+        input.onkeydown = (e) => {
+          if (e.key === "Enter") { e.preventDefault(); submitLinePop(); }
+          if (e.key === "Escape") { e.preventDefault(); closeLinePop(); if (monacoEditorInstance) monacoEditorInstance.focus(); }
+        };
+        input.focus();
+      };
       monacoEditorInstance.onMouseDown((e) => {
         const M = window.monaco;
         const tgt = e && e.target;
@@ -3623,7 +3710,7 @@ function buildFilesTab(v, t) {
         const start = model.getOffsetAt({ lineNumber: line, column: 1 });
         const end = model.getOffsetAt({ lineNumber: line, column: model.getLineMaxColumn(line) });
         editor.setSelectionRange(start, end);
-        openInlineBar();
+        openLinePop(line);
       });
 
       window.addEventListener("resize", () => {

@@ -5,7 +5,15 @@ const { highlightHtml } = require("../dist/highlight.js");
 const { makeEditorTabStore } = require("../dist/editor-tabs.js");
 const editorTools = require("../dist/editor-tools.js");
 const termFix = require("../dist/term-fix.js");
-const gutter = require("../dist/editor-gutter.js");
+// La gouttiere Git vit dans dist/. Si le build est absent ou plus vieux que ce
+// fichier, l editeur doit rester utilisable : repli minimal plutot que planter
+// le preload entier (sinon plus de coloration, plus de fichiers : page morte).
+let gutter = null;
+try {
+  gutter = require("../dist/editor-gutter.js");
+} catch (err) {
+  console.warn("Gouttiere Git indisponible (dist/editor-gutter.js) :", err && err.message ? err.message : err);
+}
 const tabs = makeEditorTabStore();
 
 contextBridge.exposeInMainWorld("smolEd", {
@@ -32,7 +40,8 @@ contextBridge.exposeInMainWorld("smolEd", {
   gitSyncStatus: () => ipcRenderer.invoke("ed:gitSyncStatus"),
   gitBlame: (rel, line) => ipcRenderer.invoke("ed:gitBlame", rel, line),
   gitShow: (rel) => ipcRenderer.invoke("ed:gitShow", rel),
-  gutterDecorations: (head, current) => gutter.gutterDecorations(head, current),
+  gutterDecorations: (head, current) => (gutter ? gutter.gutterDecorations(head, current) : []),
+  makeHeadCache: (opts) => (gutter ? gutter.makeHeadCache(opts) : { head: async () => null, invalidate() {}, size: () => 0 }),
   backendStatus: () => ipcRenderer.invoke("ed:backendStatus"),
   runCommand: (cmd) => ipcRenderer.invoke("ed:runCommand", cmd),
   highlightCode: (source, language) => highlightHtml(source, language),
@@ -47,6 +56,7 @@ contextBridge.exposeInMainWorld("smolEd", {
     findNextMatch: (text, query, offset, backwards, caseSensitive) =>
       editorTools.findNextMatch(text, query, offset, backwards, caseSensitive),
     replaceAllLiteral: (text, query, replacement, caseSensitive) => editorTools.replaceAllLiteral(text, query, replacement, caseSensitive),
+    linePopupTop: (opts) => editorTools.linePopupTop(opts),
   },
   tabs: {
     list: () => tabs.list(),
