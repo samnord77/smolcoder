@@ -111,10 +111,13 @@ function startHubWatchdog(win) {
       fails += 1;
       if (fails >= 2) {
         try {
-          const ensured = await hub.ensureHub(cfg, (line) => console.log(line));
+          const ensured = await hub.ensureHub({
+            projectDir: currentProjectDir || ROOT,
+            distIndex: DIST_INDEX,
+          });
           if (ensured?.rec && !win.isDestroyed()) {
             hubRec = ensured.rec;
-            const sid = await hub.ensureSession(hubRec, projectDir);
+            const sid = await hub.ensureSession(hubRec, currentProjectDir || ROOT);
             const targetUrl = `http://127.0.0.1:${hubRec.port}/?k=${hubRec.token}#${sid}`;
             win.loadURL(targetUrl);
             fails = 0;

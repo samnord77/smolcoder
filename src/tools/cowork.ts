@@ -209,6 +209,10 @@ export class CoworkBoard {
     fs.mkdirSync(path.dirname(this.file), { recursive: true });
     const token = randomUUID();
     const startedAt = Date.now();
+    // Windows renvoie parfois EPERM/EBUSY/EACCES de facon transitoire quand
+    // un autre processus cree ou supprime le meme .lock : on retente quelques
+    // fois, sans jamais masquer une vraie erreur de permissions.
+    let transientRetries = 0;
     let lockFd: number | undefined;
     while (lockFd === undefined) {
       try {
@@ -224,7 +228,14 @@ export class CoworkBoard {
             /* preserve the lock creation error */
           }
         }
-        if (error?.code !== "EEXIST") throw error;
+        const code = error?.code;
+        if (code !== "EEXIST") {
+          const transient = code === "EPERM" || code === "EBUSY" || code === "EACCES";
+          if (!transient || transientRetries >= 40) throw error;
+          transientRetries += 1;
+          await new Promise<void>((resolve) => setTimeout(resolve, 25));
+          continue;
+        }
         this.removeStaleLock();
         if (Date.now() - startedAt >= LOCK_TIMEOUT_MS) {
           throw new Error("la liste de travail est occupée par un autre processus Smolcoder ; réessayez dans un instant.");
