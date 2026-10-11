@@ -601,20 +601,33 @@ export const STYLES = `
   .monaco-editor .smol-add-glyph::before {
     content: "+";
     display: flex; align-items: center; justify-content: center;
-    width: 14px; height: 14px; margin: 2px 2px 2px 4px;
-    border-radius: 3px; background: #0e639c; color: #fff;
-    font: 700 12px/1 Consolas, monospace;
+    width: 17px; height: 17px; margin: 1px 1px 1px 3px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #0e639c 0%, #22a7ff 100%);
+    color: #fff;
+    font: 800 15px/1 Consolas, monospace;
+    box-shadow: 0 1px 4px #000c;
+    transition: transform .15s ease, filter .15s ease;
   }
-  .monaco-editor .smol-add-glyph:hover::before { background: #1177bb; }
+  .monaco-editor .smol-add-glyph:hover::before { transform: scale(1.15); filter: brightness(1.2); }
   /* Petite fenetre ancree sous la ligne survolee : instruction IA pour la ligne. */
-  .linepop { position: absolute; z-index: 40; width: 340px; max-width: calc(100% - 24px); background: #1f1f1f; border: 1px solid #007acc; border-radius: 6px; box-shadow: 0 8px 24px #0009; padding: 8px; font: 12.5px/1.45 Consolas, monospace; color: #d4d4d4; }
-  .linepop-head { display: flex; align-items: center; gap: 6px; color: #9cdcfe; margin-bottom: 6px; }
-  .linepop-head .ln { color: #858585; }
-  .linepop input { width: 100%; box-sizing: border-box; background: #141414; color: #d4d4d4; border: 1px solid #555; border-radius: 4px; padding: 6px 8px; font: inherit; }
-  .linepop-row { display: flex; gap: 6px; align-items: center; margin-top: 6px; }
-  .linepop-row button { background: #0e639c; color: #fff; border: 0; border-radius: 4px; padding: 5px 10px; cursor: pointer; font: inherit; }
-  .linepop-row button.ghost { background: #3a3a3a; }
-  .linepop-status { flex: 1; color: #9cdcfe; font-size: 11.5px; }
+  .linepop {
+    position: absolute; z-index: 40; width: 380px; max-width: calc(100% - 24px);
+    background: linear-gradient(180deg, #242628 0%, #1b1d1d 100%);
+    border: 1px solid #1a9fff; border-radius: 10px;
+    box-shadow: 0 10px 30px #000c;
+    padding: 10px 12px; font: 12.5px/1.5 Consolas, monospace; color: #d4d4d4;
+  }
+  .linepop-head { display: flex; align-items: center; gap: 8px; font-weight: 700; color: #9cdcfe; margin-bottom: 8px; }
+  .linepop-head .ln { margin-left: auto; padding: 1px 8px; border-radius: 999px; background: #0e639c40; color: #7fd4ff; font-size: 11px; font-weight: 600; }
+  .linepop input { width: 100%; box-sizing: border-box; background: #101212; color: #e6e6e6; border: 1px solid #3a3d3d; border-radius: 6px; padding: 8px 10px; font: inherit; }
+  .linepop input:focus { outline: none; border-color: #22a7ff; box-shadow: 0 0 0 2px #22a7ff40; }
+  .linepop-row { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+  .linepop-row button { background: linear-gradient(135deg, #0e639c 0%, #1a9fff 100%); color: #fff; border: 0; border-radius: 6px; padding: 7px 14px; cursor: pointer; font: 700 12px/1 Consolas, monospace; box-shadow: 0 2px 6px #000a; }
+  .linepop-row button:hover { filter: brightness(1.12); }
+  .linepop-row button.ghost { background: #33373a; color: #cfcfcf; box-shadow: none; }
+  .linepop-row button.ghost:hover { filter: brightness(1.08); }
+  .linepop-status { flex: 1; color: #9cdcfe; font-size: 11.5px; text-align: right; }
   .minimap-bars { position: absolute; inset: 10px 4px; }
   .minimap-box { position: absolute; left: 0; right: 0; top: 0; background: rgba(56,189,248,.14); border-top: 1px solid rgba(56,189,248,.5); border-bottom: 1px solid rgba(56,189,248,.5); pointer-events: none; }
   .filecode { pointer-events: none; color: #9cdcfe; }
