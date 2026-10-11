@@ -4,6 +4,8 @@
 // installed (it belongs to the project's package.json). Every step reports
 // one line; nothing here throws.
 import { spawnSync } from "node:child_process";
+import * as os from "node:os";
+import * as path from "node:path";
 import { LSP_LANGS, lspAvailability, serverDefForLang } from "./lsp-pro";
 import { findCommand, resolveCommand } from "./mcp";
 
@@ -18,19 +20,42 @@ export interface InstallStep {
 function run(cmd: string[], cwd: string): { code: number; out: string } {
   try {
     const exe = resolveCommand(cmd[0]);
-    const r = spawnSync(exe, cmd.slice(1), {
-      cwd,
-      encoding: "utf8",
-      timeout: INSTALL_TIMEOUT_MS,
-      windowsHide: true,
-      maxBuffer: 2 * 1024 * 1024,
-    });
+    // npm, npx, yarn... sont des .cmd sur Windows : spawnSync les refuse sans
+    // shell (EINVAL) et l install echouait avant de commencer. La ligne
+    // complete est alors passee a cmd.exe, comme pour les serveurs LSP.
+    const useShell = process.platform === "win32" && /\.(cmd|bat)$/i.test(exe);
+    const q = String.fromCharCode(34);
+    const line =
+      q +
+      exe.replace(/["]/g, "") +
+      q +
+      " " +
+      cmd
+        .slice(1)
+        .map((a) => q + a.replace(/["]/g, "") + q)
+        .join(" ");
+    const r = useShell
+      ? spawnSync(line, { cwd, encoding: "utf8", timeout: INSTALL_TIMEOUT_MS, windowsHide: true, maxBuffer: 2 * 1024 * 1024, shell: true })
+      : spawnSync(exe, cmd.slice(1), {
+          cwd,
+          encoding: "utf8",
+          timeout: INSTALL_TIMEOUT_MS,
+          windowsHide: true,
+          maxBuffer: 2 * 1024 * 1024,
+        });
     if (r.error) return { code: 1, out: String((r.error as any)?.message ?? r.error).slice(0, 300) };
     return { code: r.status ?? 1, out: `${r.stdout ?? ""}${r.stderr ?? ""}`.trim().slice(-500) };
   } catch (err: any) {
     return { code: 1, out: String(err?.message ?? err).slice(0, 300) };
   }
 }
+
+/** Dossier npm gere par smolcoder pour les serveurs de langage bases sur
+ * node. Pas de -g (souvent ecrit dans Program Files, donc admin requis) et
+ * pas de PATH a modifier : binSearchDirs() connait ce dossier et les
+ * serveurs demarres le retrouvent aussi. SMOLCODER_LSP_PREFIX le deplace
+ * pour les tests. */
+const lspNpmPrefix = (): string => process.env.SMOLCODER_LSP_PREFIX || path.join(os.homedir(), ".smolcoder", "lsp-npm");
 
 function installCommands(lang: string): string[][] {
   switch (lang) {
@@ -48,10 +73,25 @@ function installCommands(lang: string): string[][] {
       return [["go", "install", "golang.org/x/tools/gopls@latest"]];
     case "html":
     case "markdown":
-      // One package ships both servers: vscode-html-language-server and
-      // vscode-markdown-language-server. Installs user-level (-g), never
-      // into the project.
-      return [["npm", "i", "-g", "vscode-langservers-extracted"]];
+    case "css":
+    case "scss":
+    case "less":
+    case "json":
+      // Un seul paquet embarque tous les serveurs vscode (html, markdown,
+      // css/scss/less, json). Installe dans le cache utilisateur smolcoder.
+      return [["npm", "i", "--prefix", lspNpmPrefix(), "vscode-langservers-extracted"]];
+    case "yaml":
+      return [["npm", "i", "--prefix", lspNpmPrefix(), "yaml-language-server"]];
+    case "bash":
+      return [["npm", "i", "--prefix", lspNpmPrefix(), "bash-language-server"]];
+    case "dockerfile":
+      return [["npm", "i", "--prefix", lspNpmPrefix(), "dockerfile-language-server-nodejs"]];
+    case "sql":
+      return [["npm", "i", "--prefix", lspNpmPrefix(), "sql-language-server"]];
+    case "graphql":
+      return [["npm", "i", "--prefix", lspNpmPrefix(), "graphql-language-service-cli"]];
+    case "php":
+      return [["npm", "i", "--prefix", lspNpmPrefix(), "intelephense"]];
     default:
       return [];
   }
@@ -101,7 +141,7 @@ export function installLspServer(lang: string, cwd: string): InstallStep {
     return {
       lang,
       ok: false,
-      detail: `Installé mais absent du PATH (${last}). Ajoutez votre dossier de binaires utilisateur au PATH, puis réessayez.`,
+      detail: `Installé mais introuvable au démarrage (${last}). Cherché dans le PATH et les dossiers usuels (Python Scripts, cache npm smolcoder…). Si le binaire est ailleurs, ajoutez son dossier au PATH puis réessayez.`,
     };
   }
   return { lang, ok: false, detail: `Échec de l'installation (${last}). ${def.installHint}` };

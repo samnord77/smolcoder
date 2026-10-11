@@ -1,4 +1,5 @@
 // Small shared helpers. Zero dependencies: ANSI codes are written by hand.
+import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
@@ -23,11 +24,23 @@ export function binSearchDirs(): string[] {
   push(path.join(local, "Programs", "node"));
   push(path.join(local, "fnm"));
   push(path.join(roaming, "npm")); // global npm bin (npx.cmd, npm.cmd)
+  push("C:\\npm-global"); // prefixe npm global courant (npm config set prefix)
   push(path.join(roaming, "nvm"));
   push(path.join(local, "pnpm"));
   push(path.join(local, "Yarn", "bin"));
   push(path.join(local, "Microsoft", "WindowsApps")); // winget/store shims
-  push(path.join(roaming, "Python", "Scripts"));
+  push(path.join(roaming, "Python", "Scripts")); // pip --user (ancien chemin)
+  // pip --user recent : APPDATA\Python\Python3XX\Scripts (dossier versionne).
+  try {
+    const pyRoot = path.join(roaming, "Python");
+    if (fs.existsSync(pyRoot)) {
+      for (const d of fs.readdirSync(pyRoot)) {
+        if (/^Python\d+(\.\d+)*$/i.test(d)) push(path.join(pyRoot, d, "Scripts"));
+      }
+    }
+  } catch {
+    /* dossier Python --user absent */
+  }
   push(path.join(local, "Programs", "Python", "Scripts"));
   push(path.join(os.homedir(), ".local", "bin"));
   push(path.join(os.homedir(), ".local", "share", "pnpm"));
@@ -35,6 +48,10 @@ export function binSearchDirs(): string[] {
   push(path.join(os.homedir(), ".deno", "bin"));
   push(path.join(os.homedir(), ".cargo", "bin"));
   push(path.join(os.homedir(), ".npm-global", "bin"));
+  // Serveurs de langage npm geres par smolcoder (~/.smolcoder/lsp-npm) :
+  // installes sans -g, donc sans administrateur ni PATH a modifier.
+  const lspNpm = process.env.SMOLCODER_LSP_PREFIX || path.join(os.homedir(), ".smolcoder", "lsp-npm");
+  push(path.join(lspNpm, "node_modules", ".bin"));
   push(path.join(os.homedir(), "go", "bin")); // gopls: `go install` default
   push(path.join(os.homedir(), "bin"));
   return out;
