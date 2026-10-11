@@ -6670,7 +6670,7 @@ function ccMcp(d) {
   const servers = d.mcp || [];
   wrap.appendChild(ccSection("Etat des serveurs", ccLights(servers)));
   if (!servers.length) {
-    wrap.appendChild(el("div", "cc-empty", "Aucun serveur MCP configure (.smol/mcp.json)."));
+    wrap.appendChild(el("div", "cc-empty", "Aucun serveur MCP configuré (.smol/mcp.json)."));
     return wrap;
   }
   // One single list: every server appears once, with a real switch and a real

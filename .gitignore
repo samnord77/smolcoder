@@ -20,6 +20,9 @@ release/
 .skywork-local/
 *.jsonl
 *.sqlite
+*.db
+*.db-wal
+*.db-shm
 
 # demo/evidence binaries and archives (kept out of clones)
 docs/evidence/

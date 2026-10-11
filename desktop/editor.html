@@ -423,7 +423,7 @@
 <div id="main">
   <div id="side"><div id="searchBox"><input id="searchInput" placeholder="Rechercher dans le projet…" aria-label="Rechercher dans le projet"><button type="button" id="searchButton" title="Rechercher">⌕</button></div><div id="results" hidden></div><div id="tree"></div></div>
         <div id="sidegrip" title="Glisser pour redimensionner" aria-hidden="true"></div>
-      <div id="editorPane"><div id="tabs" role="tablist" aria-label="Fichiers ouverts"></div><search id="findBar"><input id="findInput" aria-label="Rechercher dans le fichier" placeholder="Rechercher dans le fichier"><button id="findPrev" type="button" title="Occurrence précédente (Maj+F3)">↑</button><button id="findNext" type="button" title="Occurrence suivante (F3)">↓</button><span id="findCount" aria-live="polite"></span><div id="replaceWrap"><input id="replaceInput" aria-label="Remplacer par" placeholder="Remplacer par"><button id="replaceOne" type="button">Remplacer</button><button id="replaceAll" type="button">Tout remplacer</button></div><button id="findClose" type="button" aria-label="Fermer la recherche">×</button></search><div id="editorWrap"><div id="monacoHost" style="position:absolute;inset:0;width:100%;height:100%;"></div><div id="splitHost" aria-label="Volet secondaire : fichier côte à côte"><span id="splitStatus" class="pane-banner">Cliquez un onglet pour l'afficher ici</span></div><div id="diffView" aria-label="Comparaison Git avec HEAD"><span id="diffStatus" class="pane-banner">Δ Comparaison avec HEAD — les modifications restent éditables</span><button type="button" id="bDiffClose" class="pane-close" title="Fermer la comparaison">✕</button></div><pre id="codeLayer" aria-hidden="true" style="display:none;"></pre><textarea id="ed" spellcheck="false" placeholder="Choisissez un dossier, puis un fichier…" style="display:none;"></textarea><div id="imagePreview" hidden><img id="previewImg" alt="Aperçu visuel du fichier"><span id="imageMeta"></span></div><div id="completePop" role="listbox" aria-label="Complétions"></div></div><div id="termDrawer" aria-label="Terminal intégré"><div id="termHeader"><span class="term-title">💻 Terminal</span><span id="termCwd">—</span><button type="button" class="term-btn" id="bTermClear" title="Effacer l'affichage">Effacer</button><button type="button" class="term-btn" id="bTermClose" title="Fermer le tiroir terminal">✕</button></div><div id="termOut" role="log" aria-live="polite"></div><form id="termForm" autocomplete="off"><span class="term-prompt">❯</span><input id="termInput" type="text" placeholder="Entrez une commande (ex: git status, npm test, dir)..." aria-label="Commande shell" spellcheck="false"><button type="submit" id="bTermSend">Exécuter</button></form></div></div>
+      <div id="editorPane"><div id="tabs" role="tablist" aria-label="Fichiers ouverts"></div><search id="findBar"><input id="findInput" aria-label="Rechercher dans le fichier" placeholder="Rechercher dans le fichier"><button id="findPrev" type="button" title="Occurrence précédente (Maj+F3)">↑</button><button id="findNext" type="button" title="Occurrence suivante (F3)">↓</button><span id="findCount" aria-live="polite"></span><div id="replaceWrap"><input id="replaceInput" aria-label="Remplacer par" placeholder="Remplacer par"><button id="replaceOne" type="button">Remplacer</button><button id="replaceAll" type="button">Tout remplacer</button></div><button id="findClose" type="button" aria-label="Fermer la recherche">×</button></search><div id="editorWrap"><div id="monacoHost" style="position:absolute;inset:0;width:100%;height:100%;"></div><section id="splitHost" aria-label="Volet secondaire : fichier côte à côte"><span id="splitStatus" class="pane-banner">Cliquez un onglet pour l'afficher ici</span></section><section id="diffView" aria-label="Comparaison Git avec HEAD"><span id="diffStatus" class="pane-banner">Δ Comparaison avec HEAD — les modifications restent éditables</span><button type="button" id="bDiffClose" class="pane-close" title="Fermer la comparaison">✕</button></section><pre id="codeLayer" aria-hidden="true" style="display:none;"></pre><textarea id="ed" spellcheck="false" placeholder="Choisissez un dossier, puis un fichier…" style="display:none;"></textarea><div id="imagePreview" hidden><img id="previewImg" alt="Aperçu visuel du fichier"><span id="imageMeta"></span></div><div id="completePop" role="listbox" aria-label="Complétions"></div></div><section id="termDrawer" aria-label="Terminal intégré"><div id="termHeader"><span class="term-title">💻 Terminal</span><span id="termCwd">—</span><button type="button" class="term-btn" id="bTermClear" title="Effacer l'affichage">Effacer</button><button type="button" class="term-btn" id="bTermClose" title="Fermer le tiroir terminal">✕</button></div><div id="termOut" role="log" aria-live="polite"></div><form id="termForm" autocomplete="off"><span class="term-prompt">❯</span><input id="termInput" type="text" placeholder="Entrez une commande (ex: git status, npm test, dir)..." aria-label="Commande shell" spellcheck="false"><button type="submit" id="bTermSend">Exécuter</button></form></section></div>
 </div>
 <div id="err"></div>
 <section id="diagPanel" aria-label="Problèmes du fichier"></section>
@@ -461,7 +461,6 @@ let curDiags = [];
 const IMAGE_FILE_RE = /\.(?:png|jpe?g|gif|webp|bmp|ico|svg)$/i;
 
 // Initialisation Monaco Editor
-let monacoReady = false;
 let monacoInstance = null;
 
 function monacoLanguageFor(file) {
@@ -527,7 +526,6 @@ function initMonaco() {
           glyphMargin: true,
           inlineSuggest: { enabled: true, showToolbar: "onHover" },
         });
-        monacoReady = true;
 
         monacoInstance.onDidChangeCursorPosition((e) => {
           $("sPosition").textContent = `Ln ${e.position.lineNumber}, Col ${e.position.column}`;
@@ -1872,7 +1870,7 @@ const termOut = $("termOut");
 const termInput = $("termInput");
 const termForm = $("termForm");
 const termCwd = $("termCwd");
-let termHistory = [];
+const termHistory = [];
 let termHistoryIdx = -1;
 
 function updateTermCwd() {
