@@ -18,6 +18,8 @@ test("editor reads metadata and refuses to overwrite a file changed outside the 
   const opened = readWorkspaceFile(root, "app.js");
   assert.equal(opened.content, "original");
   fs.writeFileSync(path.join(root, "app.js"), "external update");
+  const later = new Date(opened.mtimeMs + 60_000);
+  fs.utimesSync(path.join(root, "app.js"), later, later);
   assert.throws(() => saveWorkspaceFile(root, "app.js", "editor update", opened.mtimeMs), /changé sur le disque/i);
   assert.equal(fs.readFileSync(path.join(root, "app.js"), "utf8"), "external update");
 });

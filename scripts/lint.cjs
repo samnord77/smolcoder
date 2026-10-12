@@ -5,7 +5,7 @@ const fs = require("node:fs");
 const root = path.resolve(__dirname, "..");
 const globalBiome = path.join(process.env.APPDATA || "", "npm", "node_modules", "@biomejs", "biome", "bin", "biome");
 
-const targets = ["src", "test", "scripts"];
+const targets = ["src", "test", "scripts", "desktop"];
 const args = ["check", "--config-path=biome.json", ...targets];
 
 let run;
