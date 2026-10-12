@@ -5,6 +5,10 @@
 // Transports: stdio (spawn the adapter) and TCP socket (spawn a listener
 // like `debugpy --listen` or `dlv dap`, then connect). The adapter command
 // lives in the workspace, next to the MCP pattern: `.smol/debug.json`.
+// Without any transport/adapter/spawn, the debugger is chosen automatically
+// from the program's extension: .js/.mjs/.cjs/.ts use the built-in Node
+// adapter, .py uses debugpy through an in-process bootstrap (the target file
+// is never modified). Minimal config: {"program":"app.py","breakpoints":[...]}.
 // Example for Python (debugpy speaks DAP over a socket):
 //   {"transport":"socket","spawn":["python","-m","debugpy","--listen","5678",
 //    "--wait-for-client","app.py"],"port":5678,"request":"attach",
@@ -13,7 +17,7 @@
 //   {"transport":"stdio","adapter":["my-dap-adapter"],"request":"launch",
 //    "program":"app.js","breakpoints":[{"path":"app.js","lines":[5]}]}
 // No config, no mock: the tool answers with setup coaching. Never throws.
-import { type ChildProcess, spawn } from "node:child_process";
+import { type ChildProcess, spawn, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as net from "node:net";
 import * as path from "node:path";
@@ -411,11 +415,74 @@ function loadDebugConfig(root: string): { cfg: DebugConfig | null; error: string
   }
 }
 
-const DEBUG_SETUP_HELP = `No debugger configured yet. Create .smol/debug.json in this workspace, for example for Python (debugpy speaks DAP over a socket):
-{"transport":"socket","spawn":["python","-m","debugpy","--listen","5678","--wait-for-client","app.py"],"port":5678,"request":"attach","breakpoints":[{"path":"app.py","lines":[12]}]}
-Or for a stdio adapter:
-{"transport":"stdio","adapter":["my-dap-adapter"],"request":"launch","program":"app.js","breakpoints":[{"path":"app.js","lines":[5]}]}
-Then call debug again with {"action": "run"}. Install the adapter first (pip install debugpy, or your language's DAP server).`;
+const DEBUG_SETUP_HELP = `Aucun débogueur configuré. Créez .smol/debug.json dans cet espace de travail, en une seule ligne :
+{"program":"app.py","breakpoints":[{"path":"app.py","lines":[12]}]}
+Smolcoder choisit tout seul le débogueur selon le langage du fichier :
+- .js / .mjs / .cjs / .ts → débogueur smolcoder intégré (Node, aucune installation)
+- .py → debugpy (pip install debugpy)
+Appelez ensuite debug avec {"action": "run"}.`;
+
+const REPO_ROOT = path.resolve(__dirname, "..");
+const NODE_DAP_ADAPTER = path.join(REPO_ROOT, "scripts", "dap-node.cjs");
+/** Extensions exécutées par l’adaptateur Node intégré (Node 24 exécute
+ * directement .ts par élimination des types). */
+const NODE_EXTS = new Set([".js", ".mjs", ".cjs", ".ts"]);
+/** Langages gérés en automatique, pour un message d’erreur lisible. */
+const AUTO_EXTS_MSG = ".js, .mjs, .cjs, .ts (Node intégré) et .py (debugpy)";
+
+/** Réserve un port TCP libre puis le libère. Petite fenêtre de course
+ * ensuite, compensée par une relance sur port neuf en cas d’échec. */
+function freePort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const srv = net.createServer();
+    srv.unref();
+    srv.once("error", reject);
+    srv.listen(0, "127.0.0.1", () => {
+      const addr = srv.address();
+      const port = typeof addr === "object" && addr ? addr.port : 0;
+      srv.close(() => resolve(port));
+    });
+  });
+}
+
+/** Commande d’amorçage debugpy : écoute le port indiqué, attend la connexion
+ * du client DAP, puis exécute le programme — sans jamais modifier le fichier
+ * visé. Le chemin utilise des « / » pour éviter tout échappement Python. */
+function pythonBootstrapCmd(program: string, port: number): string[] {
+  const pyPath = program.replace(/\\/g, "/");
+  return [
+    "python",
+    "-c",
+    `import debugpy, runpy; debugpy.listen(${port}, in_process_debug_adapter=True); debugpy.wait_for_client(); runpy.run_path(${JSON.stringify(pyPath)}, run_name='__main__')`,
+  ];
+}
+
+export interface AutoDebug {
+  transport: "stdio" | "socket";
+  adapter?: string[];
+  spawn?: string[];
+  port?: number;
+  request: "launch" | "attach";
+  program: string;
+}
+
+/** Choisit tout seul l’adaptateur selon le langage du fichier visé (programme
+ * configuré, sinon premier point d’arrêt). Renvoie null quand la
+ * configuration décrit déjà explicitement sa cible. */
+export async function autoAdapter(cfg: DebugConfig, breakpointPath: string | undefined): Promise<AutoDebug | null> {
+  if (Array.isArray(cfg.spawn) || Array.isArray(cfg.adapter) || cfg.transport) return null;
+  const target = (typeof cfg.program === "string" && cfg.program ? cfg.program : breakpointPath ?? "").trim();
+  if (!target) return null;
+  const ext = path.extname(target).toLowerCase();
+  if (NODE_EXTS.has(ext)) {
+    return { transport: "stdio", adapter: ["node", NODE_DAP_ADAPTER], request: "launch", program: target };
+  }
+  if (ext === ".py") {
+    const port = await freePort();
+    return { transport: "socket", spawn: pythonBootstrapCmd(target, port), port, request: "attach", program: target };
+  }
+  return null;
+}
 
 export interface DebugQuery {
   action?: unknown;
@@ -436,8 +503,6 @@ export async function queryDebug(root: string, args: DebugQuery, opts?: { canWri
   if (error) return `Error: ${error}`;
   if (!cfg) return DEBUG_SETUP_HELP;
 
-  const transport = cfg.transport === "socket" ? "socket" : "stdio";
-  const request = cfg.request === "attach" ? "attach" : "launch";
   const budgetMs = Math.min(Math.max(10, Number(cfg.budgetSec) || 60), 300) * 1000;
 
   const breakpoints: DebugBreakpoint[] = [];
@@ -452,10 +517,47 @@ export async function queryDebug(root: string, args: DebugQuery, opts?: { canWri
     }
   }
 
+  // Mode automatique : sans adaptateur explicite, Smolcoder choisit selon
+  // l’extension du programme (ou du premier point d’arrêt).
+  const auto = await autoAdapter(cfg, breakpoints[0]?.path);
+  const explicitTarget = Array.isArray(cfg.spawn) || Array.isArray(cfg.adapter) || cfg.transport;
+  if (!auto && !explicitTarget) {
+    const ext = path
+      .extname((typeof cfg.program === "string" ? cfg.program : breakpoints[0]?.path ?? "").trim())
+      .toLowerCase();
+    if (ext) {
+      return `Error: extension « ${ext} » non gérée en automatique (${AUTO_EXTS_MSG}). Ajoutez transport, adapter ou spawn dans .smol/debug.json pour les autres langages.`;
+    }
+  }
+  const autoPy = auto?.request === "attach" && (auto.spawn?.[0] ?? "").toLowerCase() === "python";
+  if (autoPy) {
+    // Vérification immédiate : un message clair vaut mieux qu’une attente de 15 s.
+    const probe = spawnSync("python", ["-c", "import debugpy"], { stdio: "ignore", timeout: 15_000, windowsHide: true });
+    if (probe.error) {
+      return 'Error: « python » est introuvable sur le PATH. Installez Python puis debugpy (pip install debugpy), ou configurez spawn/adapter explicitement dans .smol/debug.json.';
+    }
+    if (probe.status !== 0) {
+      return 'Error: debugpy n’est pas installé pour python. Lancez : pip install debugpy, ou configurez spawn/adapter explicitement dans .smol/debug.json.';
+    }
+  }
+  const transport: "stdio" | "socket" = auto?.transport ?? (cfg.transport === "socket" ? "socket" : "stdio");
+  const request: "launch" | "attach" = auto?.request ?? (cfg.request === "attach" ? "attach" : "launch");
+  const adapter: string[] | undefined = auto?.adapter
+    ? auto.adapter.map(String)
+    : Array.isArray(cfg.adapter)
+      ? cfg.adapter.map(String)
+      : undefined;
+  const spawnCmd: string[] | undefined = auto?.spawn
+    ? auto.spawn.map(String)
+    : Array.isArray(cfg.spawn)
+      ? cfg.spawn.map(String)
+      : undefined;
+  let port = auto?.port ?? Number(cfg.port);
+
   const plan: DebugPlan = {
     request,
     launchArgs: cfg.launch && typeof cfg.launch === "object" ? (cfg.launch as Record<string, any>) : undefined,
-    program: typeof cfg.program === "string" ? cfg.program : undefined,
+    program: typeof cfg.program === "string" ? cfg.program : auto?.program,
     programArgs: Array.isArray(cfg.args) ? cfg.args.map(String).slice(0, 20) : [],
     breakpoints,
     budgetMs,
@@ -465,24 +567,35 @@ export async function queryDebug(root: string, args: DebugQuery, opts?: { canWri
   let spawned: ChildProcess | null = null;
   try {
     if (transport === "socket") {
-      const spawnCmd = Array.isArray(cfg.spawn) ? cfg.spawn.map(String) : [];
-      if (!spawnCmd.length) {
+      const cmd = spawnCmd ?? [];
+      if (!cmd.length) {
         return 'Error: le transport socket a besoin de "spawn" (la commande d’écoute). Exemple : {"transport":"socket","spawn":["python","-m","debugpy","--listen","5678","app.py"],"port":5678}';
       }
-      const port = Number(cfg.port);
       if (!Number.isSafeInteger(port) || port < 1 || port > 65535) {
         return 'Error: le transport socket a besoin d’un "port" valide. Exemple : {"port": 5678}';
       }
       const host = typeof cfg.host === "string" && cfg.host ? cfg.host : "127.0.0.1";
-      try {
-        const [exe, ...rest] = spawnCmd;
-        spawned = spawn(resolveCommand(exe), rest, { cwd: root, stdio: "ignore", windowsHide: true });
-      } catch (err: any) {
-        return `Error: impossible de lancer l’écouteur de débogage (${err?.message ?? err}).`;
+      const spawnChild = (cmdToRun: string[]): { child: ChildProcess } | null => {
+        try {
+          const [exe, ...rest] = cmdToRun;
+          const child = spawn(resolveCommand(exe), rest, { cwd: root, stdio: "ignore", windowsHide: true });
+          child.on("error", () => {
+            /* silencieux : la boucle de connexion rendra compte du problème */
+          });
+          return { child };
+        } catch {
+          return null;
+        }
+      };
+      const first = spawnChild(cmd);
+      if (!first) {
+        return "Error: impossible de lancer l’écouteur de débogage.";
       }
+      spawned = first.child;
       const t0 = Date.now();
       let connected = false;
       let lastErr = "";
+      let retried = false;
       while (Date.now() - t0 < 15_000) {
         if (signal?.aborted) return "Error: débogage annulé en attendant l’adaptateur.";
         try {
@@ -491,18 +604,38 @@ export async function queryDebug(root: string, args: DebugQuery, opts?: { canWri
           break;
         } catch (err: any) {
           lastErr = String(err?.message ?? err).slice(0, 120);
+          if (autoPy && !retried && Date.now() - t0 > 8000) {
+            // Port probablement repris entre-temps : on relance sur un port neuf.
+            retried = true;
+            if (auto?.program) {
+              const fresh = await freePort();
+              const next = spawnChild(pythonBootstrapCmd(auto.program, fresh));
+              if (fresh > 0 && next) {
+                try {
+                  spawned?.kill();
+                } catch {
+                  /* ignore */
+                }
+                spawned = next.child;
+                port = fresh;
+              }
+            }
+          }
           await new Promise((r) => setTimeout(r, 500));
         }
       }
-      if (!connected)
-        return `Error: l’écouteur de débogage n’a jamais ouvert ${host}:${port} (${lastErr}). Vérifiez la commande de démarrage.`;
+      if (!connected) {
+        return autoPy
+          ? `Error: l’écouteur debugpy n’a jamais ouvert de port (${lastErr}). Vérifiez que « python » est dans le PATH et que debugpy est installé (pip install debugpy).`
+          : `Error: l’écouteur de débogage n’a jamais ouvert ${host}:${port} (${lastErr}). Vérifiez la commande de démarrage.`;
+      }
     } else {
-      const adapter = Array.isArray(cfg.adapter) ? cfg.adapter.map(String) : [];
-      if (!adapter.length) {
+      const cmd = adapter ?? [];
+      if (!cmd.length) {
         return 'Error: le transport stdio a besoin de "adapter" (la commande). Exemple : {"transport":"stdio","adapter":["my-dap-adapter"],"request":"launch"}';
       }
       try {
-        await client.startStdio(adapter, root);
+        await client.startStdio(cmd, root);
       } catch (err: any) {
         return `Error: ${err?.message ?? err}`;
       }
