@@ -20,6 +20,7 @@ import * as path from "node:path";
 import { encodeLsp } from "./lsp";
 import { resolveCommand } from "./mcp";
 import { resolveInWorkspace } from "./sandbox";
+import { binSearchDirs } from "./util";
 
 const _DEFAULT_BUDGET_MS = 60_000;
 const TRANSCRIPT_CAP = 6000;
@@ -33,6 +34,26 @@ interface DapPending {
 export interface DapEvent {
   event: string;
   body?: any;
+}
+
+/** Windows cannot spawn a `.cmd`/`.bat` shim directly (EINVAL). The DAP
+ * adapter is a real program (node, python, dlv…), so prefer the `.exe` that
+ * sits next to the shim instead of the wrapper npm/npx leave on PATH. */
+function spawnableExe(rawExe: string): string {
+  const exe = resolveCommand(rawExe);
+  if (process.platform !== "win32" || !/\.(cmd|bat)$/i.test(exe)) return exe;
+  const name = path.basename(exe).replace(/\.[^.]+$/, "");
+  for (const dir of binSearchDirs()) {
+    for (const ext of [".exe", ".com"]) {
+      const cand = path.join(dir, name + ext);
+      try {
+        if (fs.existsSync(cand) && fs.statSync(cand).isFile()) return cand;
+      } catch {
+        /* dossier introuvable : on continue */
+      }
+    }
+  }
+  return exe;
 }
 
 /** DAP connection over stdio or TCP. Framing is identical to LSP
@@ -49,13 +70,20 @@ export class DapClient {
   /** Spawn a stdio adapter. */
   async startStdio(cmd: string[], cwd: string): Promise<void> {
     const [rawExe, ...rest] = cmd;
-    const exe = resolveCommand(rawExe);
+    const exe = spawnableExe(rawExe);
+    const useShell = process.platform === "win32" && /\.(cmd|bat)$/i.test(exe);
+    const quoted = [exe, ...rest].map((a) => (/[\s&|<>^"]/.test(a) ? `"${a.replace(/"/g, '""')}"` : a)).join(" ");
     await new Promise<void>((resolve, reject) => {
       let proc: ChildProcess;
       try {
-        proc = spawn(exe, rest, { cwd, stdio: ["pipe", "pipe", "ignore"], windowsHide: true });
+        proc = spawn(useShell ? quoted : exe, useShell ? [] : rest, {
+          cwd,
+          stdio: ["pipe", "pipe", "ignore"],
+          windowsHide: true,
+          ...(useShell ? { shell: true } : {}),
+        });
       } catch (err: any) {
-        reject(new Error(`could not start debug adapter (${exe}): ${err?.message ?? err}`));
+        reject(new Error(`impossible de démarrer l’adaptateur de débogage (${exe}) : ${err?.message ?? err}`));
         return;
       }
       this.proc = proc;
