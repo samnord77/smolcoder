@@ -26,6 +26,14 @@ if (files.length === 0) {
 // Several integration tests launch local language servers, shell trees and
 // temporary project checks. Serial execution avoids resource contention that
 // can make timing-sensitive recovery tests fail only during the full suite.
-const run = spawnSync(process.execPath, ["--test", "--test-concurrency=1", ...files], { cwd: root, stdio: "inherit" });
+// Machine skill folders (~/.codex/skills, ~/.agents/skills) must not leak into
+// the suite: the tests stay hermetic and the machine-skills test picks its own
+// temporary root through SMOLCODER_SKILL_DIRS.
+const env = { ...process.env, SMOLCODER_SKILL_DIRS: "" };
+const run = spawnSync(process.execPath, ["--test", "--test-concurrency=1", ...files], {
+  cwd: root,
+  stdio: "inherit",
+  env,
+});
 if (run.error) console.error(run.error);
 process.exitCode = run.status ?? 1;

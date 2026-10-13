@@ -106,9 +106,10 @@ test("mcp tool exists in edit and bypass, hidden in read-only", () => {
   assert.ok(buildToolSpecs("edit").some((t) => t.name === "mcp"));
   assert.ok(buildToolSpecs("bypass").some((t) => t.name === "mcp"));
   assert.ok(!buildToolSpecs("ro").some((t) => t.name === "mcp"));
-  // 23 edit tools and 11 read-only tools, including local filename search.
+  // 23 edit tools and 12 read-only tools, including local filename search
+  // and delegation (read-only children).
   assert.equal(buildToolSpecs("edit").length, 23);
-  assert.equal(buildToolSpecs("ro").length, 11);
+  assert.equal(buildToolSpecs("ro").length, 12);
 });
 
 test("windows wrappers resolve to their real file", () => {

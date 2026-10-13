@@ -110,11 +110,44 @@ test("delegate stats accumulate without ever throwing", () => {
   assert.equal(cur.toolCalls, 8);
 });
 
-test("delegate tool exists in edit, hidden in ro and in sub-agents", () => {
+test("delegate tool exists in edit and read-only, hidden in sub-agents", () => {
   const edit = buildToolSpecs("edit").map((t) => t.name);
   const ro = buildToolSpecs("ro").map((t) => t.name);
   const child = buildToolSpecs("edit", { allowDelegate: false }).map((t) => t.name);
+  const childRo = buildToolSpecs("ro", { allowDelegate: false }).map((t) => t.name);
   assert.ok(edit.includes("delegate") && edit.includes("skill"));
-  assert.ok(ro.includes("skill") && !ro.includes("delegate") && !ro.includes("write_file"));
+  // Read-only parents may delegate: the child inherits read-only and can only read.
+  assert.ok(ro.includes("skill") && ro.includes("delegate") && !ro.includes("write_file"));
   assert.ok(!child.includes("delegate") && child.includes("skill"));
+  assert.ok(!childRo.includes("delegate"));
+});
+
+test("machine skills (Codex/ECC/REA folders) are listed, read, shown and auto-matched", () => {
+  const ws = scratch();
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "smol-machineskills-"));
+  fs.mkdirSync(path.join(root, "reverse-engineer-anything"), { recursive: true });
+  fs.writeFileSync(
+    path.join(root, "reverse-engineer-anything", "SKILL.md"),
+    "---\nname: reverse-engineer-anything\ndescription: Reverse engineer binaries and apps with evidence\n---\n# steps\n1. inspect the artifact\n",
+    "utf8"
+  );
+  const prev = process.env.SMOLCODER_SKILL_DIRS;
+  process.env.SMOLCODER_SKILL_DIRS = root;
+  try {
+    assert.match(skills.listSkills(ws), /reverse-engineer-anything \(machine\)/);
+    assert.match(skills.readSkill(ws, "reverse-engineer-anything"), /inspect the artifact/);
+    const info = skills.describeSkills(ws).find((s) => s.name === "reverse-engineer-anything");
+    assert.ok(info, "la compétence machine doit etre decrite");
+    assert.equal(info.machine, true);
+    assert.equal(info.builtin, false);
+    const names = skills.relevantSkillNames(ws, "reverse engineer this Electron app and show evidence");
+    assert.ok(names.includes("reverse-engineer-anything"), `auto-match attendu, recu: ${names.join(", ")}`);
+    // a workspace skill with the same name shadows the machine one
+    skills.saveSkill(ws, "reverse-engineer-anything", "# local override");
+    assert.match(skills.readSkill(ws, "reverse-engineer-anything"), /local override/);
+    assert.ok(!skills.listSkills(ws).includes("(machine)"));
+  } finally {
+    if (prev === undefined) delete process.env.SMOLCODER_SKILL_DIRS;
+    else process.env.SMOLCODER_SKILL_DIRS = prev;
+  }
 });

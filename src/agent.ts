@@ -321,9 +321,10 @@ export class Agent {
 
   /** Sub-agents: one bounded child turn, same workspace and mode (never
    * higher), no nested delegates, max 12 tool calls. The child shares the
-   * file/command records so the parent sees its work. */
+   * file/command records so the parent sees its work. Read-only parents may
+   * delegate too: the child inherits read-only and cannot write. */
   private wireDelegate(): void {
-    if ((this.toolCtx.depth ?? 0) >= 1 || this.mode === "ro") {
+    if ((this.toolCtx.depth ?? 0) >= 1) {
       this.toolCtx.delegate = undefined;
       return;
     }

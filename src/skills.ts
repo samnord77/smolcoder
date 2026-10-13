@@ -3,6 +3,7 @@
 // survive sessions (auto-evolution) and travel with the project. Names are
 // strict so a model cannot escape the folder with `../../`.
 import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 import { BUILTIN_SKILLS } from "./builtin-skills";
 import { isHistoryPlaceholder } from "./history";
@@ -12,6 +13,93 @@ const SKILLS_DIR = ".smol/skills";
 const NAME_RE = /^[A-Za-z0-9_-]{1,40}$/;
 const READ_CAP = 4000;
 const SAVE_CAP = 8000;
+
+// ---------------------------------------------------------------------------
+// Machine skills: read-only skill folders shared by the whole PC (the Codex /
+// ECC installs, including skills shipped by packages such as REA). Each root
+// holds one folder per skill with a SKILL.md inside. SMOLCODER_SKILL_DIRS
+// (path-separator separated) overrides the lookup, which keeps tests hermetic.
+// ---------------------------------------------------------------------------
+
+const MACHINE_SKILL_DIRS_ENV = "SMOLCODER_SKILL_DIRS";
+const MACHINE_CACHE_TTL_MS = 60_000;
+
+function machineSkillRoots(): string[] {
+  const raw = process.env[MACHINE_SKILL_DIRS_ENV];
+  if (typeof raw === "string") {
+    return raw
+      .split(path.delimiter)
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+  const home = os.homedir();
+  const out: string[] = [];
+  for (const dir of [path.join(home, ".agents", "skills"), path.join(home, ".codex", "skills")]) {
+    try {
+      if (fs.statSync(dir).isDirectory()) out.push(dir);
+    } catch {
+      /* folder absent: ignore */
+    }
+  }
+  return out;
+}
+
+interface MachineSkill {
+  name: string;
+  file: string;
+  text: string;
+}
+
+let machineCache: { key: string; at: number; items: MachineSkill[] } | null = null;
+
+/** Every machine skill, capped and cached briefly (a turn must stay fast even
+ * with hundreds of installed skills). Workspace files always win, so a local
+ * skill with the same name shadows the machine one. */
+function machineSkills(): MachineSkill[] {
+  const roots = machineSkillRoots();
+  if (!roots.length) return [];
+  const key = roots.join("|");
+  if (!process.env[MACHINE_SKILL_DIRS_ENV] && machineCache && machineCache.key === key && Date.now() - machineCache.at < MACHINE_CACHE_TTL_MS) {
+    return machineCache.items;
+  }
+  const items: MachineSkill[] = [];
+  for (const root of roots) {
+    let entries: string[];
+    try {
+      entries = fs.readdirSync(root);
+    } catch {
+      continue;
+    }
+    for (const entry of entries.sort()) {
+      if (items.length >= 400) break;
+      if (!NAME_RE.test(entry)) continue;
+      const file = path.join(root, entry, "SKILL.md");
+      try {
+        if (!fs.statSync(file).isFile()) continue;
+        items.push({ name: entry, file, text: fs.readFileSync(file, "utf8").slice(0, READ_CAP) });
+      } catch {
+        /* skip one unreadable skill */
+      }
+    }
+  }
+  machineCache = { key, at: Date.now(), items };
+  return items;
+}
+
+function machineSkillByName(name: string): MachineSkill | undefined {
+  return machineSkills().find((s) => s.name === name);
+}
+
+function machineDescription(skill: MachineSkill): string {
+  const meta = skillMeta(skill.text);
+  if (meta.description) return meta.description;
+  return skill.text
+    .replace(/^---[ \t]*\r?\n[\s\S]*?\r?\n---[ \t]*(?:\r?\n|$)/, "")
+    .replace(/^#.*$/m, "")
+    .trim()
+    .split(/\r?\n/)[0]
+    ?.slice(0, 160) ?? "";
+}
 
 function assertName(name: unknown): string {
   if (typeof name !== "string" || !NAME_RE.test(name.trim())) {
@@ -72,7 +160,10 @@ export function listSkills(root: string): string {
     .sort()
     .slice(0, 400);
   const builtins = Object.keys(BUILTIN_SKILLS).filter((n) => !valid.includes(n));
-  const all = [...valid, ...builtins.map((n) => `${n} (intégrée)`)];
+  const machine = machineSkills()
+    .filter((s) => !valid.includes(s.name) && !BUILTIN_SKILLS[s.name])
+    .map((s) => `${s.name} (machine)`);
+  const all = [...valid, ...builtins.map((n) => `${n} (intégrée)`), ...machine];
   if (!all.length) return "Aucune compétence sauvegardée pour l'instant.";
   return `Compétences (${all.length}) : ${all.join(", ")}`;
 }
@@ -96,6 +187,12 @@ export function readSkill(root: string, name: unknown): string {
     }
   } catch {
     /* fall through to built-ins */
+  }
+  const machine = machineSkillByName(clean);
+  if (machine) {
+    const base =
+      machine.text.length >= READ_CAP ? `${machine.text.slice(0, READ_CAP)}\n[compétence machine tronquée]` : machine.text;
+    return `${base}\n[compétence machine (${machine.file}) — lecture seule]`;
   }
   const builtin = BUILTIN_SKILLS[clean];
   if (builtin) return builtin.length > READ_CAP ? `${builtin.slice(0, READ_CAP)}\n[compétence tronquée]` : builtin;
@@ -145,8 +242,8 @@ function keywords(s: string): Set<string> {
   return out;
 }
 
-function allSkillTexts(root: string): { name: string; text: string }[] {
-  const out: { name: string; text: string }[] = [];
+function allSkillTexts(root: string): { name: string; text: string; machine?: boolean }[] {
+  const out: { name: string; text: string; machine?: boolean }[] = [];
   try {
     const dir = resolveInWorkspace(root, SKILLS_DIR);
     for (const f of fs.readdirSync(dir)) {
@@ -167,6 +264,9 @@ function allSkillTexts(root: string): { name: string; text: string }[] {
   for (const [name, text] of Object.entries(BUILTIN_SKILLS)) {
     if (!out.some((s) => s.name === name)) out.push({ name, text });
   }
+  for (const s of machineSkills()) {
+    if (!out.some((prev) => prev.name === s.name)) out.push({ name: s.name, text: s.text, machine: true });
+  }
   return out;
 }
 
@@ -177,6 +277,8 @@ export interface SkillInfo {
   builtin: boolean;
   /** Files an auto-repair lesson wrote (`auto-…`). */
   auto: boolean;
+  /** Read-only skill installed for the whole PC (Codex/ECC/REA folders). */
+  machine?: boolean;
   description: string;
   bytes: number;
   updatedAt: number;
@@ -216,6 +318,24 @@ export function describeSkills(root: string): SkillInfo[] {
     if (out.some((s) => s.name === name)) continue;
     out.push({ name, builtin: true, auto: false, description: skillMeta(text).description ?? "", bytes: text.length, updatedAt: 0 });
   }
+  for (const s of machineSkills()) {
+    if (out.some((prev) => prev.name === s.name)) continue;
+    let updatedAt = 0;
+    try {
+      updatedAt = fs.statSync(s.file).mtimeMs;
+    } catch {
+      /* keep 0 */
+    }
+    out.push({
+      name: s.name,
+      builtin: false,
+      auto: false,
+      machine: true,
+      description: machineDescription(s),
+      bytes: s.text.length,
+      updatedAt,
+    });
+  }
   out.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0) || a.name.localeCompare(b.name));
   return out.slice(0, 400);
 }
@@ -234,7 +354,10 @@ function matchingSkills(root: string, request: string, preferredNames: string[] 
     const nameMatches = [...req].filter((word) => nameWords.has(word)).length;
     const summaryMatches = [...req].filter((word) => summaryWords.has(word)).length;
     const score = nameMatches * 2 + summaryMatches;
-    if (preferredOrder.has(s.name) || nameMatches > 0 || summaryMatches >= 2) {
+    // Machine folders hold hundreds of skills: demand stronger evidence there
+    // so a generic request never drags in an unrelated one.
+    const needed = s.machine ? 3 : 2;
+    if (preferredOrder.has(s.name) || nameMatches > 0 || summaryMatches >= needed) {
       hits.push({ name: s.name, score, excerpt: s.text.slice(0, 600) });
     }
   }

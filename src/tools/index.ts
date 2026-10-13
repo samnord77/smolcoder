@@ -337,7 +337,33 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
     },
   ];
 
-  if (mode === "ro") return [...read, workTool(false)];
+  const delegate: ToolSpec[] =
+    opts?.allowDelegate === false
+      ? []
+      : [
+          {
+            name: "delegate",
+            description:
+              'Hand a small subtask to a bounded sub-agent (max 12 tool calls, no nested delegates). Roster role: {"role":"architect","task":"map the login flow and report files + line numbers"}. Or define a purpose-built specialist inline: {"task":"audit this parser for crashes","tools":"read_file,search,symbols","instructions":"List every unchecked input with file:line"}. Custom tools must be a subset of your own tools; omit role for expert. Sub-agents inherit your mode, so in read-only they can only read.',
+            parameters: {
+              type: "object",
+              properties: {
+                task: { type: "string", description: "The small concrete subtask" },
+                role: { type: "string", description: 'Roster role from the IDE roles panel (default: "expert")' },
+                tools: {
+                  type: "string",
+                  description: 'Custom specialist only: comma-separated subset of your tools, e.g. "read_file,search"',
+                },
+                instructions: { type: "string", description: "Custom specialist only: one-paragraph brief (max 1000 chars)" },
+              },
+              required: ["task"],
+            },
+          },
+        ];
+
+  // Read-only: reads + the work board + delegation (children inherit read-only,
+  // so they can investigate without ever writing).
+  if (mode === "ro") return [...read, workTool(false), ...delegate];
   const mcp: ToolSpec[] = [
     {
       name: "mcp",
@@ -354,29 +380,6 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
       },
     },
   ];
-  const delegate: ToolSpec[] =
-    opts?.allowDelegate === false
-      ? []
-      : [
-          {
-            name: "delegate",
-            description:
-              'Hand a small subtask to a bounded sub-agent (max 12 tool calls, no nested delegates). Roster role: {"role":"architect","task":"map the login flow and report files + line numbers"}. Or define a purpose-built specialist inline: {"task":"audit this parser for crashes","tools":"read_file,search,symbols","instructions":"List every unchecked input with file:line"}. Custom tools must be a subset of your own tools; omit role for expert.',
-            parameters: {
-              type: "object",
-              properties: {
-                task: { type: "string", description: "The small concrete subtask" },
-                role: { type: "string", description: 'Roster role from the IDE roles panel (default: "expert")' },
-                tools: {
-                  type: "string",
-                  description: 'Custom specialist only: comma-separated subset of your tools, e.g. "read_file,search"',
-                },
-                instructions: { type: "string", description: "Custom specialist only: one-paragraph brief (max 1000 chars)" },
-              },
-              required: ["task"],
-            },
-          },
-        ];
   const symbols: ToolSpec[] = [
     {
       name: "symbols",
