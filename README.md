@@ -67,6 +67,7 @@ The line under the input shows the mode, the model, the reasoning effort, how fu
 | `/undo`, `/redo`                     | Undo / redo the last file write                                                                               |
 | `/rewind`                            | Time machine: lists the last turns, `/rewind <n>` puts every file and the conversation back to the start of turn n (add `files` or `chat` for one side only) |
 | `/routine`                           | Scheduled prompts: `/routine add every 30m \| check the build` — runs while a session is open on this project |
+| `/autopilot`                         | Autonomous mission: `/autopilot <goal>` plans first, then loops on its own until the plan is done (max 6 turns / 45 min), `/autopilot stop` interrupts |
 | `/clear`                             | Start a fresh conversation                                                                                    |
 | `/help`, `/exit`                     | Help and quit                                                                                                 |
 

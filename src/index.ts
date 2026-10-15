@@ -205,6 +205,7 @@ ${c.bold("Slash commands:")}
     /undo       undo last write      /redo         redo undone write
     /rewind     rewind files and the conversation to a turn — /rewind 3 (no arg: list checkpoints)
     /routine    scheduled prompts    — /routine add every 30m | check the build
+    /autopilot  autonomous mission   — /autopilot <goal> loops on its own plan, /autopilot stop
     /editor     message via $EDITOR  /export       export to markdown
     /copy       copy last reply      /exit         quit
     /fetch <url> read a web page, no key

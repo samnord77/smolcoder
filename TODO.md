@@ -103,6 +103,13 @@
       (or `conversation`) restores only one side; a turn recorded before this session warns honestly
       instead of pretending. Verified: 58/58 targeted tests (mark capture, both/files/chat, missing
       mark, unknown scope word).
+- [x] **Autonomous mission (`/autopilot`)** — `/autopilot <goal>` runs like a Cowork background task:
+      the first turn asks the model to write a concrete plan (`plan` tool), then the session loops
+      on its own, turn after turn, feeding the remaining plan steps back (`[Pilote automatique —
+      tour n/6] ... Étapes restantes`) until every step is verified done — or it stops honestly:
+      turn limit (6), 45-minute budget, two consecutive error turns, a cancelled turn, or no plan
+      after the first turn. `/autopilot stop` interrupts between turns, `/autopilot` alone shows the
+      help/state, read-only mode refuses to start one. Verified: 7/7 tests (`test/autopilot.test.js`).
 
 ## Outstanding
 

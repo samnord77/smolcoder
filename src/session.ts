@@ -79,6 +79,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { name: "redo", desc: "Redo the undone file write" },
   { name: "rewind", desc: "Restore files to before a turn — /rewind lists, /rewind <n> restores" },
   { name: "routine", desc: "Scheduled prompts — /routine add every 30m | check the build" },
+  { name: "autopilot", desc: "Autonomous mission — /autopilot <goal> loops on its own plan until done, /autopilot stop" },
   { name: "editor", desc: "Write your message in $EDITOR" },
   { name: "export", desc: "Export the conversation to markdown" },
   { name: "copy", desc: "Copy the last assistant reply to the clipboard" },
@@ -539,6 +540,9 @@ export function expandMentionsInWorkspace(workspace: string, text: string, image
 /** Cadence du tick des routines planifiées : assez court pour honorer une
  * routine « every 1m », assez rare pour ne rien coûter. */
 const ROUTINE_TICK_MS = 30_000;
+const AUTOPILOT_MAX_TURNS = 6;
+const AUTOPILOT_MAX_MS = 45 * 60_000;
+const AUTOPILOT_MAX_FAILURES = 2;
 
 export class Session {
   readonly workspace: string;
@@ -567,6 +571,7 @@ export class Session {
   /** Longueur du transcript de l'agent au début de chaque tour — permet à
    * /rewind de restaurer AUSSI la conversation, pas seulement les fichiers. */
   private readonly turnMarks = new Map<number, number>();
+  private autoMission: { goal: string; turns: number; startedAt: number } | null = null;
   /** Tâches planifiées (/routine) : fichier .smol/routines.json + tick de fond. */
   private readonly routines: RoutineBook;
   private readonly routineTimer: ReturnType<typeof setInterval>;
@@ -1151,6 +1156,110 @@ export class Session {
     ui.warn("Usage : /routine · add <cadence> | <texte> · on|off <n> · run <n> · remove <n>");
   }
 
+  /** /autopilot <objectif> — mission autonome : l'agent construit un plan,
+   * puis la session relance des tours jusqu'à ce que le plan soit complet.
+   * /autopilot seul montre l'aide et l'état ; /autopilot stop interrompt. */
+  private async autopilotCommand(rest: string[]): Promise<void> {
+    const ui = this.ui;
+    const first = (rest[0] ?? "").toLowerCase();
+    if (first === "stop" || first === "arret" || first === "arrêt") {
+      if (!this.autoMission) {
+        ui.status("· aucune mission autonome en cours.");
+        return;
+      }
+      const tours = this.autoMission.turns;
+      this.autoMission = null;
+      ui.status(`· pilote automatique arrêté (tour ${tours}/${AUTOPILOT_MAX_TURNS}).`);
+      return;
+    }
+    if (!rest.length) {
+      if (this.autoMission) {
+        const m = this.autoMission;
+        const min = Math.max(1, Math.round((Date.now() - m.startedAt) / 60_000));
+        ui.println(`· mission autonome en cours depuis ~${min} min — tour ${m.turns}/${AUTOPILOT_MAX_TURNS} : « ${truncateEnd(m.goal, 100)} »`);
+      } else {
+        ui.println("· /autopilot <objectif> lance une mission autonome : l'agent crée un plan puis travaille seul, étape par étape, jusqu'au bout (max 6 tours, 45 min).");
+        ui.println("  Exemple : /autopilot crée un site vitrine pour ma boulangerie dans ./site (html + css + page contact)");
+        ui.println("  /autopilot stop arrête une mission en cours.");
+      }
+      return;
+    }
+    if (this.autoMission) {
+      ui.warn(`· mission déjà en cours (tour ${this.autoMission.turns}) — /autopilot stop pour l'arrêter d'abord.`);
+      return;
+    }
+    if (this.toolCtx?.canWrite === false) {
+      ui.warn("· pilote automatique : impossible en mode lecture seule — passez en mode edit, auto ou bypass (Shift+Tab).");
+      return;
+    }
+    const goal = rest.join(" ").trim();
+    if (!goal) return;
+    this.autoMission = { goal, turns: 0, startedAt: Date.now() };
+    ui.println(`\n🚀 pilote automatique : « ${truncateEnd(goal, 120)} »`);
+    ui.println("   l'agent planifie puis enchaîne les tours seul — Échap annule le tour en cours, /autopilot stop après un tour.");
+    try {
+      await this.autopilotLoop(goal);
+    } finally {
+      this.autoMission = null;
+    }
+  }
+
+  private async autopilotLoop(goal: string): Promise<void> {
+    const ui = this.ui;
+    let failures = 0;
+    while (this.autoMission) {
+      const m = this.autoMission;
+      m.turns += 1;
+      if (m.turns > AUTOPILOT_MAX_TURNS || Date.now() - m.startedAt > AUTOPILOT_MAX_MS) {
+        ui.warn(`· pilote automatique : limite atteinte (${m.turns - 1} tour(s)) — je m'arrête là. Le plan reste disponible.`);
+        break;
+      }
+      const plan = this.toolCtx?.plan;
+      const openSteps = plan?.exists
+        ? plan.steps
+            .map((s, i) => (s.done ? null : `${i + 1}. ${s.text}`))
+            .filter((line): line is string => line !== null)
+            .join("\n")
+        : "";
+      const message =
+        m.turns === 1
+          ? `[Pilote automatique — objectif]\n${goal}\n\nCrée d'abord un plan de 3 à 8 étapes concrètes et vérifiables (outil plan, action "set"), puis commence immédiatement la première étape.`
+          : `[Pilote automatique — tour ${m.turns}/${AUTOPILOT_MAX_TURNS}]\nObjectif : ${goal}\nÉtapes restantes :\n${openSteps}\n\nContinue exactement où tu en es : ne refais pas ce qui est terminé, finis l'étape suivante, marque-la done une fois vérifiée, puis poursuis. Si le plan est complet, donne le rapport final. Si tu es vraiment bloqué, arrête-toi et dis précisément pourquoi.`;
+      try {
+        await this.handleUserMessage(message, []);
+      } catch (err: any) {
+        ui.warn(`· pilote automatique : tour interrompu (${err?.message ?? err})`);
+        break;
+      }
+      const outcome = this.agent?.outcome;
+      if (outcome === "cancelled") {
+        ui.status("· pilote automatique : annulé.");
+        break;
+      }
+      failures = outcome === "error" ? failures + 1 : 0;
+      if (failures >= AUTOPILOT_MAX_FAILURES) {
+        ui.warn(`· pilote automatique : arrêt après ${failures} tours en erreur — le plan reste disponible.`);
+        break;
+      }
+      if (plan?.exists && plan.doneCount >= plan.steps.length) {
+        ui.println("");
+        ui.status(`✅ pilote automatique : objectif atteint en ${m.turns} tour(s) — ${plan.steps.length} étape(s) vérifiée(s).`);
+        break;
+      }
+      if (!plan?.exists && m.turns === 1) {
+        ui.status("· pilote automatique : l'agent n'a pas créé de plan — objectif traité en un seul tour, j'arrête la boucle.");
+        break;
+      }
+    }
+    const plan = this.toolCtx?.plan;
+    if (plan?.exists) {
+      ui.println("· plan final :");
+      plan.steps.forEach((s, i) => {
+        ui.println(`   ${s.done ? "☑" : "☐"} ${i + 1}. ${truncateEnd(s.text, 100)}`);
+      });
+    }
+  }
+
   /** Suspend the TUI, open $EDITOR (or notepad) on a tmp file holding the
    * draft, read the saved text back as the message, resume the TUI. Returns
    * null when the editor could not run (error already shown). */
@@ -1529,6 +1638,9 @@ export class Session {
               break;
             case "routine":
               await this.routineCommand(rest);
+              break;
+            case "autopilot":
+              await this.autopilotCommand(rest);
               break;
             case "editor": {
               const content = await this.openEditor(rest.join(" "));
