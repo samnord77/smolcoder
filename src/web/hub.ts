@@ -470,41 +470,79 @@ export function listWorkspaceFiles(root: string): string[] {
 /** Workspace-wide syntax scan for the Problems panel: every readable
  * TS/JS/JSON file (bounded) checked locally with checkSyntax — fast, no
  * language server spawn. Returns the same shape as workspaceDiagnostics. */
-export function scanWorkspaceSyntax(
+export async function scanWorkspaceSyntax(
   root: string,
   maxFiles = 80
-): {
+): Promise<{
   path: string;
   diagnostics: WorkspaceDiagnostic[];
   scanned: number;
+  total: number;
+  skipped: number;
+  partial: boolean;
+  diagnosticsTruncated: boolean;
   message?: string;
-} {
+}> {
   const files = listWorkspaceFiles(root).filter((f) => /\.(ts|tsx|jsx|js|mjs|cjs|json)$/i.test(f));
   const truncated = files.length > maxFiles;
   const capped = truncated ? files.slice(0, maxFiles) : files;
   const diagnostics: WorkspaceDiagnostic[] = [];
+  let scanned = 0;
+  let skipped = 0;
+  let diagnosticsTruncated = false;
   for (const rel of capped) {
-    const r = checkSyntax(path.join(root, rel));
-    if (r.ok) continue;
-    diagnostics.push({
-      path: rel,
-      line: Math.max(1, r.line || 1),
-      severity: "error",
-      message: String(r.error || "Erreur de syntaxe").slice(0, 300),
-    });
-    if (diagnostics.length >= 200) break;
+    let content: string;
+    try {
+      const stat = await fs.promises.stat(path.join(root, rel));
+      if (stat.size > 1024 * 1024) {
+        skipped++;
+        continue;
+      }
+      content = await fs.promises.readFile(path.join(root, rel), "utf8");
+    } catch {
+      skipped++;
+      continue;
+    }
+    const r = checkSyntax(path.join(root, rel), content);
+    scanned++;
+    if (!r.ok) {
+      diagnostics.push({
+        path: rel,
+        line: Math.max(1, r.line || 1),
+        severity: "error",
+        message: String(r.error || "Erreur de syntaxe").slice(0, 300),
+      });
+    }
+    if (diagnostics.length >= 200) {
+      diagnosticsTruncated = true;
+      break;
+    }
+    // Give HTTP requests, SSE and other hub work a chance to run between
+    // parser batches instead of monopolizing the event loop for the whole scan.
+    if (scanned % 4 === 0) await new Promise<void>((resolve) => setImmediate(resolve));
   }
+  const partial = truncated || diagnosticsTruncated || skipped > 0;
+  const partialReasons = [
+    truncated ? `limite de ${maxFiles}` : "",
+    diagnosticsTruncated ? "limite de 200 problèmes" : "",
+    skipped ? `${skipped} fichier(s) ignoré(s)` : "",
+  ].filter(Boolean);
+  const message = partial
+    ? `Scan partiel : ${scanned}/${files.length} fichiers vérifiés (${partialReasons.join(", ")}).`
+    : !scanned
+      ? "Aucun fichier TypeScript/JavaScript/JSON à analyser."
+      : diagnostics.length
+        ? `${scanned} fichiers vérifiés.`
+        : "Aucun problème détecté dans le workspace.";
   return {
     path: ".",
     diagnostics,
-    scanned: capped.length,
-    message: diagnostics.length
-      ? undefined
-      : !capped.length
-        ? "Aucun fichier TypeScript/JavaScript/JSON à analyser."
-        : truncated
-          ? `Aucun problème dans les ${capped.length} premiers fichiers (scan borné, ${files.length} fichiers au total).`
-          : "Aucun problème détecté dans le workspace.",
+    scanned,
+    total: files.length,
+    skipped,
+    partial,
+    diagnosticsTruncated,
+    message,
   };
 }
 
@@ -1280,11 +1318,13 @@ export class WebHub {
             return;
           }
           if (url.searchParams.get("scope") === "all") {
-            try {
-              json(200, scanWorkspaceSyntax(live.workspace));
-            } catch (err: any) {
-              json(400, { error: String(err?.message ?? err).slice(0, 500) });
-            }
+            void scanWorkspaceSyntax(live.workspace)
+              .then((result) => {
+                if (!res.destroyed) json(200, result);
+              })
+              .catch((err: any) => {
+                if (!res.destroyed) json(400, { error: String(err?.message ?? err).slice(0, 500) });
+              });
             return;
           }
           void workspaceDiagnostics(live.workspace, url.searchParams.get("path"))

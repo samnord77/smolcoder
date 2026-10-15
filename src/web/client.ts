@@ -2206,7 +2206,13 @@ function fetchReviewBadge() {
 }
 function curTab(v) { return v.tabs.find((t) => t.id === v.activeTab) || v.tabs[0] || null; }
 // ---- VS Code Pro Dock State & Tabs ----------------------------------------
-let workspaceDiagnostics = [];
+const workspaceScanStates = new Map();
+function workspaceScanState(sid) {
+  if (!workspaceScanStates.has(sid)) workspaceScanStates.set(sid, {
+    diagnostics: [], error: null, message: null, scanned: false, busy: false, requestId: 0, pending: false
+  });
+  return workspaceScanStates.get(sid);
+}
 let outputChannels = {
   "Continuous Validation": [],
   "TypeScript": [],
@@ -2230,64 +2236,67 @@ let detectedPorts = [
   { port: 1234, protocol: "HTTP", service: "LM Studio API", status: "Inactif", openUrl: "http://127.0.0.1:1234" }
 ];
 
-let workspaceScanError = null;
-let workspaceScanMessage = null;
-let workspaceScanned = false;
 let problemsHideWarnings = false;
 function outStamp() {
   const d = new Date();
   return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0") + ":" + String(d.getSeconds()).padStart(2, "0");
 }
 
-function scanWorkspaceProblems(v) {
+async function scanWorkspaceProblems(v) {
   if (!v) return;
-  workspaceScanError = null;
-  fetch("/workspace/diagnostics?k=" + k + "&sid=" + encodeURIComponent(v.sid) + "&scope=all")
-    .then((r) => r.json().then((d) => ({ ok: r.ok, d })))
-    .then(({ ok, d }) => {
-      if (!ok || (d && d.error)) throw new Error((d && d.error) || "analyse impossible");
-      workspaceDiagnostics = [];
-      workspaceScanned = true;
-      workspaceScanMessage = (d && d.message) || null;
-      let errCnt = 0, warnCnt = 0;
-      const list = d && Array.isArray(d.diagnostics) ? d.diagnostics : [];
-      for (const e of list) {
-        const sev = e.severity === "warning" ? "warning" : e.severity === "info" ? "info" : "error";
-        if (sev === "error") errCnt++;
-        else if (sev === "warning") warnCnt++;
-        workspaceDiagnostics.push({
-          path: e.path || e.file || "workspace",
-          line: e.line || 1,
-          col: e.column || e.col || 1,
-          message: e.message || String(e),
-          severity: sev
-        });
-        if (/\bTS\d{3,}\b/.test(e.message || "")) {
-          appendOutputLog("TypeScript", outStamp() + " " + (e.path || "?") + ":" + (e.line || 1) + " " + e.message);
-        }
-      }
-      appendOutputLog("Continuous Validation", outStamp() + " Scan workspace (" + (d && typeof d.scanned === "number" ? d.scanned + " fichier(s)" : "ok") + ") : " + errCnt + " erreur(s), " + warnCnt + " avertissement(s)");
-      const pt = v.tabs.find((x) => x.kind === "problems");
-      if (pt && pt.render) pt.render();
-      renderPanel();
-    })
-    .catch((err) => {
-      workspaceScanError = String(err && err.message ? err.message : err);
-      appendOutputLog("Continuous Validation", outStamp() + " Scan échoué : " + workspaceScanError);
-      const pt = v.tabs.find((x) => x.kind === "problems");
-      if (pt && pt.render) pt.render();
-    });
+  const state = workspaceScanState(v.sid);
+  if (state.busy) { state.pending = true; return; }
+  state.busy = true;
+  state.error = null;
+  const requestId = ++state.requestId;
+  const render = () => {
+    const current = views.get(v.sid) || v;
+    const pt = current.tabs.find((x) => x.kind === "problems");
+    if (pt && pt.render) pt.render();
+    if (current === active) renderPanel();
+  };
+  render();
+  try {
+    const response = await fetch("/workspace/diagnostics?k=" + k + "&sid=" + encodeURIComponent(v.sid) + "&scope=all");
+    const d = await response.json();
+    if (requestId !== state.requestId) return;
+    if (!response.ok || (d && d.error)) throw new Error((d && d.error) || "analyse impossible");
+    state.diagnostics = [];
+    state.scanned = true;
+    state.message = (d && d.message) || null;
+    let errCnt = 0, warnCnt = 0;
+    const list = d && Array.isArray(d.diagnostics) ? d.diagnostics : [];
+    for (const e of list) {
+      const sev = e.severity === "warning" ? "warning" : e.severity === "info" ? "info" : "error";
+      if (sev === "error") errCnt++;
+      else if (sev === "warning") warnCnt++;
+      state.diagnostics.push({ path: e.path || e.file || "workspace", line: e.line || 1, col: e.column || e.col || 1, message: e.message || String(e), severity: sev });
+      if (/\bTS\d{3,}\b/.test(e.message || "")) appendOutputLog("TypeScript", outStamp() + " " + (e.path || "?") + ":" + (e.line || 1) + " " + e.message);
+    }
+    appendOutputLog("Continuous Validation", outStamp() + " Scan workspace (" + (d && typeof d.scanned === "number" ? d.scanned + " fichier(s)" : "ok") + ") : " + errCnt + " erreur(s), " + warnCnt + " avertissement(s)");
+  } catch (err) {
+    state.error = String(err && err.message ? err.message : err);
+    appendOutputLog("Continuous Validation", outStamp() + " Scan échoué : " + state.error);
+  } finally {
+    state.busy = false;
+    render();
+    if (state.pending) {
+      state.pending = false;
+      setTimeout(() => scanWorkspaceProblems(views.get(v.sid) || v), 0);
+    }
+  }
 }
 // Automatic workspace scan (VS Code style): debounced, fired on session show,
 // after every agent turn and after every file save.
-let problemsScanTimer = null;
+const problemsScanTimers = new Map();
 function scheduleProblemsScan(v, delay = 1200) {
   if (!v) return;
-  if (problemsScanTimer) clearTimeout(problemsScanTimer);
-  problemsScanTimer = setTimeout(() => {
-    problemsScanTimer = null;
+  const oldTimer = problemsScanTimers.get(v.sid);
+  if (oldTimer) clearTimeout(oldTimer);
+  problemsScanTimers.set(v.sid, setTimeout(() => {
+    problemsScanTimers.delete(v.sid);
     scanWorkspaceProblems(views.get(v.sid) || v);
-  }, delay);
+  }, delay));
 }
 
 function ensureProblemsTab(v) {
@@ -2308,21 +2317,24 @@ function ensureProblemsTab(v) {
 function renderProblemsView(v, t) {
   const content = t.content;
   content.innerHTML = "";
+  const scan = workspaceScanState(v.sid);
   const filter = (t.filter || "").toLowerCase().trim();
-  const diags = workspaceDiagnostics.filter((d) => {
+  const diags = scan.diagnostics.filter((d) => {
     if (problemsHideWarnings && d.severity !== "error") return false;
     if (!filter) return true;
     return (d.path && d.path.toLowerCase().includes(filter)) || (d.message && d.message.toLowerCase().includes(filter));
   });
   if (!diags.length) {
     const empty = el("div", "problems-empty",
-      workspaceScanError ? "Scan impossible : " + workspaceScanError
-        : !workspaceScanned ? "Cliquez sur ↻ Re-scan pour analyser le workspace."
-        : workspaceScanMessage ? workspaceScanMessage
+      scan.busy ? "Analyse du workspace en cours…"
+        : scan.error ? "Scan impossible : " + scan.error
+        : !scan.scanned ? "Cliquez sur ↻ Re-scan pour analyser le workspace."
+        : scan.message ? scan.message
         : "Aucun problème détecté dans le workspace.");
     content.appendChild(empty);
     const emptyBar = el("div", "prob-action-bar");
-    const refreshEmptyBtn = el("button", "prob-btn ghost", "↻ Re-scan");
+    const refreshEmptyBtn = el("button", "prob-btn ghost", scan.busy ? "⧗ Scan…" : "↻ Re-scan");
+    refreshEmptyBtn.disabled = scan.busy;
     refreshEmptyBtn.title = "Analyser tous les fichiers TypeScript/JavaScript/JSON du workspace";
     refreshEmptyBtn.onclick = () => { scanWorkspaceProblems(v); };
     emptyBar.appendChild(refreshEmptyBtn);
@@ -2330,6 +2342,10 @@ function renderProblemsView(v, t) {
     return;
   }
   const headBar = el("div", "prob-action-bar");
+  if (scan.message || scan.error || scan.busy) {
+    const note = el("div", "problems-empty", scan.busy ? "Analyse du workspace en cours…" : scan.error ? "Scan impossible : " + scan.error : scan.message);
+    headBar.appendChild(note);
+  }
   const sendAllBtn = el("button", "prob-btn primary", "⚡ Tout envoyer à l'agent");
   sendAllBtn.title = "Envoyer TOUS les problèmes détectés à l'agent pour correction automatique (comme Send to Copilot dans VS Code)";
   sendAllBtn.onclick = () => {
@@ -2337,7 +2353,8 @@ function renderProblemsView(v, t) {
     post("/msg", { sid: v.sid, text: "Corrige tous ces problèmes détectés dans le workspace, un par un, cause racine d'abord, puis relance une validation :\n" + summary });
     showToast("Tous les problèmes envoyés à l'agent", "info");
   };
-  const refreshBtn = el("button", "prob-btn ghost", "↻ Re-scan");
+  const refreshBtn = el("button", "prob-btn ghost", scan.busy ? "⧗ Scan…" : "↻ Re-scan");
+  refreshBtn.disabled = scan.busy;
   refreshBtn.title = "Rafraîchir les diagnostics du workspace";
   refreshBtn.onclick = () => { scanWorkspaceProblems(v); };
   const countBadge = el("span", "prob-total-badge", diags.length + " problem" + (diags.length > 1 ? "s" : ""));
@@ -2625,8 +2642,9 @@ function renderPanel() {
       const b = el("button", "vsc-tab" + (isAct ? " on" : ""));
       b.type = "button";
       let lbl = dockLabels[kind] || kind;
-      if (kind === "problems" && workspaceDiagnostics.length > 0) {
-        lbl += " " + workspaceDiagnostics.length;
+      const scanState = workspaceScanState(v.sid);
+      if (kind === "problems" && scanState.diagnostics.length > 0) {
+        lbl += " " + scanState.diagnostics.length;
       }
       b.textContent = lbl;
       b.onclick = () => {
@@ -2820,7 +2838,7 @@ function renderPanel() {
         {
           label: "Copier la liste des problèmes",
           run: () => {
-            const txt = workspaceDiagnostics.map((d) => d.path + ":" + d.line + " [" + d.severity + "] " + d.message).join("\n");
+            const txt = workspaceScanState(v.sid).diagnostics.map((d) => d.path + ":" + d.line + " [" + d.severity + "] " + d.message).join("\n");
             navigator.clipboard.writeText(txt || "Aucun problème.").then(() => showToast("Problèmes copiés", "info")).catch(() => {});
           }
         }
@@ -7320,7 +7338,7 @@ function filterWebPalette() {
       };
     });
 
-    const fileMatches = (workspaceDiagnostics || []).map((d) => ({
+    const fileMatches = (v ? workspaceScanState(v.sid).diagnostics : []).map((d) => ({
       label: d.path + ":" + d.line,
       detail: d.message,
       icon: d.severity === "error" ? "❌" : "⚠",
