@@ -12,7 +12,7 @@ import os from "node:os";
 import path from "node:path";
 import { findCommand } from "./mcp";
 
-export const BROWSER_LAUNCH_TIMEOUT_MS = 12_000;
+export const BROWSER_LAUNCH_TIMEOUT_MS = 20_000;
 export const BROWSER_ACTION_TIMEOUT_MS = 15_000;
 export const BROWSER_NAV_TIMEOUT_MS = 20_000;
 export const BROWSER_IDLE_MS = 10 * 60 * 1000;
@@ -313,6 +313,7 @@ export class BrowserSession {
       this.cdp = await Cdp.connect(page.webSocketDebuggerUrl, BROWSER_LAUNCH_TIMEOUT_MS);
       await this.cdp.send("Page.enable");
       await this.cdp.send("Runtime.enable");
+      await this.warmUp();
       this.touch();
     } catch (err) {
       await this.close();
@@ -329,6 +330,22 @@ export class BrowserSession {
     this.cdp = null;
     this.child = null;
     this.clearIdle();
+  }
+
+  /** Premier contact à froid : Chrome peut être lent à répondre une fois
+   *  lancé (tout premier démarrage, mise à jour en tâche de fond…). Un
+   *  échange raté ici ne doit jamais faire échouer la première action. */
+  private async warmUp(): Promise<void> {
+    const cdp = this.require();
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        await cdp.send("Runtime.evaluate", { expression: "1", returnByValue: true }, 30_000);
+        return;
+      } catch {
+        if (attempt === 1) throw new Error("le navigateur ne répond pas après son démarrage");
+        await sleep(500);
+      }
+    }
   }
 
   private touch(): void {
@@ -376,7 +393,12 @@ export class BrowserSession {
     const loaded = cdp.waitEvent("Page.loadEventFired", BROWSER_NAV_TIMEOUT_MS).catch(() => null);
     await cdp.send("Page.navigate", { url: parsed.href });
     await loaded;
-    const info = await this.pageInfo();
+    // La navigation a pu remplacer le renderer pendant l'échange : un
+    // premier échec se rejoue une fois, une fois la page posée.
+    const info = await this.pageInfo().catch(async () => {
+      await sleep(400);
+      return this.pageInfo();
+    });
     this.touch();
     return info;
   }
