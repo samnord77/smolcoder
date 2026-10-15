@@ -74,7 +74,7 @@ function parseArgs(argv: string[]): CliArgs {
   const args: CliArgs = { workspace: process.cwd() };
   const needValue = (flag: string, value: string | undefined): string => {
     if (value === undefined || value === "") {
-      console.error(`Option "${flag}" needs a value. Try smol --help.`);
+      console.error(`L’option « ${flag} » a besoin d’une valeur. Essayez smol --help.`);
       process.exit(1);
     }
     return value;
@@ -89,7 +89,7 @@ function parseArgs(argv: string[]): CliArgs {
       else if (v === "edit" || v === "e" || v === "write" || v === "w") args.mode = "edit";
       else if (v === "bypass" || v === "bypass-permissions" || v === "b" || v === "yolo" || v === "y") args.mode = "bypass";
       else {
-        console.error(`Unknown mode "${v}". Use ro, edit, or bypass.`);
+        console.error(`Mode inconnu « ${v} ». Utilisez ro, edit ou bypass.`);
         process.exit(1);
       }
     } else if (a === "--bypass" || a === "--bypass-permissions" || a === "--yolo") args.mode = "bypass";
@@ -98,7 +98,7 @@ function parseArgs(argv: string[]): CliArgs {
       const raw = needValue(a, argv[++i]);
       args.ctx = Number(raw);
       if (!Number.isSafeInteger(args.ctx) || args.ctx < 1024) {
-        console.error("--ctx must be a whole number of at least 1024 tokens.");
+        console.error("--ctx doit être un nombre entier d’au moins 1024 tokens.");
         process.exit(1);
       }
     } else if (a === "--effort") {
@@ -106,21 +106,21 @@ function parseArgs(argv: string[]): CliArgs {
       if (v === "off" || v === "low" || v === "medium" || v === "high") args.effort = v;
       else if (v === "default") args.effort = null;
       else {
-        console.error(`Unknown effort "${v}". Use off, low, medium, high, or default.`);
+        console.error(`Effort inconnu « ${v} ». Utilisez off, low, medium, high ou default.`);
         process.exit(1);
       }
     } else if (a === "--verify") {
       const raw = needValue(a, argv[++i]);
       args.verify = raw;
       if (!args.verify?.trim()) {
-        console.error("--verify needs an acceptance command.");
+        console.error("--verify a besoin d’une commande de validation.");
         process.exit(1);
       }
     } else if (a === "--verify-attempts") {
       const raw = needValue(a, argv[++i]);
       args.verifyAttempts = Number(raw);
       if (!Number.isSafeInteger(args.verifyAttempts) || args.verifyAttempts < 1) {
-        console.error("--verify-attempts must be a positive whole number.");
+        console.error("--verify-attempts doit être un nombre entier positif.");
         process.exit(1);
       }
     } else if (a === "--print" || a === "-p") args.print = needValue(a, argv[++i]);
@@ -128,7 +128,7 @@ function parseArgs(argv: string[]): CliArgs {
     else if (a === "--host") {
       const v = needValue(a, argv[++i]).trim();
       if (!v) {
-        console.error('--host needs an address ("127.0.0.1" or "0.0.0.0").');
+        console.error("--host a besoin d’une adresse (« 127.0.0.1 » ou « 0.0.0.0 »).");
         process.exit(1);
       }
       args.webHost = v;
@@ -137,7 +137,7 @@ function parseArgs(argv: string[]): CliArgs {
       if (argv[i + 1] && /^\d+$/.test(argv[i + 1] as string)) {
         const port = Number(argv[++i]);
         if (!Number.isSafeInteger(port) || port < 1 || port > 65535) {
-          console.error("--web port must be a number between 1 and 65535.");
+          console.error("--web doit être un nombre entre 1 et 65535.");
           process.exit(1);
         }
         args.webPort = port;
@@ -146,7 +146,7 @@ function parseArgs(argv: string[]): CliArgs {
       args.workspace = path.resolve(a);
       args.workspaceGiven = true;
     } else {
-      console.error(`Unknown option "${a}". Try smol --help.`);
+      console.error(`Option inconnue « ${a} ». Essayez smol --help.`);
       process.exit(1);
     }
   }
@@ -255,14 +255,14 @@ async function main(): Promise<void> {
   // of silently running last month's build. Cheap when fresh (one mtime walk).
   const ROOT = path.resolve(__dirname, "..");
   if (!ensureBuilt(ROOT, (s) => console.log(`  ${s}`))) {
-    console.error("Cannot run without dist/. Run `npm run build` in the project, then retry.");
+    console.error("Impossible de démarrer sans dist/. Lancez `npm run build` dans le projet, puis réessayez.");
     process.exit(1);
   }
-  if (args.verify && (!args.print || args.web)) throw new Error("--verify requires a headless -p run");
-  if (args.verifyAttempts !== undefined && !args.verify) throw new Error("--verify-attempts requires --verify");
-  if (args.app && !args.web) throw new Error("--app needs --web (smol --web --app)");
+  if (args.verify && (!args.print || args.web)) throw new Error("--verify exige une exécution sans affichage avec -p");
+  if (args.verifyAttempts !== undefined && !args.verify) throw new Error("--verify-attempts exige --verify");
+  if (args.app && !args.web) throw new Error("--app a besoin de --web (smol --web --app)");
   if (!fs.existsSync(args.workspace) || !fs.statSync(args.workspace).isDirectory()) {
-    console.error(`Workspace folder does not exist: ${args.workspace}`);
+    console.error(`Le dossier de travail n’existe pas : ${args.workspace}`);
     process.exit(1);
   }
 
@@ -397,7 +397,9 @@ async function runHeadless(args: CliArgs): Promise<void> {
 
 async function runInteractive(args: CliArgs): Promise<void> {
   if (!process.stdout.isTTY || !process.stdin.isTTY) {
-    console.error('Interactive mode needs a terminal. For headless use, run: smol -p "your prompt" — or serve a browser UI with --web');
+    console.error(
+      "Le mode interactif a besoin d’un terminal. Pour une utilisation sans affichage, lancez : smol -p « votre demande » — ou servez une interface navigateur avec --web"
+    );
     process.exit(1);
   }
 
@@ -466,14 +468,14 @@ async function runWeb(args: CliArgs): Promise<void> {
     const running = await hubVersion(rec);
     if (running && running.version !== VERSION) {
       console.error(
-        `\n  ⚠ the running hub serves v${running.version} (since ${new Date(running.startedAt || Date.now()).toLocaleString()}), this smol is v${VERSION}.` +
-          `\n  New buttons and endpoints will be MISSING until you restart it: stop the old hub (Ctrl+C in its terminal, PID ${rec.pid}) and run smol --web again.\n`
+        `\n  ⚠ le hub en cours sert la v${running.version} (depuis ${new Date(running.startedAt || Date.now()).toLocaleString()}), cette version de smol est la v${VERSION}.` +
+          `\n  Les nouveaux boutons et endpoints seront MANQUANTS tant que vous ne redémarrerez pas : arrêtez l'ancien hub (Ctrl+C dans son terminal, PID ${rec.pid}) et relancez smol --web.\n`
       );
     }
     const r = await askHubToOpen(rec, workspace, autoStart);
     if (r) {
       const url = `http://127.0.0.1:${rec.port}/?k=${rec.token}${r.id ? `#${r.id}` : ""}`;
-      console.log(`\n  ${autoStart ? "started a session for" : "added"} ${workspace} in the running web UI:\n  ${url}\n`);
+      console.log(`\n  ${autoStart ? "démarré une session pour" : "ajouté"} ${workspace} dans l'interface web en cours :\n  ${url}\n`);
       if (args.app) openAppWindow(url);
       return;
     }
@@ -481,14 +483,14 @@ async function runWeb(args: CliArgs): Promise<void> {
 
   const host = args.webHost || "127.0.0.1";
   if (args.webHost && args.webHost !== "127.0.0.1" && args.webHost !== "localhost") {
-    console.log("  LAN open: anyone on your network with the ?k= link can use it (token key, no password).");
+    console.log("  Réseau local : n'importe qui sur votre réseau avec le lien ?k= peut l'utiliser (clé token, sans mot de passe).");
   }
   const hub = new WebHub({ port, host, prefs: prefsOf(args), help: HELP, version: VERSION });
   try {
     await hub.start();
   } catch (err: any) {
     if (err?.code === "EADDRINUSE") {
-      console.error(`\nPort ${port} is already in use. Pick another with: smol --web ${port + 1}`);
+      console.error(`\nLe port ${port} est déjà utilisé. Choisissez-en un autre avec : smol --web ${port + 1}`);
       process.exit(1);
     }
     throw err;
@@ -499,8 +501,8 @@ async function runWeb(args: CliArgs): Promise<void> {
   if (autoStart) hub.openSession(workspace);
   console.log(
     `\n  smolcoder web UI:  ${hub.url()}\n  ${
-      autoStart ? `workspace ${workspace}` : "pick a workspace in the sidebar"
-    } · ctrl+c stops the server\n`
+      autoStart ? `espace de travail ${workspace}` : "choisissez un espace de travail dans la barre latérale"
+    } · ctrl+c arrête le serveur\n`
   );
   if (args.app) openAppWindow(hub.url());
 }
@@ -509,11 +511,11 @@ async function runWeb(args: CliArgs): Promise<void> {
 function openAppWindow(url: string): void {
   try {
     const how = launchApp(url);
-    if (how === "app") console.log("  opened as a desktop app window\n");
-    else if (how === "browser") console.log("  no app browser found — opened in your browser instead\n");
-    else console.log("  could not open a window — copy the link above\n");
+    if (how === "app") console.log("  ouvert comme fenêtre d'application de bureau\n");
+    else if (how === "browser") console.log("  aucun navigateur d'application trouvé — ouvert dans votre navigateur à la place\n");
+    else console.log("  impossible d'ouvrir une fenêtre — copiez le lien ci-dessus\n");
   } catch {
-    console.log("  could not open a window — copy the link above\n");
+    console.log("  impossible d'ouvrir une fenêtre — copiez le lien ci-dessus\n");
   }
 }
 

@@ -6,7 +6,7 @@ const { pathToFileURL, fileURLToPath } = require("node:url");
 
 const TRACE = process.env.SMOL_DAP_TRACE === "1";
 function trace() {
-  if (TRACE) process.stderr.write("[dap-node] " + Array.prototype.join.call(arguments, " ") + "\n");
+  if (TRACE) process.stderr.write(`[dap-node] ${Array.prototype.join.call(arguments, " ")}\n`);
 }
 
 let seq = 0;
@@ -42,7 +42,7 @@ function emitEvent(name, body) {
 
 function emitOutput(text) {
   const t = String(text || "").replace(/\r?\n$/, "");
-  if (t) emitEvent("output", { category: "stdout", output: t + "\n" });
+  if (t) emitEvent("output", { category: "stdout", output: `${t}\n` });
 }
 
 class Cdp {
@@ -101,7 +101,7 @@ class Cdp {
       const id = ++this.id;
       const timer = setTimeout(() => {
         this.pending.delete(id);
-        reject(new Error("inspector timed out on " + method));
+        reject(new Error(`inspector timed out on ${method}`));
       }, timeoutMs || 15000);
       this.pending.set(id, { resolve, reject, timer });
       try {
@@ -222,7 +222,7 @@ async function handle(msg) {
           await cdp.send("Runtime.runIfWaitingForDebugger", {}, 5000);
         } catch (err2) {
           trace("runIfWaitingForDebugger a echoue:", err2 && err2.message);
-          emitOutput("(reprise impossible : " + (err2 && err2.message) + ")");
+          emitOutput(`(reprise impossible : ${err2 && err2.message})`);
         }
       }
       return;
@@ -261,7 +261,7 @@ async function handle(msg) {
         vars = (res.result || []).slice(0, 20).map((p) => ({ name: p.name, value: fmtVal(p) }));
       } catch (err) {
         trace("variables echouees:", err && err.message);
-        emitOutput("(variables indisponibles : " + (err && err.message) + ")");
+        emitOutput(`(variables indisponibles : ${err && err.message})`);
       }
       respond(msg, { variables: vars });
       return;
@@ -332,7 +332,7 @@ async function resume(method) {
     trace(method, "-> OK", JSON.stringify(r || {}).slice(0, 120));
   } catch (err) {
     trace(method, "-> ECHEC:", err && err.message);
-    emitOutput("(reprise impossible : " + (err && err.message) + ")");
+    emitOutput(`(reprise impossible : ${err && err.message})`);
   }
 }
 
@@ -344,7 +344,7 @@ async function doLaunch(msg, a) {
   }
   const abs = path.resolve(program);
   if (!require("node:fs").existsSync(abs)) {
-    respondError(msg, "programme introuvable : " + program);
+    respondError(msg, `programme introuvable : ${program}`);
     return;
   }
   const progArgs = (Array.isArray(a.args) ? a.args : []).map(String);
@@ -392,7 +392,7 @@ async function doLaunch(msg, a) {
   });
 
   if (!wsUrl) {
-    respondError(msg, "l'inspecteur Node n'a jamais ouvert son port" + (stderr ? " : " + stderr.slice(0, 120) : ""));
+    respondError(msg, `l'inspecteur Node n'a jamais ouvert son port${stderr ? ` : ${stderr.slice(0, 120)}` : ""}`);
     finish();
     return;
   }
@@ -409,7 +409,7 @@ async function doLaunch(msg, a) {
     await cdp.send("Runtime.enable", {}, 8000);
     await cdp.send("Debugger.enable", { maxScriptsCacheSize: 1000000 }, 8000);
   } catch (err) {
-    respondError(msg, "activation de l'inspecteur impossible : " + (err && err.message));
+    respondError(msg, `activation de l'inspecteur impossible : ${err && err.message}`);
     finish();
     return;
   }
@@ -435,7 +435,7 @@ async function doLaunch(msg, a) {
       touch();
     } else if (m.method === "Runtime.exceptionThrown") {
       const d = m.params && m.params.exceptionDetails;
-      emitOutput("exception : " + ((d && ((d.exception && d.exception.description) || d.text)) || "inconnue"));
+      emitOutput(`exception : ${d && ((d.exception && d.exception.description) || d.text) || "inconnue"}`);
     }
   };
   cdp.ws.addEventListener("message", (ev) => {
