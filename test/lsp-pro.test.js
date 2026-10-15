@@ -310,3 +310,41 @@ test("symbols setup installs only in edit modes", async () => {
     } catch {}
   }
 });
+
+test("startServer reports an installed server's failure, never a missing candidate's ENOENT", async () => {
+  // Regression: with the first candidate installed but failing, and later
+  // candidates absent, the panel used to report "spawn
+  // basedpyright-langserver ENOENT" — the LAST candidate's error — hiding
+  // the real cause, which left Python panels empty on machines where pylsp
+  // is installed but slow on its first handshake.
+  const ws = scratchWs({});
+  const manager = new LspManager(ws);
+  try {
+    const failFast = {
+      lang: "fake",
+      languageId: "fake",
+      exts: [],
+      candidates: [[process.execPath, "-e", "process.exit(2)"], ["definitely-not-a-real-lsp-binary-xyz"]],
+      installHint: "hint",
+    };
+    await assert.rejects(
+      () => manager.ensureServer(failFast),
+      (err) =>
+        /exited \(code 2\)/.test(String(err.message)) && !/ENOENT/.test(String(err.message)) && !/not-a-real/.test(String(err.message))
+    );
+    const noneInstalled = {
+      lang: "fake2",
+      languageId: "fake2",
+      exts: [],
+      candidates: [["definitely-not-a-real-lsp-binary-xyz"], ["also-not-a-real-binary-abc"]],
+      installHint: "hint",
+    };
+    await assert.rejects(
+      () => manager.ensureServer(noneInstalled),
+      (err) => /no server installed/.test(String(err.message)) && /definitely-not-a-real-lsp-binary-xyz/.test(String(err.message))
+    );
+  } finally {
+    manager.shutdown();
+    closeLspManagers();
+  }
+});

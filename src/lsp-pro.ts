@@ -488,6 +488,11 @@ export function absFromUri(uri: string): string | null {
 }
 
 const LSP_TIMEOUT_MS = 30_000;
+/** First contact is slow on cold servers: pylsp needs ~40 s for its first
+ * initialize on a cold machine, and rust-analyzer/gopls are not faster. The
+ * handshake gets its own, much longer budget; steady-state requests keep
+ * LSP_TIMEOUT_MS. */
+const INIT_TIMEOUT_MS = 90_000;
 const RESULT_CAP = 4000;
 
 interface RpcPending {
@@ -504,6 +509,10 @@ export class RpcClient {
   private pending = new Map<number, RpcPending>();
   private buf = Buffer.alloc(0);
   private diagByUri = new Map<string, any[]>();
+  /** Monotonic stamp per document: lets diagStructured wait for a publication
+   * newer than the last one, even when it is an empty list (clean file). */
+  private diagStampByUri = new Map<string, number>();
+  private diagStampCounter = 0;
   private dead: Error | null = null;
   private watched: string;
 
@@ -549,7 +558,7 @@ export class RpcClient {
         processId: process.pid,
         rootUri: lspRootUri(this.workspace),
         capabilities: { textDocument: { publishDiagnostics: { relatedInformation: true, versionSupport: true } } },
-      })
+      }, INIT_TIMEOUT_MS)
         .then(() => {
           this.notify("initialized", {});
           resolve();
@@ -594,7 +603,10 @@ export class RpcClient {
         continue;
       }
       if (msg?.method === "textDocument/publishDiagnostics" && typeof msg?.params?.uri === "string") {
-        this.diagByUri.set(normLspUri(msg.params.uri), msg.params.diagnostics ?? []);
+        const key = normLspUri(msg.params.uri);
+        this.diagByUri.set(key, msg.params.diagnostics ?? []);
+        this.diagStampCounter += 1;
+        this.diagStampByUri.set(key, this.diagStampCounter);
         continue;
       }
       if (msg?.id !== undefined && this.pending.has(Number(msg.id))) {
@@ -639,6 +651,14 @@ export class RpcClient {
     const out = this.diagByUri.get(key) ?? [];
     this.diagByUri.delete(key);
     return out;
+  }
+
+  /** Stamp of the latest diagnostics publication for this document (0 when
+   * the server never published). A new didOpen/didChange always triggers a
+   * fresh publication, so "stamp moved past S" means "this version was
+   * analyzed" — even when the file is clean and the list is empty. */
+  diagStamp(uri: string): number {
+    return this.diagStampByUri.get(normLspUri(uri)) ?? 0;
   }
 
   get alive(): boolean {
@@ -924,15 +944,16 @@ export class LspManager {
 
   private async startServer(def: LspServerDef, signal?: AbortSignal): Promise<LiveServer> {
     if (signal?.aborted) throw new Error("cancelled before starting");
-    let lastErr = "no candidate command";
+    const installed: string[] = [];
+    let lastErr = "";
     for (const cmd of def.candidates) {
       if (!cmd.length) continue;
-      try {
-        resolveCommand(cmd[0]);
-      } catch {
-        lastErr = `command not found: ${cmd[0]}`;
-        continue;
-      }
+      // findCommand, NOT resolveCommand: resolveCommand echoes its input back
+      // when the binary is missing, so an absent server would be spawned and
+      // its ENOENT would masquerade as the real cause (worst when a later
+      // candidate is the only one listed and an earlier one actually exists).
+      if (!findCommand(cmd[0])) continue;
+      installed.push(cmd[0]);
       const client = new RpcClient(this.root, "");
       try {
         await client.start(cmd);
@@ -943,11 +964,16 @@ export class LspManager {
         } catch {
           /* ignore */
         }
-        lastErr = String(err?.message ?? err).slice(0, 160);
+        // Keep the installed server's failure — it is the real cause; missing
+        // candidates must never overwrite it.
+        lastErr = `${cmd[0]}: ${String(err?.message ?? err).slice(0, 120)}`;
       }
       if (signal?.aborted) throw new Error("cancelled while starting");
     }
-    throw new Error(lastErr);
+    if (!installed.length) {
+      throw new Error(`no server installed (tried ${def.candidates.map((c) => c[0]).join(", ")})`);
+    }
+    throw new Error(lastErr || "no candidate command");
   }
 
   private async ensureDoc(live: LiveServer, abs: string, uri: string, def: LspServerDef, signal?: AbortSignal): Promise<void> {
@@ -1085,18 +1111,26 @@ export class LspManager {
 
   /** Wait for the server's async diagnostics for one open document.
    * Throws Error("cancelled") when the signal aborts. */
-  private async fetchDiagnostics(live: LiveServer, uri: string, signal?: AbortSignal): Promise<any[]> {
+  private async fetchDiagnostics(live: LiveServer, uri: string, signal?: AbortSignal, sinceStamp = 0): Promise<any[]> {
+    // The hover syncs: the server must have processed the didOpen/didChange
+    // notifications before answering. It may still fail (a cold server can
+    // pass the handshake and stall on its first request), but the publication
+    // wait below is what actually matters.
     try {
       await live.client.request("textDocument/hover", {
         textDocument: { uri },
         position: { line: 0, character: 0 },
       });
     } catch {
-      return live.client.takeDiag(uri);
+      /* keep waiting for the publication below */
     }
-    const deadline = Date.now() + 8000;
+    // Wait for a diagnostics publication NEWER than sinceStamp — empty or
+    // not: a clean file publishes [], which is a real answer, and the old
+    // "loop while no items" could never see it. 20 s because cold
+    // gopls/rust-analyzer analyze asynchronously after the handshake.
+    const deadline = Date.now() + 20_000;
     let diags = live.client.takeDiag(uri);
-    while (!diags.length && Date.now() < deadline) {
+    while (live.client.diagStamp(uri) <= sinceStamp && Date.now() < deadline) {
       await new Promise((r) => setTimeout(r, 300));
       if (signal?.aborted) throw new Error("cancelled");
       diags = [...diags, ...live.client.takeDiag(uri)];
@@ -1142,6 +1176,7 @@ export class LspManager {
       );
     }
     const uri = lspUri(abs);
+    const sinceStamp = live.client.diagStamp(uri);
     try {
       await this.ensureDoc(live, abs, uri, def, signal);
     } catch (err: any) {
@@ -1149,7 +1184,7 @@ export class LspManager {
     }
     let diags: any[];
     try {
-      diags = await this.fetchDiagnostics(live, uri, signal);
+      diags = await this.fetchDiagnostics(live, uri, signal, sinceStamp);
     } catch {
       return none("Error: requête symbols annulée.");
     }

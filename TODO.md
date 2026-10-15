@@ -68,6 +68,13 @@
       normal turn path (so routines respect the mode, the file time machine and the journal); overdue
       routines are caught up on the next tick. `/routine add <cadence> | <text>`, `list`, `run`, `on`,
       `off`, `remove`; TUI + web (menu « Routines planifiées »).
+- [x] **Cold language-server handshakes (`symbols` panels)** — the first `initialize` gets its own
+      90 s budget (`INIT_TIMEOUT_MS` in `src/lsp-pro.ts`; a cold `pylsp` needs ~40 s on a cold
+      machine), missing candidates are skipped with `findCommand` and never mask the installed
+      server's real failure, and the diagnostics wait ends on the first publication _newer_ than the
+      `didChange` — empty or not — so a clean file answers immediately while a cold
+      `gopls`/`rust-analyzer` still lands. Verified live: Python (`undefined name 'nam'`, ~22 s cold)
+      and Go (`cannot use "hello" … as int`, ~8 s cold) panels.
 
 ## Outstanding
 
