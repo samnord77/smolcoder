@@ -73,6 +73,16 @@ export interface SelectOption {
   current?: boolean;
 }
 
+/** Une étape du navigateur piloté : remise à l'UI pour l'afficher en direct
+ *  (le panneau Navigateur côté web, une ligne discrète côté TUI). */
+export interface BrowserView {
+  url: string;
+  title: string;
+  action: string;
+  /** Chemin relatif au workspace de la dernière capture (jpeg). */
+  shot: string;
+}
+
 /** The full surface the interactive session loop drives — implemented by the
  * terminal Tui and by the WebUI (--web). */
 export interface SessionUI extends AgentUI {
@@ -89,6 +99,8 @@ export interface SessionUI extends AgentUI {
   select(title: string, options: SelectOption[]): Promise<number | null>;
   /** Ask for one line of text (an address, a name); null when cancelled. */
   prompt(title: string, placeholder?: string): Promise<string | null>;
+  /** Dernière étape du navigateur piloté (open/click/type/…), pour le direct. */
+  browserView?(view: BrowserView): void;
   refresh(): void;
 }
 

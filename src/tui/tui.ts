@@ -8,7 +8,7 @@
 
 import { colorizeResultBlock, createCodeStreamColorizer } from "../highlight";
 import type { Plan } from "../plan";
-import { renderPlan, type SelectOption, type SessionUI, type SlashCommand, summarizeArgs } from "../ui";
+import { type BrowserView, renderPlan, type SelectOption, type SessionUI, type SlashCommand, summarizeArgs } from "../ui";
 import { c } from "../util";
 import { LineEditor, layoutBuffer } from "./editor";
 import { type Key, KeyDecoder } from "./keys";
@@ -700,6 +700,27 @@ export class Tui implements SessionUI {
 
   status(s: string): void {
     this.println(c.gray(s));
+  }
+
+  /** Une ligne discrète par étape du navigateur piloté (le détail vit dans le
+   *  panneau Navigateur de l'app web et le fichier .smol/screenshots/live.jpg). */
+  browserView(view: BrowserView): void {
+    const verb =
+      view.action === "open"
+        ? "ouvre"
+        : view.action === "click"
+          ? "clique"
+          : view.action === "type"
+            ? "saisit"
+            : view.action === "submit"
+              ? "envoie"
+              : view.action === "press"
+                ? "presse une touche"
+                : view.action === "back"
+                  ? "revient à"
+                  : view.action;
+    const title = view.title || view.url || "(sans titre)";
+    this.status(`· navigateur : ${verb} « ${title.slice(0, 80)} »`);
   }
 
   turnEnd(label: string): void {

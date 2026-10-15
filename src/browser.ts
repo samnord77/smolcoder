@@ -120,6 +120,15 @@ export interface BrowserShot {
   bytes: number;
 }
 
+/** Une étape du navigateur de l'agent, pour le panneau « Navigateur » qui la
+ *  montre en direct : url/titre + capture jpeg (base64, sans préfixe). */
+export interface BrowserLiveShot {
+  url: string;
+  title: string;
+  action: string;
+  png: string;
+}
+
 /** Minimal CDP client: one WebSocket, id-paired replies, named events. */
 class Cdp {
   private ws: WebSocket;
@@ -268,6 +277,9 @@ export class BrowserSession {
   private userDataDir = "";
   private idleTimer: ReturnType<typeof setTimeout> | null = null;
 
+  /** onLive reçoit chaque étape (capture comprise) pour le panneau Navigateur. */
+  constructor(private readonly onLive?: (ev: BrowserLiveShot) => void | Promise<void>) {}
+
   get running(): boolean {
     return Boolean(this.cdp && this.child && this.child.exitCode === null);
   }
@@ -368,6 +380,22 @@ export class BrowserSession {
     return this.cdp;
   }
 
+  /** Flux « direct » : une capture jpeg après chaque action qui change la
+   *  page, remise à l'appelant (session → panneau Navigateur). Ne jette
+   *  jamais : le direct ne doit pas casser une action. */
+  private async liveUpdate(action: string, known?: BrowserPageInfo): Promise<void> {
+    if (!this.onLive) return;
+    try {
+      const shot = (await this.require().send("Page.captureScreenshot", { format: "jpeg", quality: 55 })) as { data?: string };
+      const data = String(shot.data ?? "");
+      if (!data) return;
+      const info = known ?? (await this.pageInfo().catch(() => ({ title: "", url: "" })));
+      await this.onLive({ url: info.url, title: info.title, action, png: data });
+    } catch {
+      /* le direct est un confort : jamais une erreur d'action */
+    }
+  }
+
   private async evaluate(expression: string): Promise<any> {
     const res = await this.require().send("Runtime.evaluate", { expression, returnByValue: true });
     if (res.exceptionDetails) {
@@ -399,6 +427,7 @@ export class BrowserSession {
       await sleep(400);
       return this.pageInfo();
     });
+    await this.liveUpdate("open", info);
     this.touch();
     return info;
   }
@@ -444,7 +473,10 @@ export class BrowserSession {
       })()`,
     );
     const res = JSON.parse(String(value)) as BrowserTargetResult;
-    if (res.ok) this.touch();
+    if (res.ok) {
+      await this.liveUpdate("click");
+      this.touch();
+    }
     return res;
   }
 
@@ -470,7 +502,10 @@ export class BrowserSession {
     const res = JSON.parse(String(value)) as BrowserTargetResult;
     if (!res.ok) return { ok: false, submitted: false };
     this.touch();
-    if (!submit) return { ...res, submitted: false };
+    if (!submit) {
+      await this.liveUpdate("type");
+      return { ...res, submitted: false };
+    }
     const cdp = this.require();
     const loaded = cdp.waitEvent("Page.loadEventFired", 5000).catch(() => null);
     let submitted = false;
@@ -495,6 +530,7 @@ export class BrowserSession {
     }
     if (submitted) await loaded;
     else await this.press("Enter");
+    await this.liveUpdate(submitted ? "submit" : "type");
     this.touch();
     return { ...res, submitted: true };
   }
@@ -525,6 +561,7 @@ export class BrowserSession {
       code: spec.code,
       windowsVirtualKeyCode: spec.keyCode,
     });
+    await this.liveUpdate("press");
     this.touch();
   }
 
@@ -550,6 +587,7 @@ export class BrowserSession {
     await this.evaluate("history.back(); true").catch(() => undefined);
     await Promise.race([loaded, sleep(1500)]);
     const info = await this.pageInfo().catch(() => ({ title: "", url: "" }));
+    await this.liveUpdate("back", info);
     this.touch();
     return info;
   }

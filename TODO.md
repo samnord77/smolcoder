@@ -85,6 +85,16 @@
       addresses are welcome (dev servers), http/https only; no approval prompt (same posture as
       `fetch_url`). Verified live: a local page opened in ~1 s, read/click/type/back drove the
       DOM, and the screenshot landed as PNG.
+- [x] **Agent live view (Navigateur panel)** — every step the agent's browser takes lands in the
+      in-app **Navigateur** panel as it happens: each action (open/click/type/submit/press/back)
+      captures a jpeg right after it runs (`onLive` in `src/browser.ts`), the session writes the
+      newest frame to `.smol/screenshots/live.jpg` and pushes a `BrowserView` to the UI, the
+      channel broadcasts it (kept out of the transcript replay, retained as `lastBrowser` so a
+      reconnecting page restores it), and the web panel opens one "🤖 agent" tab with a live
+      badge, the page title/url and refresh/open-externally buttons, served by the bounded
+      `/workspace/asset` image route. The TUI prints one discreet line per step. A sandboxed
+      iframe cannot show third-party sites (X-Frame-Options) nor be driven from outside, so the
+      panel shows what the agent sees instead.
 
 ## Outstanding
 

@@ -58,6 +58,32 @@ test("channel: cancelled turns are replayable lifecycle events", () => {
   assert.ok(ch.replay.some((event) => event.t === "turn_cancelled"));
 });
 
+test("channel: chaque étape du navigateur part en direct et survit dans l'état", () => {
+  const { ch, sent } = makeChannel();
+  ch.browserView({ url: "https://example.com/a", title: "Exemple", action: "click", shot: ".smol/screenshots/live.jpg" });
+  const ev = sent.at(-1);
+  assert.equal(ev.t, "browser");
+  assert.equal(ev.sid, "s1");
+  assert.equal(ev.url, "https://example.com/a");
+  assert.equal(ev.action, "click");
+  assert.equal(ev.shot, ".smol/screenshots/live.jpg");
+  assert.ok(typeof ev.v === "number");
+  assert.ok(!ch.replay.some((e) => e.t === "browser"), "le direct ne pollue pas le replay du transcript");
+  assert.deepEqual(ch.stateEvent().s.browser, {
+    url: "https://example.com/a",
+    title: "Exemple",
+    action: "click",
+    shot: ".smol/screenshots/live.jpg",
+    v: ev.v,
+  });
+  // Bornes : l'url et l'action ne peuvent pas gonfler l'état sans limite.
+  ch.browserView({ url: "u".repeat(500), title: "t".repeat(400), action: "a".repeat(40), shot: "s" });
+  const bounded = ch.stateEvent().s.browser;
+  assert.equal(bounded.url.length, 300);
+  assert.equal(bounded.title.length, 200);
+  assert.equal(bounded.action.length, 20);
+});
+
 test("channel: a message resolves readInput, is echoed with the session id, and titles the session", async () => {
   const { ch, sent } = makeChannel();
   const p = ch.readInput();

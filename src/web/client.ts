@@ -1516,6 +1516,7 @@ function handle(m) {
       if (m.s && !("autopilot" in m.s)) delete v.state.autopilot;
       v.state = Object.assign(v.state, m.s);
       if (m.s && "busy" in m.s) setBusy(v, m.s.busy);
+      if (m.s && "browser" in m.s) syncAgentBrowser(v, m.s.browser);
       renderState(v);
       if (v === active) renderTaskRail();
       break;
@@ -1526,6 +1527,9 @@ function handle(m) {
         ...(m.details ? { details: m.details } : {}),
       };
       renderState(v);
+      break;
+    case "browser":
+      syncAgentBrowser(v, m);
       break;
     case "turn_error":
       v.state.outcome = "error";
@@ -2172,7 +2176,7 @@ $("fsopen").onclick = () => openFolder(fsState.path);
 let panelWidth = Math.max(300, Number(ls.get("smol.panel.w")) || 520);
 function panelKey(v) { return "smol.panel." + v.sid; }
 function savePanel(v) {
-  ls.set(panelKey(v), JSON.stringify({ open: v.panelOpen, active: v.activeTab, tabs: v.tabs.filter((t) => t.kind === "browser").map((t) => ({ kind: "browser", url: t.url })) }));
+  ls.set(panelKey(v), JSON.stringify({ open: v.panelOpen, active: v.activeTab, tabs: v.tabs.filter((t) => t.kind === "browser").map((t) => ({ kind: "browser", url: t.url, ...(t.agent ? { agent: true } : {}) })) }));
 }
 function loadPanelState(v) {
   try {
@@ -2180,8 +2184,11 @@ function loadPanelState(v) {
     if (!st) return;
     for (const t of st.tabs || []) {
       if (t.kind !== "browser") continue;
-      const tab = { kind: "browser", url: t.url || "", id: uid() };
-      buildBrowserTab(v, tab); v.tabs.push(tab);
+      const tab = t.agent
+        ? { kind: "browser", url: t.url || "", id: uid(), agent: true, title: "", action: "", shot: "", v: 0 }
+        : { kind: "browser", url: t.url || "", id: uid() };
+      if (tab.agent) buildAgentBrowserTab(v, tab); else buildBrowserTab(v, tab);
+      v.tabs.push(tab);
     }
     v.panelOpen = false;
     v.activeTab = st.active || (v.tabs[0] && v.tabs[0].id) || null;
@@ -2661,8 +2668,8 @@ function renderPanel() {
       if (dockOrder.includes(t.kind)) continue;
       const isAct = t === cur;
       const b = el("div", "ptab" + (isAct ? " on" : ""));
-      b.appendChild(el("span", "ico", t.kind === "browser" ? "◎" : t.kind === "files" ? "▤" : t.kind === "review" ? "Δ" : "☑"));
-      b.appendChild(el("span", "lbl", t.kind === "browser" ? (t.url ? t.url.replace(/^https?:\/\//, "") : "nouvel onglet") : t.kind === "files" ? "fichiers du projet" : t.kind === "review" ? "révision" : "tâches"));
+      b.appendChild(el("span", "ico", t.kind === "browser" ? (t.agent ? "🤖" : "◎") : t.kind === "files" ? "▤" : t.kind === "review" ? "Δ" : "☑"));
+      b.appendChild(el("span", "lbl", t.kind === "browser" ? (t.agent ? (t.title || "navigateur de l'agent") : t.url ? t.url.replace(/^https?:\/\//, "") : "nouvel onglet") : t.kind === "files" ? "fichiers du projet" : t.kind === "review" ? "révision" : "tâches"));
       const x = el("span", "x", "×");
       x.title = "Fermer l'onglet";
       x.onclick = (e) => { e.stopPropagation(); closeTab(v, t); };
@@ -3078,6 +3085,56 @@ function buildBrowserTab(v, t) {
   };
   fillUrls(t, v.state.urls || []);
   if (t.url) t.nav(t.url);
+}
+
+// Le navigateur de l'agent, montré en direct : chaque étape (open, click, type,
+// submit, press, back) arrive par SSE avec la capture jpeg prise juste après.
+// L'onglet se crée tout seul à la première étape et le panneau s'ouvre une fois.
+function agentBrowserTab(v) { return v.tabs.find((t) => t.kind === "browser" && t.agent); }
+function syncAgentBrowser(v, b) {
+  if (!v || !b || !b.shot) return;
+  let t = agentBrowserTab(v);
+  if (!t) {
+    t = { kind: "browser", agent: true, url: b.url || "", title: b.title || "", action: "", shot: "", v: 0, id: uid() };
+    buildAgentBrowserTab(v, t);
+    v.tabs.push(t);
+    v.activeTab = t.id; v.panelOpen = true;
+  }
+  if (b.url) t.url = b.url;
+  if (b.title) t.title = b.title;
+  t.action = b.action || "";
+  if (b.shot) t.shot = b.shot;
+  t.v = b.v || Date.now();
+  t.render();
+  savePanel(v); renderPanel();
+}
+function buildAgentBrowserTab(v, t) {
+  const body = el("div", "tabbody browser agent"); body.hidden = true;
+  const bar = el("div", "bar");
+  const badge = el("span", "agentbadge", "🤖 agent");
+  badge.title = "Ce que l'agent voit, en direct — capture après chaque action.";
+  const titleEl = el("span", "agenttitle", "");
+  const urlEl = el("span", "agenturl", "");
+  const reload = el("button", "iconbtn", "↻"); reload.title = "Rafraîchir la capture";
+  const ext = el("a", "iconbtn", "↗"); ext.title = "Ouvrir la page dans votre navigateur"; ext.target = "_blank"; ext.rel = "noopener";
+  bar.appendChild(badge); bar.appendChild(titleEl); bar.appendChild(urlEl); bar.appendChild(reload); bar.appendChild(ext);
+  const wait = el("div", "hint", "En attente d'une action du navigateur de l'agent…");
+  const shotWrap = el("div", "agentshot");
+  const img = document.createElement("img");
+  img.alt = "Dernière capture du navigateur de l'agent"; img.loading = "lazy";
+  shotWrap.appendChild(img);
+  body.appendChild(bar); body.appendChild(wait); body.appendChild(shotWrap);
+  v.panelEl.appendChild(body);
+  t.el = body;
+  t.render = () => {
+    titleEl.textContent = t.title || t.url || "navigateur de l'agent";
+    urlEl.textContent = t.url || "";
+    ext.href = t.url || "#";
+    wait.hidden = !!t.shot;
+    shotWrap.hidden = !t.shot;
+    if (t.shot) img.src = "/workspace/asset?k=" + encodeURIComponent(k) + "&sid=" + encodeURIComponent(v.sid) + "&path=" + encodeURIComponent(t.shot) + "&v=" + encodeURIComponent(String(t.v || 0));
+  };
+  reload.onclick = () => { t.v = Date.now(); t.render(); };
 }
 
 // workspace files/editor tab

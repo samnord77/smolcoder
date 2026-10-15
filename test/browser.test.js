@@ -87,7 +87,7 @@ test("browser: les actions de lecture passent en lecture seule", async () => {
   assert.match(back, /Retour arrière/);
   assert.deepEqual(
     fake.calls.map((c) => c[0]),
-    ["read", "shot", "back"],
+    ["read", "shot", "back"]
   );
 });
 
@@ -132,6 +132,33 @@ test("browser: un clic sans élément ne casse pas", async () => {
   assert.match(out, /aucun élément/);
 });
 
+test("browser: chaque étape du direct est remise au panneau (live.jpg + UI)", async () => {
+  const { Session } = require("../dist/session");
+  const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "smol-browser-live-"));
+  const seen = [];
+  const harness = Object.create(Session.prototype);
+  harness.workspace = workspace;
+  harness.ui = { browserView: (v) => seen.push(v) };
+  const raw = "jpeg-factice";
+  await harness.browserLive({ url: "http://127.0.0.1:9/p", title: "Titre", action: "click", png: Buffer.from(raw).toString("base64") });
+  const file = path.join(workspace, ".smol", "screenshots", "live.jpg");
+  assert.ok(fs.existsSync(file), "live.jpg doit être écrit");
+  assert.equal(fs.readFileSync(file).toString(), raw, "la capture décodée doit correspondre");
+  assert.deepEqual(seen, [{ url: "http://127.0.0.1:9/p", title: "Titre", action: "click", shot: ".smol/screenshots/live.jpg" }]);
+  // Un notify qui jette ne doit jamais remonter : le direct est un confort.
+  harness.ui = {
+    browserView: () => {
+      throw new Error("panneau cassé");
+    },
+  };
+  await harness.browserLive({ url: "u", title: "t", action: "open", png: Buffer.from(raw).toString("base64") });
+  try {
+    fs.rmSync(workspace, { recursive: true, force: true });
+  } catch {
+    /* best effort */
+  }
+});
+
 test("browser: une erreur du navigateur revient en texte", async () => {
   const fake = fakeBrowser({
     async open() {
@@ -150,37 +177,54 @@ const livePage = `<!doctype html><html><head><title>Page de test</title></head>
 <input id="nom" name="nom" />
 </body></html>`;
 
-test("browser: pilote une vraie page locale (live)", { skip: (findBrowser() ?? "") === "" ? "aucun navigateur Chrome/Edge sur cette machine" : false }, async () => {
-  const server = http.createServer((req, res) => {
-    res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
-    res.end(livePage);
-  });
-  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
-  const port = server.address().port;
-  const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "smol-browser-test-"));
-  const ctx = { workspace, canWrite: true };
-  try {
-    const open = await runBrowser(ctx, { action: "open", url: `http://127.0.0.1:${port}/` });
-    assert.match(open, /Page ouverte/);
-    assert.match(open, /Page de test/);
-    const read = await runBrowser(ctx, { action: "read" });
-    assert.match(read, /Texte initial/);
-    const click = await runBrowser(ctx, { action: "click", selector: "#btn" });
-    assert.match(click, /Clic effectué/);
-    const after = await runBrowser(ctx, { action: "read" });
-    assert.match(after, /Bouton clique !/);
-    const typed = await runBrowser(ctx, { action: "type", selector: "#nom", text: "Jean Dupont" });
-    assert.match(typed, /Texte saisi/);
-    const shot = await runBrowser(ctx, { action: "shot" });
-    assert.match(shot, /Capture d'écran enregistrée/);
-    assert.ok(fs.existsSync(path.join(workspace, ".smol", "screenshots")), "le dossier de captures doit exister");
-  } finally {
-    await runBrowser(ctx, { action: "close" }).catch(() => {});
-    await new Promise((resolve) => server.close(resolve));
+test(
+  "browser: pilote une vraie page locale (live)",
+  { skip: (findBrowser() ?? "") === "" ? "aucun navigateur Chrome/Edge sur cette machine" : false },
+  async () => {
+    const server = http.createServer((req, res) => {
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+      res.end(livePage);
+    });
+    await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const port = server.address().port;
+    const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "smol-browser-test-"));
+    const live = [];
+    const ctx = { workspace, canWrite: true, browserNotify: (ev) => live.push(ev) };
     try {
-      fs.rmSync(workspace, { recursive: true, force: true });
-    } catch {
-      /* best effort */
+      const open = await runBrowser(ctx, { action: "open", url: `http://127.0.0.1:${port}/` });
+      assert.match(open, /Page ouverte/);
+      assert.match(open, /Page de test/);
+      const read = await runBrowser(ctx, { action: "read" });
+      assert.match(read, /Texte initial/);
+      const click = await runBrowser(ctx, { action: "click", selector: "#btn" });
+      assert.match(click, /Clic effectué/);
+      const after = await runBrowser(ctx, { action: "read" });
+      assert.match(after, /Bouton clique !/);
+      const typed = await runBrowser(ctx, { action: "type", selector: "#nom", text: "Jean Dupont" });
+      assert.match(typed, /Texte saisi/);
+      const shot = await runBrowser(ctx, { action: "shot" });
+      assert.match(shot, /Capture d'écran enregistrée/);
+      assert.ok(fs.existsSync(path.join(workspace, ".smol", "screenshots")), "le dossier de captures doit exister");
+      assert.ok(live.length >= 3, "chaque action qui change la page diffuse une étape");
+      assert.ok(
+        live.some((e) => e.action === "open"),
+        "l'étape open est diffusée"
+      );
+      assert.ok(
+        live.some((e) => e.action === "click"),
+        "l'étape click est diffusée"
+      );
+      const last = live[live.length - 1];
+      assert.ok(typeof last.png === "string" && last.png.length > 100, "la capture jpeg voyage en base64");
+      assert.match(last.url, /127\.0\.0\.1:/, "l'étape porte l'url courante");
+    } finally {
+      await runBrowser(ctx, { action: "close" }).catch(() => {});
+      await new Promise((resolve) => server.close(resolve));
+      try {
+        fs.rmSync(workspace, { recursive: true, force: true });
+      } catch {
+        /* best effort */
+      }
     }
   }
-});
+);

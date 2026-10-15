@@ -402,6 +402,13 @@ export const STYLES = `
   .tabbody.browser .empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--dim); text-align: center; padding: 20px; gap: 8px; font-size: 13px; }
   .tabbody.browser .empty[hidden] { display: none; }
   .tabbody.browser .empty .urls { display: flex; flex-direction: column; gap: 4px; }
+  .tabbody.browser.agent .agentshot { flex: 1; overflow: auto; display: flex; align-items: flex-start; justify-content: center; background: #0a0c0d; min-height: 0; padding: 8px; }
+  .tabbody.browser.agent .agentshot[hidden] { display: none; }
+  .tabbody.browser.agent .agentshot img { max-width: 100%; height: auto; border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 6px 24px rgba(0, 0, 0, .35); }
+  .tabbody.browser.agent .hint { padding: 18px; }
+  .agentbadge { flex: none; font-size: 11px; padding: 2px 7px; border-radius: 999px; background: rgba(64, 160, 255, .14); color: var(--accent); border: 1px solid rgba(64, 160, 255, .35); }
+  .agenttitle { flex: none; font-size: 12px; color: var(--fg); max-width: 38%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .agenturl { flex: 1; min-width: 0; font-size: 11px; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .tabbody.term { background: #0a0c0d; }
   .tabbody.term .out { flex: 1; overflow-y: auto; margin: 0; padding: 10px 12px; white-space: pre-wrap; word-break: break-word; font-size: 12.5px; line-height: 1.4; font-family: inherit; }
   .tabbody.term .out .l { min-height: 1.4em; }

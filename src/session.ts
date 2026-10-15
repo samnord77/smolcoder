@@ -10,6 +10,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { Agent } from "./agent";
 import { type Attachment, MAX_UPLOAD_BYTES, mimeForExt } from "./attachments";
+import type { BrowserLiveShot } from "./browser";
 import { listCustomCommands, loadCustomCommand } from "./commands";
 import { type Config, effortForBackend, loadConfig, updateConfig } from "./config";
 import { ContextManager } from "./context";
@@ -623,6 +624,7 @@ export class Session {
       redoStack: [],
       fileHistory: this.fileHistory,
       sessionId: this.sid,
+      browserNotify: (ev) => this.browserLive(ev),
       mcp: createMcpBridge(workspace),
       plugins,
     };
@@ -653,6 +655,22 @@ export class Session {
     // retenir le process en vie, et jamais pendant qu'un tour travaille.
     this.routineTimer = setInterval(() => void this.routineTick(), ROUTINE_TICK_MS);
     this.routineTimer.unref?.();
+  }
+
+  /** Le direct du navigateur : la capture jpeg de la dernière action est
+   *  écrite dans .smol/screenshots/live.jpg, puis poussée à l'UI (panneau
+   *  Navigateur côté web, ligne discrète côté TUI). Purement best effort :
+   *  le direct ne casse jamais l'action du navigateur. */
+  private async browserLive(ev: BrowserLiveShot): Promise<void> {
+    try {
+      const rel = ".smol/screenshots/live.jpg";
+      const abs = path.join(this.workspace, ...rel.split("/"));
+      fs.mkdirSync(path.dirname(abs), { recursive: true });
+      fs.writeFileSync(abs, Buffer.from(ev.png, "base64"));
+      this.ui.browserView?.({ url: ev.url, title: ev.title, action: ev.action, shot: rel });
+    } catch {
+      /* le direct est un confort : jamais une erreur */
+    }
   }
 
   private sysPrompt(mode: Mode): string {

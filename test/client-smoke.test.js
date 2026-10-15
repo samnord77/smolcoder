@@ -643,6 +643,74 @@ test("agent file activity shows live and refreshes review", async () => {
   assert.ok(beforeTree() > afterWrite, "a move also reloads the tree");
 });
 
+test("the agent browser tab appears live and follows every step", async () => {
+  const c = boot(TREE, DIFF);
+  emitHub(c);
+  await c.flush();
+  const shots = () => c.allElements().filter((e) => typeof e.src === "string" && e.src.includes("/workspace/asset"));
+  assert.equal(shots().length, 0, "no agent tab before the first step");
+  c.es().onmessage({
+    data: JSON.stringify({
+      t: "browser",
+      sid: "s1",
+      url: "https://fr.wikipedia.org/",
+      title: "Wikipédia",
+      action: "open",
+      shot: ".smol/screenshots/live.jpg",
+      v: 111,
+    }),
+  });
+  await c.flush(120);
+  assert.equal(c.errors(), "", "no page error while creating the agent tab");
+  const cls = c.classes();
+  assert.ok(cls.has("agentbadge"), "the agent badge renders");
+  assert.ok(cls.has("agentshot"), "the capture area renders");
+  const shot = shots()[0];
+  assert.ok(shot, "the capture image points at the workspace asset route");
+  assert.ok(shot.src.includes("live.jpg"), "the live capture is shown");
+  assert.ok(shot.src.includes("v=111"), "the capture is versioned to defeat the cache");
+  const texts = [];
+  for (const e of c.allElements()) if (e.textContent) texts.push(e.textContent);
+  assert.ok(
+    texts.some((t) => t === "Wikipédia"),
+    "the page title is shown"
+  );
+  assert.ok(
+    texts.some((t) => t.includes("fr.wikipedia.org")),
+    "the url is shown"
+  );
+  assert.ok(
+    texts.some((t) => t.includes("🤖 agent") || t === "🤖 agent"),
+    "the tab names the agent"
+  );
+  // The next step replaces the capture in place — one tab, no duplicates.
+  c.es().onmessage({
+    data: JSON.stringify({
+      t: "browser",
+      sid: "s1",
+      url: "https://fr.wikipedia.org/wiki/Tour_Eiffel",
+      title: "Tour Eiffel — Wikipédia",
+      action: "click",
+      shot: ".smol/screenshots/live.jpg",
+      v: 222,
+    }),
+  });
+  await c.flush(120);
+  assert.equal(shots().length, 1, "a single agent tab keeps being reused");
+  assert.ok(shots()[0].src.includes("v=222"), "the newest capture replaces the previous one");
+  // The retained state restores the tab for a page that reconnects.
+  c.es().onmessage({
+    data: JSON.stringify({
+      t: "state",
+      sid: "s1",
+      s: { browser: { url: "https://fr.wikipedia.org/", title: "Wikipédia", action: "back", shot: ".smol/screenshots/live.jpg", v: 333 } },
+    }),
+  });
+  await c.flush(120);
+  assert.equal(c.errors(), "", "no page error while merging the retained state");
+  assert.ok(shots().length === 1 && shots()[0].src.includes("v=333"), "the retained state refreshes the same tab");
+});
+
 test("file tree marks live agent operations and keeps the marker until concurrent work finishes", async () => {
   const c = boot(TREE, DIFF);
   emitHub(c);

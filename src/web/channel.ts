@@ -6,7 +6,7 @@
 
 import type { Attachment, UserInput } from "../attachments";
 import type { Plan } from "../plan";
-import { type AgentPhase, type AgentPhaseDetails, type SelectOption, type SessionUI, type SlashCommand, summarizeArgs } from "../ui";
+import { type AgentPhase, type AgentPhaseDetails, type BrowserView, type SelectOption, type SessionUI, type SlashCommand, summarizeArgs } from "../ui";
 import { renderEditDiff } from "./diff";
 
 export type Event = Record<string, any>;
@@ -44,6 +44,8 @@ export class SessionChannel implements SessionUI {
   skillsActive: string[] = [];
   /** Structured Auto Copilot phase shown by web and Electron status panels. */
   autopilot: { phase: AgentPhase; label: string; details?: AgentPhaseDetails } | null = null;
+  /** Dernière étape du navigateur piloté (panneau Navigateur en direct). */
+  lastBrowser: { url: string; title: string; action: string; shot: string; v: number } | null = null;
   replay: Event[] = [];
   closed = false;
 
@@ -166,7 +168,7 @@ export class SessionChannel implements SessionUI {
 
   private broadcast(ev: Event): void {
     ev.sid = this.id;
-    if (ev.t !== "busy" && ev.t !== "state") {
+    if (ev.t !== "busy" && ev.t !== "state" && ev.t !== "browser") {
       const prev = this.replay[this.replay.length - 1];
       if ((ev.t === "token" || ev.t === "thinking") && prev?.t === ev.t && String(prev.s).length + String(ev.s).length < 100_000) {
         prev.s += ev.s;
@@ -189,6 +191,7 @@ export class SessionChannel implements SessionUI {
         subagentRuns: this.subagentRuns,
         skills: this.skillsActive,
         ...(this.autopilot ? { autopilot: this.autopilot } : {}),
+        ...(this.lastBrowser ? { browser: this.lastBrowser } : {}),
       },
     };
   }
@@ -237,6 +240,20 @@ export class SessionChannel implements SessionUI {
         resolve: (s) => resolve(typeof s === "string" && s.trim() ? s.trim().slice(0, 500) : null),
       })
     );
+  }
+
+  /** Le direct du navigateur : chaque étape (capture comprise) part vers le
+   *  panneau Navigateur des pages ouvertes, et la dernière est retenue pour
+   *  l'état (une page qui se reconnecte la retrouve). */
+  browserView(view: BrowserView): void {
+    this.lastBrowser = {
+      url: view.url.slice(0, 300),
+      title: view.title.slice(0, 200),
+      action: view.action.slice(0, 20),
+      shot: view.shot,
+      v: Date.now(),
+    };
+    this.broadcast({ t: "browser", ...this.lastBrowser });
   }
 
   confirmCommand(command: string, reason?: string): Promise<"yes" | "no" | "always"> {

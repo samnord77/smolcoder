@@ -3,7 +3,7 @@
 // mode keeps open/read/shot/back/close and refuses click/type/press — both in
 // the tool spec and again at runtime, so a hand-crafted call cannot slip past
 // the mode. Messages follow the project's French tool wording.
-import { BROWSER_READ_CAP, BrowserSession } from "../browser";
+import { BROWSER_READ_CAP, type BrowserLiveShot, BrowserSession } from "../browser";
 import type { ToolSpec } from "../providers/types";
 
 /** The slice of ToolContext the browser tool needs (no circular import). */
@@ -11,6 +11,8 @@ export interface BrowserCtx {
   workspace: string;
   canWrite?: boolean;
   browser?: BrowserSession;
+  /** Reçoit chaque étape (capture comprise) pour le panneau Navigateur. */
+  browserNotify?: (ev: BrowserLiveShot) => void | Promise<void>;
 }
 
 const ALL_ACTIONS = ["open", "read", "click", "type", "press", "shot", "back", "close"] as const;
@@ -73,7 +75,7 @@ export async function runBrowser(ctx: BrowserCtx, args: Record<string, any>): Pr
   if (action === "press" && !key) {
     return 'Error: "key" est requis pour l\'action press. Exemple : {"action":"press","key":"Enter"}';
   }
-  ctx.browser ??= new BrowserSession();
+  ctx.browser ??= new BrowserSession(ctx.browserNotify);
   const browser = ctx.browser;
   try {
     switch (action) {

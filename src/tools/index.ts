@@ -7,7 +7,7 @@
 // run_command, task, delegate, mcp, symbols and skill save.
 
 import * as fs from "node:fs";
-import type { BrowserSession } from "../browser";
+import type { BrowserLiveShot, BrowserSession } from "../browser";
 import { queryIndex } from "../codeindex";
 import { queryDebug } from "../debug";
 import type { FileHistory, HistoryKind } from "../file-history";
@@ -492,6 +492,9 @@ export interface ToolContext {
   sessionId?: string;
   /** Navigateur piloté (outil browser) : un par session, fermé au shutdown. */
   browser?: BrowserSession;
+  /** Chaque étape du navigateur (capture comprise) est remise ici pour le
+   *  panneau Navigateur en direct. Câblé par la session, jamais par le modèle. */
+  browserNotify?: (ev: BrowserLiveShot) => void | Promise<void>;
   /** Internal per-request cap; never a model-supplied tool argument. */
   resultCharLimit?: number;
   /** Nesting depth of sub-agents (0 = main agent). The delegate tool is
