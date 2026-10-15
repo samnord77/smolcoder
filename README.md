@@ -42,38 +42,42 @@ If your models run on a different computer, see [Using models on another machine
 
 Type what you want done and press enter. The agent reads files, edits them and runs commands inside your project folder, and says what it is doing as it goes. After it edits files it runs your project's build and test scripts and repairs what fails.
 
-| Key | What it does |
-| --- | --- |
-| `/` | Opens the command menu |
-| `shift+tab` | Cycles the permission mode: read-only, edit, bypass |
-| `esc` | Cancels the running turn, or clears the input |
-| `ctrl+c` twice | Quits |
+| Key            | What it does                                        |
+| -------------- | --------------------------------------------------- |
+| `/`            | Opens the command menu                              |
+| `shift+tab`    | Cycles the permission mode: read-only, edit, bypass |
+| `esc`          | Cancels the running turn, or clears the input       |
+| `ctrl+c` twice | Quits                                               |
 
 The line under the input shows the mode, the model, the reasoning effort, how full the context window is, and any background tasks.
 
 ### Commands
 
-| Command | What it does |
-| --- | --- |
-| `/models` | Switch model, or add models from other machines |
-| `/mode` | Set the permission mode (`ro`, `edit`, `bypass`) |
-| `/effort` | Set reasoning effort (`off`, `low`, `medium`, `high`, `default`) |
-| `/plan` | Show the agent's checklist |
-| `/context` | Show context window usage |
-| `/compact` | Compact the conversation now |
-| `/tasks`, `/logs <id>`, `/stop <id>` | Inspect and stop background tasks such as dev servers |
-| `/mcp` | MCP servers: green/red lights + tools |
-| `/skills` | Saved skills, incl. built-ins |
-| `/clear` | Start a fresh conversation |
-| `/help`, `/exit` | Help and quit |
+| Command                              | What it does                                                                                                  |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| `/models`                            | Switch model, or add models from other machines                                                               |
+| `/mode`                              | Set the permission mode (`ro`, `edit`, `auto`, `bypass`)                                                      |
+| `/effort`                            | Set reasoning effort (`off`, `low`, `medium`, `high`, `default`)                                              |
+| `/plan`                              | Show the agent's checklist                                                                                    |
+| `/context`                           | Show context window usage                                                                                     |
+| `/compact`                           | Compact the conversation now                                                                                  |
+| `/tasks`, `/logs <id>`, `/stop <id>` | Inspect and stop background tasks such as dev servers                                                         |
+| `/mcp`                               | MCP servers: green/red lights + tools                                                                         |
+| `/skills`                            | Saved skills, incl. built-ins                                                                                 |
+| `/undo`, `/redo`                     | Undo / redo the last file write                                                                               |
+| `/rewind`                            | Time machine: lists the last turns, `/rewind <n>` puts every file back to its state at the start of turn n    |
+| `/routine`                           | Scheduled prompts: `/routine add every 30m \| check the build` — runs while a session is open on this project |
+| `/clear`                             | Start a fresh conversation                                                                                    |
+| `/help`, `/exit`                     | Help and quit                                                                                                 |
 
 ### Permission modes
 
-| Mode | Files | Commands |
-| --- | --- | --- |
-| `ro` | read and search only | none |
-| `edit` (default) | read, write, edit | run freely inside the project folder; anything reaching outside it asks you first |
-| `bypass` | read, write, edit | never asks |
+| Mode             | Files                | Commands                                                                                                                                                   |
+| ---------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ro`             | read and search only | none                                                                                                                                                       |
+| `edit` (default) | read, write, edit    | run freely inside the project folder; anything reaching outside it asks you first                                                                          |
+| `auto`           | read, write, edit    | like `edit`; outside the project, safe read-only commands (listing, reading, `git log`/`diff`, tool versions) run without asking, anything else still asks |
+| `bypass`         | read, write, edit    | never asks                                                                                                                                                 |
 
 > Old names `write` (= `edit`) and `yolo` (= `bypass`) still work for backward compatibility.
 
@@ -103,11 +107,11 @@ The models do not have to run on the computer you code on. A desktop with a big 
 
 Ollama and LM Studio only answer their own computer until you tell them otherwise. Do this once, on the machine that runs the models.
 
-| Server | What to turn on |
-| --- | --- |
-| Ollama (Windows, macOS) | Settings → **Expose Ollama to the network** |
+| Server                   | What to turn on                                          |
+| ------------------------ | -------------------------------------------------------- |
+| Ollama (Windows, macOS)  | Settings → **Expose Ollama to the network**              |
 | Ollama (Linux, headless) | Set `OLLAMA_HOST=0.0.0.0` for the service and restart it |
-| LM Studio | Developer → Local Server → **Serve on Local Network** |
+| LM Studio                | Developer → Local Server → **Serve on Local Network**    |
 
 On Windows the firewall asks the first time the server listens on the network. Allow it for Private networks.
 

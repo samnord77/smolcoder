@@ -29,6 +29,7 @@ import { LmStudioProvider } from "./providers/lmstudio";
 import { OllamaProvider } from "./providers/ollama";
 import type { Effort, Msg, Provider } from "./providers/types";
 import { RoutingProvider, routeProvider } from "./router";
+import { describeCadence, RoutineBook } from "./routines";
 import { resolveInWorkspace } from "./sandbox";
 import { listSkills, readSkill, saveSkill } from "./skills";
 import { buildStatusReport, renderStatusText } from "./status";
@@ -76,6 +77,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { name: "undo", desc: "Undo the last file write" },
   { name: "redo", desc: "Redo the undone file write" },
   { name: "rewind", desc: "Restore files to before a turn — /rewind lists, /rewind <n> restores" },
+  { name: "routine", desc: "Scheduled prompts — /routine add every 30m | check the build" },
   { name: "editor", desc: "Write your message in $EDITOR" },
   { name: "export", desc: "Export the conversation to markdown" },
   { name: "copy", desc: "Copy the last assistant reply to the clipboard" },
@@ -533,6 +535,10 @@ export function expandMentionsInWorkspace(workspace: string, text: string, image
   });
 }
 
+/** Cadence du tick des routines planifiées : assez court pour honorer une
+ * routine « every 1m », assez rare pour ne rien coûter. */
+const ROUTINE_TICK_MS = 30_000;
+
 export class Session {
   readonly workspace: string;
   chosen: DetectedModel;
@@ -557,6 +563,9 @@ export class Session {
   /** Identifiant de session pour la machine à remonter le temps (/rewind). */
   private readonly sid: string;
   private readonly fileHistory: FileHistory;
+  /** Tâches planifiées (/routine) : fichier .smol/routines.json + tick de fond. */
+  private readonly routines: RoutineBook;
+  private readonly routineTimer: ReturnType<typeof setInterval>;
   /** Built-in + custom slash commands: menu, /help and the web status view. */
   private readonly allSlash: SlashCommand[];
   private ended = false;
@@ -573,6 +582,7 @@ export class Session {
     const persistedKey = opts.planKey && opts.planKey !== "cli" ? opts.planKey : null;
     this.sid = opts.sessionId ?? persistedKey ?? `cli-${randomUUID().slice(0, 8)}`;
     this.fileHistory = new FileHistory(opts.historyRoot);
+    this.routines = new RoutineBook(workspace);
     const mode0 = prefs.mode ?? cfg.lastMode ?? "edit";
     this.effort = effortForBackend(cfg, chosen.backend, prefs.effort);
 
@@ -639,6 +649,10 @@ export class Session {
     reportCompactions(this.bus, ui);
     this.bus.on("context_update", () => ui.refresh());
     this.persist();
+    // Les routines planifiées : un tick discret, `unref` pour ne jamais
+    // retenir le process en vie, et jamais pendant qu'un tour travaille.
+    this.routineTimer = setInterval(() => void this.routineTick(), ROUTINE_TICK_MS);
+    this.routineTimer.unref?.();
   }
 
   private sysPrompt(mode: Mode): string {
@@ -991,6 +1005,91 @@ export class Session {
     for (const rel of outcome.restored) ui.println(`   restaure  ${rel}`);
     for (const rel of outcome.deleted) ui.println(`   supprime  ${rel}`);
     for (const f of outcome.failed) ui.warn(`   échec  ${f.rel} — ${f.reason}`);
+  }
+
+  /** Un tick de fond : réclame une routine due et la fait tourner comme un
+   * message utilisateur normal — même mode, même historique (/rewind), même
+   * journal. Jamais pendant un tour : on retentera au tick suivant. */
+  private async routineTick(): Promise<void> {
+    try {
+      if (this.agent?.outcome === "running") return;
+      const due = await this.routines?.claimDue();
+      if (!due) return;
+      this.ui.println(`\n⏰ routine ${describeCadence(due.cadence)} — ${truncateEnd(due.prompt, 80)}`);
+      let status = "ok";
+      try {
+        await this.handleUserMessage(due.prompt, []);
+        if (this.agent.outcome === "error") status = "erreur";
+      } catch (err: any) {
+        status = "erreur";
+        this.ui.warn(`· routine : ${err?.message ?? err}`);
+      }
+      await this.routines?.markResult(due.id, status);
+    } catch (err: any) {
+      this.ui.warn(`· routine : ${err?.message ?? err}`);
+    }
+  }
+
+  /** /routine [list] · add <cadence> | <texte> · run|on|off|remove <n>. */
+  private async routineCommand(rest: string[]): Promise<void> {
+    const ui = this.ui;
+    if (!this.routines) return; // harnais de test instanciés sans constructeur
+    const sub = (rest[0] ?? "list").toLowerCase();
+    const whenOf = (ms: number) =>
+      new Date(ms).toLocaleString("fr-FR", { weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+    if (sub === "list" || sub === "ls") {
+      const items = this.routines.listSorted();
+      if (!items.length) {
+        ui.status("· aucune routine — /routine add every 30m | relis les issues ouvertes");
+        return;
+      }
+      ui.println("· routines planifiées (elles tournent dès qu'une session est ouverte sur ce dossier) :");
+      items.forEach((r, i) => {
+        ui.println(`   ${i + 1}. ${r.enabled ? "" : "[en pause] "}${describeCadence(r.cadence)} → « ${truncateEnd(r.prompt, 60)} »`);
+        ui.println(`      prochaine : ${whenOf(r.next)}${r.lastStatus ? ` · dernier essai : ${r.lastStatus}` : ""}`);
+      });
+      ui.println("   /routine run <n> lance maintenant · off <n> met en pause · remove <n> supprime");
+      return;
+    }
+    if (sub === "add") {
+      const body = rest.slice(1).join(" ");
+      const sep = body.indexOf("|");
+      if (sep < 0) {
+        ui.warn("Usage : /routine add <cadence> | <texte> — ex. /routine add every 30m | relis les issues");
+        return;
+      }
+      const res = await this.routines.add(body.slice(0, sep).trim(), body.slice(sep + 1).trim());
+      if (!res.ok) {
+        ui.warn(`· ${res.error}`);
+        return;
+      }
+      ui.status(`· routine ajoutée — ${describeCadence(res.routine.cadence)}, prochaine : ${whenOf(res.routine.next)}`);
+      return;
+    }
+    if (sub === "on" || sub === "off") {
+      const out = await this.routines.setEnabled(rest[1] ?? "", sub === "on");
+      if (out.startsWith("Error:")) ui.warn(`· ${out.slice(7)}`);
+      else ui.status(`· ${out}`);
+      return;
+    }
+    if (sub === "remove" || sub === "rm" || sub === "delete") {
+      const out = await this.routines.remove(rest[1] ?? "");
+      if (out.startsWith("Error:")) ui.warn(`· ${out.slice(7)}`);
+      else ui.status(`· ${out}`);
+      return;
+    }
+    if (sub === "run") {
+      const r = this.routines.resolve(rest[1] ?? "");
+      if (!r) {
+        ui.warn(`· routine « ${rest[1] ?? ""} » introuvable — /routine liste les routines`);
+        return;
+      }
+      ui.println(`\n⏰ routine ${describeCadence(r.cadence)} — ${truncateEnd(r.prompt, 80)}`);
+      await this.handleUserMessage(r.prompt, []);
+      await this.routines.markResult(r.id, this.agent.outcome === "error" ? "manuel · erreur" : "manuel · ok");
+      return;
+    }
+    ui.warn("Usage : /routine · add <cadence> | <texte> · on|off <n> · run <n> · remove <n>");
   }
 
   /** Suspend the TUI, open $EDITOR (or notepad) on a tmp file holding the
@@ -1369,6 +1468,9 @@ export class Session {
             case "rewind":
               this.rewindTurns(rest);
               break;
+            case "routine":
+              await this.routineCommand(rest);
+              break;
             case "editor": {
               const content = await this.openEditor(rest.join(" "));
               if (content === null) break;
@@ -1424,6 +1526,7 @@ export class Session {
       /* best effort */
     }
     this.taskManager.killAll();
+    clearInterval(this.routineTimer);
     try {
       this.toolCtx.mcp?.closeAll();
     } catch {

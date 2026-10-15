@@ -103,7 +103,7 @@ export const PAGE_HTML = `<!doctype html>
       <div id="logo" role="img" aria-label="smolcoder">${LOGO_TEXT}   <span class="coder">coder — web</span></div>
       <h1>Que construisons-nous aujourd'hui ?</h1>
       <div class="row"><button type="button" class="primary" id="welcomeopen">Ouvrir un dossier de projet</button></div>
-      <div class="tips" style="color:var(--dim);font-size:12.5px;margin-bottom:16px;">Commandes : <b>/models</b> <b>/fetch</b> <b>/skills</b> <b>/mcp</b> <b>/plan</b> · <b>@fichier</b> pour référencer · <b>!commande</b> shell direct · <b>/undo</b> annuler · <b>/rewind</b> revenir en arrière</div>
+      <div class="tips" style="color:var(--dim);font-size:12.5px;margin-bottom:16px;">Commandes : <b>/models</b> <b>/fetch</b> <b>/skills</b> <b>/mcp</b> <b>/plan</b> · <b>@fichier</b> pour référencer · <b>!commande</b> shell direct · <b>/undo</b> annuler · <b>/rewind</b> revenir en arrière · <b>/routine</b> planifier</div>
       <div id="recent"></div>
     </div>
     <div id="logs"></div>

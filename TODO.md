@@ -61,6 +61,13 @@
       read-only (`src/approvals.ts`: listings, reads, git log/diff/status, tool `--version`) run without
       asking and log what they did; chained, destructive or state-changing commands still ask y/n, and
       MCP approvals are unchanged. Never more permissive than a human who reads the command.
+- [x] **Scheduled prompts (`/routine`)** — project-scoped routines in `.smol/routines.json`
+      (`src/routines.ts`), cadences in English and French (`every 30m`, `hourly`, `every day at 09:00`,
+      `weekdays at 08:30`, `every monday at 10:00`, `chaque lundi à 10:00`…). A 30 s `unref`'d tick per
+      session claims each due occurrence exactly once under a cross-window lock and runs it through the
+      normal turn path (so routines respect the mode, the file time machine and the journal); overdue
+      routines are caught up on the next tick. `/routine add <cadence> | <text>`, `list`, `run`, `on`,
+      `off`, `remove`; TUI + web (menu « Routines planifiées »).
 
 ## Outstanding
 
