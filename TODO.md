@@ -3,35 +3,35 @@
 ## Done
 
 - [x] **AGENTS.md memory files** — injected after the system prompt, size-capped (~2k tokens),
-  survives compaction. Pirate-tested on Ollama and LM Studio.
+      survives compaction. Pirate-tested on Ollama and LM Studio.
 - [x] **Plan tool** — harness-held checklist (set/done/add/show), TUI + web rendering,
-  compaction re-injection, quit-halfway nudge. Proven in real runs on both backends.
+      compaction re-injection, quit-halfway nudge. Proven in real runs on both backends.
 - [x] **Web UI** (`--web`) — TUI twin over SSE, localhost + URL token.
 - [x] **Web UI v2: workspace hub** — `smol --web` from anywhere; a collapsible sidebar of workspaces
-  and their sessions (status dots, new/close/delete/rename, folder picker), many sessions running side
-  by side, transcripts saved under `~/.smolcoder/sessions/` and resumable after a restart, a second
-  `smol --web` joins the running hub. Right panel with browser tabs (dev-server URLs suggested) and
-  streaming terminal tabs (persistent shell, no PTY).
+      and their sessions (status dots, new/close/delete/rename, folder picker), many sessions running side
+      by side, transcripts saved under `~/.smolcoder/sessions/` and resumable after a restart, a second
+      `smol --web` joins the running hub. Right panel with browser tabs (dev-server URLs suggested) and
+      streaming terminal tabs (persistent shell, no PTY).
 - [x] **Model-written session titles** in the web sidebar — one call with thinking off after the first
-  turn replaces the verbatim first message; manual renames are never overwritten.
+      turn replaces the verbatim first message; manual renames are never overwritten.
 - [x] **Markdown rendering in the web page.**
 - [x] **Reasoning effort that means what it says on LM Studio** — reads the model's supported
-  levels and default from `/api/v1/models`, sends `none` for off, snaps other levels to what the
-  model has. (Previously "high" fell back to the model default — `xhigh` on qwen3.x — and "off"
-  did nothing on models without the `/no_think` switch.)
+      levels and default from `/api/v1/models`, sends `none` for off, snaps other levels to what the
+      model has. (Previously "high" fell back to the model default — `xhigh` on qwen3.x — and "off"
+      did nothing on models without the `/no_think` switch.)
 - [x] **Speed readout** — every turn ends with tool count, tokens generated, tok/s; headless runs
-  print a `[stats]` JSON line for scripted backend comparisons.
+      print a `[stats]` JSON line for scripted backend comparisons.
 - [x] **Post-write syntax check hook** — JS/JSON/HTML-inline-script/Python parse errors come back on
-  the write_file/edit_file result with a line number.
+      the write_file/edit_file result with a line number.
 - [x] **Compaction v2** — structured hand-over notes written with thinking off, old reasoning traces
-  not replayed, stale reads of overwritten files evicted immediately.
+      not replayed, stale reads of overwritten files evicted immediately.
 - [x] **Ollama keep_alive** — the model stays resident 30 min between calls (`SMOLCODER_KEEP_ALIVE`).
 - [x] **Unit tests** — `npm test` (node:test, no deps).
 - [x] **Real tier-2 compaction on a live model** — `bench/run.sh mc-compact <model> off --ctx 12000`:
-  tier-1 eviction then a hand-over-notes compaction (7.5k → 2.1k tokens) on LM Studio, five
-  compactions on Ollama; both finished the build with the plan intact. Headless logs show the tier.
+      tier-1 eviction then a hand-over-notes compaction (7.5k → 2.1k tokens) on LM Studio, five
+      compactions on Ollama; both finished the build with the plan intact. Headless logs show the tier.
 - [x] **Cut-off tool calls are coached** — an oversized write_file that overflows the output cap
-  now gets "not executed, write it in parts" instead of a generic "continue".
+      now gets "not executed, write it in parts" instead of a generic "continue".
 - [x] **Visible YOLO mode** — `bypass` shows as `YOLO bypass` with a red banner at startup (CLI + web flag).
 - [x] **Desktop app mode** — `smol --web --app` opens the hub in its own Chrome/Edge window (own profile), plain browser tab otherwise; Kaggle GPU recipe in `docs/kaggle.md` (remote address flow, no key yet).
 - [x] **IDE-grade web extras** — desktop notifications (bell, approvals/turn-end/errors, silent while watching), sub-agent start/done lines on CLI + TUI + web, color diffs on edits.
@@ -51,12 +51,17 @@
 - [x] **Durable Cowork work list** — project-scoped personal/work tasks shared by CLI, web and desktop agents; validates dates and limits, supports priorities, notes, status filters, update/complete/archive, and refuses mutations in read-only mode.
 - [x] **Enforced specialist sub-agents** — role tool allowlists are applied to the child schemas and checked again at execution; built-in research, project, Office and personal roles; interactive child MCP/command approvals are relayed to the user.
 - [x] **Restart-safe work plans** — bounded, atomic project-local plans persist for the CLI and per Web conversation; unfinished work is reintroduced to the model on a fresh CLI turn, while concurrent browser conversations keep isolated plans.
+- [x] **File time machine (`/rewind`)** — every turn opens a persisted checkpoint under
+      `~/.smolcoder/file-history/<session>/`; `/rewind` lists the last turns, `/rewind <n>` puts every
+      file touched since turn n back to its state at the turn's start (created files removed, moves
+      reverted, empty folders cleaned); 2 MB per-file cap, content-addressed blobs, atomic index,
+      best effort — never blocks a write.
 
 ## Outstanding
 
 - [ ] **Human pass on the terminal TUI** — puppet-tested and the web twin is visually verified, but
-  no human has driven the real terminal UI in a while (logo, slash menu, shift+tab, pickers,
-  approval prompt, esc-cancel mid-stream).
+      no human has driven the real terminal UI in a while (logo, slash menu, shift+tab, pickers,
+      approval prompt, esc-cancel mid-stream).
 - [x] **Per-backend effort memory** — Ollama and LM Studio retain independent reasoning settings; explicit default is preserved, old configs remain valid, and switching backends loads its saved setting.
 - [x] **Multi-language verification discovery** — auto-runs conventional, fixed test commands for Node scripts, Python pytest projects, Go, Rust, .NET and Maven/Gradle; wrappers are preferred where present and configuration text is never treated as a command.
 - [x] **IDE problem panel (Web + Electron)** — TypeScript/JavaScript diagnostics appear when a file is opened and after saving; selecting a problem opens the reported file and moves to its line. Requests stay within the selected workspace and unsupported languages explain the current LSP limit.

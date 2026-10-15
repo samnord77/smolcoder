@@ -795,6 +795,7 @@ function contextMenuItems(s, command) {
   out.push({ label: "Effacer la conversation", hint: "/clear", run: () => command("clear") });
   out.push({ label: "Annuler", hint: "/undo", run: () => command("undo") });
   out.push({ label: "Rétablir", hint: "/redo", run: () => command("redo") });
+  out.push({ label: "Retour en arrière (fichiers)", hint: "/rewind", run: () => command("rewind") });
   return out;
 }
 /** Menu of the agent-mode chip. setMode already accepts ro / edit / bypass, so

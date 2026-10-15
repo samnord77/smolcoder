@@ -9,6 +9,7 @@
 import * as fs from "node:fs";
 import { queryIndex } from "../codeindex";
 import { queryDebug } from "../debug";
+import type { FileHistory, HistoryKind } from "../file-history";
 import { formatFile } from "../format";
 import { queryGit } from "../git";
 import { setupLsp } from "../lsp-install";
@@ -461,6 +462,18 @@ function pushUndo(
   ctx.redoStack.length = 0;
 }
 
+/** Checkpoint d'avant-écriture pour /rewind. Best effort : la machine à
+ * remonter le temps ne doit jamais faire échouer une écriture. */
+function captureHistory(ctx: ToolContext, rel: unknown, kind: HistoryKind): void {
+  try {
+    if (ctx.fileHistory && ctx.sessionId) {
+      ctx.fileHistory.capture(ctx.sessionId, ctx.workspace, rel, kind);
+    }
+  } catch {
+    /* jamais bloquant */
+  }
+}
+
 export interface ToolContext {
   workspace: string;
   taskManager: TaskManager;
@@ -471,6 +484,9 @@ export interface ToolContext {
   /** Undo/redo des écritures fichier (write_file/edit_file). */
   undoStack?: UndoEntry[];
   redoStack?: UndoEntry[];
+  /** Machine à remonter le temps : /rewind restaure l'état d'avant un tour. */
+  fileHistory?: FileHistory;
+  sessionId?: string;
   /** Internal per-request cap; never a model-supplied tool argument. */
   resultCharLimit?: number;
   /** Nesting depth of sub-agents (0 = main agent). The delegate tool is
@@ -551,6 +567,7 @@ export async function executeTool(name: string, args: Record<string, any>, ctx: 
         break;
       }
       case "write_file": {
+        captureHistory(ctx, args.path, "write");
         const undoCap = capturePrev(ctx.workspace, args.path);
         result = writeFile(ctx.workspace, args);
         if (!result.startsWith("Error")) {
@@ -561,6 +578,7 @@ export async function executeTool(name: string, args: Record<string, any>, ctx: 
         break;
       }
       case "edit_file": {
+        captureHistory(ctx, args.path, "edit");
         const undoCap = capturePrev(ctx.workspace, args.path);
         result = editFile(ctx.workspace, args);
         if (!result.startsWith("Error")) {
@@ -574,6 +592,8 @@ export async function executeTool(name: string, args: Record<string, any>, ctx: 
         if (ctx.canWrite === false) {
           return "Error: le déplacement de fichiers est indisponible en mode lecture seule. Passez en mode édition pour réorganiser les fichiers.";
         }
+        captureHistory(ctx, args.from, "move");
+        captureHistory(ctx, args.to, "move");
         result = movePath(ctx.workspace, args);
         if (!result.startsWith("Error")) {
           ctx.filesTouched.add(String(args.from));
@@ -584,6 +604,7 @@ export async function executeTool(name: string, args: Record<string, any>, ctx: 
         if (ctx.canWrite === false) {
           return "Error: la suppression de fichiers est indisponible en mode lecture seule. Passez en mode édition pour supprimer des fichiers.";
         }
+        captureHistory(ctx, args.path, "delete");
         const undoCap = capturePrev(ctx.workspace, args.path);
         result = deletePath(ctx.workspace, args);
         if (!result.startsWith("Error")) {
@@ -598,6 +619,7 @@ export async function executeTool(name: string, args: Record<string, any>, ctx: 
         if (ctx.canWrite === false) {
           return "Error: la création de dossiers est indisponible en mode lecture seule. Passez en mode édition pour réorganiser les fichiers.";
         }
+        captureHistory(ctx, args.path, "mkdir");
         result = createFolder(ctx.workspace, args);
         if (!result.startsWith("Error")) ctx.filesTouched.add(String(args.path));
         break;
@@ -702,6 +724,7 @@ export async function executeTool(name: string, args: Record<string, any>, ctx: 
         // revert_hunk destroys work: capture it first so /undo brings it back.
         const gAction = String(args.action ?? "");
         const gPath = typeof args.path === "string" ? args.path : "";
+        if (gAction === "revert_hunk" && gPath) captureHistory(ctx, gPath, "write");
         const undoCap = gAction === "revert_hunk" && gPath ? capturePrev(ctx.workspace, gPath) : null;
         result = queryGit(ctx.workspace, args, { canWrite: ctx.canWrite });
         if (gAction === "revert_hunk" && undoCap && !result.startsWith("Error")) {
@@ -723,6 +746,7 @@ export async function executeTool(name: string, args: Record<string, any>, ctx: 
         if (!rel) {
           return 'Error: le chemin est requis. Exemple : {"path": "src/agent.ts"}';
         }
+        captureHistory(ctx, rel, "write");
         const undoCap = capturePrev(ctx.workspace, rel);
         const fr = formatFile(ctx.workspace, rel);
         result = fr.message;

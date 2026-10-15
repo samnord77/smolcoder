@@ -4,6 +4,7 @@
 // sidebar entry) run exactly the same loop.
 
 import { spawnSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -14,6 +15,7 @@ import { type Config, effortForBackend, loadConfig, updateConfig } from "./confi
 import { ContextManager } from "./context";
 import { type DetectedModel, detectAll, envKeyFor, isFlagshipBase, keyAllowed, resolveContextWindow } from "./detect";
 import { EventBus } from "./events";
+import { FileHistory } from "./file-history";
 import { formatReview } from "./git";
 import { hostUrls } from "./hosts";
 import { lspDoctor, setupLsp } from "./lsp-install";
@@ -73,6 +75,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { name: "clear", desc: "Reset the conversation" },
   { name: "undo", desc: "Undo the last file write" },
   { name: "redo", desc: "Redo the undone file write" },
+  { name: "rewind", desc: "Restore files to before a turn — /rewind lists, /rewind <n> restores" },
   { name: "editor", desc: "Write your message in $EDITOR" },
   { name: "export", desc: "Export the conversation to markdown" },
   { name: "copy", desc: "Copy the last assistant reply to the clipboard" },
@@ -475,6 +478,10 @@ export interface SessionOptions {
   workspace: string;
   /** Stable key for per-session plan persistence (CLI uses "cli"). */
   planKey?: string;
+  /** Identifiant d'historique pour /rewind (défaut : le planKey web, sinon cli-<aléatoire>). */
+  sessionId?: string;
+  /** Racine de l'historique de fichiers (tests ; défaut ~/.smolcoder/file-history). */
+  historyRoot?: string;
   chosen: DetectedModel;
   prefs: SessionPrefs;
   cfg: Config;
@@ -546,6 +553,9 @@ export class Session {
   private readonly prefs: SessionPrefs;
   private readonly help: string;
   private readonly hubRec: any;
+  /** Identifiant de session pour la machine à remonter le temps (/rewind). */
+  private readonly sid: string;
+  private readonly fileHistory: FileHistory;
   /** Built-in + custom slash commands: menu, /help and the web status view. */
   private readonly allSlash: SlashCommand[];
   private ended = false;
@@ -559,6 +569,9 @@ export class Session {
     this.chosen = chosen;
     this.prefs = prefs;
     this.help = opts.help;
+    const persistedKey = opts.planKey && opts.planKey !== "cli" ? opts.planKey : null;
+    this.sid = opts.sessionId ?? persistedKey ?? `cli-${randomUUID().slice(0, 8)}`;
+    this.fileHistory = new FileHistory(opts.historyRoot);
     const mode0 = prefs.mode ?? cfg.lastMode ?? "edit";
     this.effort = effortForBackend(cfg, chosen.backend, prefs.effort);
 
@@ -597,6 +610,8 @@ export class Session {
       commandsRun: [],
       undoStack: [],
       redoStack: [],
+      fileHistory: this.fileHistory,
+      sessionId: this.sid,
       mcp: createMcpBridge(workspace),
       plugins,
     };
@@ -767,6 +782,10 @@ export class Session {
    * have its arguments rewritten), otherwise @file mentions are expanded. */
   private async handleUserMessage(input: string, attachments: Attachment[], workItemId?: string): Promise<void> {
     const { ui, agent } = this;
+    // Machine à remonter le temps : chaque tour ouvre son point de
+    // restauration avant que le moindre outil ne touche un fichier.
+    // (Best effort : les harnais de test instancient la session sans constructeur.)
+    this.fileHistory?.beginTurn(this.sid, input);
     const board = workItemId ? new CoworkBoard(this.workspace) : null;
     if (board && workItemId) {
       try {
@@ -930,6 +949,47 @@ export class Session {
     } catch (err: any) {
       fail(`could not re-apply (${err?.message ?? err})`);
     }
+  }
+
+  /** La machine à remonter le temps. Sans argument : les tours enregistrés.
+   * Avec un numéro : restaure les fichiers tels qu'ils étaient AU DÉBUT de ce
+   * tour (tout ce qui a été touché par les tours >= n revient en arrière). */
+  private rewindTurns(rest: string[]): void {
+    const ui = this.ui;
+    const arg = rest.join(" ").trim();
+    const turns = this.fileHistory.readIndex(this.sid);
+    if (!turns.length) {
+      ui.status("· rien à remonter — aucun tour enregistré pour cette session");
+      return;
+    }
+    if (!arg) {
+      ui.println("· Points de restauration (les plus récents d'abord) :");
+      for (const t of this.fileHistory.list(this.sid, 10)) {
+        const when = new Date(t.at);
+        const hh = String(when.getHours()).padStart(2, "0");
+        const mm = String(when.getMinutes()).padStart(2, "0");
+        const n = t.files.length;
+        ui.println(`   ${String(t.turn).padStart(3)}  « ${t.prompt} »  ${hh}:${mm}  ${n} fichier${n > 1 ? "s" : ""}`);
+      }
+      ui.println("· /rewind <n> restaure les fichiers tels qu'ils étaient AU DÉBUT du tour n — la conversation n'est pas touchée.");
+      return;
+    }
+    const n = Number(arg);
+    if (!Number.isInteger(n) || !turns.some((t) => t.turn === n)) {
+      ui.error(`· tour « ${arg} » inconnu — /rewind liste les tours disponibles`);
+      return;
+    }
+    const outcome = this.fileHistory.restore(this.sid, n, this.workspace);
+    for (const rel of [...outcome.restored, ...outcome.deleted]) this.toolCtx.filesTouched.add(rel);
+    const parts = [
+      outcome.restored.length ? `${outcome.restored.length} restauré${outcome.restored.length > 1 ? "s" : ""}` : "",
+      outcome.deleted.length ? `${outcome.deleted.length} supprimé${outcome.deleted.length > 1 ? "s" : ""} (créés après ce tour)` : "",
+      outcome.unchanged.length ? `${outcome.unchanged.length} déjà conforme${outcome.unchanged.length > 1 ? "s" : ""}` : "",
+    ].filter(Boolean);
+    ui.println(`· rewind → début du tour ${n} : ${parts.join(", ") || "rien à faire"}.`);
+    for (const rel of outcome.restored) ui.println(`   restaure  ${rel}`);
+    for (const rel of outcome.deleted) ui.println(`   supprime  ${rel}`);
+    for (const f of outcome.failed) ui.warn(`   échec  ${f.rel} — ${f.reason}`);
   }
 
   /** Suspend the TUI, open $EDITOR (or notepad) on a tmp file holding the
@@ -1304,6 +1364,9 @@ export class Session {
               break;
             case "redo":
               this.redoEdit();
+              break;
+            case "rewind":
+              this.rewindTurns(rest);
               break;
             case "editor": {
               const content = await this.openEditor(rest.join(" "));

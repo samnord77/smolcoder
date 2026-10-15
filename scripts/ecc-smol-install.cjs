@@ -126,6 +126,7 @@ const BUILTIN_SLASH_NAMES = [
   "quit",
   "redo",
   "review",
+  "rewind",
   "route",
   "skills",
   "status",

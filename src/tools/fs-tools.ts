@@ -217,7 +217,7 @@ export function movePath(root: string, args: any): string {
     return `Error: impossible de déplacer « ${from} » vers « ${to} » (${err?.code || err?.message || "raison inconnue"}).`;
   }
   const kind = fs.statSync(absTo).isDirectory() ? "dossier" : "fichier";
-  return `${kind.charAt(0).toUpperCase() + kind.slice(1)} « ${from} » → « ${to} » déplacé. (Les déplacements ne sont pas annulables par /undo — git restaure la disposition précédente.)`;
+  return `${kind.charAt(0).toUpperCase() + kind.slice(1)} « ${from} » → « ${to} » déplacé. (Annulable par /rewind — pas par /undo.)`;
 }
 
 export function deletePath(root: string, args: any): string {
