@@ -56,6 +56,11 @@
       file touched since turn n back to its state at the turn's start (created files removed, moves
       reverted, empty folders cleaned); 2 MB per-file cap, content-addressed blobs, atomic index,
       best effort — never blocks a write.
+- [x] **Auto-pilot mode (`auto`)** — fourth permission mode between edit and bypass (`--mode auto`,
+      `/mode auto`, shift+tab cycle, web menu). Outside the workspace, commands recognized as plainly
+      read-only (`src/approvals.ts`: listings, reads, git log/diff/status, tool `--version`) run without
+      asking and log what they did; chained, destructive or state-changing commands still ask y/n, and
+      MCP approvals are unchanged. Never more permissive than a human who reads the command.
 
 ## Outstanding
 
