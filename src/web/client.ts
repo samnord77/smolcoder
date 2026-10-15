@@ -798,13 +798,15 @@ function contextMenuItems(s, command) {
   out.push({ label: "Retour en arrière (fichiers)", hint: "/rewind", run: () => command("rewind") });
   return out;
 }
-/** Menu of the agent-mode chip. setMode already accepts ro / edit / bypass, so
- *  picking a row applies that mode directly instead of asking the agent. */
+/** Menu of the agent-mode chip. setMode already accepts ro / edit / auto /
+ *  bypass, so picking a row applies that mode directly instead of asking the
+ *  agent. */
 function modeMenuItems(s, command) {
   return [
     "Mode de l’agent",
     { label: "Lecture seule", hint: "lecture", on: s.mode === "ro", run: () => command("mode ro") },
     { label: "Edition", hint: "modifie les fichiers", on: s.mode === "edit", run: () => command("mode edit") },
+    { label: "Auto-pilote", hint: "approuve seul les commandes de lecture hors dossier", on: s.mode === "auto", run: () => command("mode auto") },
     { label: "Acces complet (YOLO)", hint: "aucune confirmation", on: s.mode === "bypass", run: () => command("mode bypass") },
     null,
     { label: "Cycle de mode", hint: "/mode", run: () => command("mode") },
@@ -881,7 +883,7 @@ function renderState(v) {
   st.innerHTML = "";
   if (!s.mode) { st.textContent = targetModel ? "chargement " + targetModel + "…" : "starting…"; renderCrumb(); return; }
   const command = (name) => post("/msg", { sid: v.sid, text: "/" + name });
-  const modeLabel = s.modeLabel || (s.mode === "ro" ? "lecture seule" : s.mode === "bypass" ? "YOLO" : "édition");
+  const modeLabel = s.modeLabel || (s.mode === "ro" ? "lecture seule" : s.mode === "bypass" ? "YOLO" : s.mode === "auto" ? "auto-pilote" : "édition");
   const mode = el("button", "statusbtn mode " + s.mode, modeLabel);
   mode.title = s.yolo ? "YOLO ACTIF — aucune demande avant d'agir" : "Mode de l’agent — cliquer pour choisir"; mode.onclick = () => statusMenu(mode, modeMenuItems(s, command));
   st.appendChild(mode);
@@ -6765,7 +6767,7 @@ function ccOptions(d) {
   const s = d.state || {};
   const command = (name) => post("/msg", { sid: active ? active.sid : "", text: "/" + name });
   const grid = el("div", "cc-grid");
-  grid.appendChild(ccCard("Mode de permission", "Lecture seule, édition, puis YOLO (aucune confirmation avant d'agir).", "Changer : " + (s.modeLabel || "—"), () => { ccSend("/mode"); closeCC(); }));
+  grid.appendChild(ccCard("Mode de permission", "Lecture seule, édition, auto-pilote (lectures hors dossier sans demander), puis YOLO (aucune confirmation avant d'agir).", "Changer : " + (s.modeLabel || "—"), () => { ccSend("/mode"); closeCC(); }));
   grid.appendChild(ccCard("Modèle", "Actif : " + (s.model || "—") + (s.host ? " @ " + s.host : "") + " — choisir un modèle local ou en découvrir un sur une autre machine.", "Choisir (/models)", () => { ccSend("/models"); closeCC(); }));
   grid.appendChild(ccCard("Raisonnement", "Régler l'effort de réflexion envoyé au modèle.", "Régler (/effort)", () => { ccSend("/effort"); closeCC(); }));
   const ctxPct = Math.max(0, Math.min(100, Math.round(Number(s.ctxPct) || 0)));

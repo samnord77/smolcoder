@@ -55,7 +55,7 @@ export interface SessionPrefs {
 export const SLASH_COMMANDS: SlashCommand[] = [
   { name: "models", desc: "Switch model · add models from other machines" },
   { name: "model", desc: "Switch directly — /model <id>" },
-  { name: "mode", desc: "Set mode (ro / edit / bypass)" },
+  { name: "mode", desc: "Set mode (ro / edit / auto / bypass)" },
   { name: "effort", desc: "Set reasoning effort" },
   { name: "plan", desc: "Show the agent's plan" },
   { name: "todo", desc: "Show the agent's task list (same as /plan)" },
@@ -84,7 +84,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { name: "exit", desc: "Quit smolcoder (web: close this session)" },
 ];
 
-export const MODE_ORDER: Mode[] = ["ro", "edit", "bypass"];
+export const MODE_ORDER: Mode[] = ["ro", "edit", "auto", "bypass"];
 
 // ---- model selection helpers (shared with the headless path) --------------
 
@@ -266,6 +266,7 @@ function modeColored(mode: Mode): string {
   const label = MODE_LABELS[mode];
   if (mode === "bypass") return c.red(c.bold(label));
   if (mode === "ro") return c.magenta(c.bold(label));
+  if (mode === "auto") return c.yellow(c.bold(label));
   return c.cyan(c.bold(label));
 }
 
@@ -1521,7 +1522,15 @@ export class Session {
   private async setMode(arg?: string): Promise<void> {
     const { ui, agent } = this;
     let next: Mode | undefined =
-      arg === "ro" ? "ro" : arg === "edit" || arg === "write" ? "edit" : arg === "bypass" || arg === "yolo" ? "bypass" : undefined;
+      arg === "ro" || arg === "read-only"
+        ? "ro"
+        : arg === "edit" || arg === "write"
+          ? "edit"
+          : arg === "auto" || arg === "auto-pilote" || arg === "pilot"
+            ? "auto"
+            : arg === "bypass" || arg === "yolo"
+              ? "bypass"
+              : undefined;
     if (!next) {
       const idx = await ui.select("Select mode", [
         { label: "read-only", hint: "read and search files only", current: agent.mode === "ro" },
@@ -1529,6 +1538,11 @@ export class Session {
           label: "edit",
           hint: "edit files; run commands inside the workspace, ask y/n for anything outside it",
           current: agent.mode === "edit",
+        },
+        {
+          label: "auto-pilot",
+          hint: "edit + safe read-only commands outside the workspace run without asking",
+          current: agent.mode === "auto",
         },
         {
           label: "bypass permissions",

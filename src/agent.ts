@@ -4,6 +4,7 @@
 // come back as coaching errors so the model can retry instead of derailing.
 
 import { createHash } from "node:crypto";
+import { classifyCommand } from "./approvals";
 import { type Attachment, renderAttachmentsForModel } from "./attachments";
 import { ContextManager } from "./context";
 import { validateChange } from "./continuous-validation";
@@ -1498,20 +1499,25 @@ export class Agent {
     if (command !== null && this.mode !== "bypass") {
       const reason = commandEscapesWorkspace(command, this.toolCtx.workspace);
       if (reason !== null && !isAutoApproved(command, this.alwaysAllowed, reason)) {
-        if (!this.interactive) {
-          return `Error: this command ${reason}, which needs user approval, and this session is non-interactive. Keep every path inside the workspace (relative paths, a scratch folder in the workspace instead of /tmp), or the user can rerun smol with --mode bypass, or run this themselves: ${command}`;
-        }
-        const answer = await this.ui.confirmCommand(command, reason);
-        if (answer === "no") {
-          return "The user declined to run this command. Continue without it, or ask the user what to do instead.";
-        }
-        if (answer === "always") {
-          if (/globally|outside the workspace/i.test(reason)) {
-            this.ui.status?.("· autorisation unique : les installs globales demandent toujours");
-          } else {
-            let program = command.trim().split(/\s+/)[0] ?? "";
-            if (process.platform === "win32") program = program.toLowerCase();
-            if (program) this.alwaysAllowed.add(program);
+        if (this.mode === "auto" && classifyCommand(command) === "safe") {
+          // Auto-pilote : consultation manifeste (lecture seule, sans chaînage).
+          this.ui.status(`· auto-pilote : « ${command} » est en lecture seule — exécutée sans demander`);
+        } else {
+          if (!this.interactive) {
+            return `Error: this command ${reason}, which needs user approval, and this session is non-interactive. Keep every path inside the workspace (relative paths, a scratch folder in the workspace instead of /tmp), or the user can rerun smol with --mode bypass, or run this themselves: ${command}`;
+          }
+          const answer = await this.ui.confirmCommand(command, reason);
+          if (answer === "no") {
+            return "The user declined to run this command. Continue without it, or ask the user what to do instead.";
+          }
+          if (answer === "always") {
+            if (/globally|outside the workspace/i.test(reason)) {
+              this.ui.status?.("· autorisation unique : les installs globales demandent toujours");
+            } else {
+              let program = command.trim().split(/\s+/)[0] ?? "";
+              if (process.platform === "win32") program = program.toLowerCase();
+              if (program) this.alwaysAllowed.add(program);
+            }
           }
         }
       }

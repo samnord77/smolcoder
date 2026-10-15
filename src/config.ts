@@ -74,7 +74,7 @@ export function loadConfig(): Config {
   // saved "write"/"yolo" under the previous mode names.
   if ((cfg as { lastMode?: string }).lastMode === "write") cfg.lastMode = "edit";
   if ((cfg as { lastMode?: string }).lastMode === "yolo" || (cfg as { lastMode?: string }).lastMode === "bypass") cfg.lastMode = "edit";
-  if (cfg.lastMode !== undefined && cfg.lastMode !== "ro" && cfg.lastMode !== "edit") {
+  if (cfg.lastMode !== undefined && cfg.lastMode !== "ro" && cfg.lastMode !== "edit" && cfg.lastMode !== "auto") {
     delete cfg.lastMode;
   }
   if (cfg.effort !== undefined && cfg.effort !== null && !["off", "low", "medium", "high"].includes(cfg.effort)) {

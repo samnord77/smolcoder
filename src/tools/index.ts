@@ -30,11 +30,12 @@ import { runCommand, type ShellControl } from "./shell";
 import type { TaskManager } from "./tasks";
 import { fetchUrl } from "./web";
 
-export type Mode = "ro" | "edit" | "bypass";
+export type Mode = "ro" | "edit" | "auto" | "bypass";
 
 export const MODE_LABELS: Record<Mode, string> = {
   ro: "lecture seule",
   edit: "édition",
+  auto: "auto-pilote",
   bypass: "YOLO",
 };
 

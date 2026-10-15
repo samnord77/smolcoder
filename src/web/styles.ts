@@ -346,6 +346,7 @@ export const STYLES = `
   #status { margin-top: 8px; font-size: 12px; color: var(--dim); display: flex; gap: 10px; align-items: center; }
   #status .mode { font-weight: 700; padding: 2px 6px; border-radius: 4px; }
   #status .mode.edit { color: var(--accent); background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.2); }
+  #status .mode.auto { color: var(--yellow); background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.2); }
   #status .mode.bypass { color: var(--red); background: rgba(244, 63, 94, 0.1); border: 1px solid rgba(244, 63, 94, 0.2); }
   #status .mode.ro { color: var(--magenta); background: rgba(168, 85, 247, 0.1); border: 1px solid rgba(168, 85, 247, 0.2); }
   #status .eff { color: var(--yellow); } #status .plan-chip { color: var(--accent); } #status .plan-chip.done { color: var(--green); }

@@ -61,7 +61,9 @@ export function buildSystemPrompt(opts: {
       ? "You are in read-only mode: you can read and search files but not change anything."
       : opts.mode === "edit"
         ? "Read, edit and run commands inside the workspace. Commands reaching outside it need approval; keep scratch files in .scratch/."
-        : "You have full access to files and commands; nothing asks the user for approval.";
+        : opts.mode === "auto"
+          ? "Read, edit and run commands inside the workspace. Outside it, auto-pilot runs safe read-only commands (listing, reading files, git log/diff, tool versions) without asking; anything that changes state outside the workspace still needs approval. Keep scratch files in .scratch/."
+          : "You have full access to files and commands; nothing asks the user for approval.";
 
   return (
     `You are smolcoder, a coding agent working in the workspace ${opts.workspace} on ${os}. ` +

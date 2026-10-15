@@ -87,9 +87,10 @@ function parseArgs(argv: string[]): CliArgs {
       const v = needValue(a, argv[++i]);
       if (v === "ro" || v === "read-only" || v === "readonly") args.mode = "ro";
       else if (v === "edit" || v === "e" || v === "write" || v === "w") args.mode = "edit";
+      else if (v === "auto" || v === "auto-pilote" || v === "pilot") args.mode = "auto";
       else if (v === "bypass" || v === "bypass-permissions" || v === "b" || v === "yolo" || v === "y") args.mode = "bypass";
       else {
-        console.error(`Mode inconnu « ${v} ». Utilisez ro, edit ou bypass.`);
+        console.error(`Mode inconnu « ${v} ». Utilisez ro, edit, auto ou bypass.`);
         process.exit(1);
       }
     } else if (a === "--bypass" || a === "--bypass-permissions" || a === "--yolo") args.mode = "bypass";
@@ -164,9 +165,13 @@ ${c.bold("Usage:")}
   smol [workspace] [options]
 
 ${c.bold("Options:")}
-  -m, --mode <ro|edit|bypass>  ro: read files only. edit: read/write files and run
+  -m, --mode <ro|edit|auto|bypass>
+                               ro: read files only. edit: read/write files and run
                                commands inside the workspace; anything reaching
-                               outside it asks y/n. bypass: no approvals at all.
+                               outside it asks y/n. auto: edit + safe read-only
+                               commands outside the workspace (listing, reading,
+                               git log/diff, tool versions) run without asking.
+                               bypass: no approvals at all.
   --model <name>               pick a model by (partial) name
   --ctx <tokens>               force a context window (Ollama: sends num_ctx)
   --verify <command>           headless acceptance gate; automatically repair failures
@@ -185,7 +190,7 @@ ${c.bold("Options:")}
   -v, --version                version
 
 ${c.bold("Keys:")}
-  shift+tab   cycle mode (read-only → edit → YOLO bypass)
+  shift+tab   cycle mode (read-only → edit → auto-pilot → YOLO bypass)
   /           slash commands (autocomplete menu)
   esc         cancel a running turn · clear the input
   ctrl+c ×2   quit
