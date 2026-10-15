@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const { FileHistory } = require("../dist/file-history");
+const { Session } = require("../dist/session");
 
 function setup() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "smol-history-"));
@@ -208,4 +209,111 @@ test("list returns newest turns first and is bounded", () => {
   assert.equal(recent.length, 5);
   assert.equal(recent[0].turn, 25);
   assert.equal(recent[4].turn, 21);
+});
+
+function createRewindHarness(workspace) {
+  const session = Object.create(Session.prototype);
+  session.workspace = workspace;
+  session.sid = "s1";
+  session.fileHistory = new FileHistory(fs.mkdtempSync(path.join(os.tmpdir(), "smol-history-")));
+  session.turnMarks = new Map();
+  session.toolCtx = { filesTouched: new Set() };
+  session.lines = [];
+  let transcript = 1;
+  session.transcriptNow = () => transcript;
+  session.agent = {
+    outcome: "completed",
+    transcriptCount: () => transcript,
+    rewindTranscript(count) {
+      const dropped = transcript - count;
+      transcript = count;
+      return dropped;
+    },
+    runTurn: async () => {
+      transcript += 4;
+    },
+  };
+  session.expandMentions = (text) => text;
+  session.ui = {
+    error(message) {
+      session.lines.push("error: " + message);
+    },
+    warn(message) {
+      session.lines.push("warn: " + message);
+    },
+    status(message) {
+      session.lines.push("status: " + message);
+    },
+    println(message) {
+      session.lines.push("out: " + message);
+    },
+  };
+  return session;
+}
+
+function twoTurns(session) {
+  const file = path.join(session.workspace, "a.txt");
+  fs.writeFileSync(file, "v1");
+  return (async () => {
+    await session.handleUserMessage("tour 1", []);
+    session.fileHistory.capture("s1", session.workspace, "a.txt", "edit");
+    fs.writeFileSync(file, "v2");
+    await session.handleUserMessage("tour 2", []);
+    session.fileHistory.capture("s1", session.workspace, "a.txt", "edit");
+    fs.writeFileSync(file, "v3");
+    return file;
+  })();
+}
+
+test("every turn records its transcript mark as it opens", async () => {
+  const session = createRewindHarness(fs.mkdtempSync(path.join(os.tmpdir(), "smol-ws-")));
+  await twoTurns(session);
+  assert.equal(session.turnMarks.get(1), 1, "tour 1 starts at the fresh transcript");
+  assert.equal(session.turnMarks.get(2), 5, "tour 2 starts after tour 1 grew the transcript");
+});
+
+test("/rewind restores files and the conversation together", async () => {
+  const session = createRewindHarness(fs.mkdtempSync(path.join(os.tmpdir(), "smol-ws-")));
+  const file = await twoTurns(session);
+  session.rewindTurns(["1"]);
+  assert.equal(fs.readFileSync(file, "utf8"), "v1", "files go back to the start of tour 1");
+  assert.equal(session.transcriptNow(), 1, "the model is back to the start of tour 1");
+  const log = session.lines.join("\n");
+  assert.match(log, /rewind fichiers → début du tour 1/);
+  assert.match(log, /rewind conversation → début du tour 1 : 8 messages retirés du contexte du modèle/);
+});
+
+test("/rewind files keeps the conversation, /rewind chat keeps the files", async () => {
+  const filesOnly = createRewindHarness(fs.mkdtempSync(path.join(os.tmpdir(), "smol-ws-")));
+  const file1 = await twoTurns(filesOnly);
+  filesOnly.rewindTurns(["2", "files"]);
+  assert.equal(fs.readFileSync(file1, "utf8"), "v2", "the file goes back to the start of tour 2");
+  assert.equal(filesOnly.transcriptNow(), 9, "the conversation is untouched");
+  assert.doesNotMatch(filesOnly.lines.join("\n"), /rewind conversation/);
+
+  const chatOnly = createRewindHarness(fs.mkdtempSync(path.join(os.tmpdir(), "smol-ws-")));
+  const file2 = await twoTurns(chatOnly);
+  chatOnly.rewindTurns(["2", "conversation"]);
+  assert.equal(fs.readFileSync(file2, "utf8"), "v3", "the file is untouched");
+  assert.equal(chatOnly.transcriptNow(), 5, "the model goes back to the start of tour 2");
+  assert.doesNotMatch(chatOnly.lines.join("\n"), /rewind fichiers/);
+});
+
+test("/rewind without a recorded mark restores files and warns honestly", async () => {
+  const session = createRewindHarness(fs.mkdtempSync(path.join(os.tmpdir(), "smol-ws-")));
+  const file = await twoTurns(session);
+  session.turnMarks.delete(1);
+  session.rewindTurns(["1"]);
+  assert.equal(fs.readFileSync(file, "utf8"), "v1", "files still rewind");
+  assert.equal(session.transcriptNow(), 9, "the conversation cannot rewind without a mark");
+  assert.match(session.lines.join("\n"), /point de reprise indisponible/);
+});
+
+test("/rewind rejects an unknown scope word without touching anything", async () => {
+  const session = createRewindHarness(fs.mkdtempSync(path.join(os.tmpdir(), "smol-ws-")));
+  const file = await twoTurns(session);
+  session.rewindTurns(["1", "banana"]);
+  assert.equal(fs.readFileSync(file, "utf8"), "v3", "nothing changed");
+  assert.equal(session.transcriptNow(), 9, "nothing changed");
+  assert.match(session.lines.join("\n"), /précision « banana » inconnue/);
 });

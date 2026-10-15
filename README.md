@@ -65,7 +65,7 @@ The line under the input shows the mode, the model, the reasoning effort, how fu
 | `/mcp`                               | MCP servers: green/red lights + tools                                                                         |
 | `/skills`                            | Saved skills, incl. built-ins                                                                                 |
 | `/undo`, `/redo`                     | Undo / redo the last file write                                                                               |
-| `/rewind`                            | Time machine: lists the last turns, `/rewind <n>` puts every file back to its state at the start of turn n    |
+| `/rewind`                            | Time machine: lists the last turns, `/rewind <n>` puts every file and the conversation back to the start of turn n (add `files` or `chat` for one side only) |
 | `/routine`                           | Scheduled prompts: `/routine add every 30m \| check the build` — runs while a session is open on this project |
 | `/clear`                             | Start a fresh conversation                                                                                    |
 | `/help`, `/exit`                     | Help and quit                                                                                                 |

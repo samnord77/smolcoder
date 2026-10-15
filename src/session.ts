@@ -564,6 +564,9 @@ export class Session {
   /** Identifiant de session pour la machine à remonter le temps (/rewind). */
   private readonly sid: string;
   private readonly fileHistory: FileHistory;
+  /** Longueur du transcript de l'agent au début de chaque tour — permet à
+   * /rewind de restaurer AUSSI la conversation, pas seulement les fichiers. */
+  private readonly turnMarks = new Map<number, number>();
   /** Tâches planifiées (/routine) : fichier .smol/routines.json + tick de fond. */
   private readonly routines: RoutineBook;
   private readonly routineTimer: ReturnType<typeof setInterval>;
@@ -818,7 +821,17 @@ export class Session {
     // Machine à remonter le temps : chaque tour ouvre son point de
     // restauration avant que le moindre outil ne touche un fichier.
     // (Best effort : les harnais de test instancient la session sans constructeur.)
-    this.fileHistory?.beginTurn(this.sid, input);
+    const turn = this.fileHistory?.beginTurn(this.sid, input);
+    if (turn !== undefined) {
+      const mark = this.agent?.transcriptCount?.();
+      if (mark !== undefined) {
+        this.turnMarks.set(turn, mark);
+        if (this.turnMarks.size > 128) {
+          const oldest = this.turnMarks.keys().next().value;
+          if (oldest !== undefined) this.turnMarks.delete(oldest);
+        }
+      }
+    }
     const board = workItemId ? new CoworkBoard(this.workspace) : null;
     if (board && workItemId) {
       try {
@@ -985,11 +998,25 @@ export class Session {
   }
 
   /** La machine à remonter le temps. Sans argument : les tours enregistrés.
-   * Avec un numéro : restaure les fichiers tels qu'ils étaient AU DÉBUT de ce
-   * tour (tout ce qui a été touché par les tours >= n revient en arrière). */
+   * Avec un numéro : restaure les fichiers ET la conversation tels qu'ils
+   * étaient AU DÉBUT de ce tour. Un suffixe facultatif restreint la portée :
+   * `files` (fichiers seuls) ou `chat` (conversation seule) ; sans suffixe,
+   * les deux reviennent en arrière ensemble, comme dans Claude Code. */
   private rewindTurns(rest: string[]): void {
     const ui = this.ui;
-    const arg = rest.join(" ").trim();
+    const words = rest.join(" ").trim().split(/\s+/).filter(Boolean);
+    let what: "both" | "files" | "chat" = "both";
+    if (words.length > 1) {
+      const mode = words[words.length - 1].toLowerCase();
+      if (mode === "files" || mode === "fichiers") what = "files";
+      else if (mode === "chat" || mode === "conversation") what = "chat";
+      else {
+        ui.error(`· précision « ${words[words.length - 1]} » inconnue — utilisez files, chat, ou rien du tout (les deux)`);
+        return;
+      }
+      words.pop();
+    }
+    const arg = words.join(" ").trim();
     const turns = this.fileHistory.readIndex(this.sid);
     if (!turns.length) {
       ui.status("· rien à remonter — aucun tour enregistré pour cette session");
@@ -1004,7 +1031,8 @@ export class Session {
         const n = t.files.length;
         ui.println(`   ${String(t.turn).padStart(3)}  « ${t.prompt} »  ${hh}:${mm}  ${n} fichier${n > 1 ? "s" : ""}`);
       }
-      ui.println("· /rewind <n> restaure les fichiers tels qu'ils étaient AU DÉBUT du tour n — la conversation n'est pas touchée.");
+      ui.println("· /rewind <n> restaure les fichiers ET la conversation tels qu'ils étaient AU DÉBUT du tour n");
+      ui.println("  (ajoutez « files » ou « chat » pour n'en restaurer qu'un seul).");
       return;
     }
     const n = Number(arg);
@@ -1012,17 +1040,30 @@ export class Session {
       ui.error(`· tour « ${arg} » inconnu — /rewind liste les tours disponibles`);
       return;
     }
-    const outcome = this.fileHistory.restore(this.sid, n, this.workspace);
-    for (const rel of [...outcome.restored, ...outcome.deleted]) this.toolCtx.filesTouched.add(rel);
-    const parts = [
-      outcome.restored.length ? `${outcome.restored.length} restauré${outcome.restored.length > 1 ? "s" : ""}` : "",
-      outcome.deleted.length ? `${outcome.deleted.length} supprimé${outcome.deleted.length > 1 ? "s" : ""} (créés après ce tour)` : "",
-      outcome.unchanged.length ? `${outcome.unchanged.length} déjà conforme${outcome.unchanged.length > 1 ? "s" : ""}` : "",
-    ].filter(Boolean);
-    ui.println(`· rewind → début du tour ${n} : ${parts.join(", ") || "rien à faire"}.`);
-    for (const rel of outcome.restored) ui.println(`   restaure  ${rel}`);
-    for (const rel of outcome.deleted) ui.println(`   supprime  ${rel}`);
-    for (const f of outcome.failed) ui.warn(`   échec  ${f.rel} — ${f.reason}`);
+    if (what !== "chat") {
+      const outcome = this.fileHistory.restore(this.sid, n, this.workspace);
+      for (const rel of [...outcome.restored, ...outcome.deleted]) this.toolCtx.filesTouched.add(rel);
+      const parts = [
+        outcome.restored.length ? `${outcome.restored.length} restauré${outcome.restored.length > 1 ? "s" : ""}` : "",
+        outcome.deleted.length ? `${outcome.deleted.length} supprimé${outcome.deleted.length > 1 ? "s" : ""} (créés après ce tour)` : "",
+        outcome.unchanged.length ? `${outcome.unchanged.length} déjà conforme${outcome.unchanged.length > 1 ? "s" : ""}` : "",
+      ].filter(Boolean);
+      ui.println(`· rewind fichiers → début du tour ${n} : ${parts.join(", ") || "rien à faire"}.`);
+      for (const rel of outcome.restored) ui.println(`   restaure  ${rel}`);
+      for (const rel of outcome.deleted) ui.println(`   supprime  ${rel}`);
+      for (const f of outcome.failed) ui.warn(`   échec  ${f.rel} — ${f.reason}`);
+    }
+    if (what !== "files") {
+      const mark = this.turnMarks?.get(n);
+      if (mark === undefined || !this.agent?.rewindTranscript) {
+        ui.warn("   conversation : point de reprise indisponible (tour antérieur à cette session) — le modèle garde la suite en mémoire.");
+      } else {
+        const dropped = this.agent.rewindTranscript(mark);
+        ui.println(
+          `· rewind conversation → début du tour ${n} : ${dropped} message${dropped > 1 ? "s" : ""} retiré${dropped > 1 ? "s" : ""} du contexte du modèle.`
+        );
+      }
+    }
   }
 
   /** Un tick de fond : réclame une routine due et la fait tourner comme un

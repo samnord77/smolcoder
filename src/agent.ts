@@ -588,6 +588,29 @@ export class Agent {
     );
   }
 
+  /** Longueur actuelle du transcript — le point exact où un rewind de
+   * conversation ramènerait le modèle (message système compris). */
+  transcriptCount(): number {
+    return this.messages.length;
+  }
+
+  /** Tronque le transcript pour revenir à `count` messages (le message
+   * système est toujours conservé). Retourne le nombre de messages retirés.
+   * Les ancres du gestionnaire de contexte repartent de zéro : la prochaine
+   * requête recalibrera sur ce qui reste. */
+  rewindTranscript(count: number): number {
+    const keep = Math.max(1, Math.min(count, this.messages.length));
+    if (keep >= this.messages.length) return 0;
+    this.ctxMgr.cancelBackground(true);
+    const dropped = this.messages.length - keep;
+    this.messages = this.messages.slice(0, keep);
+    this.originalRequest = "";
+    this.currentRequest = "";
+    this.planNudged = false;
+    this.ctxMgr.resetAnchor();
+    return dropped;
+  }
+
   cancel(): void {
     this.abort?.abort();
     this.ctxMgr.cancelBackground(true);

@@ -93,6 +93,24 @@ test("alternating unchanged reads stop with a recoverable error before the model
   assert.match(agent.messages.at(-1).content, /Do not restart the same reads/);
 });
 
+test("rewindTranscript truncates the conversation back to a saved mark", async () => {
+  const replies = [
+    { content: "", toolCalls: [{ id: "r0", name: "read_file", args: { path: "a.txt" } }] },
+    { content: "Fini." },
+  ];
+  const agent = makeAgent(scriptedProvider(replies), fakeUi());
+  fs.writeFileSync(path.join(agent.toolCtx.workspace, "a.txt"), "module");
+  const mark = agent.transcriptCount();
+  assert.equal(mark, 1, "a fresh agent only holds the system message");
+  await agent.runTurn("lis a.txt");
+  assert.ok(agent.transcriptCount() > mark, "the turn added messages");
+  const dropped = agent.rewindTranscript(mark);
+  assert.equal(agent.transcriptCount(), mark, "the transcript is back to the mark");
+  assert.equal(dropped, 4);
+  assert.equal(agent.rewindTranscript(0), 0, "the system message always stays");
+  assert.equal(agent.transcriptCount(), 1);
+});
+
 test("a local-PC folder search requires and accepts observed filename-search results", async () => {
   const provider = scriptedProvider([{ content: "Voici le résultat de la recherche réelle." }]);
   const agent = makeAgent(provider, fakeUi(), "ro");

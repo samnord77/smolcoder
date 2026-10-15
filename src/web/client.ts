@@ -795,7 +795,7 @@ function contextMenuItems(s, command) {
   out.push({ label: "Effacer la conversation", hint: "/clear", run: () => command("clear") });
   out.push({ label: "Annuler", hint: "/undo", run: () => command("undo") });
   out.push({ label: "Rétablir", hint: "/redo", run: () => command("redo") });
-  out.push({ label: "Retour en arrière (fichiers)", hint: "/rewind", run: () => command("rewind") });
+  out.push({ label: "Retour en arrière (fichiers + conversation)", hint: "/rewind", run: () => command("rewind") });
   out.push({ label: "Routines planifiées", hint: "/routine", run: () => command("routine") });
   return out;
 }

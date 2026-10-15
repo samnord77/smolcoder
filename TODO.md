@@ -95,6 +95,14 @@
       `/workspace/asset` image route. The TUI prints one discreet line per step. A sandboxed
       iframe cannot show third-party sites (X-Frame-Options) nor be driven from outside, so the
       panel shows what the agent sees instead.
+- [x] **Conversation rewind (`/rewind` chat side)** — `/rewind <n>` now restores the conversation
+      as well as the files: every turn records its transcript mark when it opens (`transcriptCount()`
+      in `src/agent.ts`, kept in a bounded per-session map), and `rewindTranscript(mark)` truncates
+      the model's context back to the start of turn n — the system message always stays and the
+      context anchors recalibrate on the next request. `/rewind <n> files` or `/rewind <n> chat`
+      (or `conversation`) restores only one side; a turn recorded before this session warns honestly
+      instead of pretending. Verified: 58/58 targeted tests (mark capture, both/files/chat, missing
+      mark, unknown scope word).
 
 ## Outstanding
 

@@ -203,7 +203,7 @@ ${c.bold("Slash commands:")}
     /compact    compact now          /skills       saved skills
     /plan       show the plan        /clear        reset conversation
     /undo       undo last write      /redo         redo undone write
-    /rewind     rewind files to a turn — /rewind 3 (no arg: list checkpoints)
+    /rewind     rewind files and the conversation to a turn — /rewind 3 (no arg: list checkpoints)
     /routine    scheduled prompts    — /routine add every 30m | check the build
     /editor     message via $EDITOR  /export       export to markdown
     /copy       copy last reply      /exit         quit
