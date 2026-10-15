@@ -97,7 +97,10 @@ test("a repeated acceptance failure refreshes facts and discards stale hypothese
     `const fs=require('fs');if(!fs.existsSync('ready.txt')){const n=Number(fs.existsSync('attempt.txt')?fs.readFileSync('attempt.txt','utf8'):0)+1;fs.writeFileSync('attempt.txt',String(n));console.error('expected a paused player; observed movement '+n+'.25');process.exit(1)}`
   );
   bus.on("post_compact", (r) => {
-    if (r.action === "compacted") compactions++;
+    // A refresh compaction reports "floor" when the tool schemas alone push
+    // the prompt past 80% of the usable window — the transcript was still
+    // compacted and the stale hypothesis purged.
+    if (r.action === "compacted" || r.action === "floor") compactions++;
   });
   await agent.runTurn("Keep the original application working");
   assert.equal(agent.outcome, "completed");
@@ -128,7 +131,7 @@ test("progress to a different acceptance failure retains the working context", a
     `const fs=require('fs');if(!fs.existsSync('ready.txt')){const second=fs.existsSync('attempt.txt');fs.writeFileSync('attempt.txt','1');console.error(second?'Save did not persist':'Entry point missing');process.exit(1)}`
   );
   bus.on("post_compact", (r) => {
-    if (r.action === "compacted") compactions++;
+    if (r.action === "compacted" || r.action === "floor") compactions++;
   });
   await agent.runTurn("Build");
   assert.equal(agent.outcome, "completed");
@@ -141,7 +144,7 @@ test("repeated failures never discard summaries containing earlier user decision
   agent.originalRequest = "An earlier user task";
   agent.messages.push({ role: "user", compactNote: true, content: "Hand-over notes:\nPRIOR_USER_DECISION: use only local APIs." });
   bus.on("post_compact", (r) => {
-    if (r.action === "compacted") compactions++;
+    if (r.action === "compacted" || r.action === "floor") compactions++;
   });
   await assert.rejects(agent.runTurn("Fix a new issue"), /Acceptance checks still fail after 3/);
   assert.equal(compactions, 0);

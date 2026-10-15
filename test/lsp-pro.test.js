@@ -226,7 +226,7 @@ test("symbols schema exposes the 10 pro actions; new tools are visible per mode"
     assert.ok(names("edit").includes(n), `${n} is offered in edit mode`);
     assert.ok(names("bypass").includes(n), `${n} is offered in bypass mode`);
   }
-  assert.equal(edit.length, 24);
+  assert.equal(edit.length, 25);
 });
 
 test("diagStructured returns panel rows through the mock server", async () => {

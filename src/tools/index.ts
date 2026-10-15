@@ -27,6 +27,7 @@ import { syntaxCheck } from "./check";
 import { CoworkBoard } from "./cowork";
 import { createFolder, deletePath, editFile, listFiles, movePath, readFile, writeFile } from "./fs-tools";
 import { searchLocalFilesBounded } from "./local-search";
+import { documentTool, runDocument } from "./office";
 import { searchFilesBounded } from "./search-worker";
 import { runCommand, type ShellControl } from "./shell";
 import type { TaskManager } from "./tasks";
@@ -298,6 +299,7 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
         required: ["path"],
       },
     },
+    documentTool(),
   ];
 
   const exec: ToolSpec[] = [
@@ -707,6 +709,10 @@ export async function executeTool(name: string, args: Record<string, any>, ctx: 
       }
       case "browser": {
         result = await runBrowser(ctx, args);
+        break;
+      }
+      case "document": {
+        result = runDocument(ctx.workspace, args);
         break;
       }
       case "symbols": {

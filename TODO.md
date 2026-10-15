@@ -110,6 +110,12 @@
       turn limit (6), 45-minute budget, two consecutive error turns, a cancelled turn, or no plan
       after the first turn. `/autopilot stop` interrupts between turns, `/autopilot` alone shows the
       help/state, read-only mode refuses to start one. Verified: 7/7 tests (`test/autopilot.test.js`).
+- [x] **Pro documents (`document` tool)** — the model writes real `.xlsx`, `.docx`, `.pptx` and `.pdf`
+      files with zero dependencies: `src/office.ts` builds the OOXML parts (zip via `zlib.deflateRawSync`,
+      reproducible headers) and a minimal PDF (Helvetica, wrapped lines, exact xref); `src/tools/office.ts`
+      exposes structured JSON (`sheets` / `blocks` / `slides` / `lines`, bounded) and returns a French summary.
+      Opens directly in Excel, Word, PowerPoint and any PDF reader. Verified: 7/7 tests with a real zip reader
+      (`test/office.test.js`); hidden in read-only mode.
 
 ## Outstanding
 

@@ -106,9 +106,10 @@ test("mcp tool exists in edit and bypass, hidden in read-only", () => {
   assert.ok(buildToolSpecs("edit").some((t) => t.name === "mcp"));
   assert.ok(buildToolSpecs("bypass").some((t) => t.name === "mcp"));
   assert.ok(!buildToolSpecs("ro").some((t) => t.name === "mcp"));
-  // 24 edit tools and 13 read-only tools, including local filename search,
-  // delegation (read-only children) and the agent-driven browser.
-  assert.equal(buildToolSpecs("edit").length, 24);
+  // 25 edit tools and 13 read-only tools, including local filename search,
+  // delegation (read-only children), the agent-driven browser and the pro
+  // document writer (.xlsx/.docx/.pptx/.pdf).
+  assert.equal(buildToolSpecs("edit").length, 25);
   assert.equal(buildToolSpecs("ro").length, 13);
 });
 

@@ -166,7 +166,7 @@ smolcoder sends your code and prompts to the server you choose, and runs the too
 
 Local models are free and private, but they give you less to work with. The context window is small, generation is slower, and long instructions get lost. smolcoder is built around those limits.
 
-- **It stays out of the model's way.** A short system prompt and fourteen simple tools (seven in read-only mode) leave most of the window for your code.
+- **It stays out of the model's way.** A short system prompt and fifteen simple tools (seven in read-only mode) leave most of the window for your code.
 - **It watches the real window.** It asks the server how much context is actually loaded, shows a meter, and keeps room for the reply. A model that advertises a 128k window is often loaded with 4k, and smolcoder budgets for the 4k.
 - **It tidies up before the window fills.** Old file reads and command output go first. Only then does it ask the model for a short handover. Your request and the checklist are never summarized away.
 - **It keeps the plan outside the conversation.** The to-do list and the notes for the current step live in smolcoder itself, so they survive any summary.
