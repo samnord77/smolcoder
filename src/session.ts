@@ -1528,6 +1528,11 @@ export class Session {
     this.taskManager.killAll();
     clearInterval(this.routineTimer);
     try {
+      await this.toolCtx.browser?.close();
+    } catch {
+      /* best effort */
+    }
+    try {
       this.toolCtx.mcp?.closeAll();
     } catch {
       /* best effort */

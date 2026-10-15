@@ -75,6 +75,16 @@
       `didChange` — empty or not — so a clean file answers immediately while a cold
       `gopls`/`rust-analyzer` still lands. Verified live: Python (`undefined name 'nam'`, ~22 s cold)
       and Go (`cannot use "hello" … as int`, ~8 s cold) panels.
+- [x] **Agent-driven browser (`browser` tool)** — a real local Chrome/Edge driven over the
+      Chrome DevTools Protocol with zero dependencies (`src/browser.ts`: native WebSocket,
+      `--remote-debugging-port=0` + `DevToolsActivePort`, one browser per session, ten idle
+      minutes, temp profile removed on close). One `browser` tool (`src/tools/browser.ts`):
+      `open`, `read`, `click`, `type` (optional form submit), `press`, `shot`
+      (`.smol/screenshots/browser-*.png`), `back`, `close`. Read-only mode keeps open/read/shot/
+      back/close and refuses click/type/press — in the schema and again at execution. Local
+      addresses are welcome (dev servers), http/https only; no approval prompt (same posture as
+      `fetch_url`). Verified live: a local page opened in ~1 s, read/click/type/back drove the
+      DOM, and the screenshot landed as PNG.
 
 ## Outstanding
 

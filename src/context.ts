@@ -262,6 +262,13 @@ export class ContextManager {
       this.floorSize = 0;
       return false;
     }
+    // Compaction only shrinks the transcript. When the transcript alone
+    // already fits comfortably AND the whole prompt still fits the usable
+    // window, the pressure comes from the tool specs and a summary would free
+    // nothing while evicting live context — skip it. If the prompt no longer
+    // fits at all, compact anyway: some transcript weight must come off.
+    const transcript = this.estimatePrompt(messages, []);
+    if (transcript <= 0.8 * this.usableWindow() && transcript <= 22000 && curPrompt <= this.usableWindow()) return false;
     // Once we've established the transcript cannot shrink further, stop
     // triggering a futile compaction before every request. Re-run it only
     // when the log has grown past that floor by a worthwhile amount.

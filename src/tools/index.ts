@@ -7,6 +7,7 @@
 // run_command, task, delegate, mcp, symbols and skill save.
 
 import * as fs from "node:fs";
+import type { BrowserSession } from "../browser";
 import { queryIndex } from "../codeindex";
 import { queryDebug } from "../debug";
 import type { FileHistory, HistoryKind } from "../file-history";
@@ -21,6 +22,7 @@ import type { ToolSpec } from "../providers/types";
 import { resolveInWorkspace, SandboxError } from "../sandbox";
 import { listSkills, readSkill, saveSkill } from "../skills";
 import { truncateMiddle } from "../util";
+import { browserTool, runBrowser } from "./browser";
 import { syntaxCheck } from "./check";
 import { CoworkBoard } from "./cowork";
 import { createFolder, deletePath, editFile, listFiles, movePath, readFile, writeFile } from "./fs-tools";
@@ -365,7 +367,7 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
 
   // Read-only: reads + the work board + delegation (children inherit read-only,
   // so they can investigate without ever writing).
-  if (mode === "ro") return [...read, workTool(false), ...delegate];
+  if (mode === "ro") return [...read, browserTool(false), workTool(false), ...delegate];
   const mcp: ToolSpec[] = [
     {
       name: "mcp",
@@ -405,7 +407,7 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
       },
     },
   ];
-  return [...read, workTool(true), ...write, ...exec, ...mcp, ...symbols, ...delegate];
+  return [...read, browserTool(true), workTool(true), ...write, ...exec, ...mcp, ...symbols, ...delegate];
 }
 
 /** One undoable file write: absolute path, full previous content (null when
@@ -488,6 +490,8 @@ export interface ToolContext {
   /** Machine à remonter le temps : /rewind restaure l'état d'avant un tour. */
   fileHistory?: FileHistory;
   sessionId?: string;
+  /** Navigateur piloté (outil browser) : un par session, fermé au shutdown. */
+  browser?: BrowserSession;
   /** Internal per-request cap; never a model-supplied tool argument. */
   resultCharLimit?: number;
   /** Nesting depth of sub-agents (0 = main agent). The delegate tool is
@@ -696,6 +700,10 @@ export async function executeTool(name: string, args: Record<string, any>, ctx: 
       }
       case "fetch_url": {
         result = await fetchUrl(ctx.workspace, args, signal);
+        break;
+      }
+      case "browser": {
+        result = await runBrowser(ctx, args);
         break;
       }
       case "symbols": {
