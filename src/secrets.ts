@@ -29,6 +29,7 @@ const SCAN_MAX_FINDINGS = 500;
 
 const SKIP_DIRS = new Set([
   ".git",
+  ".c3",
   "node_modules",
   "dist",
   ".smol",
@@ -96,15 +97,20 @@ const PLACEHOLDER_RE =
 
 function isPlaceholder(value: string): boolean {
   const v = value.trim().replace(/^["']|["'],?$/g, "");
-  if (v.length < 8) return true;
-  if (PLACEHOLDER_RE.test(v)) return true;
-  if (/[$<>{}%]/.test(v)) return true; // ${ENV}, <token>, %VAR%, {{...}}
-  if (/^process\.env|^env\.|^import\.meta/i.test(v)) return true;
-  if (/^(.)\1+$/.test(v)) return true; // une seule lettre répétée
+  // Ponctuation de code collée à la valeur capturée (virgule, parenthèse…).
+  const t = v.replace(/^[,;[{]+/, "").replace(/[,;)\]}>]+$/, "");
+  if (t.length < 8) return true;
+  // Expression de code (appel, indexation, tableau, accolade) : pas un secret.
+  if (/[()[\]{},;]/.test(t)) return true;
+  if (PLACEHOLDER_RE.test(t)) return true;
+  if (/[$<>{}%]/.test(t)) return true; // ${ENV}, <token>, %VAR%, {{...}}
+  if (/^process\.env|^env\.|^import\.meta/i.test(t)) return true;
+  if (/^(.)\1+$/.test(t)) return true; // une seule lettre répétée
   // Référence de code sans chiffre (config.authToken, settings.token…) :
   // un identifiant pur, pas un secret. Avec un chiffre, on signale quand
   // même (mot de passe court typique).
-  if (/^[A-Za-z_$][A-Za-z0-9_$]*(?:\.[A-Za-z_$][A-Za-z0-9_$]*)*$/.test(v) && !/[0-9]/.test(v)) return true;
+  if (/^[A-Za-z_$][A-Za-z0-9_$]*(?:\.[A-Za-z_$][A-Za-z0-9_$]*)*$/.test(t) && !/[0-9]/.test(t))
+    return true;
   return false;
 }
 

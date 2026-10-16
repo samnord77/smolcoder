@@ -64,8 +64,12 @@ test("placeholders and code references stay silent", () => {
     "secret: settings.authToken",
     "auth_token: xxxxxxxxxxxxxxxxxxx",
     "password = ${MY_PASSWORD}",
+    "apiKey: openrouter,",
+    "apiKey = key.trim() || undefined;",
+    "const p = { password: settings.password };",
   ].join("\n");
   assert.deepEqual(scanForSecrets(text), []);
+  assert.equal(scanForSecrets("PASSWORD=hunter2000").length, 1);
 });
 
 test("scanWorkspaceFiles walks text files, skips heavy dirs and binaries", () => {
@@ -74,6 +78,8 @@ test("scanWorkspaceFiles walks text files, skips heavy dirs and binaries", () =>
   fs.mkdirSync(path.join(root, "node_modules"));
   fs.writeFileSync(path.join(root, "node_modules", "dep.js"), "const k='AKIAIOSFODNN7EXAMPLE';");
   fs.writeFileSync(path.join(root, "blob.bin"), Buffer.from([0, 1, 2, 3]));
+  fs.mkdirSync(path.join(root, ".c3"));
+  fs.writeFileSync(path.join(root, ".c3", "cache.json"), "const k='AKIAIOSFODNN7EXAMPLE';");
   const scan = scanWorkspaceFiles(root);
   assert.equal(scan.findings.length, 1);
   assert.equal(scan.findings[0].file, "app.js");
