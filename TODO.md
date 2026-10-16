@@ -88,6 +88,19 @@
       `shutdown`, `rm -rf` of a root/home and `Remove-Item -Recurse -Force`. New CLI `smol secrets
       [path]` prints a fully local report (exit 1 on findings, nothing leaves the machine).
       `test/secrets.test.js` + the agent gate tests in `test/agent.test.js`.
+- [x] **Real mailbox and agenda (`mail` / `calendar` tools, `smol mail` / `smol calendar`)** —
+      hand-rolled with zero dependencies: `src/connectors.ts` keeps the local config in
+      `~/.smolcoder/connectors.json` (0600, password never printed); `src/mail.ts` speaks IMAP and
+      SMTP for real (implicit TLS or STARTTLS, literal-aware command layer, RFC2047 / quoted-printable /
+      base64 MIME decoding, HTML fallback); `src/calendar.ts` does real CalDAV (discovery, REPORT
+      listing, PUT creation) with ICS parse/build for local or UTC times. Surfaced as two agent tools
+      (`src/tools/mail.ts`, `src/tools/calendar.ts`): readable in `ro`, and sending a real e-mail or
+      creating a real event always asks a y/n question — even in `auto`, even after an « always ».
+      Terminal: `smol mail setup|check|inbox [n]|read <uid>|send <to> <subject> <text…>` and
+      `smol calendar setup|check|list [days]|add <title> <start> <end> [place]`; the setup wizard saves
+      then really tests the connection and says honestly when it is not configured.
+      `test/mail.test.js` and `test/calendar.test.js` drive scripted IMAP/SMTP/CalDAV servers on
+      loopback sockets.
 - [x] **Cold language-server handshakes (`symbols` panels)** — the first `initialize` gets its own
       90 s budget (`INIT_TIMEOUT_MS` in `src/lsp-pro.ts`; a cold `pylsp` needs ~40 s on a cold
       machine), missing candidates are skipped with `findCommand` and never mask the installed

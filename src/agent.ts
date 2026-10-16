@@ -62,7 +62,7 @@ function actionErrorNeedsRepair(output: string): boolean {
   // read-only restrictions, approval refusals and unavailable external
   // services must be explained or skipped, not retried forever.
   if (
-    /^(?:Error: )?(?:this command .*needs user approval|this command uses .*home directory|this command .*outside the workspace|the user declined|mcp server .*needs user approval|.*is not allowed for the .* role|.*is unavailable for the .* role|the tool ".*" is not available|.*is no longer available)/i.test(
+    /^(?:Error: )?(?:this command .*needs user approval|this command uses .*home directory|this command .*outside the workspace|the user declined|mcp server .*needs user approval|the (?:mail|calendar) tool needs user approval|.*is not allowed for the .* role|.*is unavailable for the .* role|the tool ".*" is not available|.*is no longer available)/i.test(
       output.trim()
     )
   )
@@ -1513,6 +1513,28 @@ export class Agent {
           return "The user declined the MCP call. Continue without it, or ask the user what to do instead.";
         }
         if (answer === "always") this.alwaysAllowed.add(key);
+      }
+    }
+    // Connecteurs : envoyer un e-mail ou créer un événement sort de la machine —
+    // toujours demander en édition, et « always » ne couvre jamais ces actions.
+    if ((name === "mail" || name === "calendar") && this.mode !== "bypass") {
+      const action = String(args.action ?? "").trim();
+      const risky = name === "mail" ? action === "send" : action === "create";
+      if (risky) {
+        const to = String(args.to ?? "?").trim().slice(0, 80);
+        const title = String(args.summary ?? "").trim().slice(0, 80) || String(args.subject ?? "").trim().slice(0, 80);
+        const label = name === "mail" ? `mail send to ${to}` : `calendar create « ${title} »`;
+        const reason =
+          name === "mail"
+            ? `envoie un vrai e-mail à ${to} — objet « ${String(args.subject ?? "").trim().slice(0, 80)} »`
+            : `crée un vrai événement « ${title} » dans votre agenda`;
+        if (!this.interactive) {
+          return `Error: the ${name} tool needs user approval, and this session is non-interactive. The user can approve in the interactive terminal, rerun smol with --mode bypass, or run it themselves.`;
+        }
+        const answer = await this.ui.confirmCommand(label, reason);
+        if (answer === "no") {
+          return `The user declined the ${name} action. Continue without it, or ask the user what to do instead.`;
+        }
       }
     }
     // Gate everywhere except bypass (defense-in-depth: in ro mode exec tools are

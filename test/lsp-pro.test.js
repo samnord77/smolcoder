@@ -214,7 +214,7 @@ test("symbols schema exposes the 10 pro actions; new tools are visible per mode"
   assert.ok(symbols.parameters.properties.new_text, "rename parameter is declared");
   assert.ok(symbols.parameters.properties.query, "wsymbol parameter is declared");
   const names = (m) => buildToolSpecs(m).map((t) => t.name);
-  for (const n of ["index_symbols", "git", "plugins"]) {
+  for (const n of ["index_symbols", "git", "plugins", "mail", "calendar"]) {
     assert.ok(names("ro").includes(n), `${n} reads in read-only mode`);
     assert.ok(names("edit").includes(n) && names("bypass").includes(n));
   }
@@ -226,7 +226,7 @@ test("symbols schema exposes the 10 pro actions; new tools are visible per mode"
     assert.ok(names("edit").includes(n), `${n} is offered in edit mode`);
     assert.ok(names("bypass").includes(n), `${n} is offered in bypass mode`);
   }
-  assert.equal(edit.length, 26);
+  assert.equal(edit.length, 28);
 });
 
 test("diagStructured returns panel rows through the mock server", async () => {

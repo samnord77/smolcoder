@@ -99,6 +99,8 @@ smol -p "fix the failing test"  # headless: run one prompt, print the transcript
 smol -p "build the app" --verify "npm test"   # headless with an acceptance command
 smol service install                          # keep routines running in the background, at logon
 smol secrets                                  # scan the current folder for exposed keys, fully offline
+smol mail setup                               # connect a real mailbox (IMAP + SMTP); the password stays on this machine
+smol calendar setup                           # connect a real CalDAV agenda (Nextcloud, Fastmail, iCloud…)
 ```
 
 With `--verify`, the command has to pass before the run counts as done. Failures go back to the agent to repair, six attempts by default. `--verify-attempts 12` allows more.

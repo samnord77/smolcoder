@@ -13,12 +13,14 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { Agent } from "./agent";
 import { ensureBuilt } from "./build-check";
+import { runCalendarCli } from "./calendar";
 import { resolveSlashPrompt } from "./commands";
 import { effortForBackend, loadConfig } from "./config";
 import { ContextManager } from "./context";
 import { detectAll } from "./detect";
 import { EventBus } from "./events";
 import { terminalLogo } from "./logo";
+import { runMailCli } from "./mail";
 import { createMcpBridge } from "./mcp";
 import { Plan } from "./plan";
 import { loadPlugins } from "./plugins";
@@ -199,6 +201,16 @@ ${c.bold("Routines background service:")}
 ${c.bold("Secrets audit:")}
   smol secrets [path]                    scan locally for exposed keys (nothing leaves the machine)
 
+${c.bold("Mail (real mailbox, configured once):")}
+  smol mail setup                        store your address and password locally, then test
+  smol mail check|inbox [n]|read <uid>   test, list the inbox, open one message
+  smol mail send <to> <subject> <text>   send a real e-mail
+
+${c.bold("Calendar (real CalDAV agenda):")}
+  smol calendar setup                    store the agenda address locally, then test
+  smol calendar check|list [days]        test the connection, show upcoming events
+  smol calendar add <title> <start> <end> [place]   create a real event
+
 ${c.bold("Keys:")}
   shift+tab   cycle mode (read-only → edit → auto-pilot → YOLO bypass)
   /           slash commands (autocomplete menu)
@@ -303,6 +315,16 @@ async function main(): Promise<void> {
   // `smol secrets [chemin]` audite un dossier sans jamais rien envoyer.
   if (rawArgv[0] === "secrets") {
     await runSecretsCli(rawArgv.slice(1));
+    return;
+  }
+  // `smol mail …` et `smol calendar …` pilotent les connecteurs réels (config
+  // locale dans ~/.smolcoder/connectors.json, jamais dans le projet).
+  if (rawArgv[0] === "mail") {
+    await runMailCli(rawArgv.slice(1));
+    return;
+  }
+  if (rawArgv[0] === "calendar") {
+    await runCalendarCli(rawArgv.slice(1));
     return;
   }
   if (args.verify && (!args.print || args.web)) throw new Error("--verify exige une exécution sans affichage avec -p");

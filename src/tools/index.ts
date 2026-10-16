@@ -23,11 +23,13 @@ import { resolveInWorkspace, SandboxError } from "../sandbox";
 import { listSkills, readSkill, saveSkill } from "../skills";
 import { truncateMiddle } from "../util";
 import { browserTool, runBrowser } from "./browser";
+import { calendarTool, runCalendar } from "./calendar";
 import { syntaxCheck } from "./check";
 import { CoworkBoard } from "./cowork";
 import { createFolder, deletePath, editFile, listFiles, movePath, readFile, writeFile } from "./fs-tools";
 import { githubTool, runGithub } from "./github";
 import { searchLocalFilesBounded } from "./local-search";
+import { mailTool, runMail } from "./mail";
 import { documentTool, runDocument } from "./office";
 import { searchFilesBounded } from "./search-worker";
 import { runCommand, type ShellControl } from "./shell";
@@ -50,22 +52,22 @@ function workTool(canWrite: boolean): ToolSpec {
   return {
     name: "work",
     description: canWrite
-      ? 'Durable personal and work tasks for this project: list {"action":"list","status":"open"}, create {"action":"create","title":"Prepare report","area":"work","due":"2026-10-02","priority":"high","role":"architect","acceptance":"All tests pass"}, assign {"action":"assign","task_id":"...","role":"implementer"}, record a factual report {"action":"record_report","task_id":"...","report":"..."}. The session runtime, not the model, controls running/verified/failed status from the actual turn and checks. Data stays in .smol/work-items.json.'
+      ? 'Durable work tasks for this project: list {"action":"list","status":"open"}, create {"action":"create","title":"Prepare report","area":"work","due":"2026-10-02","priority":"high","role":"architect","acceptance":"All tests pass"}, assign {"action":"assign","task_id":"...","role":"implementer"}, report {"action":"record_report","task_id":"...","report":"..."}. Running/verified/failed status comes from the real turn and checks, not the model. Data stays in .smol/work-items.json.'
       : 'Read the durable personal and work task list for this project. Example: {"action":"list","status":"open","area":"work"}.',
     parameters: {
       type: "object",
       properties: {
         action: { type: "string", enum: actions },
         task_id: { type: "string", description: "ID from the list" },
-        title: { type: "string", description: "Task title (up to 200 characters)" },
-        area: { type: "string", description: "Area such as work, personal, family or study" },
-        due: { type: "string", description: "YYYY-MM-DD (empty clears it)" },
+        title: { type: "string", description: "Title (max 200)" },
+        area: { type: "string", description: "Area (work, personal, family, study…)" },
+        due: { type: "string", description: "YYYY-MM-DD (empty clears)" },
         priority: { type: "string", enum: ["low", "normal", "high", "urgent"] },
-        notes: { type: "string", description: "Short notes (up to 2,000 characters)" },
+        notes: { type: "string", description: "Short notes (max 2000)" },
         status: { type: "string", enum: ["open", "completed", "archived"], description: "List filter" },
-        role: { type: "string", description: "Subagent role (e.g. architect, implementer, quality_reviewer)" },
-        acceptance: { type: "string", description: "Criteria verified before completion" },
-        report: { type: "string", description: "Subagent execution report" },
+        role: { type: "string", description: "Subagent role (architect, implementer…)" },
+        acceptance: { type: "string", description: "Acceptance criteria" },
+        report: { type: "string", description: "Execution report" },
       },
       required: ["action"],
     },
@@ -77,7 +79,7 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
     {
       name: "read_file",
       description:
-        'Read a text file in the workspace. Example: {"path": "src/app.js"}. Long files are returned in chunks; pass "offset" (a line number) to continue reading.',
+        'Read a workspace text file. Example: {"path": "src/app.js"}. Long files come in chunks; pass "offset" (a line number) to continue.',
       parameters: {
         type: "object",
         properties: {
@@ -91,23 +93,23 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
     {
       name: "list_files",
       description:
-        'List files and folders in the workspace. Example: {} for everything, or {"path": "src"} for one folder. Folders end with "/".',
+        'List files/folders. Example: {} = everything, {"path": "src"} = one folder. Folders end with "/".',
       parameters: {
         type: "object",
         properties: {
-          path: { type: "string", description: "Folder to list (optional, default: whole workspace)" },
+          path: { type: "string", description: "Folder (default: all)" },
         },
       },
     },
     {
       name: "search",
       description:
-        'Search inside files for a pattern (regular expression; plain text also works). Example: {"pattern": "TODO"}. Returns file:line: matching text.',
+        'Search files for a pattern (regex or plain text). Example: {"pattern": "TODO"}. Returns file:line: matching text.',
       parameters: {
         type: "object",
         properties: {
           pattern: { type: "string", description: "Text or regex to find" },
-          path: { type: "string", description: "Folder to search in (optional)" },
+          path: { type: "string", description: "Folder (optional)" },
         },
         required: ["pattern"],
       },
@@ -115,14 +117,14 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
     {
       name: "find_local",
       description:
-        'Find files and folders on this computer by filename only. This does not open file contents. Default root is your user profile; narrow it with an absolute folder such as C:\\Users\\Name\\Downloads or a workspace-relative path. Example: {"query":"deepseek"}. Results are capped and say when incomplete.',
+        'Find files and folders on this computer by filename only (contents are not read). Default root: your user profile; narrow it with an absolute folder (e.g. your Downloads folder) or a workspace-relative path. Example: {"query":"deepseek"}. Results are capped and say when incomplete.',
       parameters: {
         type: "object",
         properties: {
-          query: { type: "string", description: "Distinctive filename fragment, 2–120 characters; use e.g. deepseek, not a full sentence" },
-          path: { type: "string", description: "Optional absolute folder on this computer; default is the current user's home folder" },
-          max_results: { type: "number", description: "Maximum matching paths, 1–50 (default 50)" },
-          max_depth: { type: "number", description: "Maximum folder depth, 0–20 (default 12)" },
+          query: { type: "string", description: "Distinctive filename fragment, 2–120 chars (e.g. deepseek, not a sentence)" },
+          path: { type: "string", description: "Optional absolute folder; default: user home" },
+          max_results: { type: "number", description: "Max paths, 1–50 (def 50)" },
+          max_depth: { type: "number", description: "Max depth, 0–20 (def 12)" },
         },
         required: ["query"],
       },
@@ -130,7 +132,7 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
     {
       name: "plan",
       description:
-        'Plan runnable increments, kept across compaction and saved sessions. Create: {"action":"set","steps":"wire entry point; run build; add movement and test"}. Finish current step: {"action":"done"} (or supply step). Save exact APIs, error and next edit before a long investigation: {"action":"checkpoint","text":"..."} (max 1000 chars, replaces current step notes). Append: {"action":"add","text":"..."}. Show: {"action":"show"}.',
+        'Plan runnable increments kept across compaction and sessions. Create: {"action":"set","steps":"wire entry; build; test"}. Finish the current step: {"action":"done"}. Save exact APIs/next edit before a long investigation: {"action":"checkpoint","text":"..."} (max 1000, replaces step notes). Append: {"action":"add"}. Show: {"action":"show"}.',
       parameters: {
         type: "object",
         properties: {
@@ -145,7 +147,7 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
     {
       name: "skill",
       description:
-        'Save and reuse know-how across sessions (auto-evolution). List: {"action":"list"}. Read: {"action":"read","name":"login-debug"}. Save a reusable checklist after a repair: {"action":"save","name":"login-debug","content":"# steps\\n1. ..."} (edit/bypass only).',
+        'Save/reuse know-how across sessions. List: {"action":"list"}. Read: {"action":"read","name":"login-debug"}. Save a checklist after a repair: {"action":"save","name":"login-debug","content":"# steps\\n1. ..."} (edit/bypass only).',
       parameters: {
         type: "object",
         properties: {
@@ -171,14 +173,14 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
     {
       name: "index_symbols",
       description:
-        'Instant offline symbol search. Find {"action": "search", "query": "Agent"}, one file {"action": "file", "path": "src/a.ts"}, info {"action": "stats"}, rebuild {"action": "refresh"} (edit only).',
+        'Instant offline symbol search. search {"action":"search","query":"Agent"} · one file {"action":"file","path":"src/a.ts"} · stats {"action":"stats"} · refresh {"action":"refresh"} (edit only).',
       parameters: {
         type: "object",
         properties: {
           action: { type: "string", enum: ["search", "file", "stats", "refresh"] },
-          query: { type: "string", description: "Symbol name to find (only for search)" },
-          path: { type: "string", description: "File path relative to the workspace (only for file)" },
-          limit: { type: "number", description: "Max results (only for search, default 30)" },
+          query: { type: "string", description: "Symbol (search)" },
+          path: { type: "string", description: "Path (file)" },
+          limit: { type: "number", description: "Max results (def 30)" },
         },
         required: ["action"],
       },
@@ -186,7 +188,7 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
     {
       name: "git",
       description:
-        'Git: {"action": "status"} · {"action": "diff"} · {"action": "log", "count": 10} · {"action": "blame", "path": "src/a.ts", "line": 42} · {"action": "branch"} · {"action": "review"} (hunk review). Edit only: stage {"action": "stage", "path": "."}, stage one hunk {"action": "stage_hunk", "hunk": 0}, revert one hunk {"action": "revert_hunk", "hunk": 0} (undoable), commit {"action": "commit", "message": "Fix x"}. Reads work in read-only mode.',
+        'Git: {"action": "status"} · {"action": "diff"} · {"action": "log", "count": 10} · {"action": "blame", "path": "src/a.ts", "line": 42} · {"action": "branch"} · {"action": "review"} (hunks). Edit only: stage {"action": "stage", "path": "."}, stage one hunk {"action": "stage_hunk", "hunk": 0}, revert one hunk {"action": "revert_hunk", "hunk": 0}, commit {"action": "commit", "message": "Fix x"}. Reads work in read-only mode.',
       parameters: {
         type: "object",
         properties: {
@@ -196,15 +198,15 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
           },
           path: {
             type: "string",
-            description: "File path (diff, blame, stage, stage_hunk, revert_hunk, stage_lines); comma-separated for stage",
+            description: "File path (diff, blame, stage*, revert_hunk, stage_lines)",
           },
           message: { type: "string", description: "Commit message" },
-          count: { type: "number", description: "Commits (log, default 10)" },
+          count: { type: "number", description: "Commits (log, def 10)" },
           line: { type: "number", description: "Line (blame)" },
-          staged: { type: "boolean", description: "Staged changes (diff, review)" },
-          stat: { type: "boolean", description: "Summary not patch (diff)" },
-          hunk: { type: "number", description: "Hunk number (stage_hunk, revert_hunk)" },
-          lines: { type: "string", description: "Hunk line indices, comma-separated (stage_lines)" },
+          staged: { type: "boolean", description: "Staged (diff, review)" },
+          stat: { type: "boolean", description: "Summary only (diff)" },
+          hunk: { type: "number", description: "Hunk (stage_hunk, revert_hunk)" },
+          lines: { type: "string", description: "Line indices (stage_lines)" },
         },
         required: ["action"],
       },
@@ -212,7 +214,7 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
     {
       name: "plugins",
       description:
-        'List installed workspace plugins with their version and description. Example: {"action": "list"}. Add one by dropping a .cjs file into .smol/plugins/ (optional <name>.json name card).',
+        'List workspace plugins (version, description). Example: {"action": "list"}. Add one: drop a .cjs in .smol/plugins/ (optional <name>.json card).',
       parameters: {
         type: "object",
         properties: {
@@ -227,7 +229,7 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
     {
       name: "write_file",
       description:
-        'Create a new file or completely overwrite an existing one. Example: {"path": "src/new.js", "content": "..."}. Parent folders are created automatically. To change part of an existing file, prefer edit_file.',
+        'Create or fully overwrite a file. Example: {"path": "src/new.js", "content": "..."}. Parent folders are automatic. For partial changes prefer edit_file.',
       parameters: {
         type: "object",
         properties: {
@@ -240,7 +242,7 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
     {
       name: "edit_file",
       description:
-        'Replace text inside an existing file. Copy old_text EXACTLY from the file (a few lines, enough to be unique), and give the replacement as new_text. Example: {"path": "src/app.js", "old_text": "const x = 1;", "new_text": "const x = 2;"}',
+        'Replace text inside an existing file. Copy old_text EXACTLY (a few unique lines); new_text replaces it. Example: {"path": "src/app.js", "old_text": "const x = 1;", "new_text": "const x = 2;"}',
       parameters: {
         type: "object",
         properties: {
@@ -254,12 +256,12 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
     {
       name: "move_path",
       description:
-        'Move or rename a file or folder. Example: {"from": "draft.ts", "to": "src/draft.ts"}. Creates missing parent folders. Refuses to overwrite an existing destination — delete_path it first. Undo is git.',
+        'Move or rename a file or folder. Example: {"from": "draft.ts", "to": "src/draft.ts"}. Creates parents. Refuses to overwrite — delete_path first. Undo is git.',
       parameters: {
         type: "object",
         properties: {
-          from: { type: "string", description: "Current path (file or folder), relative to the workspace" },
-          to: { type: "string", description: "Destination path, relative to the workspace" },
+          from: { type: "string", description: "Current path" },
+          to: { type: "string", description: "Destination path" },
         },
         required: ["from", "to"],
       },
@@ -267,23 +269,23 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
     {
       name: "delete_path",
       description:
-        'Delete one file or one folder. Example: {"path": "build/output.log"}. A folder that still has items needs {"recursive": true}. A small text file comes back with /undo; a folder never does.',
+        'Delete one file or one folder. Example: {"path": "build/output.log"}. A non-empty folder needs {"recursive": true}. A small text file can /undo; a folder cannot.',
       parameters: {
         type: "object",
         properties: {
           path: { type: "string", description: "Path to delete, relative to the workspace" },
-          recursive: { type: "boolean", description: "Required to delete a folder that is not empty" },
+          recursive: { type: "boolean", description: "Needed for a non-empty folder" },
         },
         required: ["path"],
       },
     },
     {
       name: "create_folder",
-      description: 'Create a folder (and any missing parents). Example: {"path": "src/components"}. Safe to call when it already exists.',
+      description: 'Create a folder (parents included). Example: {"path": "src/components"}. Safe if it exists.',
       parameters: {
         type: "object",
         properties: {
-          path: { type: "string", description: "Folder path relative to the workspace" },
+          path: { type: "string", description: "Folder path" },
         },
         required: ["path"],
       },
@@ -291,7 +293,7 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
     {
       name: "format",
       description:
-        'Format one code file in place with the project formatter (prettier, black/ruff, rustfmt, gofmt). Example: {"path": "src/agent.ts"}. Undoable like any edit. If no formatter is installed, the answer is the install command.',
+        'Format one code file in place with the project formatter (prettier, black/ruff, rustfmt, gofmt). Example: {"path": "src/agent.ts"}. Undoable. Without a formatter it returns the install command.',
       parameters: {
         type: "object",
         properties: {
@@ -307,7 +309,7 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
     {
       name: "run_command",
       description:
-        'Run a shell command in the workspace and wait for it to finish. Example: {"command": "npm test"}. Times out after 120s — for servers or watchers use the task tool instead.',
+        'Run a shell command in the workspace and wait for it to finish. Example: {"command": "npm test"}. Times out after 120s — for servers or watchers use task.',
       parameters: {
         type: "object",
         properties: {
@@ -319,13 +321,13 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
     {
       name: "task",
       description:
-        'Manage background tasks (things that keep running, like dev servers). action "start" runs a command in the background: {"action": "start", "command": "npm run dev"}. action "logs" shows recent output: {"action": "logs", "task_id": "t1"}. action "list" shows all tasks. action "stop" kills one: {"action": "stop", "task_id": "t1"}.',
+        'Background tasks (things that keep running, like dev servers). Start: {"action": "start", "command": "npm run dev"}. Logs: {"action": "logs", "task_id": "t1"}. List: {"action": "list"}. Stop: {"action": "stop", "task_id": "t1"}.',
       parameters: {
         type: "object",
         properties: {
           action: { type: "string", enum: ["start", "list", "logs", "stop"] },
-          command: { type: "string", description: 'Command to run (only for "start")' },
-          task_id: { type: "string", description: 'Task id like "t1" (for "logs" and "stop")' },
+          command: { type: "string", description: "Command (start)" },
+          task_id: { type: "string", description: "Task id, e.g. t1 (logs/stop)" },
         },
         required: ["action"],
       },
@@ -351,7 +353,7 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
           {
             name: "delegate",
             description:
-              'Hand a small subtask to a bounded sub-agent (max 12 tool calls, no nested delegates). Roster role: {"role":"architect","task":"map the login flow and report files + line numbers"}. Or define a purpose-built specialist inline: {"task":"audit this parser for crashes","tools":"read_file,search,symbols","instructions":"List every unchecked input with file:line"}. Custom tools must be a subset of your own tools; omit role for expert. Sub-agents inherit your mode, so in read-only they can only read.',
+              'Hand a small subtask to a bounded sub-agent (max 12 tool calls, no nested delegates). Roster role: {"role":"architect","task":"map the login flow and report files + lines"}. Or an inline specialist: {"task":"audit this parser for crashes","tools":"read_file,search","instructions":"List every unchecked input with file:line"}. Tools must be a subset of your own; omit role for expert. Sub-agents inherit your mode (read-only stays read-only).',
             parameters: {
               type: "object",
               properties: {
@@ -359,9 +361,9 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
                 role: { type: "string", description: 'Roster role from the IDE roles panel (default: "expert")' },
                 tools: {
                   type: "string",
-                  description: 'Custom specialist only: comma-separated subset of your tools, e.g. "read_file,search"',
+                  description: 'Inline specialist: comma-separated subset of your tools, e.g. "read_file,search"',
                 },
-                instructions: { type: "string", description: "Custom specialist only: one-paragraph brief (max 1000 chars)" },
+                instructions: { type: "string", description: "Inline specialist: one-paragraph brief (max 1000 chars)" },
               },
               required: ["task"],
             },
@@ -370,12 +372,12 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
 
   // Read-only: reads + the work board + delegation (children inherit read-only,
   // so they can investigate without ever writing).
-  if (mode === "ro") return [...read, browserTool(false), githubTool(false), workTool(false), ...delegate];
+  if (mode === "ro") return [...read, browserTool(false), githubTool(false), workTool(false), mailTool(false), calendarTool(false), ...delegate];
   const mcp: ToolSpec[] = [
     {
       name: "mcp",
       description:
-        'Use an external MCP server configured in `.smol/mcp.json` (mail, sheets, browser…). List servers: {"server": "?", "tool": ""}. Call: {"server": "files", "tool": "read_file", "args": "{\\"path\\": \\"notes.txt\\"}"} — args stays a JSON string.',
+        'External MCP server configured in `.smol/mcp.json` (mail, sheets, browser…). List servers: {"server": "?", "tool": ""}. Call: {"server": "files", "tool": "read_file", "args": "{\\"path\\": \\"notes.txt\\"}"} — args stays a JSON string.',
       parameters: {
         type: "object",
         properties: {
@@ -391,7 +393,7 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
     {
       name: "symbols",
       description:
-        'Code intelligence (TypeScript, JavaScript, Python, Rust, Go), lines/columns start at 1. Hover {"action": "hover", "path": "src/a.ts", "line": 10, "col": 15} · definition {"action": "def", ...} · diagnostics {"action": "diag", "path": "src/a.ts"} · rename preview {"action": "rename", "path": "...", "line": 3, "col": 5, "new_text": "total"} · completions/signature/quickfix/refs take line+col · workspace search {"action": "wsymbol", "query": "Agent"} · install a server {"action": "setup", "lang": "python"} (edit only).',
+        'Code intelligence (TS, JS, Python, Rust, Go); lines/columns start at 1. Hover {"action": "hover", "path": "src/a.ts", "line": 10, "col": 15} · definition {"action": "def", ...} · diagnostics {"action": "diag", "path": "src/a.ts"} · rename preview {"action": "rename", "path": "...", "line": 3, "col": 5, "new_text": "total"} · completions/signature/quickfix/refs take line+col · workspace search {"action": "wsymbol", "query": "Agent"} · install a server {"action": "setup", "lang": "python"} (edit only).',
       parameters: {
         type: "object",
         properties: {
@@ -399,18 +401,18 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
             type: "string",
             enum: ["hover", "def", "refs", "diag", "rename", "completion", "signature", "wsymbol", "quickfix", "setup"],
           },
-          path: { type: "string", description: "File path (not for wsymbol/setup)" },
-          line: { type: "number", description: "Line, from 1 (not for diag/wsymbol)" },
-          col: { type: "number", description: "Column, from 1 (not for diag/wsymbol)" },
+          path: { type: "string", description: "Path (not for wsymbol/setup)" },
+          line: { type: "number", description: "Line from 1 (not for diag/wsymbol)" },
+          col: { type: "number", description: "Col from 1 (not for diag/wsymbol)" },
           new_text: { type: "string", description: "New name (rename)" },
-          query: { type: "string", description: "Symbol name (wsymbol)" },
-          lang: { type: "string", description: "typescript, python, rust, go, or all (wsymbol/setup)" },
+          query: { type: "string", description: "Symbol (wsymbol)" },
+          lang: { type: "string", description: "lang or all (wsymbol/setup)" },
         },
         required: ["action"],
       },
     },
   ];
-  return [...read, browserTool(true), githubTool(true), workTool(true), ...write, ...exec, ...mcp, ...symbols, ...delegate];
+  return [...read, browserTool(true), githubTool(true), workTool(true), mailTool(true), calendarTool(true), ...write, ...exec, ...mcp, ...symbols, ...delegate];
 }
 
 /** One undoable file write: absolute path, full previous content (null when
@@ -714,6 +716,20 @@ export async function executeTool(name: string, args: Record<string, any>, ctx: 
       }
       case "document": {
         result = runDocument(ctx.workspace, args);
+        break;
+      }
+      case "mail": {
+        if (String(args.action ?? "") === "send" && ctx.canWrite === false) {
+          return "Error: l'envoi d'e-mails est indisponible en mode lecture seule. Passez en mode édition pour envoyer.";
+        }
+        result = await runMail(args);
+        break;
+      }
+      case "calendar": {
+        if (String(args.action ?? "") === "create" && ctx.canWrite === false) {
+          return "Error: la création d'événements est indisponible en mode lecture seule. Passez en mode édition pour créer.";
+        }
+        result = await runCalendar(args);
         break;
       }
       case "github": {
