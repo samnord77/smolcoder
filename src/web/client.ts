@@ -6370,17 +6370,29 @@ function ccWork(d) {
   due.type = "date"; due.setAttribute("aria-label", "Échéance");
   const roleSelect = document.createElement("select");
   roleSelect.setAttribute("aria-label", "Rôle assigné");
-  [
-    ["", "Rôle : auto (expert)"],
-    ["architect", "Architecte"],
-    ["implementer", "Implémenteur"],
-    ["quality_reviewer", "Réviseur Qualité"],
-    ["spec_reviewer", "Réviseur Spéc."],
-    ["researcher", "Chercheur"],
-    ["expert", "Expert Polyvalent"],
-  ].forEach(([value, label]) => {
-    const option = document.createElement("option"); option.value = value; option.textContent = label; roleSelect.appendChild(option);
-  });
+  {
+    const auto = document.createElement("option");
+    auto.value = ""; auto.textContent = "Rôle : auto (expert)";
+    roleSelect.appendChild(auto);
+    const allRoles = d.subagents && Array.isArray(d.subagents.roles) ? d.subagents.roles : [];
+    const groupLabels = { builtin: "Rôles livrés", workspace: "Espace de travail", machine: "Bibliothèques (ECC, skills…)" };
+    for (const source of ["builtin", "workspace", "machine"]) {
+      const list = allRoles.filter((r) => (r.source || "builtin") === source);
+      if (!list.length) continue;
+      const group = document.createElement("optgroup");
+      group.label = groupLabels[source] || source;
+      for (const r of list) {
+        if (!r || !r.name) continue;
+        const option = document.createElement("option");
+        option.value = r.name;
+        const label = r.role || r.name;
+        option.textContent = label === r.name ? r.name : label + " (" + r.name + ")";
+        if (r.description) option.title = r.description;
+        group.appendChild(option);
+      }
+      roleSelect.appendChild(group);
+    }
+  }
   const acceptance = document.createElement("input");
   acceptance.type = "text"; acceptance.maxLength = 1000; acceptance.placeholder = "Critères d'acceptation (ex. tests verts)…"; acceptance.setAttribute("aria-label", "Critères d'acceptation");
   const add = el("button", "cc-act primary", "Ajouter");

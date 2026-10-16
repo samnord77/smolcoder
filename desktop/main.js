@@ -10,6 +10,11 @@ const hub = require("./hub-client");
 const ROOT = path.join(__dirname, ".."); // smolcoder-source
 const DIST_INDEX = path.join(ROOT, "dist", "index.js");
 const DIST_SANDBOX = path.join(ROOT, "dist", "sandbox.js");
+const APP_ICON = fs.existsSync(path.join(ROOT, "build", "icon.ico"))
+  ? path.join(ROOT, "build", "icon.ico")
+  : undefined;
+app.setName("Smolcoder");
+if (process.platform === "win32") app.setAppUserModelId("Smolcoder.Desktop");
 let APP_VERSION = "0.0.0";
 let gitService;
 let editorFileService;
@@ -140,6 +145,7 @@ function openMainWindow() {
     minWidth: 900,
     minHeight: 600,
     title: "Smolcoder",
+    icon: APP_ICON,
     autoHideMenuBar: false,
     backgroundColor: "#1a1a1a",
   });
@@ -184,6 +190,7 @@ function openEditor() {
     minWidth: 700,
     minHeight: 450,
     title: "Smolcoder — \u00c9diteur",
+    icon: APP_ICON,
     backgroundColor: "#1e1e1e",
     webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: true, nodeIntegration: false },
   });
@@ -207,6 +214,7 @@ function openGit() {
     minWidth: 760,
     minHeight: 520,
     title: "Smolcoder - Git",
+    icon: APP_ICON,
     backgroundColor: "#1e1e1e",
     webPreferences: { preload: path.join(__dirname, "preload-git.js"), contextIsolation: true, nodeIntegration: false },
   });
@@ -227,6 +235,7 @@ function openPanel() {
     minWidth: 600,
     minHeight: 400,
     title: "Smolcoder — MCP, plugins & LSP",
+    icon: APP_ICON,
     backgroundColor: "#1e1e1e",
     webPreferences: { preload: path.join(__dirname, "preload-panel.js"), contextIsolation: true, nodeIntegration: false },
   });
