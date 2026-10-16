@@ -116,6 +116,13 @@
       exposes structured JSON (`sheets` / `blocks` / `slides` / `lines`, bounded) and returns a French summary.
       Opens directly in Excel, Word, PowerPoint and any PDF reader. Verified: 7/7 tests with a real zip reader
       (`test/office.test.js`); hidden in read-only mode.
+- [x] **Code review copilot (`/review`) + GitHub (`github` tool)** — `/review` now turns the copilot into a
+      reviewer: it inspects the uncommitted diff (or a base branch you name) and reports issues file by file
+      with severity (🔴/🟠/🟡), `file:line` references, concrete fixes, positives and a verdict — `/review diff`
+      and `/review staged` keep the raw hunk view. The new `github` tool drives the signed-in `gh` CLI:
+      `status`, `pr_list`, `pr_view`, `pr_checks`, `issue_list`, `issue_view` in every mode; `pr_create`
+      (title/body/base/draft) in editing modes only; a missing `gh` is reported honestly. Verified: 6/6 tests
+      (`test/github.test.js`) + 2/2 review request tests (`test/review.test.js`).
 
 ## Outstanding
 

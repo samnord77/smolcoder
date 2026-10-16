@@ -106,11 +106,11 @@ test("mcp tool exists in edit and bypass, hidden in read-only", () => {
   assert.ok(buildToolSpecs("edit").some((t) => t.name === "mcp"));
   assert.ok(buildToolSpecs("bypass").some((t) => t.name === "mcp"));
   assert.ok(!buildToolSpecs("ro").some((t) => t.name === "mcp"));
-  // 25 edit tools and 13 read-only tools, including local filename search,
-  // delegation (read-only children), the agent-driven browser and the pro
-  // document writer (.xlsx/.docx/.pptx/.pdf).
-  assert.equal(buildToolSpecs("edit").length, 25);
-  assert.equal(buildToolSpecs("ro").length, 13);
+  // 26 edit tools and 14 read-only tools, including local filename search,
+  // delegation (read-only children), the agent-driven browser, the pro
+  // document writer (.xlsx/.docx/.pptx/.pdf) and the GitHub reader/writer.
+  assert.equal(buildToolSpecs("edit").length, 26);
+  assert.equal(buildToolSpecs("ro").length, 14);
 });
 
 test("windows wrappers resolve to their real file", () => {

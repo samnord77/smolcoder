@@ -22,16 +22,16 @@ export function documentTool(): ToolSpec {
   return {
     name: "document",
     description:
-      'Create a real .xlsx (Excel), .docx (Word), .pptx (PowerPoint) or .pdf file in the project from structured JSON — it opens directly in Excel/Word/PowerPoint or any PDF reader. Examples: xlsx {"sheets":[{"name":"2026","rows":[["Date","Montant"],["01/01",120]]}]} · docx {"title":"Rapport","blocks":[{"heading":"Contexte","text":"…","bullets":["un"],"table":[["A","B"]]}]} · pptx {"slides":[{"title":"Idée","bullets":["rapide"]}]} · pdf {"title":"Notes","lines":["Première ligne"]}.',
+      'Create a real .xlsx (Excel), .docx (Word), .pptx (PowerPoint) or .pdf file in the project from JSON — it opens directly in Excel/Word/PowerPoint or any reader. xlsx: {"sheets":[{"name":"S1","rows":[["Date","Montant"],[1,120]]}]} · docx: {"title":"Rapport","blocks":[{"heading":"Contexte"},{"bullets":["un"]}]} · pptx/pdf use slides/lines below.',
     parameters: {
       type: "object",
       properties: {
-        format: { type: "string", enum: ["xlsx", "docx", "pptx", "pdf"], description: "Document type" },
-        path: { type: "string", description: "File path inside the project (extension added when missing)" },
+        format: { type: "string", enum: ["xlsx", "docx", "pptx", "pdf"], description: "xlsx|docx|pptx|pdf" },
+        path: { type: "string", description: "File path in the project (extension added if missing)" },
         title: { type: "string", description: "docx/pdf title" },
         sheets: {
           type: "array",
-          description: "xlsx: one entry per sheet (first row bolded)",
+          description: "xlsx: sheets (first row bolded)",
           items: {
             type: "object",
             properties: {

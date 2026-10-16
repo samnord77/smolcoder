@@ -798,6 +798,7 @@ function contextMenuItems(s, command) {
   out.push({ label: "Retour en arrière (fichiers + conversation)", hint: "/rewind", run: () => command("rewind") });
   out.push({ label: "Routines planifiées", hint: "/routine", run: () => command("routine") });
   out.push({ label: "Mission autonome", hint: "/autopilot", run: () => command("autopilot") });
+  out.push({ label: "Revue de code", hint: "/review", run: () => command("review") });
   return out;
 }
 /** Menu of the agent-mode chip. setMode already accepts ro / edit / auto /

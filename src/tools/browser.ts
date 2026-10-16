@@ -21,8 +21,8 @@ const READ_ONLY_ACTIONS = ["open", "read", "shot", "back", "close"] as const;
 export function browserTool(canWrite: boolean): ToolSpec {
   const actions = canWrite ? [...ALL_ACTIONS] : [...READ_ONLY_ACTIONS];
   const description = canWrite
-    ? 'Drive a real local browser (headless Chrome or Edge) like a person would: open a page, read its text, click, type, press keys, screenshot. Open: {"action":"open","url":"https://example.com"}. Read the current page: {"action":"read"}. Click: {"action":"click","selector":"#submit"}. Type (submit:true sends the surrounding form): {"action":"type","selector":"input[name=q]","text":"hello","submit":true}. Press a key: {"action":"press","key":"Enter"}. Screenshot: {"action":"shot"}. Back: {"action":"back"}. Close: {"action":"close"}. Local and private addresses are welcome (dev servers); http/https only. The browser closes itself after ten idle minutes.'
-    : 'Open and read real pages with a local headless browser (Chrome or Edge). Open: {"action":"open","url":"https://example.com"}. Read the current page: {"action":"read"}. Screenshot: {"action":"shot"}. Back: {"action":"back"}. Close: {"action":"close"}. Local and private addresses are welcome (dev servers); http/https only. Clicking, typing and keys need an editing mode.';
+    ? 'Drive a real local browser (headless Chrome/Edge): open, read text, click, type, press keys, screenshot. {"action":"open","url":"https://example.com"} · {"action":"read"} · {"action":"click","selector":"#submit"} · {"action":"type","selector":"input[name=q]","text":"hello","submit":true} · {"action":"press","key":"Enter"} · {"action":"shot"} · {"action":"back"} · {"action":"close"}. Local/private addresses welcome (dev servers); http/https only. Closes after ten idle minutes.'
+    : 'Open and read real pages with a local headless browser (Chrome/Edge): {"action":"open","url":"https://example.com"} · {"action":"read"} · {"action":"shot"} · {"action":"back"} · {"action":"close"}. Local/private addresses welcome; http/https only. Clicking, typing and keys need an editing mode.';
   return {
     name: "browser",
     description,
@@ -30,11 +30,11 @@ export function browserTool(canWrite: boolean): ToolSpec {
       type: "object",
       properties: {
         action: { type: "string", enum: actions },
-        url: { type: "string", description: 'Page address for "open" (http/https)' },
-        selector: { type: "string", description: 'CSS selector for "click" and "type", e.g. "#login" or "input[name=q]"' },
-        text: { type: "string", description: 'Text to type (for "type")' },
-        key: { type: "string", description: 'Key to press: Enter, Tab, Escape, Backspace or an arrow (for "press")' },
-        submit: { type: "boolean", description: 'For "type": submit the surrounding form after filling' },
+        url: { type: "string", description: "Page address (open, http/https)" },
+        selector: { type: "string", description: "CSS selector (click, type)" },
+        text: { type: "string", description: "Text to type" },
+        key: { type: "string", description: "Enter, Tab, Escape, Backspace or an arrow (press)" },
+        submit: { type: "boolean", description: "Submit the form after typing" },
       },
       required: ["action"],
     },

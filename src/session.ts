@@ -61,7 +61,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { name: "effort", desc: "Set reasoning effort" },
   { name: "plan", desc: "Show the agent's plan" },
   { name: "todo", desc: "Show the agent's task list (same as /plan)" },
-  { name: "review", desc: "Review uncommitted changes hunk by hunk" },
+  { name: "review", desc: "Code review — /review (the agent reviews and reports) · /review diff|staged (raw hunks)" },
   { name: "diag", desc: "Language-server diagnostics — /diag src/agent.ts" },
   { name: "doctor", desc: "Language-server health + install — /doctor install" },
   { name: "route", desc: "Model route and failover status" },
@@ -1156,6 +1156,28 @@ export class Session {
     ui.warn("Usage : /routine · add <cadence> | <texte> · on|off <n> · run <n> · remove <n>");
   }
 
+  /** Agent code review: builds a structured review request and runs one turn. */
+  private async reviewCode(base?: string): Promise<void> {
+    const scope = base
+      ? `les changements de cette branche par rapport à « ${base} » (commence par git log ${base}..HEAD --oneline et git diff ${base}...HEAD --stat, puis lis le diff)`
+      : "les changements non commités (git diff et git diff --staged) — s'il n'y a rien de non commité, prends les derniers commits de la branche par rapport à son amont (git log @{u}..HEAD)";
+    const message = [
+      "[Revue de code]",
+      `Passe en revue ${scope}.`,
+      "",
+      "Méthode : identifie les fichiers concernés, lis le diff, ouvre les fichiers aux endroits cités pour vérifier le contexte réel, et lance le build ou les tests pertinents si le projet en a.",
+      "",
+      "Rends la revue fichier par fichier, du plus grave au plus léger. Pour chaque constat :",
+      "- 🔴 bug certain / 🟠 risque ou comportement douteux / 🟡 style ou lisibilité",
+      "- référence fichier:ligne",
+      "- le problème en une phrase, puis le correctif concret (extrait de code si utile).",
+      "",
+      "Termine par « Points positifs » (3 maximum) puis un verdict : « ✅ prêt à committer » ou « ⚠️ N points à corriger ».",
+      "Revue uniquement : ne modifie aucun fichier, ne commit rien, ne pousse rien.",
+    ].join("\n");
+    await this.handleUserMessage(message, []);
+  }
+
   /** /autopilot <objectif> — mission autonome : l'agent construit un plan,
    * puis la session relance des tours jusqu'à ce que le plan soit complet.
    * /autopilot seul montre l'aide et l'état ; /autopilot stop interrompt. */
@@ -1425,9 +1447,19 @@ export class Session {
               if (toolCtx.plan.exists) ui.println(renderPlan(toolCtx.plan));
               else ui.status("· no task list yet — the agent creates one when it starts a multi-step task");
               break;
-            case "review":
-              ui.println(formatReview(this.workspace, (arg ?? "").toLowerCase() === "staged"));
+            case "review": {
+              const sub = (arg ?? "").trim();
+              if (sub.toLowerCase() === "diff") {
+                ui.println(formatReview(this.workspace, false));
+                break;
+              }
+              if (sub.toLowerCase() === "staged") {
+                ui.println(formatReview(this.workspace, true));
+                break;
+              }
+              await this.reviewCode(sub || undefined);
               break;
+            }
             case "diag": {
               const target = rest.join(" ").trim() || (arg ?? "");
               if (!target) {

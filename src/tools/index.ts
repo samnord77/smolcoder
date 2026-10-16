@@ -26,6 +26,7 @@ import { browserTool, runBrowser } from "./browser";
 import { syntaxCheck } from "./check";
 import { CoworkBoard } from "./cowork";
 import { createFolder, deletePath, editFile, listFiles, movePath, readFile, writeFile } from "./fs-tools";
+import { githubTool, runGithub } from "./github";
 import { searchLocalFilesBounded } from "./local-search";
 import { documentTool, runDocument } from "./office";
 import { searchFilesBounded } from "./search-worker";
@@ -49,22 +50,22 @@ function workTool(canWrite: boolean): ToolSpec {
   return {
     name: "work",
     description: canWrite
-      ? 'Keep durable personal and work tasks in this project. List: {"action":"list","status":"open"}. Create: {"action":"create","title":"Prepare report","area":"work","due":"2026-10-02","priority":"high","role":"architect","acceptance":"All tests pass"}. Assign role: {"action":"assign","task_id":"...","role":"implementer"}. Record a factual report: {"action":"record_report","task_id":"...","report":"..."} . The session runtime, not the model, controls running/verified/failed status and completion based on the actual turn and checks. Data stays in .smol/work-items.json.'
+      ? 'Durable personal and work tasks for this project: list {"action":"list","status":"open"}, create {"action":"create","title":"Prepare report","area":"work","due":"2026-10-02","priority":"high","role":"architect","acceptance":"All tests pass"}, assign {"action":"assign","task_id":"...","role":"implementer"}, record a factual report {"action":"record_report","task_id":"...","report":"..."}. The session runtime, not the model, controls running/verified/failed status from the actual turn and checks. Data stays in .smol/work-items.json.'
       : 'Read the durable personal and work task list for this project. Example: {"action":"list","status":"open","area":"work"}.',
     parameters: {
       type: "object",
       properties: {
         action: { type: "string", enum: actions },
-        task_id: { type: "string", description: "ID from the work list" },
+        task_id: { type: "string", description: "ID from the list" },
         title: { type: "string", description: "Task title (up to 200 characters)" },
-        area: { type: "string", description: "Work or life area, such as work, personal, family, or study" },
-        due: { type: "string", description: "Optional due date, YYYY-MM-DD; empty clears it when updating" },
+        area: { type: "string", description: "Area such as work, personal, family or study" },
+        due: { type: "string", description: "YYYY-MM-DD (empty clears it)" },
         priority: { type: "string", enum: ["low", "normal", "high", "urgent"] },
-        notes: { type: "string", description: "Short task notes (up to 2,000 characters)" },
-        status: { type: "string", enum: ["open", "completed", "archived"], description: "Optional list filter" },
-        role: { type: "string", description: "Assigned subagent specialist role (e.g. architect, implementer, quality_reviewer)" },
-        acceptance: { type: "string", description: "Acceptance criteria / test verification required to complete the task" },
-        report: { type: "string", description: "Execution report summary returned by the subagent" },
+        notes: { type: "string", description: "Short notes (up to 2,000 characters)" },
+        status: { type: "string", enum: ["open", "completed", "archived"], description: "List filter" },
+        role: { type: "string", description: "Subagent role (e.g. architect, implementer, quality_reviewer)" },
+        acceptance: { type: "string", description: "Criteria verified before completion" },
+        report: { type: "string", description: "Subagent execution report" },
       },
       required: ["action"],
     },
@@ -185,7 +186,7 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
     {
       name: "git",
       description:
-        'Git: status {"action": "status"}, diff {"action": "diff"}, hunk review {"action": "review"}. History {"action": "log", "count": 10}, blame {"action": "blame", "path": "src/a.ts", "line": 42}, branches {"action": "branch"}. Edit only: stage {"action": "stage", "path": "."}, stage one hunk {"action": "stage_hunk", "path": "src/a.ts", "hunk": 0}, revert one hunk {"action": "revert_hunk", ...} (undoable), commit {"action": "commit", "message": "Fix x"}. Reads work in read-only mode.',
+        'Git: {"action": "status"} · {"action": "diff"} · {"action": "log", "count": 10} · {"action": "blame", "path": "src/a.ts", "line": 42} · {"action": "branch"} · {"action": "review"} (hunk review). Edit only: stage {"action": "stage", "path": "."}, stage one hunk {"action": "stage_hunk", "hunk": 0}, revert one hunk {"action": "revert_hunk", "hunk": 0} (undoable), commit {"action": "commit", "message": "Fix x"}. Reads work in read-only mode.',
       parameters: {
         type: "object",
         properties: {
@@ -195,15 +196,15 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
           },
           path: {
             type: "string",
-            description: "File path (for diff, blame, stage, stage_hunk, revert_hunk, stage_lines); comma-separated for stage",
+            description: "File path (diff, blame, stage, stage_hunk, revert_hunk, stage_lines); comma-separated for stage",
           },
-          message: { type: "string", description: "Commit message (only for commit)" },
-          count: { type: "number", description: "Commits to show (only for log, default 10)" },
-          line: { type: "number", description: "Line number (only for blame)" },
-          staged: { type: "boolean", description: "Show staged changes (for diff and review)" },
-          stat: { type: "boolean", description: "Show file summary instead of full patch (only for diff)" },
-          hunk: { type: "number", description: "Hunk number from review (only for stage_hunk and revert_hunk)" },
-          lines: { type: "string", description: "Hunk line indices to stage, comma-separated (only for stage_lines)" },
+          message: { type: "string", description: "Commit message" },
+          count: { type: "number", description: "Commits (log, default 10)" },
+          line: { type: "number", description: "Line (blame)" },
+          staged: { type: "boolean", description: "Staged changes (diff, review)" },
+          stat: { type: "boolean", description: "Summary not patch (diff)" },
+          hunk: { type: "number", description: "Hunk number (stage_hunk, revert_hunk)" },
+          lines: { type: "string", description: "Hunk line indices, comma-separated (stage_lines)" },
         },
         required: ["action"],
       },
@@ -369,7 +370,7 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
 
   // Read-only: reads + the work board + delegation (children inherit read-only,
   // so they can investigate without ever writing).
-  if (mode === "ro") return [...read, browserTool(false), workTool(false), ...delegate];
+  if (mode === "ro") return [...read, browserTool(false), githubTool(false), workTool(false), ...delegate];
   const mcp: ToolSpec[] = [
     {
       name: "mcp",
@@ -390,7 +391,7 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
     {
       name: "symbols",
       description:
-        'Code intelligence (TypeScript, JavaScript, Python, Rust, Go). Hover {"action": "hover", "path": "src/a.ts", "line": 10, "col": 15}, definition {"action": "def", ...}, diagnostics {"action": "diag", "path": "src/a.ts"}. Rename preview {"action": "rename", "path": "...", "line": 3, "col": 5, "new_text": "total"}; completions, signature, quickfix and refs take line+col. Workspace search {"action": "wsymbol", "query": "Agent"}. Install a server {"action": "setup", "lang": "python"} (edit only). Lines and columns start at 1.',
+        'Code intelligence (TypeScript, JavaScript, Python, Rust, Go), lines/columns start at 1. Hover {"action": "hover", "path": "src/a.ts", "line": 10, "col": 15} · definition {"action": "def", ...} · diagnostics {"action": "diag", "path": "src/a.ts"} · rename preview {"action": "rename", "path": "...", "line": 3, "col": 5, "new_text": "total"} · completions/signature/quickfix/refs take line+col · workspace search {"action": "wsymbol", "query": "Agent"} · install a server {"action": "setup", "lang": "python"} (edit only).',
       parameters: {
         type: "object",
         properties: {
@@ -398,18 +399,18 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
             type: "string",
             enum: ["hover", "def", "refs", "diag", "rename", "completion", "signature", "wsymbol", "quickfix", "setup"],
           },
-          path: { type: "string", description: "File path relative to the workspace (not for wsymbol/setup)" },
-          line: { type: "number", description: "Line number starting at 1 (not for diag/wsymbol)" },
-          col: { type: "number", description: "Column number starting at 1 (not for diag/wsymbol)" },
-          new_text: { type: "string", description: "New name (only for rename)" },
-          query: { type: "string", description: "Symbol name to find (only for wsymbol)" },
-          lang: { type: "string", description: "Language for wsymbol/setup: typescript, python, rust, go (or all for setup)" },
+          path: { type: "string", description: "File path (not for wsymbol/setup)" },
+          line: { type: "number", description: "Line, from 1 (not for diag/wsymbol)" },
+          col: { type: "number", description: "Column, from 1 (not for diag/wsymbol)" },
+          new_text: { type: "string", description: "New name (rename)" },
+          query: { type: "string", description: "Symbol name (wsymbol)" },
+          lang: { type: "string", description: "typescript, python, rust, go, or all (wsymbol/setup)" },
         },
         required: ["action"],
       },
     },
   ];
-  return [...read, browserTool(true), workTool(true), ...write, ...exec, ...mcp, ...symbols, ...delegate];
+  return [...read, browserTool(true), githubTool(true), workTool(true), ...write, ...exec, ...mcp, ...symbols, ...delegate];
 }
 
 /** One undoable file write: absolute path, full previous content (null when
@@ -713,6 +714,10 @@ export async function executeTool(name: string, args: Record<string, any>, ctx: 
       }
       case "document": {
         result = runDocument(ctx.workspace, args);
+        break;
+      }
+      case "github": {
+        result = runGithub(ctx.workspace, args, { canWrite: ctx.canWrite });
         break;
       }
       case "symbols": {
