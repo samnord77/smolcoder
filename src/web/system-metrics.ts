@@ -5,8 +5,8 @@ import * as path from "node:path";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
-const GPU_CACHE_MS = 2_000;
-const GIT_CACHE_MS = 4_000;
+const GPU_CACHE_MS = 8_000;
+const GIT_CACHE_MS = 10_000;
 const MAX_ARTIFACT_FILES = 500;
 
 export interface SystemMetrics {
@@ -29,6 +29,9 @@ let gpuCache: SystemMetrics["gpu"] = null;
 let gpuProbe: Promise<SystemMetrics["gpu"]> | null = null;
 const gitCache = new Map<string, { at: number; value: SessionOverview["changes"] }>();
 const gitProbes = new Map<string, Promise<SessionOverview["changes"]>>();
+const artifactCache = new Map<string, { at: number; value: number | null }>();
+const artifactProbes = new Map<string, Promise<number | null>>();
+const ARTIFACT_CACHE_MS = 5_000;
 
 export function parseNvidiaSmiOutput(output: string): SystemMetrics["gpu"] {
   const rows = output
@@ -180,6 +183,23 @@ function readStorage(workspace: string): SystemMetrics["storage"] {
   }
 }
 
+async function readArtifactCount(workspace: string): Promise<number | null> {
+  const hit = artifactCache.get(workspace);
+  if (hit && Date.now() - hit.at < ARTIFACT_CACHE_MS) return hit.value;
+  const pending = artifactProbes.get(workspace);
+  if (pending) return pending;
+  const probe = countArtifactFiles(workspace)
+    .then((value) => {
+      artifactCache.set(workspace, { at: Date.now(), value });
+      return value;
+    })
+    .finally(() => {
+      artifactProbes.delete(workspace);
+    });
+  artifactProbes.set(workspace, probe);
+  return probe;
+}
+
 export async function collectSessionOverview(workspace: string, backgroundTasks: number): Promise<SessionOverview> {
   const totalBytes = os.totalmem();
   const freeBytes = os.freemem();
@@ -187,7 +207,7 @@ export async function collectSessionOverview(workspace: string, backgroundTasks:
   return {
     changes,
     backgroundTasks,
-    artifacts: await countArtifactFiles(workspace),
+    artifacts: await readArtifactCount(workspace),
     system: {
       cpuPercent: readCpuPercent(),
       memory: {

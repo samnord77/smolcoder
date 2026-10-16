@@ -35,7 +35,7 @@ import {
   gitShowFile,
   gitStage,
   gitStageLines,
-  gitStatusMap,
+  gitStatusMapCachedAsync,
   gitSyncStatus,
   gitUnstage,
 } from "../git";
@@ -1267,11 +1267,9 @@ export class WebHub {
           this.serveUpload(res, url);
           return;
         case "/workspace/tree": {
-          try {
-            json(200, this.workspaceTree(url.searchParams.get("sid"), url.searchParams.get("path")));
-          } catch (err: any) {
-            json(200, { entries: [], path: url.searchParams.get("path") || ".", error: String(err?.message ?? err) });
-          }
+          void this.workspaceTree(url.searchParams.get("sid"), url.searchParams.get("path"))
+            .then((tree) => json(200, tree))
+            .catch((err: any) => json(200, { entries: [], path: url.searchParams.get("path") || ".", error: String(err?.message ?? err) }));
           return;
         }
         case "/workspace/search": {
@@ -2207,7 +2205,7 @@ export class WebHub {
 
   /** Structured project tree for the web IDE panel. It is deliberately
    * read-only and bounded so a huge monorepo cannot freeze the browser. */
-  private workspaceTree(sidRaw: string | null, relRaw: string | null): any {
+  private async workspaceTree(sidRaw: string | null, relRaw: string | null): Promise<any> {
     const sid = String(sidRaw ?? "");
     const live = SESSION_ID_RE.test(sid) ? this.live.get(sid) : undefined;
     const meta = this.metas.get(sid);
@@ -2222,7 +2220,7 @@ export class WebHub {
     }
     const st = fs.statSync(abs);
     if (!st.isDirectory()) throw new Error("dossier inexistant");
-    const statusMap = gitStatusMap(ws, abs);
+    const statusMap = await gitStatusMapCachedAsync(ws, abs);
     const entries = fs
       .readdirSync(abs, { withFileTypes: true })
       .filter((e) => !e.name.startsWith(".") && !["node_modules", "dist", "build", "coverage", ".git"].includes(e.name))

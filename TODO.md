@@ -27,6 +27,13 @@
       the native kill (killing the root first re-parented its children, leaking bash wrappers waiting on
       a live node child — one per cancelled verification command, visible as phantom processes), and a
       throttled Windows sweep reaps leftover wrappers whose owning process is gone.
+- [x] **Snappy project file browsing** — folder listings no longer pay a blocking `spawnSync git`
+      per request: tree badges use one cached git-status map (2.5 s TTL, bounded, single-flight) run
+      through `execFile` so a slow git never stalls other hub requests, the redundant `rev-parse`
+      probe and `--untracked-files=all` walk are gone, and background probes (session overview git
+      10 s, artifacts 5 s, nvidia-smi 8 s) spawn far less. Measured on the real app: expanding a
+      folder 374-583 ms → 176-211 ms cold and ~10 ms on repeats; a session-overview request during
+      an in-flight git call answered in 10 ms instead of queueing.
 - [x] **Compaction v2** — structured hand-over notes written with thinking off, old reasoning traces
       not replayed, stale reads of overwritten files evicted immediately.
 - [x] **Ollama keep_alive** — the model stays resident 30 min between calls (`SMOLCODER_KEEP_ALIVE`).
@@ -88,10 +95,10 @@
       holds a secret, and the `git` tool scans the staged diff before committing (advisory, never
       blocking). `classifyDanger` in `src/approvals.ts` forces a y/n question — even for in-workspace
       commands in edit/auto modes, and even after an « always » — for `git push --force/-f/--mirror/
-      --delete`, `git reset --hard`, `git clean -f`, `npm publish` (pnpm/yarn/bun too), `gh`/`cargo
-      release`, `twine upload`, `dotnet nuget push`, pipes into a shell, `diskpart`/`mkfs`/`format X:`,
+    --delete`, `git reset --hard`, `git clean -f`, `npm publish` (pnpm/yarn/bun too), `gh`/`cargo
+    release`, `twine upload`, `dotnet nuget push`, pipes into a shell, `diskpart`/`mkfs`/`format X:`,
       `shutdown`, `rm -rf` of a root/home and `Remove-Item -Recurse -Force`. New CLI `smol secrets
-      [path]` prints a fully local report (exit 1 on findings, nothing leaves the machine).
+    [path]` prints a fully local report (exit 1 on findings, nothing leaves the machine).
       `test/secrets.test.js` + the agent gate tests in `test/agent.test.js`.
 - [x] **Real mailbox and agenda (`mail` / `calendar` tools, `smol mail` / `smol calendar`)** —
       hand-rolled with zero dependencies: `src/connectors.ts` keeps the local config in
@@ -144,7 +151,7 @@
 - [x] **Autonomous mission (`/autopilot`)** — `/autopilot <goal>` runs like a Cowork background task:
       the first turn asks the model to write a concrete plan (`plan` tool), then the session loops
       on its own, turn after turn, feeding the remaining plan steps back (`[Pilote automatique —
-      tour n/6] ... Étapes restantes`) until every step is verified done — or it stops honestly:
+    tour n/6] ... Étapes restantes`) until every step is verified done — or it stops honestly:
       turn limit (6), 45-minute budget, two consecutive error turns, a cancelled turn, or no plan
       after the first turn. `/autopilot stop` interrupts between turns, `/autopilot` alone shows the
       help/state, read-only mode refuses to start one. Verified: 7/7 tests (`test/autopilot.test.js`).

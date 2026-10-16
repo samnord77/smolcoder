@@ -3,7 +3,7 @@
 // real `git` CLI in the workspace with tight timeouts and output caps, so
 // results are always truthful — never guessed. Failures are coaching
 // strings, never throws.
-import { spawnSync } from "node:child_process";
+import { execFile, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -675,30 +675,109 @@ export function gitShowFile(root: string, relPath: string): { tracked: boolean; 
   return { tracked: true, content: output.length > fileCap ? output.slice(0, fileCap) : output };
 }
 
+function parseStatusLines(text: string): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const line of text.split("\n").slice(0, 500)) {
+    // runGit trims the output, so a leading status space (" M file")
+    // arrives as "M file" — parse letters only, uniformly.
+    const m = /^(\?\?|[MADRCUT]{1,2})\s+(.+)$/.exec(line.trim());
+    if (!m) continue;
+    const first = m[2].split("/")[0].replace(/^"|"$/g, "");
+    const raw = m[1];
+    const status =
+      raw === "??" ? "U" : raw.includes("U") ? "U" : raw.includes("D") ? "D" : raw.includes("A") ? "A" : raw.includes("R") ? "R" : "M";
+    const rank: Record<string, number> = { M: 1, R: 2, A: 3, D: 4, U: 5 };
+    if (first && (!out.has(first) || rank[status] > rank[out.get(first)!])) out.set(first, status);
+  }
+  return out;
+}
+
 /** Short status per direct child of one directory: name -> "A", "U", "D", "M", ...
  * Powers file-tree badges. One bounded git call. Never throws. */
 export function gitStatusMap(root: string, dirAbs: string): Map<string, string> {
-  const out = new Map<string, string>();
   try {
-    if (!isGitRepo(root)) return out;
-    const r = runGit(root, ["status", "--short", "--untracked-files=all", "--", dirAbs]);
-    if (r.code !== 0) return out;
-    for (const line of r.out.split("\n").slice(0, 500)) {
-      // runGit trims the output, so a leading status space (" M file")
-      // arrives as "M file" — parse letters only, uniformly.
-      const m = /^(\?\?|[MADRCUT]{1,2})\s+(.+)$/.exec(line.trim());
-      if (!m) continue;
-      const first = m[2].split("/")[0].replace(/^"|"$/g, "");
-      const raw = m[1];
-      const status =
-        raw === "??" ? "U" : raw.includes("U") ? "U" : raw.includes("D") ? "D" : raw.includes("A") ? "A" : raw.includes("R") ? "R" : "M";
-      const rank: Record<string, number> = { M: 1, R: 2, A: 3, D: 4, U: 5 };
-      if (first && (!out.has(first) || rank[status] > rank[out.get(first)!])) out.set(first, status);
-    }
+    // No isGitRepo gate: `git status` itself fails with a non-zero code outside
+    // a repository, and skipping the extra rev-parse spawn halves the cost of
+    // every tree fetch (this runs once per folder expansion).
+    const r = runGit(root, ["status", "--short", "--untracked-files=normal", "--", dirAbs]);
+    if (r.code !== 0) return new Map();
+    return parseStatusLines(r.out);
   } catch {
     /* badges are best effort */
+    return new Map();
   }
-  return out;
+}
+
+/** Async sibling: runs git off the event loop so one slow status call cannot
+ * stall every other request of the hub while a folder expands. */
+export function gitStatusMapAsync(root: string, dirAbs: string): Promise<Map<string, string>> {
+  return new Promise((resolve) => {
+    execFile(
+      "git",
+      ["status", "--short", "--untracked-files=normal", "--", dirAbs],
+      { cwd: root, encoding: "utf8", timeout: GIT_TIMEOUT_MS, windowsHide: true, maxBuffer: 4 * 1024 * 1024 },
+      (err, stdout) => {
+        if (err) {
+          resolve(new Map());
+          return;
+        }
+        resolve(parseStatusLines(String(stdout ?? "")));
+      },
+    );
+  });
+}
+
+/** Cached wrapper used by UI trees: repeated refreshes inside a short window
+ * reuse one git call so expanding folders stays instant. Callers that need
+ * the freshest state (tools, tests) keep using gitStatusMap directly. */
+const STATUS_CACHE_TTL_MS = 2_500;
+const STATUS_CACHE_MAX = 64;
+const statusCache = new Map<string, { at: number; map: Map<string, string> }>();
+const statusProbes = new Map<string, Promise<Map<string, string>>>();
+
+function pruneStatusCache(): void {
+  if (statusCache.size <= STATUS_CACHE_MAX) return;
+  let oldestKey: string | null = null;
+  let oldestAt = Number.POSITIVE_INFINITY;
+  for (const [k, v] of statusCache) {
+    if (v.at < oldestAt) {
+      oldestAt = v.at;
+      oldestKey = k;
+    }
+  }
+  if (oldestKey !== null) statusCache.delete(oldestKey);
+}
+
+export function gitStatusMapCached(root: string, dirAbs: string): Map<string, string> {
+  const key = `${root}\n${dirAbs}`;
+  const now = Date.now();
+  const hit = statusCache.get(key);
+  if (hit && now - hit.at < STATUS_CACHE_TTL_MS) return hit.map;
+  const map = gitStatusMap(root, dirAbs);
+  statusCache.set(key, { at: now, map });
+  pruneStatusCache();
+  return map;
+}
+
+/** Async + cached: what the web tree awaits. Concurrent requests for the same
+ * folder share one git call, and repeats inside the TTL never spawn git. */
+export function gitStatusMapCachedAsync(root: string, dirAbs: string): Promise<Map<string, string>> {
+  const key = `${root}\n${dirAbs}`;
+  const hit = statusCache.get(key);
+  if (hit && Date.now() - hit.at < STATUS_CACHE_TTL_MS) return Promise.resolve(hit.map);
+  const pending = statusProbes.get(key);
+  if (pending) return pending;
+  const probe = gitStatusMapAsync(root, dirAbs)
+    .then((map) => {
+      statusCache.set(key, { at: Date.now(), map });
+      pruneStatusCache();
+      return map;
+    })
+    .finally(() => {
+      statusProbes.delete(key);
+    });
+  statusProbes.set(key, probe);
+  return probe;
 }
 
 /** End-of-turn summary ("Files changed: 3 (+12 −5) — a.ts +9 −1, …")
