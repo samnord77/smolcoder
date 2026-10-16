@@ -61,7 +61,7 @@ Projet (`.smol/mcp.json`) :
 | files (filesystem officiel) | 14 : lecture, écriture, dossiers, recherche | marche, lu un vrai fichier |
 | fetch (page web) | 1 : fetch | marche |
 | thinking (réflexion pas-à-pas) | 1 : sequentialthinking | marche |
-| everything (démo/bac à sable) | 13 | marche |
+| everything (serveur d'exemple officiel MCP) | 13 | marche |
 | browser (Playwright officiel) | 25 : clic, frappe, captures, console | marche, page example.com lue pour de vrai |
 | git (dépôt local) | 12 : log, diff, branches, commit | marche, log relu |
 | deepwiki (doc de dépôts, distant) | 3 : question, structure, contenu | marche, vraie réponse reçue |

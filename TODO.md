@@ -68,6 +68,14 @@
       normal turn path (so routines respect the mode, the file time machine and the journal); overdue
       routines are caught up on the next tick. `/routine add <cadence> | <text>`, `list`, `run`, `on`,
       `off`, `remove`; TUI + web (menu « Routines planifiées »).
+- [x] **Background routines service (`smol service`)** — a detached supervisor (`src/service.ts`)
+      runs due routines from every registered workspace even with no session and no window open:
+      `start`/`stop`/`status`/`list`/`install`/`uninstall` (a real `schtasks` ONLOGON task, without it
+      the service still runs until reboot or `smol service stop`), one routine at a time through the
+      honest headless path (`node dist/index.js <ws> -p <prompt>`, 45 min cap per run), idempotent
+      start, stale-pid cleanup, `~/.smolcoder/service.log` with rotation, and a silent auto-start
+      from the TUI or the web hub whenever a registered workspace has routines. `test/service.test.js`: real start/stop lifecycle, due-routine
+      claim with an injected executor (ok / erreur (code N)), honest uninstall.
 - [x] **Cold language-server handshakes (`symbols` panels)** — the first `initialize` gets its own
       90 s budget (`INIT_TIMEOUT_MS` in `src/lsp-pro.ts`; a cold `pylsp` needs ~40 s on a cold
       machine), missing candidates are skipped with `findCommand` and never mask the installed

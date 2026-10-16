@@ -25,6 +25,7 @@ import { loadPlugins } from "./plugins";
 import { buildSystemPrompt, loadAgentsMd, loadMemoryMd } from "./prompt";
 import type { Effort } from "./providers/types";
 import { routeProvider } from "./router";
+import { ensureServiceRunningForRoutines, runServiceCli } from "./service";
 import {
   effortAdvice,
   makeProvider,
@@ -189,6 +190,11 @@ ${c.bold("Options:")}
   -h, --help                   this help
   -v, --version                version
 
+${c.bold("Routines background service:")}
+  smol service status                    routines, next run, log file
+  smol service start|stop                keep them running with every app closed
+  smol service install|uninstall         start at logon (Windows scheduled task)
+
 ${c.bold("Keys:")}
   shift+tab   cycle mode (read-only → edit → auto-pilot → YOLO bypass)
   /           slash commands (autocomplete menu)
@@ -267,12 +273,27 @@ async function main(): Promise<void> {
     console.error("Impossible de démarrer sans dist/. Lancez `npm run build` dans le projet, puis réessayez.");
     process.exit(1);
   }
+  // `smol service …` drives the routines background service (record file in
+  // the data directory; each routine runs as a real headless turn). Handled
+  // before the argument checks below: "service" is a command here, not a workspace.
+  const rawArgv = process.argv.slice(2);
+  if (rawArgv[0] === "service") {
+    await runServiceCli(rawArgv.slice(1));
+    return;
+  }
   if (args.verify && (!args.print || args.web)) throw new Error("--verify exige une exécution sans affichage avec -p");
   if (args.verifyAttempts !== undefined && !args.verify) throw new Error("--verify-attempts exige --verify");
   if (args.app && !args.web) throw new Error("--app a besoin de --web (smol --web --app)");
   if (!fs.existsSync(args.workspace) || !fs.statSync(args.workspace).isDirectory()) {
     console.error(`Le dossier de travail n’existe pas : ${args.workspace}`);
     process.exit(1);
+  }
+
+  if (args.print === undefined) {
+    // Routines exist? Make sure the background service is up so they keep
+    // running with every window closed. Silent unless something started.
+    const notice = ensureServiceRunningForRoutines();
+    if (notice) console.log(`  ${c.dim(notice)}`);
   }
 
   if (args.print !== undefined) await runHeadless(args);

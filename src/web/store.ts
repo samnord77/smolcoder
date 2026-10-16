@@ -26,7 +26,7 @@ export interface SessionBody {
   events: Event[];
 }
 
-function writeAtomic(file: string, data: string): void {
+export function writeAtomic(file: string, data: string): void {
   const tmp = `${file}.${process.pid}.tmp`;
   fs.writeFileSync(tmp, data);
   fs.renameSync(tmp, file);

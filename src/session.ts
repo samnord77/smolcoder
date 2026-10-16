@@ -32,6 +32,7 @@ import type { Effort, Msg, Provider } from "./providers/types";
 import { RoutingProvider, routeProvider } from "./router";
 import { describeCadence, RoutineBook } from "./routines";
 import { resolveInWorkspace } from "./sandbox";
+import { serviceStatus } from "./service";
 import { listSkills, readSkill, saveSkill } from "./skills";
 import { buildStatusReport, renderStatusText } from "./status";
 import { CoworkBoard } from "./tools/cowork";
@@ -1107,7 +1108,12 @@ export class Session {
         ui.status("· aucune routine — /routine add every 30m | relis les issues ouvertes");
         return;
       }
-      ui.println("· routines planifiées (elles tournent dès qu'une session est ouverte sur ce dossier) :");
+      const svc = serviceStatus();
+      ui.println(
+        svc.running
+          ? `· routines planifiées — service d'arrière-plan actif (pid ${svc.pid}) : elles tournent même sans session ouverte.`
+          : "· routines planifiées — service arrêté : elles tournent tant que cette session est ouverte (smol service start pour qu'elles tournent app fermée)."
+      );
       items.forEach((r, i) => {
         ui.println(`   ${i + 1}. ${r.enabled ? "" : "[en pause] "}${describeCadence(r.cadence)} → « ${truncateEnd(r.prompt, 60)} »`);
         ui.println(`      prochaine : ${whenOf(r.next)}${r.lastStatus ? ` · dernier essai : ${r.lastStatus}` : ""}`);

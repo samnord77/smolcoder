@@ -180,7 +180,7 @@ export function killBackgroundChildren(token: string | undefined): void {
 }
 
 const OUTPUT_CAP = 8000;
-/** Override with SMOL_SHELL_TIMEOUT_MS (used by the demo and by tests). */
+/** Override with SMOL_SHELL_TIMEOUT_MS (tests and custom runs). */
 function shellTimeoutMs(): number {
   const raw = Number(process.env.SMOL_SHELL_TIMEOUT_MS);
   return Number.isFinite(raw) && raw >= 1000 ? Math.floor(raw) : 120_000;

@@ -66,7 +66,7 @@ The line under the input shows the mode, the model, the reasoning effort, how fu
 | `/skills`                            | Saved skills, incl. built-ins                                                                                 |
 | `/undo`, `/redo`                     | Undo / redo the last file write                                                                               |
 | `/rewind`                            | Time machine: lists the last turns, `/rewind <n>` puts every file and the conversation back to the start of turn n (add `files` or `chat` for one side only) |
-| `/routine`                           | Scheduled prompts: `/routine add every 30m \| check the build` — runs while a session is open on this project |
+| `/routine`                           | Scheduled prompts: `/routine add every 30m \| check the build` — runs in open sessions; app-closed via the background service (`smol service start`, or `smol service install` at logon) |
 | `/autopilot`                         | Autonomous mission: `/autopilot <goal>` plans first, then loops on its own until the plan is done (max 6 turns / 45 min), `/autopilot stop` interrupts |
 | `/review`                            | Code review: `/review` has the agent review the uncommitted diff (or a base branch) and report issues file by file; `/review diff` or `/review staged` prints the raw hunks |
 | `/clear`                             | Start a fresh conversation                                                                                    |
@@ -97,6 +97,7 @@ smol --ctx 16384                # cap the context window
 smol --web                      # browser UI (see below)
 smol -p "fix the failing test"  # headless: run one prompt, print the transcript, exit
 smol -p "build the app" --verify "npm test"   # headless with an acceptance command
+smol service install                          # keep routines running in the background, at logon
 ```
 
 With `--verify`, the command has to pass before the run counts as done. Failures go back to the agent to repair, six attempts by default. `--verify-attempts 12` allows more.
