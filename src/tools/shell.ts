@@ -105,21 +105,23 @@ export function killTree(pid: number): void {
     }
     return;
   }
-  // Native termination first: it also works where taskkill is denied (some
-  // sandboxed or non-interactive logons answer it with Access denied) and it
-  // never depends on the process still being part of the original tree.
-  try {
-    process.kill(pid, "SIGKILL");
-  } catch {
-    /* already gone */
-  }
-  // Then the real tree killer, which reaches grandchildren on a normal host.
+  // Tree killer FIRST: descendants are re-parented the moment the root dies,
+  // and taskkill /T can no longer reach them then. The old order (kill the
+  // root, then taskkill) leaked bash wrappers waiting forever on a live node
+  // child — the phantom processes seen in the task manager.
   try {
     spawnSync("taskkill", ["/pid", String(pid), "/t", "/f"], {
       stdio: "ignore",
     });
   } catch {
     /* taskkill missing or denied */
+  }
+  // Native termination as the fallback that also works where taskkill is
+  // denied (some sandboxed or non-interactive logons answer Access denied).
+  try {
+    process.kill(pid, "SIGKILL");
+  } catch {
+    /* already gone */
   }
 }
 
@@ -177,6 +179,69 @@ export function killBackgroundChildren(token: string | undefined): void {
   } catch {
     /* best effort */
   }
+}
+
+// --- Windows orphan sweep ---------------------------------------------------
+// A wrapper can still outlive its owner when the owner itself is force-killed
+// (test runner killed, app crash, machine-level taskkill): the wrapper keeps
+// waiting on its child forever. This sweep removes exactly that class — a
+// marked wrapper with no live node/electron ancestor — and old pid files.
+const ORPHAN_SWEEP_INTERVAL_MS = 5 * 60_000;
+let lastOrphanSweepAt = 0;
+
+/** Reap leftover shell wrappers whose owning Smolcoder process is gone.
+ * Best effort and detached: never blocks or fails a command. */
+export function sweepOrphanedShells(): boolean {
+  if (process.platform !== "win32") return false;
+  let spawned = false;
+  try {
+    const script =
+      "$ErrorActionPreference='SilentlyContinue';" +
+      "$all=Get-CimInstance Win32_Process;" +
+      "$byId=@{};foreach($x in $all){$byId[[int]$x.ProcessId]=$x};" +
+      "foreach($x in $all){if($x.Name -notmatch '(?i)bash'){continue};" +
+      "if(-not ($x.CommandLine -like '*__smol_winpids=*')){continue};" +
+      "$alive=$false;$cur=$x;" +
+      "for($i=0;$i -lt 8;$i++){$pp=[int]$cur.ParentProcessId;if($pp -le 0){break};" +
+      "$par=$byId[$pp];if(-not $par){break};" +
+      "if($par.Name -match '(?i)node|electron|smolcoder|python|opencode|c3'){$alive=$true;break};$cur=$par};" +
+      "if(-not $alive){& taskkill /pid $x.ProcessId /t /f | Out-Null}}";
+    // No `detached`: Windows PowerShell silently fails to run with the
+    // DETACHED_PROCESS flag, and stdio "ignore" made it die after its first
+    // statement (both probed). Pipes + unref is the combination that runs the
+    // sweep without holding the caller alive.
+    const child = spawn("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", script], {
+      stdio: ["ignore", "pipe", "pipe"],
+      windowsHide: true,
+    });
+    for (const stream of [child.stdout, child.stderr]) {
+      if (!stream) continue;
+      stream.on("data", () => {});
+      (stream as unknown as { unref?: () => void }).unref?.();
+    }
+    child.unref();
+    spawned = true;
+  } catch {
+    /* no powershell: skip the sweep */
+  }
+  try {
+    for (const name of fs.readdirSync(os.tmpdir())) {
+      if (!/^smolcoder-bg-[0-9a-z-]+\.txt$/.test(name)) continue;
+      const file = path.join(os.tmpdir(), name);
+      if (Date.now() - fs.statSync(file).mtimeMs > 24 * 60 * 60 * 1000) fs.rmSync(file, { force: true });
+    }
+  } catch {
+    /* best effort */
+  }
+  return spawned;
+}
+
+function maybeSweepOrphanedShells(): void {
+  if (process.platform !== "win32") return;
+  const now = Date.now();
+  if (now - lastOrphanSweepAt < ORPHAN_SWEEP_INTERVAL_MS) return;
+  lastOrphanSweepAt = now;
+  sweepOrphanedShells();
 }
 
 const OUTPUT_CAP = 8000;
@@ -290,6 +355,7 @@ export function shellEnv(): NodeJS.ProcessEnv {
 
 export function runCommand(command: string, cwd: string, signal?: AbortSignal, onCtl?: (ctl: ShellControl) => void): Promise<string> {
   if (signal?.aborted) return Promise.resolve("Error: commande annulée avant le démarrage");
+  maybeSweepOrphanedShells();
   return new Promise((resolve) => {
     const shell = pickShell();
     let output = "";

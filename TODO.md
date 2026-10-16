@@ -23,6 +23,10 @@
       print a `[stats]` JSON line for scripted backend comparisons.
 - [x] **Post-write syntax check hook** — JS/JSON/HTML-inline-script/Python parse errors come back on
       the write_file/edit_file result with a line number.
+- [x] **No orphaned processes after a killed run** — the tree killer now runs `taskkill /T /F` before
+      the native kill (killing the root first re-parented its children, leaking bash wrappers waiting on
+      a live node child — one per cancelled verification command, visible as phantom processes), and a
+      throttled Windows sweep reaps leftover wrappers whose owning process is gone.
 - [x] **Compaction v2** — structured hand-over notes written with thinking off, old reasoning traces
       not replayed, stale reads of overwritten files evicted immediately.
 - [x] **Ollama keep_alive** — the model stays resident 30 min between calls (`SMOLCODER_KEEP_ALIVE`).
