@@ -1,4 +1,3 @@
-
 /** The `github` tool: spec gating, validation, missing-gh honesty, live read. */
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
