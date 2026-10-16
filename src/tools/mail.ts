@@ -13,8 +13,8 @@ export function mailTool(canWrite: boolean): ToolSpec {
   return {
     name: "mail",
     description: canWrite
-      ? 'Real mailbox (set up via `smol mail setup`): list (inbox newest first), read (message uid), send (asks approval). Unconfigured → relay the setup hint; never invent messages.'
-      : 'Read the real mailbox (set up via `smol mail setup`): list, read. Unconfigured → relay the setup hint; never invent messages.',
+      ? "Real mailbox (set up via `smol mail setup`): list (inbox newest first), read (message uid), send (asks approval). Unconfigured → relay the setup hint; never invent messages."
+      : "Read the real mailbox (set up via `smol mail setup`): list, read. Unconfigured → relay the setup hint; never invent messages.",
     parameters: {
       type: "object",
       properties: {

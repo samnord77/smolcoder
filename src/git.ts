@@ -722,7 +722,7 @@ export function gitStatusMapAsync(root: string, dirAbs: string): Promise<Map<str
           return;
         }
         resolve(parseStatusLines(String(stdout ?? "")));
-      },
+      }
     );
   });
 }

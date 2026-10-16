@@ -554,11 +554,15 @@ export class RpcClient {
       proc.stdout?.on("data", (d: Buffer) => this.ingest(d));
       proc.on("error", (err) => this.failAll(new Error(`language server failed to start: ${err.message}`)));
       proc.on("close", (code) => this.failAll(new Error(`language server exited (code ${code})`)));
-      this.request("initialize", {
-        processId: process.pid,
-        rootUri: lspRootUri(this.workspace),
-        capabilities: { textDocument: { publishDiagnostics: { relatedInformation: true, versionSupport: true } } },
-      }, INIT_TIMEOUT_MS)
+      this.request(
+        "initialize",
+        {
+          processId: process.pid,
+          rootUri: lspRootUri(this.workspace),
+          capabilities: { textDocument: { publishDiagnostics: { relatedInformation: true, versionSupport: true } } },
+        },
+        INIT_TIMEOUT_MS
+      )
         .then(() => {
           this.notify("initialized", {});
           resolve();

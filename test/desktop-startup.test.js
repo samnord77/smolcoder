@@ -9,7 +9,7 @@ const fs = require("node:fs");
 test("Electron main can load before the shared dist bundle exists", () => {
   const noop = () => {};
   const electron = {
-    app: { whenReady: () => new Promise(noop), on: noop, quit: noop },
+    app: { whenReady: () => new Promise(noop), on: noop, quit: noop, setName: noop, setAppUserModelId: noop },
     BrowserWindow: class {},
     Menu: { buildFromTemplate: () => ({}), setApplicationMenu: noop },
     clipboard: {},

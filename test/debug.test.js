@@ -229,30 +229,27 @@ test(
   }
 );
 
-test(
-  "debug: real python debugpy end-to-end through the auto mode",
-  async (t) => {
-    if (!pipesAllowed || !hasRealDebugpy() || !(await childSocketsReachable())) {
-      t.skip("debugpy indisponible ou réseau des enfants isolé (bac à sable)");
-      return;
-    }
-    const ws = scratchWs();
-    fs.writeFileSync(
-      path.join(ws, "app.py"),
-      "def total(values):\n    running = 0\n    for v in values:\n        running += v\n    return running\n\nx = 42\nprint('total:', total([1, 2, 3]))\nprint('x =', x)\n"
-    );
-    fs.mkdirSync(path.join(ws, ".smol"), { recursive: true });
-    fs.writeFileSync(
-      path.join(ws, ".smol", "debug.json"),
-      JSON.stringify({ program: "app.py", breakpoints: [{ path: "app.py", lines: [8] }], budgetSec: 60 })
-    );
-    const transcript = await queryDebug(ws, { action: "run" });
-    assert.match(transcript, /breakpoints: 1\/1 verified/);
-    assert.match(transcript, /▶ stopped/);
-    assert.match(transcript, /x = 42/);
-    assert.match(transcript, /exited|terminated/);
+test("debug: real python debugpy end-to-end through the auto mode", async (t) => {
+  if (!pipesAllowed || !hasRealDebugpy() || !(await childSocketsReachable())) {
+    t.skip("debugpy indisponible ou réseau des enfants isolé (bac à sable)");
+    return;
   }
-);
+  const ws = scratchWs();
+  fs.writeFileSync(
+    path.join(ws, "app.py"),
+    "def total(values):\n    running = 0\n    for v in values:\n        running += v\n    return running\n\nx = 42\nprint('total:', total([1, 2, 3]))\nprint('x =', x)\n"
+  );
+  fs.mkdirSync(path.join(ws, ".smol"), { recursive: true });
+  fs.writeFileSync(
+    path.join(ws, ".smol", "debug.json"),
+    JSON.stringify({ program: "app.py", breakpoints: [{ path: "app.py", lines: [8] }], budgetSec: 60 })
+  );
+  const transcript = await queryDebug(ws, { action: "run" });
+  assert.match(transcript, /breakpoints: 1\/1 verified/);
+  assert.match(transcript, /▶ stopped/);
+  assert.match(transcript, /x = 42/);
+  assert.match(transcript, /exited|terminated/);
+});
 
 function hasRealDebugpy() {
   try {

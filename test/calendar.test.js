@@ -1,4 +1,3 @@
-
 // Tests du VRAI client agenda (dist/calendar.js) contre un serveur CalDAV
 // scripté en HTTP local : découverte, listing REPORT, création PUT — et les
 // codecs ICS internes (aller-retour, saisies utilisateur).
@@ -55,7 +54,7 @@ function caldavServer(state) {
         return send(
           207,
           '<?xml version="1.0"?><d:multistatus xmlns:d="DAV:"><d:response><d:href>/principals/me/</d:href><d:propstat><d:prop>' +
-            "<c:calendar-home-set xmlns:c=\"urn:ietf:params:xml:ns:caldav\"><d:href>/calendars/me/</d:href></c:calendar-home-set>" +
+            '<c:calendar-home-set xmlns:c="urn:ietf:params:xml:ns:caldav"><d:href>/calendars/me/</d:href></c:calendar-home-set>' +
             "</d:prop></d:propstat></d:response></d:multistatus>"
         );
       }
@@ -66,7 +65,7 @@ function caldavServer(state) {
             "<d:response><d:href>/calendars/me/agenda/</d:href><d:propstat><d:prop>" +
             "<d:resourcetype><d:collection/><c:calendar/></d:resourcetype>" +
             "<d:displayname>Agenda perso</d:displayname>" +
-            "<c:supported-calendar-component-set><c:comp name=\"VEVENT\"/></c:supported-calendar-component-set>" +
+            '<c:supported-calendar-component-set><c:comp name="VEVENT"/></c:supported-calendar-component-set>' +
             "</d:prop></d:propstat></d:response></d:multistatus>"
         );
       }
@@ -149,7 +148,10 @@ test("createEvent : PUT réel dans l'agenda, ICS complet envoyé", async (t) => 
   configureCalendar(await listen(server));
 
   const startMs = new Date(2026, 9, 20, 12, 0).getTime();
-  const expectedStamp = new Date(startMs).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+  const expectedStamp = new Date(startMs)
+    .toISOString()
+    .replace(/[-:]/g, "")
+    .replace(/\.\d{3}Z$/, "Z");
   const result = await calendar.createEvent({ summary: "Déjeuner", start: "2026-10-20 12:00", end: "2026-10-20 13:00" });
   assert.ok(result.includes("Déjeuner"), result);
   assert.ok(result.includes("Agenda perso"), result);

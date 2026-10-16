@@ -6,7 +6,15 @@
 
 import type { Attachment, UserInput } from "../attachments";
 import type { Plan } from "../plan";
-import { type AgentPhase, type AgentPhaseDetails, type BrowserView, type SelectOption, type SessionUI, type SlashCommand, summarizeArgs } from "../ui";
+import {
+  type AgentPhase,
+  type AgentPhaseDetails,
+  type BrowserView,
+  type SelectOption,
+  type SessionUI,
+  type SlashCommand,
+  summarizeArgs,
+} from "../ui";
 import { renderEditDiff } from "./diff";
 
 export type Event = Record<string, any>;

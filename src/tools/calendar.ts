@@ -14,8 +14,8 @@ export function calendarTool(canWrite: boolean): ToolSpec {
   return {
     name: "calendar",
     description: canWrite
-      ? 'Real CalDAV agenda (set up via `smol calendar setup`): list (upcoming), create (asks approval). Unconfigured → relay the setup hint; never invent events.'
-      : 'Read the real agenda (set up via `smol calendar setup`): list upcoming. Unconfigured → relay the setup hint; never invent events.',
+      ? "Real CalDAV agenda (set up via `smol calendar setup`): list (upcoming), create (asks approval). Unconfigured → relay the setup hint; never invent events."
+      : "Read the real agenda (set up via `smol calendar setup`): list upcoming. Unconfigured → relay the setup hint; never invent events.",
     parameters: {
       type: "object",
       properties: {

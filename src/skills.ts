@@ -59,7 +59,12 @@ function machineSkills(): MachineSkill[] {
   const roots = machineSkillRoots();
   if (!roots.length) return [];
   const key = roots.join("|");
-  if (!process.env[MACHINE_SKILL_DIRS_ENV] && machineCache && machineCache.key === key && Date.now() - machineCache.at < MACHINE_CACHE_TTL_MS) {
+  if (
+    !process.env[MACHINE_SKILL_DIRS_ENV] &&
+    machineCache &&
+    machineCache.key === key &&
+    Date.now() - machineCache.at < MACHINE_CACHE_TTL_MS
+  ) {
     return machineCache.items;
   }
   const items: MachineSkill[] = [];
@@ -93,12 +98,14 @@ function machineSkillByName(name: string): MachineSkill | undefined {
 function machineDescription(skill: MachineSkill): string {
   const meta = skillMeta(skill.text);
   if (meta.description) return meta.description;
-  return skill.text
-    .replace(/^---[ \t]*\r?\n[\s\S]*?\r?\n---[ \t]*(?:\r?\n|$)/, "")
-    .replace(/^#.*$/m, "")
-    .trim()
-    .split(/\r?\n/)[0]
-    ?.slice(0, 160) ?? "";
+  return (
+    skill.text
+      .replace(/^---[ \t]*\r?\n[\s\S]*?\r?\n---[ \t]*(?:\r?\n|$)/, "")
+      .replace(/^#.*$/m, "")
+      .trim()
+      .split(/\r?\n/)[0]
+      ?.slice(0, 160) ?? ""
+  );
 }
 
 function assertName(name: unknown): string {
@@ -190,8 +197,7 @@ export function readSkill(root: string, name: unknown): string {
   }
   const machine = machineSkillByName(clean);
   if (machine) {
-    const base =
-      machine.text.length >= READ_CAP ? `${machine.text.slice(0, READ_CAP)}\n[compétence machine tronquée]` : machine.text;
+    const base = machine.text.length >= READ_CAP ? `${machine.text.slice(0, READ_CAP)}\n[compétence machine tronquée]` : machine.text;
     return `${base}\n[compétence machine (${machine.file}) — lecture seule]`;
   }
   const builtin = BUILTIN_SKILLS[clean];

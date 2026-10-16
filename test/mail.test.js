@@ -1,4 +1,3 @@
-
 // Tests du VRAI client mail (dist/mail.js) contre de vrais serveurs IMAP et
 // SMTP scriptés en sockets TCP : aucune boîte externe, aucune simulation côté
 // produit — seuls les serveurs de test sont des doubles, comme partout ici.
@@ -81,8 +80,7 @@ test("listInbox : dialogue IMAP réel, sujets RFC 2047 décodés, plus récents 
     const tag = line.split(" ")[0];
     const cmd = line.slice(tag.length + 1).toUpperCase();
     if (cmd.startsWith("LOGIN")) return void sock.write(`${tag} OK LOGIN done\r\n`);
-    if (cmd.startsWith("SELECT"))
-      return void sock.write(`* 2 EXISTS\r\n* OK [UIDVALIDITY 1]\r\n${tag} OK [READ-WRITE] done\r\n`);
+    if (cmd.startsWith("SELECT")) return void sock.write(`* 2 EXISTS\r\n* OK [UIDVALIDITY 1]\r\n${tag} OK [READ-WRITE] done\r\n`);
     if (cmd.startsWith("UID SEARCH")) return void sock.write(`* SEARCH 1 2\r\n${tag} OK done\r\n`);
     if (cmd.startsWith("UID FETCH")) {
       sock.write(`* 1 FETCH (UID 1 FLAGS (\\Seen) BODY[HEADER] {${h1.length}}\r\n`);

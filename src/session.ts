@@ -1204,9 +1204,13 @@ export class Session {
       if (this.autoMission) {
         const m = this.autoMission;
         const min = Math.max(1, Math.round((Date.now() - m.startedAt) / 60_000));
-        ui.println(`· mission autonome en cours depuis ~${min} min — tour ${m.turns}/${AUTOPILOT_MAX_TURNS} : « ${truncateEnd(m.goal, 100)} »`);
+        ui.println(
+          `· mission autonome en cours depuis ~${min} min — tour ${m.turns}/${AUTOPILOT_MAX_TURNS} : « ${truncateEnd(m.goal, 100)} »`
+        );
       } else {
-        ui.println("· /autopilot <objectif> lance une mission autonome : l'agent crée un plan puis travaille seul, étape par étape, jusqu'au bout (max 6 tours, 45 min).");
+        ui.println(
+          "· /autopilot <objectif> lance une mission autonome : l'agent crée un plan puis travaille seul, étape par étape, jusqu'au bout (max 6 tours, 45 min)."
+        );
         ui.println("  Exemple : /autopilot crée un site vitrine pour ma boulangerie dans ./site (html + css + page contact)");
         ui.println("  /autopilot stop arrête une mission en cours.");
       }

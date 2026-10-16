@@ -30,6 +30,7 @@
   "main": "dist/index.js",
   "files": [
     "dist",
+    "desktop/hub-client.js",
     "README.md",
     "LICENSE"
   ],

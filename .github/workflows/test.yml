@@ -35,7 +35,7 @@ jobs:
       - name: Contrôle qualité (typecheck + lint + format)
         run: npm run qa
         timeout-minutes: 10
-      # Build strict + suite complète (442 tests, concurrency=1) : le socle
+      # Build strict + suite complète (603 tests, concurrency=1) : le socle
       # « zéro régression » sur les 3 OS.
       - name: Suite complète de tests
         run: npm test

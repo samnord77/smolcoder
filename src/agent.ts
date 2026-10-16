@@ -1521,12 +1521,22 @@ export class Agent {
       const action = String(args.action ?? "").trim();
       const risky = name === "mail" ? action === "send" : action === "create";
       if (risky) {
-        const to = String(args.to ?? "?").trim().slice(0, 80);
-        const title = String(args.summary ?? "").trim().slice(0, 80) || String(args.subject ?? "").trim().slice(0, 80);
+        const to = String(args.to ?? "?")
+          .trim()
+          .slice(0, 80);
+        const title =
+          String(args.summary ?? "")
+            .trim()
+            .slice(0, 80) ||
+          String(args.subject ?? "")
+            .trim()
+            .slice(0, 80);
         const label = name === "mail" ? `mail send to ${to}` : `calendar create « ${title} »`;
         const reason =
           name === "mail"
-            ? `envoie un vrai e-mail à ${to} — objet « ${String(args.subject ?? "").trim().slice(0, 80)} »`
+            ? `envoie un vrai e-mail à ${to} — objet « ${String(args.subject ?? "")
+                .trim()
+                .slice(0, 80)} »`
             : `crée un vrai événement « ${title} » dans votre agenda`;
         if (!this.interactive) {
           return `Error: the ${name} tool needs user approval, and this session is non-interactive. The user can approve in the interactive terminal, rerun smol with --mode bypass, or run it themselves.`;

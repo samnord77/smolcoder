@@ -32,13 +32,13 @@ function browserCandidates(): string[] {
       path.join(pf86, "Google", "Chrome", "Application", "chrome.exe"),
       local ? path.join(local, "Google", "Chrome", "Application", "chrome.exe") : "",
       path.join(pf86, "Microsoft", "Edge", "Application", "msedge.exe"),
-      path.join(pf, "Microsoft", "Edge", "Application", "msedge.exe"),
+      path.join(pf, "Microsoft", "Edge", "Application", "msedge.exe")
     );
   } else if (process.platform === "darwin") {
     out.push(
       "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
       "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
-      "/Applications/Chromium.app/Contents/MacOS/Chromium",
+      "/Applications/Chromium.app/Contents/MacOS/Chromium"
     );
   } else {
     out.push(
@@ -46,7 +46,7 @@ function browserCandidates(): string[] {
       "/usr/bin/google-chrome-stable",
       "/usr/bin/chromium",
       "/usr/bin/chromium-browser",
-      "/usr/bin/microsoft-edge",
+      "/usr/bin/microsoft-edge"
     );
   }
   return out.filter(Boolean);
@@ -134,7 +134,10 @@ class Cdp {
   private ws: WebSocket;
   private nextId = 1;
   private pending = new Map<number, { resolve: (v: any) => void; reject: (e: Error) => void; timer: ReturnType<typeof setTimeout> }>();
-  private listeners = new Map<string, Array<{ resolve: (p: any) => void; reject: (e: Error) => void; timer: ReturnType<typeof setTimeout> }>>();
+  private listeners = new Map<
+    string,
+    Array<{ resolve: (p: any) => void; reject: (e: Error) => void; timer: ReturnType<typeof setTimeout> }>
+  >();
   private closed = false;
 
   private constructor(ws: WebSocket) {
@@ -167,7 +170,7 @@ class Cdp {
           clearTimeout(timer);
           resolve(new Cdp(ws));
         },
-        { once: true },
+        { once: true }
       );
       ws.addEventListener(
         "error",
@@ -175,7 +178,7 @@ class Cdp {
           clearTimeout(timer);
           reject(new Error("connexion au protocole du navigateur impossible"));
         },
-        { once: true },
+        { once: true }
       );
     });
   }
@@ -296,9 +299,7 @@ export class BrowserSession {
   private async launch(): Promise<void> {
     const exe = findBrowser();
     if (!exe) {
-      throw new Error(
-        "aucun navigateur compatible trouvé — installez Chrome ou Edge, ou définissez SMOLCODER_BROWSER vers l'exécutable",
-      );
+      throw new Error("aucun navigateur compatible trouvé — installez Chrome ou Edge, ou définissez SMOLCODER_BROWSER vers l'exécutable");
     }
     this.userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), "smol-browser-"));
     const child = spawn(
@@ -313,12 +314,16 @@ export class BrowserSession {
         "--disable-gpu",
         "about:blank",
       ],
-      { stdio: "ignore", windowsHide: true },
+      { stdio: "ignore", windowsHide: true }
     );
     this.child = child;
     child.once("exit", () => this.reset());
     try {
-      const port = await waitForPort(path.join(this.userDataDir, "DevToolsActivePort"), BROWSER_LAUNCH_TIMEOUT_MS, () => child.exitCode !== null);
+      const port = await waitForPort(
+        path.join(this.userDataDir, "DevToolsActivePort"),
+        BROWSER_LAUNCH_TIMEOUT_MS,
+        () => child.exitCode !== null
+      );
       const targets = (await fetchJson(`http://127.0.0.1:${port}/json/list`)) as Array<{ type?: string; webSocketDebuggerUrl?: string }>;
       const page = targets.find((t) => t.type === "page" && t.webSocketDebuggerUrl) ?? targets.find((t) => t.webSocketDebuggerUrl);
       if (!page?.webSocketDebuggerUrl) throw new Error("aucune page de débogage exposée par le navigateur");
@@ -447,7 +452,7 @@ export class BrowserSession {
         const body = document.body;
         const text = (body ? (body.innerText || "") : "").replace(/\\n{3,}/g, "\\n\\n").trim();
         return JSON.stringify({ title: document.title || "", url: location.href, text: text.slice(0, ${BROWSER_READ_CAP + 1}) });
-      })()`,
+      })()`
     );
     let info: { title: string; url: string; text: string };
     try {
@@ -470,7 +475,7 @@ export class BrowserSession {
         const text = String(el.innerText || el.value || el.getAttribute("aria-label") || "").trim().slice(0, 80);
         el.click();
         return JSON.stringify({ ok: true, tag, text });
-      })()`,
+      })()`
     );
     const res = JSON.parse(String(value)) as BrowserTargetResult;
     if (res.ok) {
@@ -497,7 +502,7 @@ export class BrowserSession {
         el.dispatchEvent(new Event("input", { bubbles: true }));
         el.dispatchEvent(new Event("change", { bubbles: true }));
         return JSON.stringify({ ok: true, tag: el.tagName.toLowerCase() });
-      })()`,
+      })()`
     );
     const res = JSON.parse(String(value)) as BrowserTargetResult;
     if (!res.ok) return { ok: false, submitted: false };
@@ -520,8 +525,8 @@ export class BrowserSession {
             return true;
           }
           return false;
-        })()`,
-        ),
+        })()`
+        )
       );
     } catch {
       // La réponse a pu se perdre pendant la navigation déclenchée par la

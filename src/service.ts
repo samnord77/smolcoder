@@ -311,7 +311,7 @@ export interface ServiceLoopOptions {
 export async function runServiceLoop(options: ServiceLoopOptions = {}): Promise<void> {
   const log = options.log ?? appendServiceLog;
   const envTick = Number(process.env.SMOLCODER_SERVICE_TICK_MS);
-  const tickMs = Math.max(1000, Number.isFinite(envTick) && envTick > 0 ? envTick : options.tickMs ?? TICK_DEFAULT_MS);
+  const tickMs = Math.max(1000, Number.isFinite(envTick) && envTick > 0 ? envTick : (options.tickMs ?? TICK_DEFAULT_MS));
   const cur = readServiceRecord();
   if (cur && cur.pid !== process.pid && isProcessAlive(cur.pid)) {
     log(`un service tourne déjà (pid ${cur.pid}) — le doublon s'arrête.`);
@@ -347,7 +347,10 @@ function serviceTaskName(): string {
 
 export function installServiceAtLogon(): { ok: boolean; message: string } {
   if (process.platform !== "win32") {
-    return { ok: false, message: "le démarrage automatique est disponible sous Windows uniquement (schtasks) — utilisez `smol service start` ici." };
+    return {
+      ok: false,
+      message: "le démarrage automatique est disponible sous Windows uniquement (schtasks) — utilisez `smol service start` ici.",
+    };
   }
   const entry = path.resolve(__dirname, "index.js");
   const cmd = `"${process.execPath}" "${entry}" service run`;
@@ -356,7 +359,10 @@ export function installServiceAtLogon(): { ok: boolean; message: string } {
       windowsHide: true,
       stdio: "pipe",
     });
-    return { ok: true, message: `tâche planifiée « ${serviceTaskName()} » installée : le service démarrera à chaque ouverture de session.` };
+    return {
+      ok: true,
+      message: `tâche planifiée « ${serviceTaskName()} » installée : le service démarrera à chaque ouverture de session.`,
+    };
   } catch (error: any) {
     const stderr = String(error?.stderr ?? "").trim();
     return { ok: false, message: `création de la tâche refusée : ${stderr || String(error?.message ?? error)}` };
@@ -418,7 +424,9 @@ export function formatServiceReport(detailed = false): string {
       for (const routine of target.routines) {
         const state = routine.enabled ? "" : " [désactivée]";
         const last = routine.lastStatus ? ` · dernier : ${routine.lastStatus}` : "";
-        lines.push(`        - ${routine.prompt.slice(0, 80)} (${describeCadence(routine.cadence)}, prochaine ${formatStamp(routine.next)})${state}${last}`);
+        lines.push(
+          `        - ${routine.prompt.slice(0, 80)} (${describeCadence(routine.cadence)}, prochaine ${formatStamp(routine.next)})${state}${last}`
+        );
       }
     }
   }
@@ -427,7 +435,9 @@ export function formatServiceReport(detailed = false): string {
   }
   lines.push(`  journal  : ${serviceLogPath()}`);
   if (!status.running && targets.length > 0) {
-    lines.push("  → `smol service start` pour les faire tourner même app fermée, `smol service install` pour démarrer à l'ouverture de session.");
+    lines.push(
+      "  → `smol service start` pour les faire tourner même app fermée, `smol service install` pour démarrer à l'ouverture de session."
+    );
   }
   try {
     const raw = fs.readFileSync(serviceLogPath(), "utf8").trim().split(/\r?\n/);

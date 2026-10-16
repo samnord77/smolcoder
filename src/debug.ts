@@ -471,7 +471,7 @@ export interface AutoDebug {
  * configuration décrit déjà explicitement sa cible. */
 export async function autoAdapter(cfg: DebugConfig, breakpointPath: string | undefined): Promise<AutoDebug | null> {
   if (Array.isArray(cfg.spawn) || Array.isArray(cfg.adapter) || cfg.transport) return null;
-  const target = (typeof cfg.program === "string" && cfg.program ? cfg.program : breakpointPath ?? "").trim();
+  const target = (typeof cfg.program === "string" && cfg.program ? cfg.program : (breakpointPath ?? "")).trim();
   if (!target) return null;
   const ext = path.extname(target).toLowerCase();
   if (NODE_EXTS.has(ext)) {
@@ -522,9 +522,7 @@ export async function queryDebug(root: string, args: DebugQuery, opts?: { canWri
   const auto = await autoAdapter(cfg, breakpoints[0]?.path);
   const explicitTarget = Array.isArray(cfg.spawn) || Array.isArray(cfg.adapter) || cfg.transport;
   if (!auto && !explicitTarget) {
-    const ext = path
-      .extname((typeof cfg.program === "string" ? cfg.program : breakpoints[0]?.path ?? "").trim())
-      .toLowerCase();
+    const ext = path.extname((typeof cfg.program === "string" ? cfg.program : (breakpoints[0]?.path ?? "")).trim()).toLowerCase();
     if (ext) {
       return `Error: extension « ${ext} » non gérée en automatique (${AUTO_EXTS_MSG}). Ajoutez transport, adapter ou spawn dans .smol/debug.json pour les autres langages.`;
     }
@@ -534,10 +532,10 @@ export async function queryDebug(root: string, args: DebugQuery, opts?: { canWri
     // Vérification immédiate : un message clair vaut mieux qu’une attente de 15 s.
     const probe = spawnSync("python", ["-c", "import debugpy"], { stdio: "ignore", timeout: 15_000, windowsHide: true });
     if (probe.error) {
-      return 'Error: « python » est introuvable sur le PATH. Installez Python puis debugpy (pip install debugpy), ou configurez spawn/adapter explicitement dans .smol/debug.json.';
+      return "Error: « python » est introuvable sur le PATH. Installez Python puis debugpy (pip install debugpy), ou configurez spawn/adapter explicitement dans .smol/debug.json.";
     }
     if (probe.status !== 0) {
-      return 'Error: debugpy n’est pas installé pour python. Lancez : pip install debugpy, ou configurez spawn/adapter explicitement dans .smol/debug.json.';
+      return "Error: debugpy n’est pas installé pour python. Lancez : pip install debugpy, ou configurez spawn/adapter explicitement dans .smol/debug.json.";
     }
   }
   const transport: "stdio" | "socket" = auto?.transport ?? (cfg.transport === "socket" ? "socket" : "stdio");

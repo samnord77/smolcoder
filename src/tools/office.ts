@@ -100,7 +100,8 @@ export function runDocument(root: string, args: any): string {
     let summary = "";
     if (format === "xlsx") {
       const rawSheets = Array.isArray(args?.sheets) ? args.sheets : [];
-      if (!rawSheets.length) return 'Error: sheets requis pour un .xlsx — {"sheets": [{"name": "2026", "rows": [["Date", "Montant"], ["01/01", 120]]}]}.';
+      if (!rawSheets.length)
+        return 'Error: sheets requis pour un .xlsx — {"sheets": [{"name": "2026", "rows": [["Date", "Montant"], ["01/01", 120]]}]}.';
       if (rawSheets.length > MAX_SHEETS) return `Error: trop de feuilles (max ${MAX_SHEETS}).`;
       const sheets: XlsxSheet[] = [];
       let totalRows = 0;
@@ -115,7 +116,8 @@ export function runDocument(root: string, args: any): string {
       summary = `${sheets.length} feuille(s), ${totalRows} ligne(s)`;
     } else if (format === "docx") {
       const rawBlocks = Array.isArray(args?.blocks) ? args.blocks : [];
-      if (!rawBlocks.length && !title) return 'Error: blocks (ou title) requis pour un .docx — {"blocks": [{"heading": "Titre", "text": "…"}]}.';
+      if (!rawBlocks.length && !title)
+        return 'Error: blocks (ou title) requis pour un .docx — {"blocks": [{"heading": "Titre", "text": "…"}]}.';
       if (rawBlocks.length > MAX_BLOCKS) return `Error: trop de blocs (max ${MAX_BLOCKS}).`;
       const blocks: DocBlock[] = [];
       for (const entry of rawBlocks) {

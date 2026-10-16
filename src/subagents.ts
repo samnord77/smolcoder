@@ -63,7 +63,20 @@ const TOOL_ALIASES: Record<string, string> = {
 };
 /** A markdown agent that declares no tools was written for a full harness: it
  * gets the same scope as the shipped expert, so it stays useful. */
-const DEFAULT_MD_TOOLS = ["read_file", "search", "symbols", "list_files", "run_command", "edit_file", "write_file", "mcp", "plan", "work", "skill", "fetch_url"];
+const DEFAULT_MD_TOOLS = [
+  "read_file",
+  "search",
+  "symbols",
+  "list_files",
+  "run_command",
+  "edit_file",
+  "write_file",
+  "mcp",
+  "plan",
+  "work",
+  "skill",
+  "fetch_url",
+];
 
 /** Shipped specialist recipes. Their tool lists are enforced by the harness. */
 export const BUILTIN_ROLES: SubagentRole[] = [
@@ -466,7 +479,12 @@ function parseRoleMd(raw: string, fallbackName: string, source: SubagentRole["so
       if (mapped) tools.add(mapped);
     }
   }
-  const description = field("description") || body.replace(/[#*`>_-]+/g, " ").replace(/\s+/g, " ").trim();
+  const description =
+    field("description") ||
+    body
+      .replace(/[#*`>_-]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
   return {
     name,
     role: (field("name") || fallbackName).slice(0, 120),

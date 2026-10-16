@@ -52,19 +52,11 @@ function requireCalendarConfig(): CalendarConfig {
 // ---------------------------------------------------------------------------
 
 function unescapeIcsText(value: string): string {
-  return value
-    .replace(/\\n/gi, "\n")
-    .replace(/\\,/g, ",")
-    .replace(/\\;/g, ";")
-    .replace(/\\\\/g, "\\");
+  return value.replace(/\\n/gi, "\n").replace(/\\,/g, ",").replace(/\\;/g, ";").replace(/\\\\/g, "\\");
 }
 
 function escapeIcsText(value: string): string {
-  return value
-    .replace(/\\/g, "\\\\")
-    .replace(/;/g, "\\;")
-    .replace(/,/g, "\\,")
-    .replace(/\r?\n/g, "\\n");
+  return value.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
 }
 
 function unfoldIcs(text: string): string[] {
@@ -154,7 +146,10 @@ export function icsParseEvents(text: string): ParsedIcsEvent[] {
 }
 
 function toUtcStamp(ms: number): string {
-  return new Date(ms).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+  return new Date(ms)
+    .toISOString()
+    .replace(/[-:]/g, "")
+    .replace(/\.\d{3}Z$/, "Z");
 }
 
 function toDateStamp(ms: number): string {
@@ -311,10 +306,8 @@ async function propfindHref(cfg: CalendarConfig, url: string, prop: string): Pro
 }
 
 export async function discoverCalendars(cfg: CalendarConfig): Promise<CalendarInfo[]> {
-  const principal =
-    (await propfindHref(cfg, cfg.url, "<d:current-user-principal/>")) ?? cfg.url;
-  const home =
-    (await propfindHref(cfg, principal, "<d:calendar-home-set/>")) ?? principal;
+  const principal = (await propfindHref(cfg, cfg.url, "<d:current-user-principal/>")) ?? cfg.url;
+  const home = (await propfindHref(cfg, principal, "<d:calendar-home-set/>")) ?? principal;
   const body =
     '<?xml version="1.0" encoding="utf-8"?>\n' +
     '<d:propfind xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav"><d:prop>' +

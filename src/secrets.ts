@@ -109,8 +109,7 @@ function isPlaceholder(value: string): boolean {
   // Référence de code sans chiffre (config.authToken, settings.token…) :
   // un identifiant pur, pas un secret. Avec un chiffre, on signale quand
   // même (mot de passe court typique).
-  if (/^[A-Za-z_$][A-Za-z0-9_$]*(?:\.[A-Za-z_$][A-Za-z0-9_$]*)*$/.test(t) && !/[0-9]/.test(t))
-    return true;
+  if (/^[A-Za-z_$][A-Za-z0-9_$]*(?:\.[A-Za-z_$][A-Za-z0-9_$]*)*$/.test(t) && !/[0-9]/.test(t)) return true;
   return false;
 }
 
@@ -138,8 +137,7 @@ const RULES: SecretRule[] = [
   },
   {
     name: "secret en clair",
-    pattern:
-      /\b(password|passwd|secret|api[_-]?key|access[_-]?token|auth[_-]?token|client[_-]?secret)\s*[:=]\s*["']?([^\s"']{8,})/i,
+    pattern: /\b(password|passwd|secret|api[_-]?key|access[_-]?token|auth[_-]?token|client[_-]?secret)\s*[:=]\s*["']?([^\s"']{8,})/i,
     valueGroup: 2,
     label: "••••",
   },
@@ -189,10 +187,7 @@ function looksBinary(filePath: string): boolean {
 }
 
 /** Parcourt un dossier (borné) et retourne les secrets potentiels trouvés. */
-export function scanWorkspaceFiles(
-  root: string,
-  opts: { maxFiles?: number } = {},
-): WorkspaceScanResult {
+export function scanWorkspaceFiles(root: string, opts: { maxFiles?: number } = {}): WorkspaceScanResult {
   const maxFiles = opts.maxFiles ?? SCAN_MAX_FILES;
   const result: WorkspaceScanResult = { scanned: 0, skipped: 0, findings: [], truncated: false };
   const queue: string[] = [root];
@@ -249,9 +244,7 @@ export function formatSecretsReport(scan: WorkspaceScanResult, root: string): st
   const lines: string[] = [];
   lines.push("Analyse de secrets — 100 % locale, aucun envoi sur le réseau.");
   lines.push(`Dossier : ${root}`);
-  lines.push(
-    `Fichiers analysés : ${scan.scanned} (ignorés : ${scan.skipped}${scan.truncated ? ", analyse tronquée" : ""}).`,
-  );
+  lines.push(`Fichiers analysés : ${scan.scanned} (ignorés : ${scan.skipped}${scan.truncated ? ", analyse tronquée" : ""}).`);
   if (scan.findings.length === 0) {
     lines.push("Aucun secret potentiel détecté.");
     return lines.join("\n");

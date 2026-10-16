@@ -94,10 +94,7 @@ test("alternating unchanged reads stop with a recoverable error before the model
 });
 
 test("rewindTranscript truncates the conversation back to a saved mark", async () => {
-  const replies = [
-    { content: "", toolCalls: [{ id: "r0", name: "read_file", args: { path: "a.txt" } }] },
-    { content: "Fini." },
-  ];
+  const replies = [{ content: "", toolCalls: [{ id: "r0", name: "read_file", args: { path: "a.txt" } }] }, { content: "Fini." }];
   const agent = makeAgent(scriptedProvider(replies), fakeUi());
   fs.writeFileSync(path.join(agent.toolCtx.workspace, "a.txt"), "module");
   const mark = agent.transcriptCount();

@@ -1,4 +1,4 @@
-"use strict";
+
 /** The `github` tool: spec gating, validation, missing-gh honesty, live read. */
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -58,14 +58,22 @@ test("runGithub says honestly when gh is missing", () => {
   }
 });
 
-test("github: live status works through the real gh CLI", { skip: mcpModule.findCommand("gh") === null ? "aucun gh CLI sur cette machine" : false }, () => {
-  const out = runGithub(tmpdir(), { action: "status" });
-  assert.ok(typeof out === "string" && out.length > 0);
-  assert.match(out, /Logged in|Error:/);
-});
+test(
+  "github: live status works through the real gh CLI",
+  { skip: mcpModule.findCommand("gh") === null ? "aucun gh CLI sur cette machine" : false },
+  () => {
+    const out = runGithub(tmpdir(), { action: "status" });
+    assert.ok(typeof out === "string" && out.length > 0);
+    assert.match(out, /Logged in|Error:/);
+  }
+);
 
-test("github: pr_create outside a git repository fails cleanly", { skip: mcpModule.findCommand("gh") === null ? "aucun gh CLI sur cette machine" : false }, () => {
-  const out = runGithub(tmpdir(), { action: "pr_create", title: "test", body: "corps" }, { canWrite: true });
-  assert.match(out, /^Error: gh pr create a échoué/);
-  assert.match(out, /poussez d'abord la branche/i);
-});
+test(
+  "github: pr_create outside a git repository fails cleanly",
+  { skip: mcpModule.findCommand("gh") === null ? "aucun gh CLI sur cette machine" : false },
+  () => {
+    const out = runGithub(tmpdir(), { action: "pr_create", title: "test", body: "corps" }, { canWrite: true });
+    assert.match(out, /^Error: gh pr create a échoué/);
+    assert.match(out, /poussez d'abord la branche/i);
+  }
+);

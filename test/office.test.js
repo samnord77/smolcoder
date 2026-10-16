@@ -1,5 +1,3 @@
-
-
 /**
  * Tests du chantier « documents pro » : src/office.ts écrit de vrais
  * fichiers ZIP/XML (docx, xlsx, pptx) et PDF, sans aucune dépendance.
@@ -63,7 +61,14 @@ function text(zip, name) {
 test("xlsx: real workbook with bold header row, inline strings and numbers", () => {
   const root = tmpWorkspace();
   writeXlsx(path.join(root, "budget.xlsx"), [
-    { name: "2026", rows: [["Date", "Montant"], ["01/01", 120], ["02/01", 80.5]] },
+    {
+      name: "2026",
+      rows: [
+        ["Date", "Montant"],
+        ["01/01", 120],
+        ["02/01", 80.5],
+      ],
+    },
   ]);
   const zip = readZip(fs.readFileSync(path.join(root, "budget.xlsx")));
   assert.ok(zip["[Content_Types].xml"], "[Content_Types].xml present");
@@ -83,7 +88,13 @@ test("docx: title, headings, bullets and a bordered table", () => {
   const root = tmpWorkspace();
   writeDocx(path.join(root, "rapport.docx"), "Rapport annuel", [
     { heading: "Contexte", text: "Première ligne.", bullets: ["un", "deux"] },
-    { subheading: "Détails", table: [["A", "B"], [1, 2]] },
+    {
+      subheading: "Détails",
+      table: [
+        ["A", "B"],
+        [1, 2],
+      ],
+    },
   ]);
   const zip = readZip(fs.readFileSync(path.join(root, "rapport.docx")));
   const doc = text(zip, "word/document.xml");
@@ -97,10 +108,7 @@ test("docx: title, headings, bullets and a bordered table", () => {
 
 test("pptx: one slide per entry with a real theme", () => {
   const root = tmpWorkspace();
-  writePptx(path.join(root, "pitch.pptx"), [
-    { title: "Idée", bullets: ["rapide", "simple"] },
-    { title: "Plan" },
-  ]);
+  writePptx(path.join(root, "pitch.pptx"), [{ title: "Idée", bullets: ["rapide", "simple"] }, { title: "Plan" }]);
   const zip = readZip(fs.readFileSync(path.join(root, "pitch.pptx")));
   assert.ok(zip["ppt/slides/slide1.xml"] && zip["ppt/slides/slide2.xml"]);
   assert.match(text(zip, "ppt/slides/slide1.xml"), /Idée/);
@@ -127,7 +135,15 @@ test("runDocument writes the file, adds the extension and summarizes", () => {
   const ok = runDocument(root, {
     format: "xlsx",
     path: "budget",
-    sheets: [{ name: "2026", rows: [["Date", "Montant"], ["01/01", 120]] }],
+    sheets: [
+      {
+        name: "2026",
+        rows: [
+          ["Date", "Montant"],
+          ["01/01", 120],
+        ],
+      },
+    ],
   });
   assert.match(ok, /Document créé : budget\.xlsx/);
   assert.match(ok, /1 feuille\(s\), 2 ligne\(s\)/);

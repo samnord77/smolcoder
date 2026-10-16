@@ -102,11 +102,7 @@ class ZipWriter {
 /* ------------------------------------------------------------------ XML -- */
 
 function xml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
 export function colName(index: number): string {
@@ -119,8 +115,7 @@ export function colName(index: number): string {
   return name;
 }
 
-const WORD_HEADER =
-  '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n';
+const WORD_HEADER = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n';
 const W_NS =
   'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"';
 
@@ -219,12 +214,7 @@ function docxParagraph(style: string | null, text: string, bold = false): string
 
 function docxTable(rows: (string | number)[][]): string {
   const body = rows
-    .map(
-      (row, r) =>
-        `<w:tr>${row
-          .map((cell) => `<w:tc>${docxParagraph(null, String(cell), r === 0)}</w:tc>`)
-          .join("")}</w:tr>`
-    )
+    .map((row, r) => `<w:tr>${row.map((cell) => `<w:tc>${docxParagraph(null, String(cell), r === 0)}</w:tc>`).join("")}</w:tr>`)
     .join("");
   return `<w:tbl><w:tblPr><w:tblBorders><w:top w:val="single" w:sz="4" w:color="999999"/><w:left w:val="single" w:sz="4" w:color="999999"/><w:bottom w:val="single" w:sz="4" w:color="999999"/><w:right w:val="single" w:sz="4" w:color="999999"/><w:insideH w:val="single" w:sz="4" w:color="999999"/><w:insideV w:val="single" w:sz="4" w:color="999999"/></w:tblBorders></w:tblPr>${body}</w:tbl>`;
 }
@@ -415,7 +405,9 @@ export function writePdf(absPath: string, title: string | undefined, lines: stri
   objects.push(`2 0 obj\n<< /Type /Pages /Kids [${kids}] /Count ${pageIds.length} >>\nendobj\n`);
   objects.push("3 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj\n");
   for (const page of pageRecords) {
-    objects.push(`${page.contentId} 0 obj\n<< /Length ${Buffer.byteLength(page.content, "latin1")} >>\nstream\n${page.content}\nendstream\nendobj\n`);
+    objects.push(
+      `${page.contentId} 0 obj\n<< /Length ${Buffer.byteLength(page.content, "latin1")} >>\nstream\n${page.content}\nendstream\nendobj\n`
+    );
     objects.push(
       `${page.id} 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE_W} ${PAGE_H}] /Resources << /Font << /F1 3 0 R >> >> /Contents ${page.contentId} 0 R >>\nendobj\n`
     );

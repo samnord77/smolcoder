@@ -115,11 +115,14 @@ class Wire {
       const remain = deadline - Date.now();
       if (remain <= 0) throw new Error("délai dépassé en attendant le serveur");
       await new Promise<void>((resolve) => {
-        const timer = setTimeout(() => {
-          const i = this.wake.indexOf(fn);
-          if (i >= 0) this.wake.splice(i, 1);
-          resolve();
-        }, Math.min(remain, 400));
+        const timer = setTimeout(
+          () => {
+            const i = this.wake.indexOf(fn);
+            if (i >= 0) this.wake.splice(i, 1);
+            resolve();
+          },
+          Math.min(remain, 400)
+        );
         const fn = () => {
           clearTimeout(timer);
           resolve();
@@ -151,9 +154,7 @@ function connectSocket(ep: MailEndpoint, deadline: number): Promise<net.Socket> 
     const timeoutMs = Math.max(1000, deadline - Date.now());
     let sock: net.Socket;
     try {
-      sock = ep.secure
-        ? tls.connect({ host: ep.host, port: ep.port, servername: ep.host })
-        : net.connect({ host: ep.host, port: ep.port });
+      sock = ep.secure ? tls.connect({ host: ep.host, port: ep.port, servername: ep.host }) : net.connect({ host: ep.host, port: ep.port });
     } catch (e) {
       reject(new Error(msgOf(e)));
       return;
@@ -246,10 +247,7 @@ export function qpDecode(input: Buffer): Buffer {
 export function decodeEncodedWords(value: string): string {
   return value.replace(/=\?([^?]+)\?([BbQq])\?([^?]*)\?=/g, (whole, charset: string, enc: string, data: string) => {
     try {
-      const buf =
-        enc.toUpperCase() === "B"
-          ? Buffer.from(data, "base64")
-          : qpDecode(Buffer.from(data.replace(/_/g, " "), "latin1"));
+      const buf = enc.toUpperCase() === "B" ? Buffer.from(data, "base64") : qpDecode(Buffer.from(data.replace(/_/g, " "), "latin1"));
       return decodeCharset(buf, charset);
     } catch {
       return whole;
@@ -321,7 +319,10 @@ function splitMultipart(body: Buffer, boundary: string): MimePart[] {
     const sep = seg.search(/\r?\n\r?\n/);
     if (sep < 0) continue;
     const headers = seg.slice(0, sep);
-    const bodyText = seg.slice(sep).replace(/^\r?\n\r?\n/, "").replace(/\r?\n$/, "");
+    const bodyText = seg
+      .slice(sep)
+      .replace(/^\r?\n\r?\n/, "")
+      .replace(/\r?\n$/, "");
     parts.push({ headers, body: Buffer.from(bodyText, "latin1") });
   }
   return parts;
@@ -421,10 +422,7 @@ class ImapClient {
 
   async fetch(uids: number[]): Promise<{ text: string; literals: Array<{ data: Buffer; truncated: boolean }> }> {
     const literals: Array<{ data: Buffer; truncated: boolean }> = [];
-    const lines = await this.command(
-      `UID FETCH ${uids.join(",")} (UID FLAGS BODY.PEEK[HEADER] BODY.PEEK[TEXT])`,
-      literals
-    );
+    const lines = await this.command(`UID FETCH ${uids.join(",")} (UID FLAGS BODY.PEEK[HEADER] BODY.PEEK[TEXT])`, literals);
     return { text: lines.join("\n"), literals };
   }
 
@@ -481,7 +479,9 @@ function buildMessage(o: { from: string; to: string[]; cc: string[]; subject: st
     "Content-Type: text/plain; charset=utf-8",
     "Content-Transfer-Encoding: base64",
   ];
-  const body = Buffer.from(o.text, "utf8").toString("base64").replace(/(.{76})/g, "$1\r\n");
+  const body = Buffer.from(o.text, "utf8")
+    .toString("base64")
+    .replace(/(.{76})/g, "$1\r\n");
   return Buffer.from(`${headers.join("\r\n")}\r\n\r\n${body}\r\n`, "utf8");
 }
 
@@ -715,8 +715,7 @@ export async function checkMail(cfg = mailConfig()): Promise<MailCheck> {
 export function formatMailList(items: MailSummary[]): string {
   if (!items.length) return "Boîte de réception : aucun message.";
   const lines = items.map(
-    (m) =>
-      `${m.seen ? "·" : "•"} #${m.uid}  ${shorten(m.subject, 70)}\n    de ${shorten(m.from, 60)} — ${shortDate(m.date)}`
+    (m) => `${m.seen ? "·" : "•"} #${m.uid}  ${shorten(m.subject, 70)}\n    de ${shorten(m.from, 60)} — ${shortDate(m.date)}`
   );
   return `${items.length} message(s) (les plus récents d'abord ; • = non lu) :\n${lines.join("\n")}`;
 }

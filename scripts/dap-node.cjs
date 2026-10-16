@@ -435,7 +435,7 @@ async function doLaunch(msg, a) {
       touch();
     } else if (m.method === "Runtime.exceptionThrown") {
       const d = m.params && m.params.exceptionDetails;
-      emitOutput(`exception : ${d && ((d.exception && d.exception.description) || d.text) || "inconnue"}`);
+      emitOutput(`exception : ${(d && ((d.exception && d.exception.description) || d.text)) || "inconnue"}`);
     }
   };
   cdp.ws.addEventListener("message", (ev) => {

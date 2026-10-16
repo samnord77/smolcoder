@@ -22,7 +22,7 @@ export function githubTool(canWrite: boolean): ToolSpec {
   const actions = canWrite ? [...READ_ACTIONS, ...WRITE_ACTIONS] : [...READ_ACTIONS];
   const description = canWrite
     ? 'GitHub via the signed-in gh CLI: pull requests, CI checks, issues. pr_list/pr_view/pr_checks/issue_list/issue_view read; {"action":"pr_create","title":"Fix login","body":"Why","base":"main"} opens a PR from the current branch — push it first.'
-    : 'GitHub reads via the signed-in gh CLI: pull requests, CI checks, issues. Creating pull requests needs an editing mode.';
+    : "GitHub reads via the signed-in gh CLI: pull requests, CI checks, issues. Creating pull requests needs an editing mode.";
   return {
     name: "github",
     description,
@@ -115,7 +115,16 @@ export function runGithub(root: string, args: Record<string, any>, opts?: { canW
       const bodyFile = path.join(os.tmpdir(), `smol-pr-body-${process.pid}.md`);
       try {
         fs.writeFileSync(bodyFile, body, "utf8");
-        const r = runGh(root, ["pr", "create", "--title", title, "--body-file", bodyFile, ...(base ? ["--base", base] : []), ...(args.draft === true ? ["--draft"] : [])]);
+        const r = runGh(root, [
+          "pr",
+          "create",
+          "--title",
+          title,
+          "--body-file",
+          bodyFile,
+          ...(base ? ["--base", base] : []),
+          ...(args.draft === true ? ["--draft"] : []),
+        ]);
         if (!r.ok) return cap(`${r.text}\nIndice : poussez d'abord la branche (git push -u origin HEAD).`);
         return cap(`Pull request créée.\n${r.text}`);
       } catch (e: any) {

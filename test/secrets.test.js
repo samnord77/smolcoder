@@ -18,12 +18,7 @@ function scratch(prefix = "smol-secrets-") {
 
 test("scanForSecrets detects each family and masks the value", () => {
   const aws = "AKIAIOSFODNN7EXAMPLE";
-  const text = [
-    "clean line",
-    `const k = '${aws}';`,
-    "-----BEGIN RSA PRIVATE KEY-----",
-    "password = SuperSecretPass123",
-  ].join("\n");
+  const text = ["clean line", `const k = '${aws}';`, "-----BEGIN RSA PRIVATE KEY-----", "password = SuperSecretPass123"].join("\n");
   const findings = scanForSecrets(text);
   const rules = findings.map((f) => f.rule);
   assert.ok(rules.includes("clé AWS"));
@@ -41,8 +36,7 @@ test("token families: Google, GitHub, sk-, Slack, Stripe and JWT", () => {
   const sk = "sk-ant-api03-" + "x7".repeat(12);
   const slack = "xoxb-1234567890-abcdefghijkl";
   const stripe = "sk_live_" + "41Qm".repeat(6);
-  const jwt =
-    "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U";
+  const jwt = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U";
   const findings = scanForSecrets([google, github, sk, slack, stripe, jwt].join("\n"));
   const rules = new Set(findings.map((f) => f.rule));
   assert.ok(rules.has("clé Google API"));

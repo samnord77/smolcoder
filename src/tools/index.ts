@@ -92,8 +92,7 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
     },
     {
       name: "list_files",
-      description:
-        'List files/folders. Example: {} = everything, {"path": "src"} = one folder. Folders end with "/".',
+      description: 'List files/folders. Example: {} = everything, {"path": "src"} = one folder. Folders end with "/".',
       parameters: {
         type: "object",
         properties: {
@@ -103,8 +102,7 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
     },
     {
       name: "search",
-      description:
-        'Search files for a pattern (regex or plain text). Example: {"pattern": "TODO"}. Returns file:line: matching text.',
+      description: 'Search files for a pattern (regex or plain text). Example: {"pattern": "TODO"}. Returns file:line: matching text.',
       parameters: {
         type: "object",
         properties: {
@@ -372,7 +370,8 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
 
   // Read-only: reads + the work board + delegation (children inherit read-only,
   // so they can investigate without ever writing).
-  if (mode === "ro") return [...read, browserTool(false), githubTool(false), workTool(false), mailTool(false), calendarTool(false), ...delegate];
+  if (mode === "ro")
+    return [...read, browserTool(false), githubTool(false), workTool(false), mailTool(false), calendarTool(false), ...delegate];
   const mcp: ToolSpec[] = [
     {
       name: "mcp",
@@ -412,7 +411,19 @@ export function buildToolSpecs(mode: Mode, opts?: { allowDelegate?: boolean }): 
       },
     },
   ];
-  return [...read, browserTool(true), githubTool(true), workTool(true), mailTool(true), calendarTool(true), ...write, ...exec, ...mcp, ...symbols, ...delegate];
+  return [
+    ...read,
+    browserTool(true),
+    githubTool(true),
+    workTool(true),
+    mailTool(true),
+    calendarTool(true),
+    ...write,
+    ...exec,
+    ...mcp,
+    ...symbols,
+    ...delegate,
+  ];
 }
 
 /** One undoable file write: absolute path, full previous content (null when

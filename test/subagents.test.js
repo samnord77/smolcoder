@@ -26,7 +26,16 @@ test("the shipped roster is complete and well-formed", () => {
     assert.ok(r.instructions.length >= 40, `${r.name} has no real instructions`);
     assert.equal(r.source, "builtin");
   }
-  for (const want of ["expert", "architect", "api_designer", "data_engineer", "frontend_engineer", "release_manager", "teacher", "automation_engineer"]) {
+  for (const want of [
+    "expert",
+    "architect",
+    "api_designer",
+    "data_engineer",
+    "frontend_engineer",
+    "release_manager",
+    "teacher",
+    "automation_engineer",
+  ]) {
     assert.ok(names.has(want), `missing role: ${want}`);
   }
 });
@@ -49,21 +58,31 @@ test("a workspace role overrides a builtin of the same name, and load never thro
   assert.equal(builtinExpert.source, "builtin");
   const dir = path.join(ws, ".smol", "agents");
   fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(path.join(dir, "expert.json"), JSON.stringify({ name: "expert", role: "Mon Expert", description: "d", instructions: "i" }));
+  fs.writeFileSync(
+    path.join(dir, "expert.json"),
+    JSON.stringify({ name: "expert", role: "Mon Expert", description: "d", instructions: "i" })
+  );
   fs.writeFileSync(path.join(dir, "broken.json"), "{ not json");
   const roles = loadSubagentRoles(ws);
   const mine = roles.find((r) => r.name === "expert");
   assert.equal(mine.source, "workspace");
   assert.equal(mine.role, "Mon Expert");
   assert.ok(roles.length >= 30, "the broken file must be skipped, not fatal");
-  for (const r of BUILTIN_ROLES) assert.ok(roles.find((x) => x.name === r.name), `lost builtin ${r.name}`);
+  for (const r of BUILTIN_ROLES)
+    assert.ok(
+      roles.find((x) => x.name === r.name),
+      `lost builtin ${r.name}`
+    );
 });
 
 test("a folder-added role lands in the roster with its own scope", () => {
   const ws = scratch();
   const dir = path.join(ws, ".smol", "agents");
   fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(path.join(dir, "my_helper.json"), JSON.stringify({ role: "Helper", description: "aide locale", instructions: "Lis avant d'agir.", tools: ["read_file", "search"] }));
+  fs.writeFileSync(
+    path.join(dir, "my_helper.json"),
+    JSON.stringify({ role: "Helper", description: "aide locale", instructions: "Lis avant d'agir.", tools: ["read_file", "search"] })
+  );
   const helper = loadSubagentRoles(ws).find((r) => r.name === "my_helper");
   assert.ok(helper, "the folder role must appear");
   assert.equal(helper.source, "workspace");
@@ -71,7 +90,10 @@ test("a folder-added role lands in the roster with its own scope", () => {
 });
 
 test("delegatePrompt carries the role, its tools and the task", () => {
-  const p = delegatePrompt({ name: "teacher", role: "Codebase Teacher", tools: ["read_file", "plan"], instructions: "Teach from real code." }, "explique le module router");
+  const p = delegatePrompt(
+    { name: "teacher", role: "Codebase Teacher", tools: ["read_file", "plan"], instructions: "Teach from real code." },
+    "explique le module router"
+  );
   assert.match(p, /teacher/);
   assert.match(p, /Codebase Teacher/);
   assert.match(p, /explique le module router/);
@@ -110,7 +132,10 @@ test("an agent markdown without tools gets the full default set, and a boolean t
   fs.writeFileSync(path.join(dir, "plain.md"), "---\nname: plain\ndescription: d\n---\nBody here.");
   const plain = loadSubagentRoles(ws).find((x) => x.name === "plain");
   assert.ok(plain.tools.includes("edit_file") && plain.tools.includes("read_file"), plain.tools.join(","));
-  fs.writeFileSync(path.join(dir, "mapped.md"), "---\nname: mapped\ndescription: d\ntools:\n  read: true\n  edit: true\n  bash: false\n---\nBody.");
+  fs.writeFileSync(
+    path.join(dir, "mapped.md"),
+    "---\nname: mapped\ndescription: d\ntools:\n  read: true\n  edit: true\n  bash: false\n---\nBody."
+  );
   const mapped = loadSubagentRoles(ws).find((x) => x.name === "mapped");
   assert.deepEqual(mapped.tools, ["read_file", "edit_file"]);
 });
