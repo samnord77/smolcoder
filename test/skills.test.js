@@ -1,6 +1,7 @@
 // Skills, built-ins, auto-evolution and the visible YOLO mode: all
 // deterministic, no model calls, scratch workspaces only.
 const test = require("node:test");
+const { after } = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
@@ -8,6 +9,17 @@ const path = require("node:path");
 const skills = require("../dist/skills");
 const { buildToolSpecs, MODE_LABELS } = require("../dist/tools/index");
 const { yoloBanner } = require("../dist/session");
+
+// The machine skill folders (~/.agents/skills, ~/.codex/skills) hold whatever
+// the developer has installed; point them at an empty scratch dir so these
+// unit tests stay deterministic. The machine-skills test below sets its own
+// fixture root.
+const PREV_SKILL_DIRS = process.env.SMOLCODER_SKILL_DIRS;
+process.env.SMOLCODER_SKILL_DIRS = fs.mkdtempSync(path.join(os.tmpdir(), "smol-skills-empty-"));
+after(() => {
+  if (PREV_SKILL_DIRS === undefined) delete process.env.SMOLCODER_SKILL_DIRS;
+  else process.env.SMOLCODER_SKILL_DIRS = PREV_SKILL_DIRS;
+});
 
 function scratch() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "smol-skills-"));

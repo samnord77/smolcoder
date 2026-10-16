@@ -184,6 +184,7 @@ The full mechanics are in [docs/how-it-works.md](docs/how-it-works.md): the cont
 
 - **Give it a memory.** Put your conventions and commands in an `AGENTS.md` file at the project root. It is loaded every session and survives compaction.
 - **Let it delegate and remember.** Complex task? The agent hands a small exploration to a bounded sub-agent (`delegate`, 12 actions max) and files hard-won repairs away as reusable `skill`s in `.smol/skills/` — including the built-in `impeccable-design` for UI work. Matching skills load on their own.
+- **Bring your own specialists.** 30 sub-agent roles ship (architecture, security, testing, release, data, CI…) and the roster also reads your existing agent files: workspace `.claude/agents` / `.opencode/agents`, `~/.claude/agents`, `~/.config/opencode/agents` (ECC and friends) and skill-shipped `agents/` folders. Pick one in the control centre's «Sous-agents» tab, or add your own `.smol/agents/<name>.json`.
 - **Calibrate before long jobs.** `node scripts/vram-check.cjs` reads your GPU and Ollama's loaded context, then prints the right `smol --ctx` — no more memory saturation guesses.
 - **Turn thinking off for long jobs.** `/effort off` leaves more of each reply for tool calls and code.
 - **Let it run things in the background.** Dev servers and watchers run as background tasks. Check them with `/tasks` and `/logs`, stop them with `/stop`.
