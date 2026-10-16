@@ -8,6 +8,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { resolveInWorkspace } from "./sandbox";
+import { scanForSecrets } from "./secrets";
 
 const GIT_TIMEOUT_MS = 30_000;
 const OUTPUT_CAP = 8000;
@@ -245,9 +246,21 @@ export function gitCommit(root: string, message: string): string {
   if (!staged.out.trim()) {
     return 'Error: rien en staging — mettez d’abord les fichiers en staging avec {"action": "stage", "path": "."}. Ne commitez jamais à l’aveugle.';
   }
+  const stagedDiff = runGit(root, ["diff", "--cached", "-U0"]);
+  const addedLines =
+    stagedDiff.code === 0
+      ? stagedDiff.out
+          .split("\n")
+          .filter((l) => l.startsWith("+") && !l.startsWith("+++"))
+          .join("\n")
+      : "";
+  const secretFindings = scanForSecrets(addedLines.slice(0, 200_000));
   const r = runGit(root, ["commit", "-m", msg]);
   if (r.code !== 0) return `Error: git commit a échoué (${r.out.slice(0, 400)}).`;
-  return r.out.split("\n").slice(0, 4).join("\n");
+  const base = r.out.split("\n").slice(0, 4).join("\n");
+  if (secretFindings.length === 0) return base;
+  const rules = [...new Set(secretFindings.map((f) => f.rule))].join(", ");
+  return `${base}\n⚠️ ce commit contient ${secretFindings.length} secret(s) potentiel(s) : ${rules} (valeurs masquées). Vérifiez avant de pousser.`;
 }
 
 // ---------------------------------------------------------------------------

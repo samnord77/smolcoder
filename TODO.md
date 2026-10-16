@@ -76,6 +76,18 @@
       start, stale-pid cleanup, `~/.smolcoder/service.log` with rotation, and a silent auto-start
       from the TUI or the web hub whenever a registered workspace has routines. `test/service.test.js`: real start/stop lifecycle, due-routine
       claim with an injected executor (ok / erreur (code N)), honest uninstall.
+- [x] **Local secrets protection (`smol secrets`, write/commit warnings, dangerous-command gate)** —
+      `src/secrets.ts` scans text and whole folders for private-key blocks, AWS/Google/GitHub/Slack/
+      Stripe tokens, `sk-` keys and JWTs; values are always masked, never echoed, and placeholder
+      samples stay silent. `write_file` and `edit_file` append a ⚠️ warning when the written text
+      holds a secret, and the `git` tool scans the staged diff before committing (advisory, never
+      blocking). `classifyDanger` in `src/approvals.ts` forces a y/n question — even for in-workspace
+      commands in edit/auto modes, and even after an « always » — for `git push --force/-f/--mirror/
+      --delete`, `git reset --hard`, `git clean -f`, `npm publish` (pnpm/yarn/bun too), `gh`/`cargo
+      release`, `twine upload`, `dotnet nuget push`, pipes into a shell, `diskpart`/`mkfs`/`format X:`,
+      `shutdown`, `rm -rf` of a root/home and `Remove-Item -Recurse -Force`. New CLI `smol secrets
+      [path]` prints a fully local report (exit 1 on findings, nothing leaves the machine).
+      `test/secrets.test.js` + the agent gate tests in `test/agent.test.js`.
 - [x] **Cold language-server handshakes (`symbols` panels)** — the first `initialize` gets its own
       90 s budget (`INIT_TIMEOUT_MS` in `src/lsp-pro.ts`; a cold `pylsp` needs ~40 s on a cold
       machine), missing candidates are skipped with `findCommand` and never mask the installed

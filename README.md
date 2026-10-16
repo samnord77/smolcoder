@@ -98,6 +98,7 @@ smol --web                      # browser UI (see below)
 smol -p "fix the failing test"  # headless: run one prompt, print the transcript, exit
 smol -p "build the app" --verify "npm test"   # headless with an acceptance command
 smol service install                          # keep routines running in the background, at logon
+smol secrets                                  # scan the current folder for exposed keys, fully offline
 ```
 
 With `--verify`, the command has to pass before the run counts as done. Failures go back to the agent to repair, six attempts by default. `--verify-attempts 12` allows more.

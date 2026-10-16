@@ -493,6 +493,50 @@ test("edit mode: a command reaching outside the workspace asks, with the reason"
   assert.match(toolMsg.content, /declined/);
 });
 
+test("edit mode: a dangerous in-workspace command still asks, with the reason", async () => {
+  const provider = scriptedProvider([
+    { content: "", toolCalls: [{ id: "c1", name: "run_command", args: { command: "git reset --hard HEAD" } }] },
+    { content: "done", toolCalls: [] },
+  ]);
+  const ui = fakeUi();
+  const asks = [];
+  ui.confirmCommand = async (command, reason) => {
+    asks.push({ command, reason });
+    return "no";
+  };
+  const agent = makeAgent(provider, ui, "edit", true);
+  await agent.runTurn("go");
+  assert.equal(asks.length, 1);
+  assert.match(asks[0].reason, /modifications non committées/);
+  const toolMsg = provider.seen[1].find((m) => m.role === "tool");
+  assert.match(toolMsg.content, /declined/);
+});
+
+test("edit mode: 'always' never covers a dangerous command — it asks again", async () => {
+  const provider = scriptedProvider([
+    {
+      content: "",
+      toolCalls: [
+        { id: "c1", name: "run_command", args: { command: "git clean -fd" } },
+        { id: "c2", name: "run_command", args: { command: "git clean -fd" } },
+      ],
+    },
+    { content: "done", toolCalls: [] },
+  ]);
+  const ui = fakeUi();
+  let asked = 0;
+  ui.confirmCommand = async () => {
+    asked++;
+    return "always";
+  };
+  const agent = makeAgent(provider, ui, "edit", true);
+  require("node:child_process").execFileSync("git", ["init", "-q"], {
+    cwd: agent.toolCtx.workspace,
+  });
+  await agent.runTurn("go");
+  assert.equal(asked, 2);
+});
+
 test("edit mode, headless: an outside command is refused with coaching instead of hanging", async () => {
   const provider = scriptedProvider([
     { content: "", toolCalls: [{ id: "c1", name: "run_command", args: { command: "cat ~/.npmrc" } }] },

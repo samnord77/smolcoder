@@ -25,6 +25,7 @@ import { loadPlugins } from "./plugins";
 import { buildSystemPrompt, loadAgentsMd, loadMemoryMd } from "./prompt";
 import type { Effort } from "./providers/types";
 import { routeProvider } from "./router";
+import { formatSecretsReport, scanWorkspaceFiles } from "./secrets";
 import { ensureServiceRunningForRoutines, runServiceCli } from "./service";
 import {
   effortAdvice,
@@ -195,6 +196,9 @@ ${c.bold("Routines background service:")}
   smol service start|stop                keep them running with every app closed
   smol service install|uninstall         start at logon (Windows scheduled task)
 
+${c.bold("Secrets audit:")}
+  smol secrets [path]                    scan locally for exposed keys (nothing leaves the machine)
+
 ${c.bold("Keys:")}
   shift+tab   cycle mode (read-only → edit → auto-pilot → YOLO bypass)
   /           slash commands (autocomplete menu)
@@ -254,6 +258,21 @@ function prefsOf(args: CliArgs): SessionPrefs {
   return { mode: args.mode, model: args.model, ctx: args.ctx, effort: args.effort };
 }
 
+/** `smol secrets [chemin]` — audit local (hors-ligne) des secrets d'un dossier. */
+async function runSecretsCli(argv: string[]): Promise<void> {
+  const target = argv.find((a) => !a.startsWith("-"));
+  const root = path.resolve(target ?? process.cwd());
+  if (!fs.existsSync(root) || !fs.statSync(root).isDirectory()) {
+    console.error(`Dossier introuvable : ${root}`);
+    process.exitCode = 1;
+    return;
+  }
+  console.log(`  ${c.dim("Analyse locale — aucun contenu n'est envoyé sur le réseau.")}`);
+  const scan = scanWorkspaceFiles(root);
+  console.log(formatSecretsReport(scan, root));
+  if (scan.findings.length > 0) process.exitCode = 1;
+}
+
 // ---------------------------------------------------------------------------
 
 async function main(): Promise<void> {
@@ -279,6 +298,11 @@ async function main(): Promise<void> {
   const rawArgv = process.argv.slice(2);
   if (rawArgv[0] === "service") {
     await runServiceCli(rawArgv.slice(1));
+    return;
+  }
+  // `smol secrets [chemin]` audite un dossier sans jamais rien envoyer.
+  if (rawArgv[0] === "secrets") {
+    await runSecretsCli(rawArgv.slice(1));
     return;
   }
   if (args.verify && (!args.print || args.web)) throw new Error("--verify exige une exécution sans affichage avec -p");

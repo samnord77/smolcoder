@@ -7,6 +7,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { isHistoryPlaceholder } from "../history";
 import { relPath, resolveInWorkspace, SandboxError } from "../sandbox";
+import { secretsWarning } from "../secrets";
 import { truncateEnd } from "../util";
 
 const READ_LINE_LIMIT = 250;
@@ -181,9 +182,10 @@ export function writeFile(root: string, args: any): string {
   fs.mkdirSync(path.dirname(abs), { recursive: true });
   fs.writeFileSync(abs, args.content, "utf8");
   const newLines = args.content.split("\n").length;
-  return existed
+  const base = existed
     ? `${args.path} écrasé (était ${prevLines} lignes, maintenant ${newLines} lignes).`
     : `${args.path} créé (${newLines} lignes).`;
+  return base + secretsWarning(args.content);
 }
 
 // ---------------------------------------------------------------------------
@@ -355,7 +357,7 @@ export function editFile(root: string, args: any): string {
   const occurrences = content.split(oldNorm).length - 1;
   if (occurrences === 1) {
     fs.writeFileSync(abs, serialize(content.replace(oldNorm, newNorm)), "utf8");
-    return `${args.path} modifié : 1 occurrence remplacée.`;
+    return `${args.path} modifié : 1 occurrence remplacée.` + secretsWarning(newNorm);
   }
   if (occurrences > 1) {
     return `Error: old_text apparaît ${occurrences} fois dans ${args.path}. Ajoutez quelques lignes de contexte dans old_text pour qu'il corresponde à un seul endroit.`;
@@ -369,7 +371,10 @@ export function editFile(root: string, args: any): string {
     const start = matches[0];
     const replaced = [...fileLines.slice(0, start), ...newNorm.split("\n"), ...fileLines.slice(start + oldLines.length)].join("\n");
     fs.writeFileSync(abs, serialize(replaced), "utf8");
-    return `${args.path} modifié : 1 occurrence remplacée (les différences d'espacement dans old_text ont été ignorées).`;
+    return (
+      `${args.path} modifié : 1 occurrence remplacée (les différences d'espacement dans old_text ont été ignorées).` +
+      secretsWarning(newNorm)
+    );
   }
   if (matches.length > 1) {
     return `Error: old_text correspond à ${matches.length} endroits dans ${args.path} (espacement ignoré). Ajoutez plus de lignes de contexte pour le rendre unique.`;

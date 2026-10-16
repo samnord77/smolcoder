@@ -165,3 +165,82 @@ export function classifyCommand(command: string): CommandRisk {
 
   return "ask";
 }
+
+// ---------------------------------------------------------------------------
+// Commandes dangereuses : elles demandent TOUJOURS une confirmation humaine,
+// même à l'intérieur du dossier de travail et en mode edit/auto — réécrire
+// l'histoire d'un dépôt, publier un paquet, effacer un disque, éteindre la
+// machine. Un « always » sur le programme ne les couvre jamais : on redemande
+// à chaque fois. Retourne la raison (français) ou null.
+// ---------------------------------------------------------------------------
+
+interface DangerRule {
+  re: RegExp;
+  reason: string;
+}
+
+const DANGER_RULES: DangerRule[] = [
+  {
+    re: /\bgit\s+push\b[^\n]*(?:--force\S*|(?:^|\s)-f(?:\s|$)|--mirror|--delete)/i,
+    reason: "réécrit ou supprime l'histoire du dépôt distant (git push --force/--mirror/--delete)",
+  },
+  {
+    re: /\bgit\s+reset\b[^\n]*--hard\b/i,
+    reason: "jette des modifications non committées (git reset --hard)",
+  },
+  {
+    re: /\bgit\s+clean\b[^\n]*(?:--force|(?:^|\s)-[a-zA-Z]*f[a-zA-Z]*(?:\s|$))/i,
+    reason: "supprime définitivement des fichiers non suivis (git clean -f)",
+  },
+  {
+    re: /\b(?:npm|pnpm|yarn|bun)\s+publish\b/i,
+    reason: "publie un paquet (définitif pour la version publiée)",
+  },
+  {
+    re: /\b(?:gh|cargo)\s+(?:release|publish)\b/i,
+    reason: "publie une version (gh/cargo release)",
+  },
+  {
+    re: /\btwine\s+upload\b|\bdotnet\s+nuget\s+push\b/i,
+    reason: "téléverse un paquet vers un registre (twine/nuget)",
+  },
+  {
+    re: /\|\s*(?:bash|sh|zsh|dash|ksh|pwsh|powershell|cmd|iex|invoke-expression)\b/i,
+    reason: "exécute du code reçu par un pipe, sans relecture (… | sh)",
+  },
+  {
+    re: /\b(?:invoke-expression|iex)\b\s*[("]/i,
+    reason: "exécute du code arbitraire (Invoke-Expression/iex)",
+  },
+  {
+    re: /\b(?:diskpart|mkfs(?:\.\w+)?)\b/i,
+    reason: "efface ou reformate un disque (diskpart/mkfs)",
+  },
+  {
+    re: /\bformat(?:\.com)?\s+[a-z]:/i,
+    reason: "formate un disque (format X:)",
+  },
+  {
+    re: /\b(?:shutdown|restart-computer|stop-computer)\b/i,
+    reason: "éteint ou redémarre la machine",
+  },
+  {
+    re: /\bremove-item\b(?=[^\n]*-recurse)(?=[^\n]*-force)/i,
+    reason: "supprime récursivement sans confirmation (Remove-Item -Recurse -Force)",
+  },
+];
+
+export function classifyDanger(command: string): string | null {
+  const trimmed = command.trim();
+  if (!trimmed) return null;
+  for (const rule of DANGER_RULES) {
+    if (rule.re.test(trimmed)) return rule.reason;
+  }
+  // rm -rf visant une racine ou le dossier personnel : effacement massif.
+  if (/\brm\b(?=[^\n]*\s-[a-zA-Z]*r)(?=[^\n]*\s-[a-zA-Z]*f)/i.test(trimmed)) {
+    if (/(?:^|\s)(?:\/|~|\$HOME|[A-Za-z]:[\\/]?)(?:\s|$)/.test(trimmed)) {
+      return "efface récursivement une racine ou le dossier personnel (rm -rf)";
+    }
+  }
+  return null;
+}
