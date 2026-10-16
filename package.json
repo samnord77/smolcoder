@@ -15,13 +15,13 @@
   ],
   "license": "MIT",
   "author": "Leon van Zyl",
-  "homepage": "https://github.com/leonvanzyl/smolcoder#readme",
+  "homepage": "https://github.com/samnord77/smolcoder#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/leonvanzyl/smolcoder.git"
+    "url": "git+https://github.com/samnord77/smolcoder.git"
   },
   "bugs": {
-    "url": "https://github.com/leonvanzyl/smolcoder/issues"
+    "url": "https://github.com/samnord77/smolcoder/issues"
   },
   "bin": {
     "smol": "dist/index.js",
