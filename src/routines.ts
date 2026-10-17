@@ -320,7 +320,21 @@ export class RoutineBook {
     const temp = `${this.file}.${randomUUID()}.tmp`;
     try {
       fs.writeFileSync(temp, json, { encoding: "utf8", flag: "wx" });
-      fs.renameSync(temp, this.file);
+      // Windows can throw transient EPERM/EBUSY/EACCES while a scanner or a
+      // concurrent reader still holds the file we just wrote: retry briefly
+      // instead of failing a routine save the user never asked us to lose.
+      const startedAt = Date.now();
+      for (;;) {
+        try {
+          fs.renameSync(temp, this.file);
+          break;
+        } catch (error: any) {
+          const code = error?.code;
+          const transient = code === "EPERM" || code === "EBUSY" || code === "EACCES";
+          if (!transient || Date.now() - startedAt >= 1000) throw error;
+          Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 25);
+        }
+      }
     } finally {
       try {
         if (fs.existsSync(temp)) fs.unlinkSync(temp);
